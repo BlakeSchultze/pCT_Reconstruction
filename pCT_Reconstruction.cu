@@ -10,11 +10,15 @@
 // Preprocessing setup and initializations 
 void assign_SSD_positions();
 void initializations();
-void count_histories();
+void count_histories_old();
+void count_histories_v0();
+void count_histories_v1();
 void reserve_vector_capacity();
 
 // Preprocessing routines
-void iterative_data_read( int, int, int );
+void iterative_data_read_old( int, int, int );
+void iterative_data_read_v0( int, int, int );
+void iterative_data_read_v1( int, int, int );
 void recon_volume_intersections( int );
 void bin_valid_histories( int );
 void calculate_means();
@@ -146,7 +150,8 @@ int main(int argc, char** argv)
 	puts("Reading tracker plane positions and initializing storage arrays...");
 	assign_SSD_positions(); // Read the detector plane u-coordinates from config file
 	initializations(); // allocate and initialize host and GPU memory for binning
-	count_histories(); // count the number of histories per file, per scan , total, etc.
+	//count_histories_old(); // count the number of histories per file, per scan , total, etc.
+	count_histories_v0(); // count the number of histories per file, per scan , total, etc.
 	/********************************************************************************************/
 	/* Iteratively Read and Process Data One Chunk at a Time. There are at Most					*/
 	/* MAX_GPU_HISTORIES Per Chunk (i.e. Iteration). On Each Iteration:							*/
@@ -172,7 +177,8 @@ int main(int argc, char** argv)
 				break;
 			end_file_num++;
 		}
-		iterative_data_read( histories_to_process, start_file_num, end_file_num - 1 );
+		//iterative_data_read_old( histories_to_process, start_file_num, end_file_num - 1 );
+		iterative_data_read_v0( histories_to_process, start_file_num, end_file_num - 1 );
 		recon_volume_intersections( histories_to_process );
 		bin_valid_histories( histories_to_process );
 		if(  SC_ON && (!bad_data_angle( gantry_angle_h[0] ) || !RESTRICTED_ANGLES ) ) 
@@ -268,51 +274,13 @@ int main(int argc, char** argv)
 	puts("Calculating the Elements of the Sinogram...");
 	construct_sinogram();
 	/********************************************************************************************/
-	/* Use the paths associated with the sinogram bins to perform hull-detection				*/
-	/********************************************************************************************/
-	//puts("Performing Bin Carving and Writing Hull Image to Disk...");
-	//bin_carve();
-	////bin_model();
-	////BM_threshold();
-	/********************************************************************************************/
-	/* Initialize Post-Cut Hull Detection Images, Copy them to the GPU, and Write them to File	*/													
-	/********************************************************************************************/
-	//initialize_SC_hull(post_cut_SC_image_h, post_cut_SC_image_d);
-	////initialize_SC_hull(post_cut_MSC_image_h, post_cut_MSC_image_d);
-	////initialize_SM_hull(post_cut_SM_image_h, post_cut_SM_image_d);
-	/********************************************************************************************/
-	/* Iterate Through the Vectors Containing Histories that Passed Cuts, MAX_GPU_HISTORIES		*/
-	/* at a time, and Perform Hull Detection  Using these Histories								*/
-	/********************************************************************************************/	
-	//puts("Performing Post Cut Hull Detection...");
-	//remaining_histories = post_cut_histories, start_position = 0;
-	//while( remaining_histories > 0 )
-	//{
-	//	if( remaining_histories > MAX_GPU_HISTORIES )
-	//		histories_to_process = MAX_GPU_HISTORIES;
-	//	else
-	//		histories_to_process = remaining_histories;
-	//	//post_cut_hull_detection_init( start_position, histories_to_process );
-	//	//post_cut_SC( histories_to_process );
-	//	//post_cut_MSC( histories_to_process );
-	//	//post_cut_SM( histories_to_process );
-	//	//post_cut_hull_detection_memory_clean();
-	//	remaining_histories -= MAX_GPU_HISTORIES;
-	//	start_position += MAX_GPU_HISTORIES;
-	//}
-	/********************************************************************************************/
-	/* Perform Thresholding on Post-Cut MSC and SM Hulls and Write All Hull Images to File		*/													
-	/********************************************************************************************/
-	//puts("Performing Post-Cut Hull Thresholding and Writing Hull Images to Disk...");
-	////cudaMemcpy(post_cut_SC_image_h,  post_cut_SC_image_d, MEM_SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-	////write_integer_array_to_file("post_cut_x_SC", output_directory, output_folder, post_cut_SC_image_h, COLUMNS, ROWS, SLICES );
-	////post_cut_MSC_threshold();
-	////post_cut_SM_threshold();	
-	/********************************************************************************************/
 	/* Perform Filtered Backprojection and Write FBP Hull to Disk								*/
 	/********************************************************************************************/
-	filter();
-	backprojection();
+	if( FBP_ON )
+	{
+		filter();
+		backprojection();
+	}
 	/********************************************************************************************/
 	/* End Program Execution Timing Clock and Print	the Total Execution Time to Console Window	*/
 	/********************************************************************************************/
@@ -428,7 +396,140 @@ void initializations()
 	cudaMemcpy( stddev_rel_uv_angle_d,	stddev_rel_uv_angle_h,	MEM_SIZE_BINS_FLOATS,	cudaMemcpyHostToDevice );
 	cudaMemcpy( stddev_WEPL_d,			stddev_WEPL_h,			MEM_SIZE_BINS_FLOATS,	cudaMemcpyHostToDevice );
 }
-void count_histories()
+void count_histories_old()
+{
+	if( DEBUG_TEXT_ON )
+		printf("Counting histories...\n");
+	char data_filename[128];
+	int file_size, num_histories, file_number = 0, gantry_position_number = 0;
+	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += GANTRY_ANGLE_INTERVAL, gantry_position_number++ )
+	{
+		for( int scan_number = 1; scan_number <= NUM_SCANS; scan_number++, file_number++ )
+		{
+			
+			sprintf( data_filename, "%s%s/%s_trans%d_%03d.dat", input_directory, input_folder, input_base_name, scan_number, gantry_angle );
+			FILE *data_file = fopen(data_filename, "rb");
+			if( data_file == NULL )
+			{
+				fputs( "Error Opening Data File:  Check that the directories are properly named.", stderr ); 
+				exit(1);
+			}
+			fseek( data_file, 0, SEEK_END );
+			file_size = ftell( data_file );
+			if( BINARY_DATA_FILES )
+			{
+				if( file_size % BYTES_PER_HISTORY ) 
+				{
+					printf("ERROR! Problem with bytes_per_history!\n");
+					exit(2);
+				}
+				num_histories = file_size / BYTES_PER_HISTORY;	
+			}
+			else
+				num_histories = file_size;							
+			fclose(data_file);
+			histories_per_file[file_number] = num_histories;
+			histories_per_gantry_angle[gantry_position_number] += num_histories;
+			histories_per_scan[scan_number-1] += num_histories;
+			total_histories += num_histories;
+			
+			if( DEBUG_TEXT_ON )
+				printf("There are %d Histories for Gantry Angle %d From Scan Number %d\n",num_histories, gantry_angle, scan_number);
+		}
+	}
+	if( DEBUG_TEXT_ON )
+	{
+		for( int file_number = 0, int gantry_position_number = 0; file_number < (NUM_SCANS * GANTRY_ANGLES); file_number++, gantry_position_number++ )
+		{
+			if( file_number % NUM_SCANS == 0 )
+				printf("There are a Total of %d Histories From Gantry Angle %d\n", histories_per_gantry_angle[gantry_position_number], int(gantry_position_number* GANTRY_ANGLE_INTERVAL) );			
+			printf("* %d Histories are From Scan Number %d\n", histories_per_file[file_number], (file_number % NUM_SCANS) + 1 );
+			
+		}
+		for( int scan_number = 0; scan_number < NUM_SCANS; scan_number++ )
+			printf("There are a Total of %d Histories in Scan Number %d \n", histories_per_scan[scan_number], scan_number + 1);
+		printf("There are a Total of %d Histories\n", total_histories);
+	}
+	// The GPU cannot process all the histories at once, so they are broken up into chunks that can fit on the GPU.  As we iterate 
+	// through the data one chunk at a time, we determine which histories enter the reconstruction volume and if they belong to a 
+	// valid bin (i.e. t, v, and angular bin number is greater than zero and less than max).  If both are true, we append the bin
+	// number, WEPL, and relative entry/exit ut/uv angles to the following four arrays.  We do not know ahead of time how many 
+	// valid histories there will be, so memory is allocated to accomodate every history and the actual number of valid histories
+	// are counted. Although we waste some host memory, we can avoid writing intermediate information to file or keeping the raw 
+	// data and recalculating it every time its needed. Once all the data is processed and we know how many valid histories we 
+	// have, we simply ignore the illegitimate elements of the four arrays to avoid transferring invalid and unnecessary data to 
+	// and from the GPU.
+}
+void count_histories_v0()
+{
+	if( DEBUG_TEXT_ON )
+		printf("Counting histories...\n");
+	char data_filename[256];
+	int file_size, num_histories, file_number = 0, gantry_position_number = 0;
+	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += GANTRY_ANGLE_INTERVAL, gantry_position_number++ )
+	{
+		for( int scan_number = 1; scan_number <= NUM_SCANS; scan_number++, file_number++ )
+		{
+			sprintf(data_filename, "%s%s/%s_%03d.bin", input_directory, input_folder, input_base_name, gantry_angle );
+			ifstream data_file(data_filename, ios::binary);
+			if( data_file == NULL )
+			{
+				fputs( "Error Opening Data File:  Check that the directories are properly named.", stderr ); 
+				exit(1);
+			}
+			char magic_number[5];
+			data_file.read(magic_number, 4);
+			magic_number[4] = '\0';
+			if( strcmp(magic_number, "PCTD") ) {
+				printf("Error: unknown file type (should be PCTD)!\n");
+				exit(1);
+			}
+			int version_id;
+			data_file.read((char*)&version_id, sizeof(int));
+			if( version_id == 0 )
+			{
+				int num_histories;
+				data_file.read((char*)&num_histories, sizeof(int));						
+				data_file.close();
+				histories_per_file[file_number] = num_histories;
+				histories_per_gantry_angle[gantry_position_number] += num_histories;
+				histories_per_scan[scan_number-1] += num_histories;
+				total_histories += num_histories;
+			
+				if( DEBUG_TEXT_ON )
+					printf("There are %d Histories for Gantry Angle %d From Scan Number %d\n",num_histories, gantry_angle, scan_number);
+			}
+			else 
+			{
+				printf("ERROR: Unsupported format version (%d)!\n", version_id);
+				exit(1);
+			}			
+		}
+	}
+	if( DEBUG_TEXT_ON )
+	{
+		for( int file_number = 0, int gantry_position_number = 0; file_number < (NUM_SCANS * GANTRY_ANGLES); file_number++, gantry_position_number++ )
+		{
+			if( file_number % NUM_SCANS == 0 )
+				printf("There are a Total of %d Histories From Gantry Angle %d\n", histories_per_gantry_angle[gantry_position_number], int(gantry_position_number* GANTRY_ANGLE_INTERVAL) );			
+			printf("* %d Histories are From Scan Number %d\n", histories_per_file[file_number], (file_number % NUM_SCANS) + 1 );
+			
+		}
+		for( int scan_number = 0; scan_number < NUM_SCANS; scan_number++ )
+			printf("There are a Total of %d Histories in Scan Number %d \n", histories_per_scan[scan_number], scan_number + 1);
+		printf("There are a Total of %d Histories\n", total_histories);
+	}
+	// The GPU cannot process all the histories at once, so they are broken up into chunks that can fit on the GPU.  As we iterate 
+	// through the data one chunk at a time, we determine which histories enter the reconstruction volume and if they belong to a 
+	// valid bin (i.e. t, v, and angular bin number is greater than zero and less than max).  If both are true, we append the bin
+	// number, WEPL, and relative entry/exit ut/uv angles to the following four arrays.  We do not know ahead of time how many 
+	// valid histories there will be, so memory is allocated to accomodate every history and the actual number of valid histories
+	// are counted. Although we waste some host memory, we can avoid writing intermediate information to file or keeping the raw 
+	// data and recalculating it every time its needed. Once all the data is processed and we know how many valid histories we 
+	// have, we simply ignore the illegitimate elements of the four arrays to avoid transferring invalid and unnecessary data to 
+	// and from the GPU.
+}
+void count_histories_v1()
 {
 	if( DEBUG_TEXT_ON )
 		printf("Counting histories...\n");
@@ -513,8 +614,259 @@ void reserve_vector_capacity()
 /************************************************************************************************************************************************************/
 /********************************************************* Data Importation, Initial Cuts, and Binning ******************************************************/
 /************************************************************************************************************************************************************/
-void iterative_data_read( int num_histories, int start_file_num, int end_file_num )
+void iterative_data_read_old( int num_histories, int start_file_num, int end_file_num )
 {
+	unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
+	unsigned int mem_size_hist_ints = sizeof(int) * num_histories;
+
+	t_in_1_h         = (float*) malloc(mem_size_hist_floats);
+	t_in_2_h         = (float*) malloc(mem_size_hist_floats);
+	t_out_1_h        = (float*) malloc(mem_size_hist_floats);
+	t_out_2_h        = (float*) malloc(mem_size_hist_floats);
+	u_in_1_h         = (float*) malloc(mem_size_hist_floats);
+	u_in_2_h         = (float*) malloc(mem_size_hist_floats);
+	u_out_1_h        = (float*) malloc(mem_size_hist_floats);
+	u_out_2_h        = (float*) malloc(mem_size_hist_floats);
+	v_in_1_h         = (float*) malloc(mem_size_hist_floats);
+	v_in_2_h         = (float*) malloc(mem_size_hist_floats);
+	v_out_1_h        = (float*) malloc(mem_size_hist_floats);
+	v_out_2_h        = (float*) malloc(mem_size_hist_floats);		
+	WEPL_h           = (float*) malloc(mem_size_hist_floats);
+	gantry_angle_h   = (int*)   malloc(mem_size_hist_ints);
+
+	char data_filename[128];
+	int array_index = 0;
+	float min_WEPL = 20, max_WEPL = -20;
+	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
+	{
+		int gantry_position = file_num / NUM_SCANS;
+		int gantry_angle = gantry_position * GANTRY_ANGLE_INTERVAL;
+		int scan_number = file_num % NUM_SCANS + 1;
+		int scan_histories = histories_per_file[file_num];
+
+		printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
+		//sprintf( data_filename, "%s/%s_trans%d_%03d.dat", input_directory, input_base_name, scan_number, gantry_angle );
+		sprintf( data_filename, "%s%s/%s_trans%d_%03d.dat", input_directory, input_folder, input_base_name, scan_number, gantry_angle );
+		//cout << data_filename
+		FILE* data_file = fopen( data_filename, "rb" );	
+
+		for( int history = 0; history < scan_histories; history++, array_index++ ) 
+		{
+			float v_data[4], t_data[4], WEPL_data, gantry_angle_data, dummy_data;
+			char detector_number[4];
+
+			fread(&v_data,				sizeof(float),	4, data_file);
+			fread(&t_data,				sizeof(float),	4, data_file);
+			fread(&detector_number,		sizeof(char),	4, data_file);
+			fread(&WEPL_data,			sizeof(float),	1, data_file);
+			fread(&gantry_angle_data,	sizeof(float),	1, data_file);
+			fread(&dummy_data,			sizeof(float),	1, data_file); // dummy read because each event has an extra 4 bytes, for some reason
+			//puts("Hello");
+			if( DATA_IN_MM )
+			{
+				// Convert the input data from mm to cm
+				v_in_1_h[array_index]	= v_data[0] * 0.1;
+				v_in_2_h[array_index]	= v_data[1] * 0.1;
+				v_out_1_h[array_index]	= v_data[2] * 0.1;
+				v_out_2_h[array_index]	= v_data[3] * 0.1;
+				t_in_1_h[array_index]	= t_data[0] * 0.1;
+				t_in_2_h[array_index]	= t_data[1] * 0.1;
+				t_out_1_h[array_index]	= t_data[2] * 0.1;
+				t_out_2_h[array_index]	= t_data[3] * 0.1;
+				WEPL_h[array_index]		= WEPL_data * 0.1;
+			}
+			else
+			{
+				v_in_1_h[array_index]	= v_data[0];
+				v_in_2_h[array_index]	= v_data[1];
+				v_out_1_h[array_index]	= v_data[2];
+				v_out_2_h[array_index]	= v_data[3];
+				t_in_1_h[array_index]	= t_data[0];
+				t_in_2_h[array_index]	= t_data[1];
+				t_out_1_h[array_index]	= t_data[2];
+				t_out_2_h[array_index]	= t_data[3];
+				WEPL_h[array_index]		= WEPL_data;
+			}
+			//puts("Hello");
+			if( CONFIG_FILE )
+			{
+				if( SSD_IN_MM )
+				{
+					// Convert the tracking plane positions from mm to cm
+					u_in_1_h[array_index]	= SSD_u_Positions[int(detector_number[0])] * 0.1;
+					u_in_2_h[array_index]	= SSD_u_Positions[int(detector_number[1])] * 0.1;
+					u_out_1_h[array_index]	= SSD_u_Positions[int(detector_number[2])] * 0.1;
+					u_out_2_h[array_index]	= SSD_u_Positions[int(detector_number[3])] * 0.1;
+				}
+				else
+				{
+					u_in_1_h[array_index]	= SSD_u_Positions[int(detector_number[0])];
+					u_in_2_h[array_index]	= SSD_u_Positions[int(detector_number[1])];
+					u_out_1_h[array_index]	= SSD_u_Positions[int(detector_number[2])];
+					u_out_2_h[array_index]	= SSD_u_Positions[int(detector_number[3])];
+				}
+			}
+			else
+			{
+				if( SSD_IN_MM )
+				{
+					u_in_1_h[array_index]	= SSD_u_Positions[0] * 0.1;
+					u_in_2_h[array_index]	= SSD_u_Positions[2] * 0.1;
+					u_out_1_h[array_index]	= SSD_u_Positions[4] * 0.1;
+					u_out_2_h[array_index]	= SSD_u_Positions[6] * 0.1;
+				}
+				else
+				{
+					u_in_1_h[array_index]	= SSD_u_Positions[0];
+					u_in_2_h[array_index]	= SSD_u_Positions[2];
+					u_out_1_h[array_index]	= SSD_u_Positions[4];
+					u_out_2_h[array_index]	= SSD_u_Positions[6];
+				}
+			}
+			gantry_angle_h[array_index] = int(gantry_angle_data);
+			//if( WEPL_h[array_index] < min_WEPL )
+				//min_WEPL = WEPL_h[array_index];
+			//if( WEPL_h[array_index] > max_WEPL )
+				//max_WEPL = WEPL_h[array_index];
+		}
+		fclose(data_file);		
+	}
+	//printf("min_WEPL = %3f , max_WEPL = %3f\n\n", min_WEPL, max_WEPL);
+}
+void iterative_data_read_v0( int num_histories, int start_file_num, int end_file_num )
+{
+	unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
+	unsigned int mem_size_hist_ints = sizeof(int) * num_histories;
+
+	t_in_1_h         = (float*) malloc(mem_size_hist_floats);
+	t_in_2_h         = (float*) malloc(mem_size_hist_floats);
+	t_out_1_h        = (float*) malloc(mem_size_hist_floats);
+	t_out_2_h        = (float*) malloc(mem_size_hist_floats);
+	u_in_1_h         = (float*) malloc(mem_size_hist_floats);
+	u_in_2_h         = (float*) malloc(mem_size_hist_floats);
+	u_out_1_h        = (float*) malloc(mem_size_hist_floats);
+	u_out_2_h        = (float*) malloc(mem_size_hist_floats);
+	v_in_1_h         = (float*) malloc(mem_size_hist_floats);
+	v_in_2_h         = (float*) malloc(mem_size_hist_floats);
+	v_out_1_h        = (float*) malloc(mem_size_hist_floats);
+	v_out_2_h        = (float*) malloc(mem_size_hist_floats);		
+	WEPL_h           = (float*) malloc(mem_size_hist_floats);
+	gantry_angle_h   = (int*)   malloc(mem_size_hist_ints);
+
+	char text[20];
+	//fgets(text, sizeof(text), stdin);
+
+	char data_filename[128];
+	int array_index = 0;
+	float min_WEPL = 20, max_WEPL = -20;
+	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
+	{
+		int gantry_position = file_num / NUM_SCANS;
+		int gantry_angle = gantry_position * GANTRY_ANGLE_INTERVAL;
+		int scan_number = file_num % NUM_SCANS + 1;
+		int scan_histories = histories_per_file[file_num];
+		//fgets(text, sizeof(text), stdin);
+		printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
+		//sprintf( data_filename, "%s/%s_trans%d_%03d.dat", input_directory, input_base_name, scan_number, gantry_angle );
+		//sprintf( data_filename, "%s%s/%s_trans%d_%03d.dat", input_directory, input_folder, input_base_name, scan_number, gantry_angle );
+		sprintf(data_filename, "%s%s/%s_%03d.bin", input_directory, input_folder, input_base_name, gantry_angle );
+		//cout << data_filename
+		//FILE* data_file = fopen( data_filename, "rb" );	
+
+	
+		ifstream data_file(data_filename, ios::binary);
+		if( data_file == NULL )
+		{
+			fputs( "Error Opening Data File:  Check that the directories are properly named.", stderr ); 
+			exit(1);
+		}
+		char magic_number[5];
+		data_file.read(magic_number, 4);
+		magic_number[4] = '\0';
+		if( strcmp(magic_number, "PCTD") ) {
+			printf("Error: unknown file type (should be PCTD)!\n");
+			exit(1);
+		}
+		int version_id;
+		data_file.read((char*)&version_id, sizeof(int));
+		if( version_id == 0 )
+		{
+			int num_histories;
+			data_file.read((char*)&num_histories, sizeof(int));
+	
+			printf("Reading headers from file...\n");
+	
+			float projection_angle, beam_energy;
+			int generation_date, preprocess_date;
+			int phantom_name_size, data_source_size, prepared_by_size;
+			char *phantom_name, *data_source, *prepared_by;
+	
+			data_file.read((char*)&projection_angle, sizeof(float));
+			data_file.read((char*)&beam_energy, sizeof(float));
+			data_file.read((char*)&generation_date, sizeof(int));
+			data_file.read((char*)&preprocess_date, sizeof(int));
+			data_file.read((char*)&phantom_name_size, sizeof(int));
+			phantom_name = (char*)malloc(phantom_name_size);
+			data_file.read(phantom_name, phantom_name_size);
+			data_file.read((char*)&data_source_size, sizeof(int));
+			data_source = (char*)malloc(data_source_size);
+			data_file.read(data_source, data_source_size);
+			data_file.read((char*)&prepared_by_size, sizeof(int));
+			prepared_by = (char*)malloc(prepared_by_size);
+			data_file.read(prepared_by, prepared_by_size);
+	
+			printf("Loading %d histories from file\n", num_histories);
+	
+			int data_size = num_histories * sizeof(float);
+	
+			data_file.read((char*)t_in_1_h, data_size);
+			data_file.read((char*)t_in_2_h, data_size);
+			data_file.read((char*)t_out_1_h, data_size);
+			data_file.read((char*)t_out_2_h, data_size);
+			data_file.read((char*)v_in_1_h, data_size);
+			data_file.read((char*)v_in_2_h, data_size);
+			data_file.read((char*)v_out_1_h, data_size);
+			data_file.read((char*)v_out_2_h, data_size);
+			data_file.read((char*)u_in_1_h, data_size);
+			data_file.read((char*)u_in_2_h, data_size);
+			data_file.read((char*)u_out_1_h, data_size);
+			data_file.read((char*)u_out_2_h, data_size);
+			data_file.read((char*)WEPL_h, data_size);
+	
+			//float v_data[4], t_data[4], WEPL_data, gantry_angle_data, dummy_data;
+			for( int i = 0; i < num_histories; i++ ) 
+			{
+				if( DATA_IN_MM )
+				{
+					// Convert the input data from mm to cm
+					v_in_1_h[i]	*= 0.1;
+					v_in_2_h[i]	*= 0.1;
+					v_out_1_h[i]	*= 0.1;
+					v_out_2_h[i]	*= 0.1;
+					t_in_1_h[i]	*= 0.1;
+					t_in_2_h[i]	*= 0.1;
+					t_out_1_h[i]	*= 0.1;
+					t_out_2_h[i]	*= 0.1;
+					WEPL_h[i]		*= 0.1;
+					u_in_1_h[i]	*= 0.1;
+					u_in_2_h[i]	*= 0.1;
+					u_out_1_h[i]	*= 0.1;
+					u_out_2_h[i]	*= 0.1;
+				}
+				gantry_angle_h[i] = int(projection_angle);
+			}
+			data_file.close();
+			//fclose(data_file);	
+			//cout << v_in_1_h[1]	<< " " << v_in_2_h[1]	<< " " << v_out_1_h[1]<< " " << v_out_2_h[1]<< endl; 
+			//cout <<		t_in_1_h[1]	<< " " << t_in_2_h[1]	<< " " << t_out_1_h[1]<< " " << t_out_2_h[1]<< endl;
+			//cout <<		WEPL_h[1]	<< endl; 
+			//cout <<		u_in_1_h[1]	<< " " << u_in_2_h[1]	<< " " << u_out_1_h[1]	<< " " << u_out_2_h[1]	<< endl;			
+			//fgets(text, sizeof(text), stdin);
+		}
+	}
+	//printf("min_WEPL = %3f , max_WEPL = %3f\n\n", min_WEPL, max_WEPL);
+}
+void iterative_data_read_v1( int num_histories, int start_file_num, int end_file_num ){
 	unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
 	unsigned int mem_size_hist_ints = sizeof(int) * num_histories;
 

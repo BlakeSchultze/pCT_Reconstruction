@@ -36,6 +36,9 @@ const bool SC_ON = true;
 const bool MSC_ON = true;
 const bool SM_ON = true;
 
+const bool VERSION_OLD = true;
+const bool VERSION_0 = true;
+const bool VERSION_1 = true;
 /*********************************************************************************************************************************************************/
 /************************************************************ Preprocessing Path Information *************************************************************/
 /*********************************************************************************************************************************************************/
@@ -45,8 +48,10 @@ const char input_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\
 const char output_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
 
 /**************************************************** Name of the input/output name of the data folder ***************************************************/
-const char input_folder[] = "DetectData";
-const char output_folder[] = "DetectData";
+const char input_folder[] = "waterPhantom";
+const char output_folder[] = "waterPhantom";
+//const char input_folder[] = "DetectData";
+//const char output_folder[] = "DetectData";
 //const char input_folder[] = "Rat_Scan2";
 //const char output_folder[] = "Rat_Scan2";
 //const char input_folder[] = "sim_noerror";
@@ -67,7 +72,8 @@ const char output_folder[] = "DetectData";
 //const char output_folder[] = "Simulated_Data\\9-21";
 
 /******************************* Prefix of the input data set filename (_trans%d_%03d.txt (or .dat) will be added to this) *******************************/
-const char input_base_name[] = "simdata";  //DetectData files
+const char input_base_name[] = "projection";  //DetectData files
+//const char input_base_name[] = "simdata";  //DetectData files
 //const char input_base_name[] = "rat_scan2_shift";
 //const char input_base_name[] = "ped_scan1"; // 
 
@@ -90,7 +96,7 @@ const char input_base_name[] = "simdata";  //DetectData files
 
 /****************************************************** Host/GPU computation and structure information ***************************************************/
 #define BYTES_PER_HISTORY 48								// [bytes] Size of data associated with each history, 44 for actual data and 4 empty bytes
-#define MAX_GPU_HISTORIES 200000							// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_GPU_HISTORIES 300000							// [#] Number of histories to process on the GPU at a time, based on GPU capacity
 #define THREADS_PER_BLOCK 512								// [#] Number of threads assigned to each block on the GPU
 
 /*********************************************************** Reconstruction cylinder parameters **********************************************************/
@@ -109,24 +115,24 @@ const char input_base_name[] = "simdata";  //DetectData files
 #define VOXEL_WIDTH ( RECON_CYL_DIAMETER / COLUMNS )		// [cm]
 #define VOXEL_HEIGHT ( RECON_CYL_DIAMETER / ROWS )			// [cm]
 #define VOXEL_THICKNESS (IMAGE_THICKNESS / SLICES)			// [cm]
-#define SLICE_THICKNESS 0.3									// [cm]
+#define SLICE_THICKNESS 0.25								// [cm]
 #define VOXEL_STEP_SIZE ( VOXEL_WIDTH / 2 )					// [cm]
 
 /********************************** Scanning and detector system (source distance, tracking plane dimensions) parameters *********************************/
 #define SOURCE_RADIUS 265.7									// [cm] distance  to source/scatterer
-#define GANTRY_ANGLE_INTERVAL 4.0							// [degrees]
+#define GANTRY_ANGLE_INTERVAL 6.0							// [degrees]
 #define GANTRY_ANGLES int( 360.0 / GANTRY_ANGLE_INTERVAL )	// [#] number of projection angles
 #define NUM_SCANS 1											// [#]
 #define NUM_FILES ( NUM_SCANS * GANTRY_ANGLES )				// [#] 1 file per gantry angle per translation
-#define SSD_T_SIZE 20.0										// [cm] length of SSD 
-#define SSD_V_SIZE 10.6										// [cm] length of SSD 
+#define SSD_T_SIZE 18.0										// [cm] length of SSD 
+#define SSD_V_SIZE 9.0										// [cm] length of SSD 
 
 /******************************************* Binning (for Statistical analysis) and sinogram (for FBP) parameters ****************************************/
 #define T_BIN_SIZE 0.1										// [cm]
 #define T_BINS int( SSD_T_SIZE / T_BIN_SIZE + 0.5 )			// [#]
-#define V_BIN_SIZE 0.5										// [cm]
+#define V_BIN_SIZE 0.25										// [cm]
 #define V_BINS int( SSD_V_SIZE / V_BIN_SIZE + 0.5 )			// [#]
-#define ANGULAR_BIN_SIZE 4.0								// [degrees]
+#define ANGULAR_BIN_SIZE 6.0								// [degrees]
 #define ANGULAR_BINS int( 360.0 / ANGULAR_BIN_SIZE + 0.5 )	// [#]
 #define NUM_BINS ( ANGULAR_BINS * T_BINS * V_BINS )			// [#]
 #define SIGMAS_TO_KEEP 3									// [#]
