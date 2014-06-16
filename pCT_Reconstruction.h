@@ -24,21 +24,22 @@ using namespace std;
 /*********************************************************************************************************************************************************/
 
 /************************************************************* Preprocessing Option Parameters ***********************************************************/
-const bool BINARY_DATA_FILES = true;	// Input data provided in binary (T) encoded files or standard text files (F)
+const bool BINARY_ENCODING = true;		// Input data provided in binary (T) encoded files or ASCI text files (F)
 const bool SINGLE_DATA_FILE = false;	// Individual file for each gantry angle (T) or single data file for all data (F)
 const bool DEBUG_TEXT_ON = true;		// Provide (T) or suppress (F) print statements to console during execution
 const bool CONFIG_FILE = false;			// Tracking plane distances to rotation axis read from config file (T) or defined manually (F)
 const bool SAMPLE_STD_DEV = true;		// Use sample (T) or population (F) standard deviation in statistical analysis (i.e. divide cumulative error by N/N-1)
 const bool SSD_IN_MM = true;			// SSD distances from rotation axis given in mm (T) or cm (F)
 const bool DATA_IN_MM = true;			// Input data given in mm (T) or cm (F)
-const bool FBP_ON = true;
-const bool SC_ON = true;
-const bool MSC_ON = true;
-const bool SM_ON = true;
+const bool FBP_ON = true;				// Turn FBP on (T) or off (F)
+const bool SC_ON = true;				// Turn Space Carving on (T) or off (F)
+const bool MSC_ON = true;				// Turn Modified Space Carving on (T) or off (F)
+const bool SM_ON = true;				// Turn Space Modeling on (T) or off (F)
 
-const bool VERSION_OLD = true;
-const bool VERSION_0 = true;
-const bool VERSION_1 = true;
+/************************************************************* Input Data Format Specification ***********************************************************/
+const bool DATA_FORMAT			// Input data in format used prior to specification of Version 0
+const bool VERSION_0 = true;			// Input data in Version 0 format
+const bool VERSION_1 = false;			// Input data in Version 1 format
 /*********************************************************************************************************************************************************/
 /************************************************************ Preprocessing Path Information *************************************************************/
 /*********************************************************************************************************************************************************/
@@ -47,9 +48,11 @@ const bool VERSION_1 = true;
 const char input_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\";
 const char output_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
 
-/**************************************************** Name of the input/output name of the data folder ***************************************************/
+/*********************************** Name of the folder where the input data resides and output data is to be written ************************************/
 const char input_folder[] = "waterPhantom";
 const char output_folder[] = "waterPhantom";
+//const char input_folder[] = "catphan";
+//const char output_folder[] = "catphan";
 //const char input_folder[] = "DetectData";
 //const char output_folder[] = "DetectData";
 //const char input_folder[] = "Rat_Scan2";
@@ -72,12 +75,13 @@ const char output_folder[] = "waterPhantom";
 //const char output_folder[] = "Simulated_Data\\9-21";
 
 /******************************* Prefix of the input data set filename (_trans%d_%03d.txt (or .dat) will be added to this) *******************************/
-const char input_base_name[] = "projection";  //DetectData files
-//const char input_base_name[] = "simdata";  //DetectData files
+const char input_base_name[] = "projection";			//waterPhantom, catphan
+//const char input_base_name[] = "simdata";				//DetectData files
 //const char input_base_name[] = "rat_scan2_shift";
-//const char input_base_name[] = "ped_scan1"; // 
+//const char input_base_name[] = "ped_scan1";			//  anthropomorphic pediatric head phantom (Model 715-HN, CIRS1)
 
-
+const char file_extension[] = ".bin";					// Binary file extension
+//const char file_extension[] = ".dat";					// Generic data file extension, independent of encoding (various encodings can be used)
 /*********************************************************************************************************************************************************/
 /****************************************************************** Preprocessing Constants **************************************************************/
 /*********************************************************************************************************************************************************/
@@ -142,16 +146,12 @@ const char input_base_name[] = "projection";  //DetectData files
 /************************************************************* Hull-Detection Parameters *****************************************************************/
 //#define WEPL_CUT_ALLOWANCE 0.1
 #define RESTRICTED_ANGLES 1
-#define MSC_DIFF_THRESH 50 
-#define POST_CUT_MSC_DIFF_THRESH 50 
-#define SC_THRESHOLD 1.0 
+#define MSC_DIFF_THRESH 50  
+#define SC_THRESHOLD 0.0 
 #define MSC_THRESHOLD 1.0 
-#define POST_CUT_MSC_THRESHOLD 1.0 
-#define BIN_CARVE_THRESHOLD 1.0 
 #define SM_THRESHOLD_MULTIPLIER 1.0
 #define SM_LOWER_THRESHOLD 6.0 
 #define SM_UPPER_THRESHOLD 21.0
-#define BIN_MODEL_THRESHOLD 6.0
 
 /********************************************************************* MLP Parameters ********************************************************************/
 #define E_0 13.6	// [MeV/c] empirical constant
@@ -190,7 +190,7 @@ int post_cut_histories = 0;
 float SSD_u_Positions[8];
 
 /************************************** Declaration of arrays for storage of input data for use on the host (_h) *****************************************/
-int* gantry_angle_h, * bin_num_h, * bin_counts_h, * new_value_h;
+int* gantry_angle_h, * bin_num_h, * bin_counts_h;
 bool* traversed_recon_volume_h, * passed_cuts_h;
 float* t_in_1_h, * t_in_2_h, * t_out_1_h, * t_out_2_h;
 float* u_in_1_h, * u_in_2_h, * u_out_1_h, * u_out_2_h;
@@ -205,7 +205,7 @@ float* relative_ut_angle_h, * relative_uv_angle_h;
 float* WEPL_h;
 
 /************************************* Declaration of arrays for storage of input data for use on the device (_d) ****************************************/
-int* gantry_angle_d, * bin_num_d, * bin_counts_d, * new_value_d;
+int* gantry_angle_d, * bin_num_d, * bin_counts_d;
 bool* traversed_recon_volume_d, * passed_cuts_d;
 float* t_in_1_d, * t_in_2_d, * t_out_1_d, * t_out_2_d;
 float* u_in_1_d, * u_in_2_d, * u_out_1_d, * u_out_2_d;
@@ -218,14 +218,6 @@ float* xy_entry_angle_d, * xy_exit_angle_d;
 float* xz_entry_angle_d, * xz_exit_angle_d;
 float* relative_ut_angle_d, * relative_uv_angle_d;
 float* WEPL_d;
-
-/******************************** Declaration of arrays for storage of valid data (i.e. passed currently applied cuts) ***********************************/
-int* valid_bin_num;
-float* valid_WEPL;
-float* valid_x_entry, * valid_y_entry, * valid_z_entry;
-float* valid_x_exit, * valid_y_exit, * valid_z_exit;
-float* valid_xy_entry_angle, * valid_xz_entry_angle;
-float* valid_xy_exit_angle, * valid_xz_exit_angle;
 
 /************************************ Declaration of statistical analysis arrays for use on host(_h) or device (_d) **************************************/
 float* mean_WEPL_h, * mean_WEPL_d;
@@ -242,20 +234,13 @@ float* sinogram_filtered_h, * sinogram_filtered_d;
 /****************************************** Declaration of image arrays for use on host(_h) or device (_d) ***********************************************/
 float* X_h, * X_d;
 bool* SC_image_h, * SC_image_d;
+bool* SC2_image_h, * SC2_image_d;
 int* MSC_image_h, * MSC_image_d;
 int* SM_image_h, * SM_image_d;
-bool* bin_carve_image_h, * bin_carve_image_d;
-int* bin_model_image_h, * bin_model_image_d;
-int* bin_MSC_image_h, * bin_MSC_image_d;
-bool* post_cut_SC_image_h, * post_cut_SC_image_d;
-int* post_cut_MSC_image_h, * post_cut_MSC_image_d;
-int* post_cut_SM_image_h, * post_cut_SM_image_d;
-bool* PCSC_image_h, * PCSC_image_d;
 int* FBP_object_h, * FBP_object_d;
 int* MLP_test_image_h, * MLP_test_image_d;
 
 /************************ Declaration of vectors used to accumulate data from histories that have passed currently applied cuts **************************/		
-int valid_array_position; // keeps track of current position of valid data vector
 vector<int>	bin_num_vector;			
 vector<int>	gantry_angle_vector;	
 vector<float> WEPL_vector;		
