@@ -36,7 +36,6 @@ void initialize_MSC_hull( int*&, int*& );
 void initialize_SM_hull( int*&, int*& );
 void initialize_float_image( float*&, float*& );
 void SC( int );
-void SC2( int );
 void MSC( int );
 void SM( int );
 void MSC_differences();
@@ -90,7 +89,6 @@ __global__ void filter_kernel( float*, float* );
 // Hull-Detection 
 __device__ void voxel_walk( bool*&, float, float, float, float, float, float );
 __global__ void SC_kernel( int, bool*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void SC2_kernel( int, bool*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void MSC_kernel( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void SM_kernel( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void MSC_differences_kernel( int*, int* );
@@ -124,10 +122,7 @@ int main(int argc, char** argv)
 	/* Initialize Hull Detection Images and Transfer Them to the GPU							*/
 	/********************************************************************************************/
 	if( SC_ON )
-	{
 		initialize_SC_hull( SC_image_h, SC_image_d );
-		initialize_SC_hull( SC2_image_h, SC2_image_d );
-	}
 	if( MSC_ON )
 		initialize_MSC_hull( MSC_image_h, MSC_image_d );
 	if( SM_ON )
@@ -141,8 +136,12 @@ int main(int argc, char** argv)
 	if( CONFIG_FILE)
 		assign_SSD_positions(); // Read the detector plane u-coordinates from config file
 	initializations();			// allocate and initialize host and GPU memory for binning
-	//count_histories_old();	// count the number of histories per file, per scan, total, etc.
-	count_histories_v0();		// count the number of histories per file, per scan, total, etc.
+	if( VERSION_OLD )
+		count_histories_old();	// count the number of histories per file, per scan, total, etc.
+	else if( VERSION_0 )
+		count_histories_v0();		// count the number of histories per file, per scan, total, etc.
+	else
+		count_histories_v1();
 	/********************************************************************************************/
 	/* Iteratively Read and Process Data One Chunk at a Time. There are at Most					*/
 	/* MAX_GPU_HISTORIES Per Chunk (i.e. Iteration). On Each Iteration:							*/
@@ -168,19 +167,20 @@ int main(int argc, char** argv)
 				break;
 			end_file_num++;
 		}
-		//iterative_data_read_old( histories_to_process, start_file_num, end_file_num - 1 );
-		iterative_data_read_v0( histories_to_process, start_file_num, end_file_num - 1 );
+		if( VERSION_OLD )
+			iterative_data_read_old( histories_to_process, start_file_num, end_file_num - 1 );
+		else if( VERSION_0 )
+			iterative_data_read_v0( histories_to_process, start_file_num, end_file_num - 1 );
+		else
+			iterative_data_read_v1( histories_to_process, start_file_num, end_file_num - 1 );
 		recon_volume_intersections( histories_to_process );
 		bin_valid_histories( histories_to_process );
 		if(  SC_ON && (!bad_data_angle( gantry_angle_h[0] ) || !RESTRICTED_ANGLES ) ) 
-		{
 			SC( histories_to_process );		
-			SC2( histories_to_process );		
-		}
 		if( MSC_ON )
 			MSC( histories_to_process );
 		if( SM_ON )
-			SM( histories_to_process );                                                                                                                                                                              
+			SM( histories_to_process );                                                                                                                                                                             
 		initial_processing_memory_clean();
 		start_file_num = end_file_num;
 		histories_to_process = 0;
@@ -199,8 +199,6 @@ int main(int argc, char** argv)
 	{
 		cudaMemcpy(SC_image_h,  SC_image_d, MEM_SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
 		write_bool_array_to_file("x_sc", output_directory, output_folder, SC_image_h, COLUMNS, ROWS, SLICES );
-		cudaMemcpy(SC2_image_h,  SC2_image_d, MEM_SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
-		write_bool_array_to_file("x_sc2", output_directory, output_folder, SC2_image_h, COLUMNS, ROWS, SLICES );
 	}
 	if( MSC_ON )
 		MSC_threshold();
@@ -299,7 +297,7 @@ void assign_SSD_positions()	//HERE THE COORDINATES OF THE DETECTORS PLANES ARE L
 {
 	char user_response[20];
 	char configFilename[512];
-	sprintf(configFilename, "%s/scan.cfg", input_directory);
+	sprintf(configFilename, "%s%s\\scan.cfg", input_directory, input_folder);
 	if( DEBUG_TEXT_ON )
 		printf("Opening config file %s...\n", configFilename);
 	ifstream configFile(configFilename);		
@@ -374,6 +372,7 @@ void count_histories_old()
 		{
 			
 			sprintf( data_filename, "%s%s/%s_trans%d_%03d%s", input_directory, input_folder, input_base_name, scan_number, gantry_angle, file_extension );
+			//printf("Name = %s", data_filename );
 			FILE *data_file = fopen(data_filename, "rb");
 			if( data_file == NULL )
 			{
@@ -418,15 +417,6 @@ void count_histories_old()
 			printf("There are a Total of %d Histories in Scan Number %d \n", histories_per_scan[scan_number], scan_number + 1);
 		printf("There are a Total of %d Histories\n", total_histories);
 	}
-	// The GPU cannot process all the histories at once, so they are broken up into chunks that can fit on the GPU.  As we iterate 
-	// through the data one chunk at a time, we determine which histories enter the reconstruction volume and if they belong to a 
-	// valid bin (i.e. t, v, and angular bin number is greater than zero and less than max).  If both are true, we append the bin
-	// number, WEPL, and relative entry/exit ut/uv angles to the following four arrays.  We do not know ahead of time how many 
-	// valid histories there will be, so memory is allocated to accomodate every history and the actual number of valid histories
-	// are counted. Although we waste some host memory, we can avoid writing intermediate information to file or keeping the raw 
-	// data and recalculating it every time its needed. Once all the data is processed and we know how many valid histories we 
-	// have, we simply ignore the illegitimate elements of the four arrays to avoid transferring invalid and unnecessary data to 
-	// and from the GPU.
 }
 void count_histories_v0()
 {
@@ -593,7 +583,7 @@ void reserve_vector_capacity()
 /************************************************************************************************************************************************************/
 void iterative_data_read_old( int num_histories, int start_file_num, int end_file_num )
 {
-	unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
+		unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
 	unsigned int mem_size_hist_ints = sizeof(int) * num_histories;
 
 	t_in_1_h         = (float*) malloc(mem_size_hist_floats);
@@ -611,32 +601,31 @@ void iterative_data_read_old( int num_histories, int start_file_num, int end_fil
 	WEPL_h           = (float*) malloc(mem_size_hist_floats);
 	gantry_angle_h   = (int*)   malloc(mem_size_hist_ints);
 
+	int array_index = 0, gantry_position, gantry_angle, scan_number, scan_histories;
+	float v_data[4], t_data[4], WEPL_data, gantry_angle_data, dummy_data;
+	char detector_number[4];
 	char data_filename[128];
-	int array_index = 0;
-	float min_WEPL = 20, max_WEPL = -20;
+	FILE* data_file;
+
 	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
 	{
-		int gantry_position = file_num / NUM_SCANS;
-		int gantry_angle = gantry_position * GANTRY_ANGLE_INTERVAL;
-		int scan_number = file_num % NUM_SCANS + 1;
-		int scan_histories = histories_per_file[file_num];
+		gantry_position = file_num / NUM_SCANS;
+		gantry_angle = gantry_position * GANTRY_ANGLE_INTERVAL;
+		scan_number = file_num % NUM_SCANS + 1;
+		scan_histories = histories_per_file[file_num];
 
 		printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
 		sprintf( data_filename, "%s%s/%s_trans%d_%03d%s", input_directory, input_folder, input_base_name, scan_number, gantry_angle, file_extension );
-		FILE* data_file = fopen( data_filename, "rb" );	
+		data_file = fopen( data_filename, "rb" );	
 
 		for( int history = 0; history < scan_histories; history++, array_index++ ) 
 		{
-			float v_data[4], t_data[4], WEPL_data, gantry_angle_data, dummy_data;
-			char detector_number[4];
-
 			fread(&v_data,				sizeof(float),	4, data_file);
 			fread(&t_data,				sizeof(float),	4, data_file);
 			fread(&detector_number,		sizeof(char),	4, data_file);
 			fread(&WEPL_data,			sizeof(float),	1, data_file);
 			fread(&gantry_angle_data,	sizeof(float),	1, data_file);
 			fread(&dummy_data,			sizeof(float),	1, data_file); // dummy read because each event has an extra 4 bytes, for some reason
-			//puts("Hello");
 			if( DATA_IN_MM )
 			{
 				// Convert the input data from mm to cm
@@ -662,51 +651,32 @@ void iterative_data_read_old( int num_histories, int start_file_num, int end_fil
 				t_out_2_h[array_index]	= t_data[3];
 				WEPL_h[array_index]		= WEPL_data;
 			}
-			//puts("Hello");
-			if( CONFIG_FILE )
+			if( !MICAH_SIM )
 			{
-				if( SSD_IN_MM )
-				{
-					// Convert the tracking plane positions from mm to cm
-					u_in_1_h[array_index]	= SSD_u_Positions[int(detector_number[0])] * 0.1;
-					u_in_2_h[array_index]	= SSD_u_Positions[int(detector_number[1])] * 0.1;
-					u_out_1_h[array_index]	= SSD_u_Positions[int(detector_number[2])] * 0.1;
-					u_out_2_h[array_index]	= SSD_u_Positions[int(detector_number[3])] * 0.1;
-				}
-				else
-				{
-					u_in_1_h[array_index]	= SSD_u_Positions[int(detector_number[0])];
-					u_in_2_h[array_index]	= SSD_u_Positions[int(detector_number[1])];
-					u_out_1_h[array_index]	= SSD_u_Positions[int(detector_number[2])];
-					u_out_2_h[array_index]	= SSD_u_Positions[int(detector_number[3])];
-				}
+				u_in_1_h[array_index]	= SSD_u_Positions[int(detector_number[0])];
+				u_in_2_h[array_index]	= SSD_u_Positions[int(detector_number[1])];
+				u_out_1_h[array_index]	= SSD_u_Positions[int(detector_number[2])];
+				u_out_2_h[array_index]	= SSD_u_Positions[int(detector_number[3])];
 			}
 			else
 			{
-				if( SSD_IN_MM )
-				{
-					u_in_1_h[array_index]	= SSD_u_Positions[0] * 0.1;
-					u_in_2_h[array_index]	= SSD_u_Positions[2] * 0.1;
-					u_out_1_h[array_index]	= SSD_u_Positions[4] * 0.1;
-					u_out_2_h[array_index]	= SSD_u_Positions[6] * 0.1;
-				}
-				else
-				{
-					u_in_1_h[array_index]	= SSD_u_Positions[0];
-					u_in_2_h[array_index]	= SSD_u_Positions[2];
-					u_out_1_h[array_index]	= SSD_u_Positions[4];
-					u_out_2_h[array_index]	= SSD_u_Positions[6];
-				}
+				u_in_1_h[array_index]	= SSD_u_Positions[0];
+				u_in_2_h[array_index]	= SSD_u_Positions[2];
+				u_out_1_h[array_index]	= SSD_u_Positions[4];
+				u_out_2_h[array_index]	= SSD_u_Positions[6];
+			}
+			if( SSD_IN_MM )
+			{
+				// Convert the tracking plane positions from mm to cm
+				u_in_1_h[array_index]	*= 0.1;
+				u_in_2_h[array_index]	*= 0.1;
+				u_out_1_h[array_index]	*= 0.1;
+				u_out_2_h[array_index]	*= 0.1;
 			}
 			gantry_angle_h[array_index] = int(gantry_angle_data);
-			//if( WEPL_h[array_index] < min_WEPL )
-				//min_WEPL = WEPL_h[array_index];
-			//if( WEPL_h[array_index] > max_WEPL )
-				//max_WEPL = WEPL_h[array_index];
 		}
 		fclose(data_file);		
 	}
-	//printf("min_WEPL = %3f , max_WEPL = %3f\n\n", min_WEPL, max_WEPL);
 }
 void iterative_data_read_v0( int num_histories, int start_file_num, int end_file_num )
 {
@@ -2991,212 +2961,6 @@ __global__ void SC_kernel
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
 	if( (i < num_histories) && traversed_recon_volume[i] && (WEPL[i] <= SC_THRESHOLD) && (bin_num[i] >= 0) )
 	{
-		//char user_response[20];
-		/********************************************************************************************/
-		/********************************* Voxel Walk Parameters ************************************/
-		/********************************************************************************************/
-		int x_move_direction, y_move_direction, z_move_direction;
-		int x_voxel_step, y_voxel_step, z_voxel_step;
-		float delta_x, delta_y, delta_z;
-		float x_move, y_move, z_move;
-		/********************************************************************************************/
-		/**************************** Status Tracking Information ***********************************/
-		/********************************************************************************************/
-		float x, y, z;
-		float x_inside, y_inside, z_inside;
-		float x_to_go, y_to_go, z_to_go;		
-		float x_extension, y_extension;	
-		float voxel_x, voxel_y, voxel_z;
-		float voxel_x_out, voxel_y_out, voxel_z_out, voxel_out; 
-		int voxel;
-		bool outside_image, end_walk;
-		/********************************************************************************************/
-		/************************** Initial and Boundary Conditions *********************************/
-		/********************************************************************************************/
-		// Initial Distance Into Voxel
-		x_inside = modf( ( x_entry[i] + RECON_CYL_RADIUS ) /VOXEL_WIDTH, &voxel_x)*VOXEL_WIDTH;	
-		y_inside = modf( ( RECON_CYL_RADIUS - y_entry[i] ) /VOXEL_HEIGHT, &voxel_y)*VOXEL_HEIGHT;
-		z_inside = modf( ( RECON_CYL_HEIGHT/2 - z_entry[i] ) /VOXEL_THICKNESS, &voxel_z)*VOXEL_THICKNESS;
-
-		voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
-		voxel_x_out = int( ( x_exit[i] + RECON_CYL_RADIUS ) /VOXEL_WIDTH );
-		voxel_y_out = int( ( RECON_CYL_RADIUS - y_exit[i] ) /VOXEL_HEIGHT );
-		voxel_z_out = int( ( RECON_CYL_HEIGHT/2 - z_exit[i] ) /VOXEL_THICKNESS );
-		voxel_out = int(voxel_x_out + voxel_y_out * COLUMNS + voxel_z_out * COLUMNS * ROWS);
-		/********************************************************************************************/
-		/***************************** Path and Walk Information ************************************/
-		/********************************************************************************************/
-		// Lengths/Distances as x is Incremented One Voxel
-		delta_x = VOXEL_WIDTH;
-		delta_y = abs( (y_exit[i] - y_entry[i])/(x_exit[i] - x_entry[i]) * VOXEL_WIDTH );
-		delta_z = abs( (z_exit[i] - z_entry[i])/(x_exit[i] - x_entry[i]) * VOXEL_WIDTH );
-		// Overwrite NaN if Divisors on delta_i Calculations Above 
-		if( x_entry[i] == x_exit[i] )
-		{
-			delta_x = abs( (x_exit[i] - x_entry[i])/(y_exit[i] - y_entry[i]) * VOXEL_HEIGHT );
-			delta_y = VOXEL_HEIGHT;
-			delta_z = abs( (z_exit[i] - z_entry[i])/(y_exit[i] - y_entry[i]) * VOXEL_HEIGHT );
-			if( y_entry[i] == y_exit[i] )
-			{
-				delta_x = abs( (x_exit[i] - x_entry[i])/(z_exit[i] - z_entry[i]) * VOXEL_THICKNESS );
-				delta_y = abs( (y_exit[i] - y_entry[i])/(z_exit[i] - z_entry[i]) * VOXEL_THICKNESS );;
-				delta_z = VOXEL_THICKNESS;
-			}
-		}
-		x_move = 0, y_move = 0, z_move = 0;
-		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] > x_exit[i] );
-		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] > y_exit[i] );
-		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] > z_exit[i] );
-		x_voxel_step = x_move_direction;
-		y_voxel_step = -y_move_direction;
-		z_voxel_step = -z_move_direction;
-		/********************************************************************************************/
-		/**************************** Status Tracking Information ***********************************/
-		/********************************************************************************************/
-		x = x_entry[i], y = y_entry[i], z = z_entry[i];
-		x_to_go = ( x_voxel_step > 0 ) * (VOXEL_WIDTH - x_inside) + ( x_voxel_step <= 0 ) * x_inside;
-		y_to_go = ( y_voxel_step > 0 ) * (VOXEL_HEIGHT - y_inside) + ( y_voxel_step <= 0 ) * y_inside;
-		z_to_go = ( z_voxel_step > 0 ) * (VOXEL_THICKNESS - z_inside) + ( z_voxel_step <= 0 ) * z_inside;
-			
-		outside_image = ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-		if( !outside_image )
-			SC_image[voxel] = 0;
-		end_walk = ( voxel == voxel_out ) || outside_image;
-		//fgets(user_response, sizeof(user_response), stdin);
-		/********************************************************************************************/
-		/*********************************** Voxel Walk Routine *************************************/
-		/********************************************************************************************/
-		if( z_entry[i] != z_exit[i] )
-		{
-			while( !end_walk )
-			{
-				// Change in z for Move to Voxel Edge in x and y
-				x_extension = delta_z/delta_x * x_to_go;
-				y_extension = delta_z/delta_y * y_to_go;
-				if( z_to_go <= x_extension && z_to_go <= y_extension )
-				{
-					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
-					x_move = delta_x / delta_z * z_to_go;
-					y_move = delta_y / delta_z * z_to_go;
-					z_move = z_to_go;
-					x_to_go -= x_move;
-					y_to_go -= y_move;
-					z_to_go = VOXEL_THICKNESS;
-					voxel_z += z_voxel_step;
-					if( x_to_go == 0 )
-					{
-						voxel_x += x_voxel_step;
-						x_to_go = VOXEL_WIDTH;
-					}
-					if(	y_to_go == 0 )
-					{
-						voxel_y += y_voxel_step;
-						y_to_go = VOXEL_HEIGHT;
-					}
-				}
-				//If Next Voxel Edge is in x or xy Diagonal
-				else if( x_extension <= y_extension )
-				{
-					//printf(" x_extension <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_y / delta_x * x_to_go;
-					z_move = delta_z / delta_x * x_to_go;
-					x_to_go = VOXEL_WIDTH;
-					y_to_go -= y_move;
-					z_to_go -= z_move;
-					voxel_x += x_voxel_step;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y += y_voxel_step;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = delta_x / delta_y * y_to_go;
-					y_move = y_to_go;
-					z_move = delta_z / delta_y * y_to_go;
-					x_to_go -= x_move;
-					y_to_go = VOXEL_HEIGHT;
-					z_to_go -= z_move;
-					voxel_y += y_voxel_step;
-				}
-				x += x_move_direction * x_move;
-				y += y_move_direction * y_move;
-				z += z_move_direction * z_move;				
-				//fgets(user_response, sizeof(user_response), stdin);
-				voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
-				outside_image = ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !outside_image )
-					SC_image[voxel] = 0;
-				end_walk = ( voxel == voxel_out ) || outside_image;
-			}
-		}
-		else
-		{
-			//printf("z_exit[i] == z_entry[i]\n");
-			while( !end_walk )
-			{
-				// Change in x for Move to Voxel Edge in y
-				y_extension = delta_x/delta_y * y_to_go;
-				//If Next Voxel Edge is in x or xy Diagonal
-				if( x_to_go <= y_extension )
-				{
-					//printf(" x_to_go <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_y / delta_x * x_to_go;				
-					x_to_go = VOXEL_WIDTH;
-					y_to_go -= y_move;
-					voxel_x += x_voxel_step;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y += y_voxel_step;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = delta_x / delta_y * y_to_go;
-					y_move = y_to_go;
-					x_to_go -= x_move;
-					y_to_go = VOXEL_HEIGHT;
-					voxel_y += y_voxel_step;
-				}
-				x += x_move_direction * x_move;
-				y += y_move_direction * y_move;
-				voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
-				outside_image = ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !outside_image )
-					SC_image[voxel] = 0;
-				end_walk = ( voxel == voxel_out ) || outside_image;
-				//fgets(user_response, sizeof(user_response), stdin);
-			}// end: while( !end_walk )
-		}//end: else: z_entry_h[i] != z_exit_h[i] => z_entry_h[i] == z_exit_h[i]
-	}// end: if( (i < num_histories) && traversed_recon_volume[i] && (WEPL[i] <= PURE_SC_THRESH) && (bin_num[i] >= 0) )
-}
-void SC2( int num_histories )
-{
-	dim3 dimBlock(THREADS_PER_BLOCK);
-	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
-	SC2_kernel<<<dimGrid, dimBlock>>>
-	(
-		num_histories, SC2_image_d, bin_num_d, traversed_recon_volume_d, WEPL_d,
-		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d
-	);
-}
-__global__ void SC2_kernel
-( 
-	int num_histories, bool* SC_image, int* bin_num, bool* traversed_recon_volume, float* WEPL,
-	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
-)
-{
-	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	if( (i < num_histories) && traversed_recon_volume[i] && (WEPL[i] <= SC_THRESHOLD) && (bin_num[i] >= 0) )
-	{
 		voxel_walk( SC_image, x_entry[i], y_entry[i], z_entry[i], x_exit[i], y_exit[i], z_exit[i] );
 	}// end: if( (i < num_histories) && traversed_recon_volume[i] && (WEPL[i] <= PURE_SC_THRESH) && (bin_num[i] >= 0) )
 }
@@ -3473,194 +3237,194 @@ __global__ void SM_kernel
 )
 {
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	if( (i < num_histories) && traversed_recon_volume[i] && (WEPL[i] >= SM_LOWER_THRESHOLD) && (bin_num[i] >= 0) )
-	{
-		//char user_response[20];
-		/********************************************************************************************/
-		/********************************* Voxel Walk Parameters ************************************/
-		/********************************************************************************************/
-		int x_move_direction, y_move_direction, z_move_direction;
-		int x_voxel_step, y_voxel_step, z_voxel_step;
-		float delta_x, delta_y, delta_z;
-		float x_move, y_move, z_move;
-		/********************************************************************************************/
-		/**************************** Status Tracking Information ***********************************/
-		/********************************************************************************************/
-		float x, y, z;
-		float x_inside, y_inside, z_inside;
-		float x_to_go, y_to_go, z_to_go;		
-		float x_extension, y_extension;	
-		float voxel_x, voxel_y, voxel_z;
-		float voxel_x_out, voxel_y_out, voxel_z_out, voxel_out; 
-		int voxel;
-		bool outside_image, end_walk;
-		/********************************************************************************************/
-		/************************** Initial and Boundary Conditions *********************************/
-		/********************************************************************************************/
-		// Initial Distance Into Voxel
-		x_inside = modf( ( x_entry[i] + RECON_CYL_RADIUS ) /VOXEL_WIDTH, &voxel_x)*VOXEL_WIDTH;	
-		y_inside = modf( ( RECON_CYL_RADIUS - y_entry[i] ) /VOXEL_HEIGHT, &voxel_y)*VOXEL_HEIGHT;
-		z_inside = modf( ( RECON_CYL_HEIGHT/2 - z_entry[i] ) /VOXEL_THICKNESS, &voxel_z)*VOXEL_THICKNESS;
+	//if( (i < num_histories) && traversed_recon_volume[i] && (WEPL[i] >= SM_LOWER_THRESHOLD) && (bin_num[i] >= 0) )
+	//{
+	//	//char user_response[20];
+	//	/********************************************************************************************/
+	//	/********************************* Voxel Walk Parameters ************************************/
+	//	/********************************************************************************************/
+	//	int x_move_direction, y_move_direction, z_move_direction;
+	//	int x_voxel_step, y_voxel_step, z_voxel_step;
+	//	float delta_x, delta_y, delta_z;
+	//	float x_move, y_move, z_move;
+	//	/********************************************************************************************/
+	//	/**************************** Status Tracking Information ***********************************/
+	//	/********************************************************************************************/
+	//	float x, y, z;
+	//	float x_inside, y_inside, z_inside;
+	//	float x_to_go, y_to_go, z_to_go;		
+	//	float x_extension, y_extension;	
+	//	float voxel_x, voxel_y, voxel_z;
+	//	float voxel_x_out, voxel_y_out, voxel_z_out, voxel_out; 
+	//	int voxel;
+	//	bool outside_image, end_walk;
+	//	/********************************************************************************************/
+	//	/************************** Initial and Boundary Conditions *********************************/
+	//	/********************************************************************************************/
+	//	// Initial Distance Into Voxel
+	//	x_inside = modf( ( x_entry[i] + RECON_CYL_RADIUS ) /VOXEL_WIDTH, &voxel_x)*VOXEL_WIDTH;	
+	//	y_inside = modf( ( RECON_CYL_RADIUS - y_entry[i] ) /VOXEL_HEIGHT, &voxel_y)*VOXEL_HEIGHT;
+	//	z_inside = modf( ( RECON_CYL_HEIGHT/2 - z_entry[i] ) /VOXEL_THICKNESS, &voxel_z)*VOXEL_THICKNESS;
 
-		voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
-		voxel_x_out = int( ( x_exit[i] + RECON_CYL_RADIUS ) /VOXEL_WIDTH );
-		voxel_y_out = int( ( RECON_CYL_RADIUS - y_exit[i] ) /VOXEL_HEIGHT );
-		voxel_z_out = int( ( RECON_CYL_HEIGHT/2 - z_exit[i] ) /VOXEL_THICKNESS );
-		voxel_out = int(voxel_x_out + voxel_y_out * COLUMNS + voxel_z_out * COLUMNS * ROWS);
-		/********************************************************************************************/
-		/***************************** Path and Walk Information ************************************/
-		/********************************************************************************************/
-		// Lengths/Distances as x is Incremented One Voxel
-		delta_x = VOXEL_WIDTH;
-		delta_y = abs( (y_exit[i] - y_entry[i])/(x_exit[i] - x_entry[i]) * VOXEL_WIDTH );
-		delta_z = abs( (z_exit[i] - z_entry[i])/(x_exit[i] - x_entry[i]) * VOXEL_WIDTH );
-		// Overwrite NaN if Divisors on delta_i Calculations Above 
-		if( x_entry[i] == x_exit[i] )
-		{
-			delta_x = abs( (x_exit[i] - x_entry[i])/(y_exit[i] - y_entry[i]) * VOXEL_HEIGHT );
-			delta_y = VOXEL_HEIGHT;
-			delta_z = abs( (z_exit[i] - z_entry[i])/(y_exit[i] - y_entry[i]) * VOXEL_HEIGHT );
-			if( y_entry[i] == y_exit[i] )
-			{
-				delta_x = abs( (x_exit[i] - x_entry[i])/(z_exit[i] - z_entry[i]) * VOXEL_THICKNESS );
-				delta_y = abs( (y_exit[i] - y_entry[i])/(z_exit[i] - z_entry[i]) * VOXEL_THICKNESS );;
-				delta_z = VOXEL_THICKNESS;
-			}
-		}
-		x_move = 0, y_move = 0, z_move = 0;
-		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] > x_exit[i] );
-		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] > y_exit[i] );
-		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] > z_exit[i] );
-		x_voxel_step = x_move_direction;
-		y_voxel_step = -y_move_direction;
-		z_voxel_step = -z_move_direction;
-		/********************************************************************************************/
-		/**************************** Status Tracking Information ***********************************/
-		/********************************************************************************************/
-		x = x_entry[i], y = y_entry[i], z = z_entry[i];
-		x_to_go = ( x_voxel_step > 0 ) * (VOXEL_WIDTH - x_inside) + ( x_voxel_step <= 0 ) * x_inside;
-		y_to_go = ( y_voxel_step > 0 ) * (VOXEL_HEIGHT - y_inside) + ( y_voxel_step <= 0 ) * y_inside;
-		z_to_go = ( z_voxel_step > 0 ) * (VOXEL_THICKNESS - z_inside) + ( z_voxel_step <= 0 ) * z_inside;
-			
-		outside_image = ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-		if( !outside_image )
-			atomicAdd( &SM_image[voxel], 1 );
-		end_walk = ( voxel == voxel_out ) || outside_image;
-		//fgets(user_response, sizeof(user_response), stdin);
-		/********************************************************************************************/
-		/*********************************** Voxel Walk Routine *************************************/
-		/********************************************************************************************/
-		if( z_entry[i] != z_exit[i] )
-		{
-			while( !end_walk )
-			{
-				// Change in z for Move to Voxel Edge in x and y
-				x_extension = delta_z/delta_x * x_to_go;
-				y_extension = delta_z/delta_y * y_to_go;
-				if( z_to_go <= x_extension && z_to_go <= y_extension )
-				{
-					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
-					x_move = delta_x / delta_z * z_to_go;
-					y_move = delta_y / delta_z * z_to_go;
-					z_move = z_to_go;
-					x_to_go -= x_move;
-					y_to_go -= y_move;
-					z_to_go = VOXEL_THICKNESS;
-					voxel_z += z_voxel_step;
-					if( x_to_go == 0 )
-					{
-						voxel_x += x_voxel_step;
-						x_to_go = VOXEL_WIDTH;
-					}
-					if(	y_to_go == 0 )
-					{
-						voxel_y += y_voxel_step;
-						y_to_go = VOXEL_HEIGHT;
-					}
-				}
-				//If Next Voxel Edge is in x or xy Diagonal
-				else if( x_extension <= y_extension )
-				{
-					//printf(" x_extension <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_y / delta_x * x_to_go;
-					z_move = delta_z / delta_x * x_to_go;
-					x_to_go = VOXEL_WIDTH;
-					y_to_go -= y_move;
-					z_to_go -= z_move;
-					voxel_x += x_voxel_step;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y += y_voxel_step;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = delta_x / delta_y * y_to_go;
-					y_move = y_to_go;
-					z_move = delta_z / delta_y * y_to_go;
-					x_to_go -= x_move;
-					y_to_go = VOXEL_HEIGHT;
-					z_to_go -= z_move;
-					voxel_y += y_voxel_step;
-				}
-				x += x_move_direction * x_move;
-				y += y_move_direction * y_move;
-				z += z_move_direction * z_move;				
-				//fgets(user_response, sizeof(user_response), stdin);
-				voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
-				outside_image = ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !outside_image )
-					atomicAdd( &SM_image[voxel], 1 );
-				end_walk = ( voxel == voxel_out ) || outside_image;
-			}
-		}
-		else
-		{
-			//printf("z_exit[i] == z_entry[i]\n");
-			while( !end_walk )
-			{
-				// Change in x for Move to Voxel Edge in y
-				y_extension = delta_x/delta_y * y_to_go;
-				//If Next Voxel Edge is in x or xy Diagonal
-				if( x_to_go <= y_extension )
-				{
-					//printf(" x_to_go <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_y / delta_x * x_to_go;				
-					x_to_go = VOXEL_WIDTH;
-					y_to_go -= y_move;
-					voxel_x += x_voxel_step;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y += y_voxel_step;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = delta_x / delta_y * y_to_go;
-					y_move = y_to_go;
-					x_to_go -= x_move;
-					y_to_go = VOXEL_HEIGHT;
-					voxel_y += y_voxel_step;
-				}
-				x += x_move_direction * x_move;
-				y += y_move_direction * y_move;
-				voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
-				outside_image = ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !outside_image )
-					atomicAdd( &SM_image[voxel], 1 );
-				end_walk = ( voxel == voxel_out ) || outside_image;
-				//fgets(user_response, sizeof(user_response), stdin);
-			}// end: while( !end_walk )
-		}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
-	}// end: if( (i < num_histories) && traversed_recon_volume[i] && (WEPL[i] >= SPACE_MODEL_LOWER_THRESHOLD) && (WEPL[i] <= SPACE_MODEL_UPPER_THRESHOLD) && (bin_num[i] >= 0) )
+	//	voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
+	//	voxel_x_out = int( ( x_exit[i] + RECON_CYL_RADIUS ) /VOXEL_WIDTH );
+	//	voxel_y_out = int( ( RECON_CYL_RADIUS - y_exit[i] ) /VOXEL_HEIGHT );
+	//	voxel_z_out = int( ( RECON_CYL_HEIGHT/2 - z_exit[i] ) /VOXEL_THICKNESS );
+	//	voxel_out = int(voxel_x_out + voxel_y_out * COLUMNS + voxel_z_out * COLUMNS * ROWS);
+	//	/********************************************************************************************/
+	//	/***************************** Path and Walk Information ************************************/
+	//	/********************************************************************************************/
+	//	// Lengths/Distances as x is Incremented One Voxel
+	//	delta_x = VOXEL_WIDTH;
+	//	delta_y = abs( (y_exit[i] - y_entry[i])/(x_exit[i] - x_entry[i]) * VOXEL_WIDTH );
+	//	delta_z = abs( (z_exit[i] - z_entry[i])/(x_exit[i] - x_entry[i]) * VOXEL_WIDTH );
+	//	// Overwrite NaN if Divisors on delta_i Calculations Above 
+	//	if( x_entry[i] == x_exit[i] )
+	//	{
+	//		delta_x = abs( (x_exit[i] - x_entry[i])/(y_exit[i] - y_entry[i]) * VOXEL_HEIGHT );
+	//		delta_y = VOXEL_HEIGHT;
+	//		delta_z = abs( (z_exit[i] - z_entry[i])/(y_exit[i] - y_entry[i]) * VOXEL_HEIGHT );
+	//		if( y_entry[i] == y_exit[i] )
+	//		{
+	//			delta_x = abs( (x_exit[i] - x_entry[i])/(z_exit[i] - z_entry[i]) * VOXEL_THICKNESS );
+	//			delta_y = abs( (y_exit[i] - y_entry[i])/(z_exit[i] - z_entry[i]) * VOXEL_THICKNESS );;
+	//			delta_z = VOXEL_THICKNESS;
+	//		}
+	//	}
+	//	x_move = 0, y_move = 0, z_move = 0;
+	//	x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] > x_exit[i] );
+	//	y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] > y_exit[i] );
+	//	z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] > z_exit[i] );
+	//	x_voxel_step = x_move_direction;
+	//	y_voxel_step = -y_move_direction;
+	//	z_voxel_step = -z_move_direction;
+	//	/********************************************************************************************/
+	//	/**************************** Status Tracking Information ***********************************/
+	//	/********************************************************************************************/
+	//	x = x_entry[i], y = y_entry[i], z = z_entry[i];
+	//	x_to_go = ( x_voxel_step > 0 ) * (VOXEL_WIDTH - x_inside) + ( x_voxel_step <= 0 ) * x_inside;
+	//	y_to_go = ( y_voxel_step > 0 ) * (VOXEL_HEIGHT - y_inside) + ( y_voxel_step <= 0 ) * y_inside;
+	//	z_to_go = ( z_voxel_step > 0 ) * (VOXEL_THICKNESS - z_inside) + ( z_voxel_step <= 0 ) * z_inside;
+	//		
+	//	outside_image = ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+	//	if( !outside_image )
+	//		atomicAdd( &SM_image[voxel], 1 );
+	//	end_walk = ( voxel == voxel_out ) || outside_image;
+	//	//fgets(user_response, sizeof(user_response), stdin);
+	//	/********************************************************************************************/
+	//	/*********************************** Voxel Walk Routine *************************************/
+	//	/********************************************************************************************/
+	//	if( z_entry[i] != z_exit[i] )
+	//	{
+	//		while( !end_walk )
+	//		{
+	//			// Change in z for Move to Voxel Edge in x and y
+	//			x_extension = delta_z/delta_x * x_to_go;
+	//			y_extension = delta_z/delta_y * y_to_go;
+	//			if( z_to_go <= x_extension && z_to_go <= y_extension )
+	//			{
+	//				//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
+	//				x_move = delta_x / delta_z * z_to_go;
+	//				y_move = delta_y / delta_z * z_to_go;
+	//				z_move = z_to_go;
+	//				x_to_go -= x_move;
+	//				y_to_go -= y_move;
+	//				z_to_go = VOXEL_THICKNESS;
+	//				voxel_z += z_voxel_step;
+	//				if( x_to_go == 0 )
+	//				{
+	//					voxel_x += x_voxel_step;
+	//					x_to_go = VOXEL_WIDTH;
+	//				}
+	//				if(	y_to_go == 0 )
+	//				{
+	//					voxel_y += y_voxel_step;
+	//					y_to_go = VOXEL_HEIGHT;
+	//				}
+	//			}
+	//			//If Next Voxel Edge is in x or xy Diagonal
+	//			else if( x_extension <= y_extension )
+	//			{
+	//				//printf(" x_extension <= y_extension \n");
+	//				x_move = x_to_go;
+	//				y_move = delta_y / delta_x * x_to_go;
+	//				z_move = delta_z / delta_x * x_to_go;
+	//				x_to_go = VOXEL_WIDTH;
+	//				y_to_go -= y_move;
+	//				z_to_go -= z_move;
+	//				voxel_x += x_voxel_step;
+	//				if( y_to_go == 0 )
+	//				{
+	//					y_to_go = VOXEL_HEIGHT;
+	//					voxel_y += y_voxel_step;
+	//				}
+	//			}
+	//			// Else Next Voxel Edge is in y
+	//			else
+	//			{
+	//				//printf(" y_extension < x_extension \n");
+	//				x_move = delta_x / delta_y * y_to_go;
+	//				y_move = y_to_go;
+	//				z_move = delta_z / delta_y * y_to_go;
+	//				x_to_go -= x_move;
+	//				y_to_go = VOXEL_HEIGHT;
+	//				z_to_go -= z_move;
+	//				voxel_y += y_voxel_step;
+	//			}
+	//			x += x_move_direction * x_move;
+	//			y += y_move_direction * y_move;
+	//			z += z_move_direction * z_move;				
+	//			//fgets(user_response, sizeof(user_response), stdin);
+	//			voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
+	//			outside_image = ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+	//			if( !outside_image )
+	//				atomicAdd( &SM_image[voxel], 1 );
+	//			end_walk = ( voxel == voxel_out ) || outside_image;
+	//		}
+	//	}
+	//	else
+	//	{
+	//		//printf("z_exit[i] == z_entry[i]\n");
+	//		while( !end_walk )
+	//		{
+	//			// Change in x for Move to Voxel Edge in y
+	//			y_extension = delta_x/delta_y * y_to_go;
+	//			//If Next Voxel Edge is in x or xy Diagonal
+	//			if( x_to_go <= y_extension )
+	//			{
+	//				//printf(" x_to_go <= y_extension \n");
+	//				x_move = x_to_go;
+	//				y_move = delta_y / delta_x * x_to_go;				
+	//				x_to_go = VOXEL_WIDTH;
+	//				y_to_go -= y_move;
+	//				voxel_x += x_voxel_step;
+	//				if( y_to_go == 0 )
+	//				{
+	//					y_to_go = VOXEL_HEIGHT;
+	//					voxel_y += y_voxel_step;
+	//				}
+	//			}
+	//			// Else Next Voxel Edge is in y
+	//			else
+	//			{
+	//				//printf(" y_extension < x_extension \n");
+	//				x_move = delta_x / delta_y * y_to_go;
+	//				y_move = y_to_go;
+	//				x_to_go -= x_move;
+	//				y_to_go = VOXEL_HEIGHT;
+	//				voxel_y += y_voxel_step;
+	//			}
+	//			x += x_move_direction * x_move;
+	//			y += y_move_direction * y_move;
+	//			voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
+	//			outside_image = ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+	//			if( !outside_image )
+	//				atomicAdd( &SM_image[voxel], 1 );
+	//			end_walk = ( voxel == voxel_out ) || outside_image;
+	//			//fgets(user_response, sizeof(user_response), stdin);
+	//		}// end: while( !end_walk )
+	//	}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
+	//}// end: if( (i < num_histories) && traversed_recon_volume[i] && (WEPL[i] >= SPACE_MODEL_LOWER_THRESHOLD) && (WEPL[i] <= SPACE_MODEL_UPPER_THRESHOLD) && (bin_num[i] >= 0) )
 }
 void MSC_differences()
 {
