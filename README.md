@@ -1,4 +1,4 @@
-pCT Image Reconstruction
+pCT Image Reconstruction Program
 =========================================================================
 This program reads the proton track and energy measurements acquired from various gantry angles and:
 
