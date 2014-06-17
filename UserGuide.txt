@@ -1,0 +1,19 @@
+/************************************************************************************************************************************************************************************************************************************************************************/
+/********************************************************************************************************** User's Guide for Preprocessing in pCT ***********************************************************************************************************************/
+/************************************************************************************************************************************************************************************************************************************************************************/
+
+(1) Specifying location of input data and where output is to be written.
+
+First, specify the directory where the input data is stored ("input_directory") and the directory where output data should be written ("output_directory").  Note that since the various data sets are typically stored in separate folders in the same directory, the program is designed as such, so do not include the folder where the data is located in the directory name, the folder name should be written to the variable "input_folder".  Similarly, output for various data sets are typically in separate folders in a single directory, so do not include the output folder name in the output directory name, write the folder name into the variable "output_folder".  The filenames for the data files should then be written to the variable "input_base_name" and the file extension to "file_extension" (e.g. .bin, .dat, .txt, etc).  The filename format is expected to be [input_base_name]_xxx.[file_extension], where "xxx" is a 3 digit number specifying the gantry angle from which the corresponding data was acquired.  This completes the input/output path specifications.  In addition to this, make sure to correctly set the "SSD_IN_MM" and "DATA_IN_MM" booleans appropriately and set the data format version using the variable "DATA_FORMAT".
+
+General Notes on Program
+
+The gpu cannot process all the histories at once, so they are broken up into chunks that can fit on the gpu.  as we iterate 
+through the data one chunk at a time, we determine which histories enter the reconstruction volume and if they belong to a 
+valid bin (i.e. t, v, and angular bin number is greater than zero and less than max).  if both are true, we append the bin
+number, wepl, and relative entry/exit ut/uv angles to the following four arrays.  we do not know ahead of time how many 
+valid histories there will be, so memory is allocated to accomodate every history and the actual number of valid histories
+are counted. although we waste some host memory, we can avoid writing intermediate information to file or keeping the raw 
+data and recalculating it every time its needed. once all the data is processed and we know how many valid histories we 
+have, we simply ignore the illegitimate elements of the four arrays to avoid transferring invalid and unnecessary data to 
+and from the gpu.
