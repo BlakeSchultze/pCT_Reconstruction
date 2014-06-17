@@ -1,5 +1,5 @@
 =========================================================================
-						pCT_Reconstruction
+pCT_Reconstruction
 =========================================================================
 This program reads the proton track and energy measurements acquired from various gantry angles and:
 
