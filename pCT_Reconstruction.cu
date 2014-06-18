@@ -603,7 +603,7 @@ void iterative_data_read_old( int num_histories, int start_file_num, int end_fil
 
 	int array_index = 0, gantry_position, gantry_angle, scan_number, scan_histories;
 	float v_data[4], t_data[4], WEPL_data, gantry_angle_data, dummy_data;
-	char detector_number[4];
+	char tracker_plane[4];
 	char data_filename[128];
 	FILE* data_file;
 
@@ -622,7 +622,7 @@ void iterative_data_read_old( int num_histories, int start_file_num, int end_fil
 		{
 			fread(&v_data,				sizeof(float),	4, data_file);
 			fread(&t_data,				sizeof(float),	4, data_file);
-			fread(&detector_number,		sizeof(char),	4, data_file);
+			fread(&tracker_plane,		sizeof(char),	4, data_file);
 			fread(&WEPL_data,			sizeof(float),	1, data_file);
 			fread(&gantry_angle_data,	sizeof(float),	1, data_file);
 			fread(&dummy_data,			sizeof(float),	1, data_file); // dummy read because each event has an extra 4 bytes, for some reason
@@ -653,10 +653,10 @@ void iterative_data_read_old( int num_histories, int start_file_num, int end_fil
 			}
 			if( !MICAH_SIM )
 			{
-				u_in_1_h[array_index]	= SSD_u_Positions[int(detector_number[0])];
-				u_in_2_h[array_index]	= SSD_u_Positions[int(detector_number[1])];
-				u_out_1_h[array_index]	= SSD_u_Positions[int(detector_number[2])];
-				u_out_2_h[array_index]	= SSD_u_Positions[int(detector_number[3])];
+				u_in_1_h[array_index]	= SSD_u_Positions[int(tracker_plane[0])];
+				u_in_2_h[array_index]	= SSD_u_Positions[int(tracker_plane[1])];
+				u_out_1_h[array_index]	= SSD_u_Positions[int(tracker_plane[2])];
+				u_out_2_h[array_index]	= SSD_u_Positions[int(tracker_plane[3])];
 			}
 			else
 			{
