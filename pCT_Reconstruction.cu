@@ -16,15 +16,15 @@ void count_histories_v1();
 void reserve_vector_capacity();
 
 // Preprocessing routines
-void iterative_data_read_old( int, int, int );
-void iterative_data_read_v0( int, int, int );
-void iterative_data_read_v1( int, int, int );
-void recon_volume_intersections( int );
-void bin_valid_histories( int );
+void iterative_data_read_old( const int, const int, const int );
+void iterative_data_read_v0( const int, const int, const int );
+void iterative_data_read_v1( const int, const int, const int );
+void recon_volume_intersections( const int );
+void bin_valid_histories( const int );
 void calculate_means();
-void sum_differences( int, int );
+void sum_differences( const int, const int );
 void calculate_std_devs();
-void statistical_cuts( int, int );
+void statistical_cuts( const int, const int );
 void initialize_sinogram();
 void construct_sinogram();
 void filter();
@@ -37,37 +37,31 @@ void initialize_SM_hull( int*&, int*& );
 void initialize_float_image( float*&, float*& );
 void SC( int );
 void MSC( int );
-void SM( int );
-void MSC_differences();
-void SM_differences();
 void MSC_threshold();
+void SM( int );
 void SM_threshold();
-void averaging_filter( bool*&, bool*&, int);
+void SM_threshold_2();
+void averaging_filter( bool*&, bool*&, const int);
 
 // MLP
 void create_MLP_test_image();	// In development
 void MLP_test();				// In development
 
-// Write arrays/vectors to file
-void write_bool_array_to_files( char*, const char*, const char*, bool*, int, int, int );
-void write_bool_array_to_file( char*, const char*, const char* , bool*, int, int, int );
-void write_integer_array_to_files( char*, const char*, const char* , int*, int, int, int );
-void write_integer_array_to_file( char*, const char*, const char* , int*, int, int, int );
-void write_float_array_to_files( char*, const char*, const char* , float*&, int, int, int );
-void write_float_array_to_file( char*, const char*, const char* , float*, int, int, int );
-void write_float_vector_to_file( char*, const char*, const char* , vector<float>, int, int, int );
+// Write arrays/vectors to file(s)
+template<typename T> void write_array_to_disk( char*, const char*, const char*, T*, const int, const int, const int, const int, const bool );
+template<typename T> void write_vector_to_disk( char*, const char*, const char*, vector<T>, const int, const int, const int, const bool );
 
 // Memory transfers and allocations/deallocations
 void post_cut_memory_clean(); 
-void resize_vectors( int );
-void shrink_vectors( int );
+void resize_vectors( const int );
+void shrink_vectors( const int );
 void initial_processing_memory_clean();
 
 // Helper Functions
-bool bad_data_angle( int );
-int calculate_x_voxel(float, int, float);
-int calculate_y_voxel(float, int, float);
-int calculate_slice(float, int, float);
+bool bad_data_angle( const int );
+int calculate_x_voxel(const float, const int, const float);
+int calculate_y_voxel(const float, const int, const float);
+int calculate_slice(const float, const int, const float);
 
 // New routine test functions
 void test_func();
@@ -91,13 +85,11 @@ __device__ void voxel_walk( bool*&, float, float, float, float, float, float );
 __global__ void SC_kernel( int, bool*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void MSC_kernel( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void SM_kernel( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void MSC_differences_kernel( int*, int* );
-__global__ void SM_differences_kernel( int*, int* );
-__global__ void SM_threshold_search_kernel( int*, int* );
 __global__ void MSC_threshold_kernel( int* );
 __global__ void SM_threshold_kernel( int*, int* );
+__global__ void SM_threshold_kernel_2( int*, int* );
 __global__ void carve_differences( int*, int* );
-__global__ void averaging_filter_kernel( bool*, int, float );
+__global__ void averaging_filter_kernel( bool*, const int, const float );
 
 // New routine test functions
 __global__ void test_func_kernel( int*, int);
@@ -127,6 +119,9 @@ int main(int argc, char** argv)
 		initialize_MSC_hull( MSC_image_h, MSC_image_d );
 	if( SM_ON )
 		initialize_SM_hull( SM_image_h, SM_image_d );
+	write_array_to_disk("x_sc_int", output_directory, output_folder, MSC_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	write_array_to_disk("x_sc_int", output_directory, output_folder, MSC_image_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+	exit(1);
 	/********************************************************************************************/
 	/* Read the u-Coordinates of the Detector Planes from the Config File, Allocate and			*/
 	/* Initialize Statistical Data Arrays, and Count the Number of Histories Per File,			*/
@@ -185,7 +180,6 @@ int main(int argc, char** argv)
 		start_file_num = end_file_num;
 		histories_to_process = 0;
 	}	
-	exit(1);
 	/********************************************************************************************/
 	/* Shrink vectors so capacity reduced to size, which is number of histories remaining after */
 	/* histories that didn't intersect reconstruction volume were ignored						*/																					
@@ -198,7 +192,7 @@ int main(int argc, char** argv)
 	if( SC_ON )
 	{
 		cudaMemcpy(SC_image_h,  SC_image_d, MEM_SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
-		write_bool_array_to_file("x_sc", output_directory, output_folder, SC_image_h, COLUMNS, ROWS, SLICES );
+		write_array_to_disk("x_sc", output_directory, output_folder, SC_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
 	}
 	if( MSC_ON )
 		MSC_threshold();
@@ -431,6 +425,7 @@ void count_histories_v0()
 		for( int scan_number = 1; scan_number <= NUM_SCANS; scan_number++, file_number++ )
 		{
 			sprintf(data_filename, "%s%s/%s_%03d%s", input_directory, input_folder, input_base_name, gantry_angle, file_extension  );
+			//cout << data_filename << endl;
 			ifstream data_file(data_filename, ios::binary);
 			if( data_file == NULL )
 			{
@@ -581,7 +576,7 @@ void reserve_vector_capacity()
 /************************************************************************************************************************************************************/
 /********************************************************* Data Importation, Initial Cuts, and Binning ******************************************************/
 /************************************************************************************************************************************************************/
-void iterative_data_read_old( int num_histories, int start_file_num, int end_file_num )
+void iterative_data_read_old( const int num_histories, const int start_file_num, const int end_file_num )
 {
 		unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
 	unsigned int mem_size_hist_ints = sizeof(int) * num_histories;
@@ -678,7 +673,7 @@ void iterative_data_read_old( int num_histories, int start_file_num, int end_fil
 		fclose(data_file);		
 	}
 }
-void iterative_data_read_v0( int num_histories, int start_file_num, int end_file_num )
+void iterative_data_read_v0( const int num_histories, const int start_file_num, const int end_file_num )
 {
 	unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
 	unsigned int mem_size_hist_ints = sizeof(int) * num_histories;
@@ -831,7 +826,7 @@ void iterative_data_read_v0( int num_histories, int start_file_num, int end_file
 		}
 	}
 }
-void iterative_data_read_v1( int num_histories, int start_file_num, int end_file_num ){
+void iterative_data_read_v1( const int num_histories, const int start_file_num, const int end_file_num ){
 	unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
 	unsigned int mem_size_hist_ints = sizeof(int) * num_histories;
 
@@ -983,7 +978,7 @@ void iterative_data_read_v1( int num_histories, int start_file_num, int end_file
 		}
 	}
 }
-void recon_volume_intersections( int num_histories )
+void recon_volume_intersections( const int num_histories )
 {
 	//printf("There are %d histories in this projection\n", num_histories );
 	unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
@@ -1351,7 +1346,7 @@ __global__ void recon_volume_intersections_kernel
 		traversed_recon_volume[i] = entered && exited;
 	}	
 }
-void bin_valid_histories( int num_histories )
+void bin_valid_histories( const int num_histories )
 {
 	unsigned int mem_size_hist_floats	= sizeof(float) * num_histories;
 	unsigned int mem_size_hist_ints		= sizeof(int) * num_histories;
@@ -1514,10 +1509,10 @@ void calculate_means()
 	//cudaMemcpy( mean_rel_ut_angle_h,	mean_rel_ut_angle_d,	MEM_SIZE_BINS_FLOATS, cudaMemcpyDeviceToHost );
 	//cudaMemcpy( mean_rel_uv_angle_h,	mean_rel_uv_angle_d,	MEM_SIZE_BINS_FLOATS, cudaMemcpyDeviceToHost );
 
-	//write_integer_array_to_file("bin_counts_h_pre", output_directory, output_folder, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS );
-	//write_float_array_to_file("mean_WEPL_h", output_directory, output_folder, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS );
-	//write_float_array_to_file("mean_rel_ut_angle_h", output_directory, output_folder, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS );
-	//write_float_array_to_file("mean_rel_uv_angle_h", output_directory, output_folder, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS );
+	//write_array_to_disk("bin_counts_h_pre", output_directory, output_folder, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	//write_array_to_disk("mean_WEPL_h", output_directory, output_folder, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	//write_array_to_disk("mean_rel_ut_angle_h", output_directory, output_folder, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	//write_array_to_disk("mean_rel_uv_angle_h", output_directory, output_folder, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	free(bin_counts_h);
 	free(mean_WEPL_h);
@@ -1537,7 +1532,7 @@ __global__ void calculate_means_kernel( int* bin_counts, float* mean_WEPL, float
 		mean_rel_uv_angle[bin] /= bin_counts[bin];
 	}
 }
-void sum_differences( int start_position, int num_histories )
+void sum_differences( const int start_position, const int num_histories )
 {
 	unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
 	unsigned int mem_size_hist_ints = sizeof(int) * num_histories;
@@ -1645,7 +1640,7 @@ __global__ void calculate_std_devs_kernel( int* bin_counts, float* stddev_WEPL, 
 	syncthreads();
 	bin_counts[bin] = 0;
 }
-void statistical_cuts( int start_position, int num_histories )
+void statistical_cuts( const int start_position, const int num_histories )
 {
 	unsigned int mem_size_hist_floats = sizeof(float) * num_histories;
 	unsigned int mem_size_hist_ints = sizeof(int) * num_histories;
@@ -2413,11 +2408,11 @@ void construct_sinogram()
 	construct_sinogram_kernel<<< dimGrid, dimBlock >>>( bin_counts_d, sinogram_d );
 
 	//cudaMemcpy(sinogram_h,  sinogram_d, MEM_SIZE_BINS_FLOATS, cudaMemcpyDeviceToHost);
-	//write_float_array_to_files("sinogram", output_directory, output_folder, sinogram_h, COLUMNS, ROWS, 3 );
+	//write_array_to_disk("sinogram", output_directory, output_folder, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, false );
 
 	//bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
 	//cudaMemcpy(bin_counts_h, bin_counts_d, MEM_SIZE_BINS_INTS, cudaMemcpyDeviceToHost) ;
-	//write_integer_array_to_file( "bin_counts_post", output_directory, output_folder, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS );
+	//write_array_to_disk( "bin_counts_post", output_directory, output_folder, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 }
 __global__ void construct_sinogram_kernel( int* bin_counts, float* sinogram )
 {
@@ -2512,43 +2507,14 @@ void backprojection()
 
 			for( int row = 0; row < ROWS; row++ )
 			{
-
-				// Initial Distance Into Voxel
-		/*		x_inside = modf( ( x_entry[i] + RECON_CYL_RADIUS ) /VOXEL_WIDTH, &voxel_x)*VOXEL_WIDTH;	
-				y_inside = modf( ( RECON_CYL_RADIUS - y_entry[i] ) /VOXEL_HEIGHT, &voxel_y)*VOXEL_HEIGHT;
-				z_inside = modf( ( RECON_CYL_HEIGHT/2 - z_entry[i] ) /VOXEL_THICKNESS, &voxel_z)*VOXEL_THICKNESS;
-
-				voxel = int(voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS);
-				voxel_x_out = int( ( x_exit[i] + RECON_CYL_RADIUS ) /VOXEL_WIDTH );
-				voxel_y_out = int( ( RECON_CYL_RADIUS - y_exit[i] ) /VOXEL_HEIGHT );
-				voxel_z_out = int( ( RECON_CYL_HEIGHT/2 - z_exit[i] ) /VOXEL_THICKNESS );*/
-				// Get the spatial co-ordinates of the pixel
-			/*	float x, y, z;
-				if( column > COLUMNS/2 )
-					x = -RECON_CYL_RADIUS + ( column - 0.5 )* VOXEL_WIDTH;
-				else if( column < COLUMNS/2 )
-					x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
-				else 
-					x = -RECON_CYL_RADIUS + column* VOXEL_WIDTH;
-				if( column > ROWS/2 )
-					y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
-				else if( column < ROWS/2 )
-					y = RECON_CYL_RADIUS - (row - 0.5) * VOXEL_HEIGHT;
-				else 
-					y = RECON_CYL_RADIUS - row * VOXEL_HEIGHT;
-				z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;*/
 				float x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
 				float y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
 				float z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
 				//// If the voxel is outside a cylinder contained in the reconstruction volume, set to air
 				if( ( x * x + y * y ) > ( RECON_CYL_RADIUS * RECON_CYL_RADIUS ) )
-					X_h[( slice * COLUMNS * ROWS) + ( row * COLUMNS ) + column] = 0.00113;
-
-
-							
+					X_h[( slice * COLUMNS * ROWS) + ( row * COLUMNS ) + column] = 0.00113;							
 				else
-				{
-	  
+				{	  
 					// Sum over projection angles
 					for( int angle_bin = 0; angle_bin < ANGULAR_BINS; angle_bin++ )
 					{
@@ -2628,7 +2594,6 @@ void backprojection()
 				float x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
 				float y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
 				float d_squared = powf(x, 2) + powf(y, 2);
-				//if(X_h[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] > FBP_THRESHOLD && (d < powf(RECON_CYL_RADIUS-1.5, 2) ) ) 
 				if(X_h[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] > FBP_THRESHOLD && (d_squared < powf(RECON_CYL_RADIUS, 2) ) ) 
 					FBP_object_h[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] = 1; 
 				else
@@ -2637,24 +2602,9 @@ void backprojection()
 
 		}
 	}
-	//// Set voxels outside reconstruction cylinder to zeros
-	//for( int slice = 0; slice < SLICES; slice++ )
-	//	for( int row = 0; row < ROWS; row++ )
-	//		for( int column = 0; column < COLUMNS; column++ )
-	//		{/*
-	//			float xv = ( column - COLUMNS/2 ) * VOXEL_WIDTH;
-	//			float yv = ( ROWS/2 - row ) * VOXEL_HEIGHT;
-	//			if( ( (xv * xv) + (yv * yv) ) >= float(RECON_CYL_RADIUS * RECON_CYL_RADIUS) )
-	//				FBP_object_h[slice * COLUMNS * ROWS + row * COLUMNS + column] = 0;*/
-	//			float xv = int( column - COLUMNS/2 + 0.5);
-	//			float yv = int( ROWS/2 - row + 0.5);
-	//			if( ( (xv * xv) + (yv * yv) ) >= powf(COLUMNS/2, 2) )
-	//			//if( ( (xv * xv) + (yv * yv) ) >= powf(COLUMNS/2- 3.0, 2) )
-	//				FBP_object_h[slice * COLUMNS * ROWS + row * COLUMNS + column] = 0;
-	//		}
-	//write_integer_array_to_files( "FBP_object", output_directory, output_folder, FBP_object_h, COLUMNS, ROWS, SLICES );
-	write_float_array_to_files( "X_h", output_directory, output_folder, X_h, COLUMNS, ROWS, SLICES );
-	write_integer_array_to_file( "x_FBP", output_directory, output_folder, FBP_object_h, COLUMNS, ROWS, SLICES );
+	//write_array_to_disk( "FBP_object", output_directory, output_folder, FBP_object_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+	write_array_to_disk( "X_h", output_directory, output_folder, X_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+	write_array_to_disk( "x_FBP", output_directory, output_folder, FBP_object_h, COLUMNS, ROWS, SLICES, VOXELS, true );
 }
 /************************************************************************************************************************************************************/
 /****************************************************************** Image Initialization  *******************************************************************/
@@ -3174,7 +3124,7 @@ __global__ void MSC_kernel
 void MSC_threshold()
 {
 	cudaMemcpy(MSC_image_h,  MSC_image_d,	 MEM_SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-	write_integer_array_to_files("MSC_image", output_directory, output_folder, MSC_image_h, COLUMNS, ROWS, SLICES );
+	write_array_to_disk("MSC_image", output_directory, output_folder, MSC_image_h, COLUMNS, ROWS, SLICES, VOXELS, false );
 
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( COLUMNS, ROWS );   
@@ -3183,8 +3133,8 @@ void MSC_threshold()
 
 	cudaMemcpy(MSC_image_h,  MSC_image_d,	 MEM_SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
 
-	write_integer_array_to_files("MSC_image_thresholded", output_directory, output_folder, MSC_image_h, COLUMNS, ROWS, SLICES );
-	write_integer_array_to_file("x_MSC", output_directory, output_folder, MSC_image_h, COLUMNS, ROWS, SLICES );
+	write_array_to_disk("MSC_image_thresholded", output_directory, output_folder, MSC_image_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+	write_array_to_disk("x_MSC", output_directory, output_folder, MSC_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
 
 	cudaFree( MSC_image_d );
 	free(MSC_image_h);
@@ -3215,7 +3165,7 @@ __global__ void MSC_threshold_kernel( int* MSC_image )
 		MSC_image[voxel] = 0;
 	else
 		MSC_image[voxel] = 1;
-	if( x * x + y * y > RECON_CYL_RADIUS * RECON_CYL_RADIUS )
+	if( powf(x, 2) + pow(y, 2) >= powf(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
 		MSC_image[voxel] = 0;
 
 }
@@ -3426,124 +3376,11 @@ __global__ void SM_kernel
 	//	}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
 	//}// end: if( (i < num_histories) && traversed_recon_volume[i] && (WEPL[i] >= SPACE_MODEL_LOWER_THRESHOLD) && (WEPL[i] <= SPACE_MODEL_UPPER_THRESHOLD) && (bin_num[i] >= 0) )
 }
-void MSC_differences()
-{
-	int* MSC_differences_h = (int*) calloc( VOXELS, sizeof(int) );
-	int* MSC_differences_d;
-	cudaMalloc((void**) &MSC_differences_d, MEM_SIZE_IMAGE_INT );
-	cudaMemcpy( MSC_differences_d, MSC_differences_h, MEM_SIZE_IMAGE_INT, cudaMemcpyHostToDevice );
-
-	dim3 dimBlock( SLICES );
-	dim3 dimGrid( COLUMNS, ROWS );
-
-	MSC_differences_kernel<<< dimGrid, dimBlock >>>( MSC_image_d, MSC_differences_d );
-}
-void SM_differences()
-{
-	int* SM_differences_h = (int*) calloc( VOXELS, sizeof(int) );
-	int* SM_differences_d;
-	cudaMalloc((void**) &SM_differences_d, MEM_SIZE_IMAGE_INT );
-	cudaMemcpy( SM_differences_d, SM_differences_h, MEM_SIZE_IMAGE_INT, cudaMemcpyHostToDevice );
-
-	SM_differences_kernel<<< ( COLUMNS, ROWS ), SLICES >>>( SM_image_d, SM_differences_d );
-	SM_threshold_search_kernel<<< ( COLUMNS, ROWS ), SLICES >>>( SM_image_d, SM_differences_d  );
-}
-__global__ void SM_differences_kernel( int* SM_image, int* SM_differences)
-{
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-	if( voxel < VOXELS && row < COLUMNS - 1)
-	{
-		SM_differences[voxel] = abs(SM_image[voxel] - SM_image[voxel - ROWS]);
-		if( column < COLUMNS - 1 )
-		{
-			int difference_right = abs(SM_image[voxel] - SM_image[voxel + 1]);
-			if( difference_right > SM_differences[voxel] )
-				SM_differences[voxel] = -difference_right;
-		}		
-	}
-	/*syncthreads();
-	int max_difference = 0;
-	int index = 0;
-	voxel = slice * COLUMNS * ROWS;
-	for( ; voxel < voxel + COLUMNS * ROWS; voxel++ )
-	{
-		if( SM_differences[voxel] > max_difference )
-		{
-			max_difference = SM_differences[voxel];
-			index = voxel;
-		}
-	}
-	int threshold = 0;
-	bool down = SM_differences[index] > 0;
-	if( down )
-		threshold = max(SM_image[index], SM_image[index + COLUMNS]);
-	else
-		threshold = max(SM_image[index], SM_image[index + 1]);
-	syncthreads();
-	voxel =  column + row * COLUMNS + slice * COLUMNS * ROWS;
-	if( SM_image[voxel] >= SM_THRESHOLD_MULTIPLIER * threshold )
-		SM_image[voxel] = 0;
-	else 
-		SM_image[voxel] = 1;*/
-}
-__global__ void SM_threshold_search_kernel( int* SM_image, int* SM_differences )
-{
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int max_difference = 0;
-	int index = 0;
-	int voxel = slice * COLUMNS * ROWS;
-	for( ; voxel < voxel + COLUMNS * ROWS; voxel++ )
-	{
-		if( SM_differences[voxel] > max_difference )
-		{
-			max_difference = SM_differences[voxel];
-			index = voxel;
-		}
-	}
-	int threshold = 0;
-	bool down = SM_differences[index] > 0;
-	if( down )
-		threshold = max(SM_image[index], SM_image[index + COLUMNS]);
-	else
-		threshold = max(SM_image[index], SM_image[index + 1]);
-	syncthreads();
-	voxel =  column + row * COLUMNS + slice * COLUMNS * ROWS;
-	if( SM_image[voxel] >= SM_THRESHOLD_MULTIPLIER * threshold )
-		SM_image[voxel] = 0;
-	else 
-		SM_image[voxel] = 1;
-}
-__global__ void MSC_differences_kernel( int* MSC_image, int* MSC_differences)
-{
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-	if( voxel < VOXELS && row < COLUMNS - 1)
-	{
-		float x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
-		float y = ( ROWS/2 - row - 0.5 ) * VOXEL_HEIGHT;
-		if( MSC_image[voxel] - MSC_image[voxel - ROWS] > MSC_DIFF_THRESH )
-			MSC_image[voxel] = 0;
-		else if( MSC_image[voxel - ROWS] - MSC_image[voxel] > MSC_DIFF_THRESH )
-			MSC_image[voxel - ROWS] = 0;
-		else if( column < COLUMNS - 1 )
-		{
-			if( MSC_image[voxel] - MSC_image[voxel + 1] > MSC_DIFF_THRESH )
-				MSC_image[voxel] = 0;
-			else if( MSC_image[voxel + 1] - MSC_image[voxel] > MSC_DIFF_THRESH )
-				MSC_image[voxel + 1] = 0;
-		}
-		else
-			MSC_image[voxel] = 1;
-		if( x * x + y * y > RECON_CYL_RADIUS * RECON_CYL_RADIUS )
-			MSC_image[voxel] = 0;
-	}	 
-}
 void SM_threshold()
 {
 	// Copy the space modeled image from the GPU to the CPU and write it to file.
 	cudaMemcpy(SM_image_h,  SM_image_d,	 MEM_SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-	write_integer_array_to_files("SM_image", output_directory, output_folder, SM_image_h, COLUMNS, ROWS, SLICES );
+	write_array_to_disk("SM_image", output_directory, output_folder, SM_image_h, COLUMNS, ROWS, SLICES, VOXELS, false );
 
 	int* SM_differences_h = (int*) calloc( VOXELS, sizeof(int) );
 	int* SM_differences_d;
@@ -3582,8 +3419,8 @@ void SM_threshold()
 	SM_threshold_kernel<<< dimGrid, dimBlock >>>( SM_image_d, SM_thresholds_d);
 	
 	cudaMemcpy(SM_image_h,  SM_image_d,	 MEM_SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-	//write_integer_array_to_files("space_model_thresholded", output_directory, output_folder, SM_image_h, COLUMNS, ROWS, SLICES );
-	write_integer_array_to_file("x_SM", output_directory, output_folder, SM_image_h, COLUMNS, ROWS, SLICES );
+	//write_array_to_disk("space_model_thresholded", output_directory, output_folder, SM_image_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+	write_array_to_disk("x_SM", output_directory, output_folder, SM_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
 
 	cudaFree( SM_differences_d );
 	cudaFree( SM_thresholds_d );
@@ -3601,11 +3438,108 @@ __global__ void SM_threshold_kernel( int* SM_image, int* SM_threshold )
 	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
 	if( voxel < VOXELS )
 	{
-		if( SM_image[voxel] > 1.0 * SM_threshold[slice] )
+		if( SM_image[voxel] > SM_THRESHOLD_MULTIPLIER * SM_threshold[slice] )
 			SM_image[voxel] = 1;
 		else
 			SM_image[voxel] = 0;
-		if( x * x + y * y > RECON_CYL_RADIUS * RECON_CYL_RADIUS )
+		if( powf(x, 2) + pow(y, 2) >= powf(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
+			SM_image[voxel] = 0;
+	}
+}
+void SM_threshold_2()
+{
+	// Copy the space modeled image from the GPU to the CPU and write it to file.
+	cudaMemcpy(SM_image_h,  SM_image_d,	 MEM_SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
+	write_array_to_disk("SM_image", output_directory, output_folder, SM_image_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+
+	int* SM_differences_h = (int*) calloc( VOXELS, sizeof(int) );
+	int* SM_differences_d;
+	cudaMalloc((void**) &SM_differences_d, MEM_SIZE_IMAGE_INT );
+	cudaMemcpy( SM_differences_d, SM_differences_h, MEM_SIZE_IMAGE_INT, cudaMemcpyHostToDevice );
+
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( COLUMNS, ROWS );   
+
+	carve_differences<<< dimGrid, dimBlock >>>( SM_differences_d, SM_image_d );
+	cudaMemcpy( SM_differences_h, SM_differences_d, MEM_SIZE_IMAGE_INT, cudaMemcpyDeviceToHost );
+
+	int* SM_thresholds_h = (int*) calloc( SLICES, sizeof(int) );
+	int voxel;	
+	int max_difference = 0;
+	for( int slice = 0; slice < SLICES; slice++ )
+	{
+		for( int pixel = 0; pixel < COLUMNS * ROWS; pixel++ )
+		{
+			voxel = pixel + slice * COLUMNS * ROWS;
+			if( SM_differences_h[voxel] > max_difference )
+			{
+				max_difference = SM_differences_h[voxel];
+				SM_thresholds_h[slice] = SM_image_h[voxel];
+			}
+		}
+		printf( "Slice %d : The maximum space_model difference = %d and the space_model threshold = %d\n", slice, max_difference, SM_thresholds_h[slice] );
+		max_difference = 0;
+	}
+
+	int* SM_thresholds_d;
+	unsigned int threshold_size = SLICES * sizeof(int);
+	cudaMalloc((void**) &SM_thresholds_d, threshold_size );
+	cudaMemcpy( SM_thresholds_d, SM_thresholds_h, threshold_size, cudaMemcpyHostToDevice );
+
+	SM_threshold_kernel<<< dimGrid, dimBlock >>>( SM_image_d, SM_thresholds_d);
+	
+	cudaMemcpy(SM_image_h,  SM_image_d,	 MEM_SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
+	//write_array_to_disk("space_model_thresholded", output_directory, output_folder, SM_image_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+	write_array_to_disk("x_SM", output_directory, output_folder, SM_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+
+	cudaFree( SM_differences_d );
+	cudaFree( SM_thresholds_d );
+	cudaFree( SM_image_d );
+
+	free(SM_differences_h);
+	free(SM_thresholds_h);
+	free(SM_image_h);
+}
+__global__ void SM_threshold_kernel_2( int* SM_image, int* SM_differences )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
+	int difference, max_difference = 0;
+	if( (row != 0) && (row != ROWS - 1) && (column != 0) && (column != COLUMNS - 1) )
+	{
+		for( int current_row = row - 1; current_row <= row + 1; current_row++ )
+		{
+			for( int current_column = column - 1; current_column <= column + 1; current_column++ )
+			{
+				difference = SM_image[voxel] - SM_image[current_column + current_row * COLUMNS + slice * COLUMNS * ROWS];
+				if( difference > max_difference )
+					max_difference = difference;
+			}
+		}
+		SM_differences[voxel] = max_difference;
+	}
+	syncthreads();
+	int slice_threshold;
+	max_difference = 0;
+	for( int pixel = 0; pixel < COLUMNS * ROWS; pixel++ )
+	{
+		voxel = pixel + slice * COLUMNS * ROWS;
+		if( SM_differences[voxel] > max_difference )
+		{
+			max_difference = SM_differences[voxel];
+			slice_threshold = SM_image[voxel];
+		}
+	}
+	syncthreads();
+	float x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
+	float y = ( ROWS/2 - row - 0.5 ) * VOXEL_HEIGHT;
+	if( voxel < VOXELS )
+	{
+		if( SM_image[voxel] > SM_THRESHOLD_MULTIPLIER * slice_threshold )
+			SM_image[voxel] = 1;
+		else
+			SM_image[voxel] = 0;
+		if( powf(x, 2) + pow(y, 2) >= powf(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
 			SM_image[voxel] = 0;
 	}
 }
@@ -3629,7 +3563,7 @@ __global__ void carve_differences( int* carve_differences, int* image )
 		carve_differences[voxel] = max_difference;
 	}
 }
-void averaging_filter( bool*& image_h, bool*& image_d, int filter_size )
+void averaging_filter( bool*& image_h, bool*& image_d, const int filter_size )
 {
 	initialize_SC_hull(image_h, image_d);
 
@@ -3640,9 +3574,9 @@ void averaging_filter( bool*& image_h, bool*& image_d, int filter_size )
 	averaging_filter_kernel<<< dimGrid, dimBlock >>>( image_d, filter_size, threshold);
 
 	cudaMemcpy(image_h, image_d, MEM_SIZE_IMAGE_INT, cudaMemcpyDeviceToHost) ;
-	write_bool_array_to_file( "test", output_directory, output_folder, image_h, COLUMNS, ROWS, SLICES );
+	write_array_to_disk( "test", output_directory, output_folder, image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
 }
-__global__ void averaging_filter_kernel( bool* image, int filter_size, float threshold )
+__global__ void averaging_filter_kernel( bool* image, const int filter_size, const float threshold )
 {
 	int voxel_x = blockIdx.x;
 	int voxel_y = blockIdx.y;	
@@ -3690,9 +3624,9 @@ void post_cut_memory_clean()
 	cudaFree( xz_entry_angle_d );
 	//cudaFree( xy_exit_angle_d );
 	//cudaFree( xz_exit_angle_d );
-
 	cudaFree( relative_ut_angle_d );
 	cudaFree( relative_uv_angle_d );
+
 	cudaFree( mean_rel_ut_angle_d );
 	cudaFree( mean_rel_uv_angle_d );
 	cudaFree( mean_WEPL_d );
@@ -3700,7 +3634,7 @@ void post_cut_memory_clean()
 	cudaFree( stddev_rel_uv_angle_d );
 	cudaFree( stddev_WEPL_d );
 }
-void resize_vectors( int new_size )
+void resize_vectors( const int new_size )
 {
 	bin_num_vector.resize( new_size );
 	//gantry_angle_vector.resize( new_size );
@@ -3718,7 +3652,7 @@ void resize_vectors( int new_size )
 	relative_ut_angle_vector.resize( new_size );
 	relative_uv_angle_vector.resize( new_size );
 }
-void shrink_vectors( int new_capacity )
+void shrink_vectors( const int new_capacity )
 {
 	bin_num_vector.shrink_to_fit();
 	//gantry_angle_vector.shrink_to_fit();
@@ -3739,136 +3673,96 @@ void shrink_vectors( int new_capacity )
 /************************************************************************************************************************************************************/
 /****************************************************** Routines for Writing Data Arrays/Vectors to Disk ****************************************************/
 /************************************************************************************************************************************************************/
-void write_bool_array_to_files( char* output_filename_base, const char* output_directory, const char* output_folder, bool* bool_array, int x_max, int y_max, int z_max )
+template<typename T> void write_array_to_disk( char* filename_base, const char* directory, const char* folder, T* data, const int x_max, const int y_max, const int z_max, const int elements, const bool single_file )
 {
-	char output_filename[256];
-	// Write each slice of the array/image to a separate file
-	for(int z = 0; z < z_max; z++)
+	char filename[256];
+	ofstream output_file;
+	int index;
+	int num_files = z_max;
+	int z_start = 0;
+	int z_end = 1;
+	if( single_file )
 	{
-		ofstream output_file;
-		sprintf( output_filename, "%s%s/%s_%d.txt", output_directory, output_folder, output_filename_base, z );
-		output_file.open(output_filename);
+		num_files = 1;
+		z_end = z_max;
+	}
+	for( int file = 0; file < num_files; file++)
+	{
+		if( num_files == z_max )
+			sprintf( filename, "%s%s/%s_%d.txt", directory, folder, filename_base, file );
+		else
+			sprintf( filename, "%s%s/%s.txt", directory, folder, filename_base );			
+		output_file.open(filename);		
+		for(int z = z_start; z < z_end; z++)
+		{			
 			for(int y = 0; y < y_max; y++)
 			{
 				for(int x = 0; x < x_max; x++)
-					output_file << bool_array[(z*x_max*y_max)+(y*x_max)+x] << " ";
+				{
+					index = x + ( y * x_max ) + ( z * x_max * y_max );
+					if( index >= elements )
+						break;
+					output_file << data[index] << " ";
+				}	
+				if( index >= elements )
+					break;
 				output_file << endl;
 			}
-		output_file.close();	
-	}
-}
-void write_bool_array_to_file( char* output_filename_base, const char* output_directory, const char* output_folder, bool* bool_array, int x_max, int y_max, int z_max )
-{
-	// Write each slice of the array/image to a single file
-	ofstream output_file;
-	char output_filename[256];
-	sprintf( output_filename, "%s%s/%s.txt", output_directory, output_folder, output_filename_base );
-	output_file.open(output_filename);
-	for( int z = 0; z < z_max; z++ )
-	{		
-			for( int y = 0; y < y_max; y++ )
-			{
-				for( int x = 0; x < x_max; x++ )
-					output_file << bool_array[( z * x_max * y_max ) + ( y * x_max ) + x] << " ";	
-				output_file << endl;
-			}		
-	}//607,999
-	output_file.close();
-}
-void write_integer_array_to_files( char* output_filename_base, const char* output_directory, const char* output_folder, int* integer_array, int x_max, int y_max, int z_max )
-{
-	char output_filename[256];
-	// Write each slice of the array/image to a separate file
-	for(int z = 0; z < z_max; z++)
-	{
-		ofstream output_file;
-		sprintf( output_filename, "%s%s/%s_%d.txt", output_directory, output_folder, output_filename_base, z );
-		output_file.open(output_filename);
-			for(int y = 0; y < y_max; y++)
-			{
-				for(int x = 0; x < x_max; x++)
-					output_file << integer_array[(z*x_max*y_max)+(y*x_max)+x] << " ";
-				output_file << endl;
-			}
-		output_file.close();	
-	}
-}
-void write_integer_array_to_file( char* output_filename_base, const char* output_directory, const char* output_folder, int* integer_array, int x_max, int y_max, int z_max )
-{
-	// Write each slice of the array/image to a single file
-	ofstream output_file;
-	char output_filename[256];
-	sprintf( output_filename, "%s%s/%s.txt", output_directory, output_folder, output_filename_base );
-	output_file.open(output_filename);
-	for( int z = 0; z < z_max; z++ )
-	{		
-			for( int y = 0; y < y_max; y++ )
-			{
-				for( int x = 0; x < x_max; x++ )
-					output_file << integer_array[( z * x_max * y_max ) + ( y * x_max ) + x] << " ";	
-				output_file << endl;
-			}		
-	}//607,999
-	output_file.close();
-}
-void write_float_array_to_files( char* output_filename_base, const char* output_directory, const char* output_folder, float* &float_array, int x_max, int y_max, int z_max )
-{
-	char output_filename[256];
-	// Write each slice of the array/image to a separate file
-	for(int z = 0; z < z_max; z++)
-	{
-		ofstream output_file;
-		sprintf( output_filename, "%s%s/%s_%d.txt", output_directory, output_folder, output_filename_base, z );
-		output_file.open(output_filename);
-		for(int y = 0; y < y_max; y++)
-		{
-			for(int x = 0; x < x_max; x++)
-				output_file << float_array[ ( z * x_max * y_max ) + ( y * x_max ) + x ] << " ";
-			output_file << endl;
+			if( index >= elements )
+				break;
 		}
-		output_file.close();	
+		z_start += 1;
+		z_end += 1;
+		output_file.close();
 	}
 }
-void write_float_array_to_file( char* output_filename_base, const char* output_directory, const char* output_folder, float* float_array, int x_max, int y_max, int z_max )
+template<typename T> void write_vector_to_disk( char* filename_base, const char* directory, const char* folder, vector<T> data, const int x_max, const int y_max, const int z_max, const bool single_file )
 {
-	// Write each slice of the array/image to a single file
+	char filename[256];
 	ofstream output_file;
-	char output_filename[256];
-	sprintf( output_filename, "%s%s/%s.txt", output_directory, output_folder, output_filename_base );
-	output_file.open(output_filename);
-	for( int z = 0; z < z_max; z++ )
-	{		
-			for( int y = 0; y < y_max; y++ )
+	int elements = data.size();
+	int index;
+	int num_files = z_max;
+	int z_start = 0;
+	int z_end = 1;
+	if( single_file )
+	{
+		num_files = 1;
+		z_end = z_max;
+	}
+	for( int file = 0; file < num_files; file++)
+	{
+		if( num_files == z_max )
+			sprintf( filename, "%s%s/%s_%d.txt", directory, folder, filename_base, file );
+		else
+			sprintf( filename, "%s%s/%s.txt", directory, folder, filename_base );			
+		output_file.open(filename);		
+		for(int z = z_start; z < z_end; z++)
+		{			
+			for(int y = 0; y < y_max; y++)
 			{
-				for( int x = 0; x < x_max; x++ )
-					output_file << float_array[( z * x_max * y_max ) + ( y * x_max ) + x] << " ";	
+				for(int x = 0; x < x_max; x++)
+				{
+					index = x + ( y * x_max ) + ( z * x_max * y_max );
+					if( index >= elements )
+						break;
+					output_file << data[index] << " ";
+				}	
+				if( index >= elements )
+					break;
 				output_file << endl;
-			}		
-	}//607,999
-	output_file.close();
+			}
+			if( index >= elements )
+				break;
+		}
+		z_start += 1;
+		z_end += 1;
+		output_file.close();
+	}
 }
-void write_float_vector_to_file( char* output_filename_base, const char* output_directory, const char* output_folder, vector<float> vector_array, int x_max, int y_max, int z_max )
-{
-	// Write each slice of the vector/image to a single file
-	ofstream output_file;
-	char output_filename[256];
-	sprintf( output_filename, "%s%s/%s.txt", output_directory, output_folder, output_filename_base );
-	output_file.open(output_filename);
-	for( int z = 0; z < z_max; z++ )
-	{		
-			for( int y = 0; y < y_max; y++ )
-			{
-				for( int x = 0; x < x_max; x++ )
-					output_file << vector_array[( z * x_max * y_max ) + ( y * x_max ) + x] << " ";	
-				output_file << endl;
-			}		
-	}//607,999
-	output_file.close();
-}
-/************************************************************************************************************************************************************/
 /********************************************************************* Helper Functions *********************************************************************/
 /************************************************************************************************************************************************************/
-bool bad_data_angle( int angle )
+bool bad_data_angle( const int angle )
 {
 	static const int bad_angles_array[] = {80, 84, 88, 92, 96, 100, 00, 180, 260, 264, 268, 272, 276};
 	vector<int> bad_angles(bad_angles_array, bad_angles_array + sizeof(bad_angles_array) / sizeof(bad_angles_array[0]) );
@@ -3878,7 +3772,7 @@ bool bad_data_angle( int angle )
 			bad_angle = true;
 	return bad_angle;
 }
-int calculate_x_voxel(float x_position, int x_voxels, float voxel_width )
+int calculate_x_voxel(const float x_position, const int x_voxels, const float voxel_width )
 {
 	// -10 100 1 [-50 49] -40
 	float x_width = x_voxels * voxel_width;//100
@@ -3886,14 +3780,14 @@ int calculate_x_voxel(float x_position, int x_voxels, float voxel_width )
 	return (  x_position + x_range) / voxel_width;//-10+50/1 = 40
 	//[0 99]
 }
-int calculate_y_voxel(float y_position, int y_voxels, float voxel_height )
+int calculate_y_voxel(const float y_position, const int y_voxels, const float voxel_height )
 {
 	// 10 100 1 [-50 49] 40
 	float y_width = y_voxels * voxel_height;//100
 	float y_range = y_width/2;//50
 	return ( y_range - y_position ) / voxel_height;
 }
-int calculate_slice(float z_position, int z_voxels, float voxel_thickness )
+int calculate_slice(const float z_position, const int z_voxels, const float voxel_thickness )
 {
 	// -10 100 1 [-50 49] -40
 	float z_width = z_voxels * voxel_thickness;//100

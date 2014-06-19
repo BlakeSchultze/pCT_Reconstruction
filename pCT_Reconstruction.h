@@ -27,20 +27,20 @@ using namespace std;
 const bool BINARY_ENCODING = true;		// Input data provided in binary (T) encoded files or ASCI text files (F)
 const bool SINGLE_DATA_FILE = false;	// Individual file for each gantry angle (T) or single data file for all data (F)
 const bool DEBUG_TEXT_ON = true;		// Provide (T) or suppress (F) print statements to console during execution
-const bool CONFIG_FILE = true;			// Tracking plane distances to rotation axis read from config file (T) or defined manually (F)
+const bool CONFIG_FILE = false;			// Tracking plane distances to rotation axis read from config file (T) or defined manually (F)
 const bool MICAH_SIM = true;			// Using Micah's simulated data (T) or not (F)
 const bool SAMPLE_STD_DEV = true;		// Use sample (T) or population (F) standard deviation in statistical analysis (i.e. divide cumulative error by N/N-1)
 const bool SSD_IN_MM = true;			// SSD distances from rotation axis given in mm (T) or cm (F)
 const bool DATA_IN_MM = true;			// Input data given in mm (T) or cm (F)
 const bool FBP_ON = true;				// Turn FBP on (T) or off (F)
-const bool SC_ON = false;				// Turn Space Carving on (T) or off (F)
-const bool MSC_ON = false;				// Turn Modified Space Carving on (T) or off (F)
-const bool SM_ON = true;				// Turn Space Modeling on (T) or off (F)
+const bool SC_ON = true;				// Turn Space Carving on (T) or off (F)
+const bool MSC_ON = true;				// Turn Modified Space Carving on (T) or off (F)
+const bool SM_ON = false;				// Turn Space Modeling on (T) or off (F)
 
 /************************************************************* Input Data Format Specification ***********************************************************/
 const bool DATA_FORMAT = 0;				// Input data in format used prior to specification of Version 0 (-1), Version 0 (0), or Version 1 (1)
-const bool VERSION_OLD = true;			// Input data in format used prior to specification of Version 0
-const bool VERSION_0 = false;			// Input data in Version 0 format
+const bool VERSION_OLD = false;			// Input data in format used prior to specification of Version 0
+const bool VERSION_0 = true;			// Input data in Version 0 format
 const bool VERSION_1 = false;			// Input data in Version 1 format
 /*********************************************************************************************************************************************************/
 /************************************************************ Preprocessing Path Information *************************************************************/
@@ -51,12 +51,14 @@ const char input_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\
 const char output_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
 
 /*********************************** Name of the folder where the input data resides and output data is to be written ************************************/
+const char input_folder[] = "input_water_Geant500000";
+const char output_folder[] = "input_water_Geant500000";
 //const char input_folder[] = "waterPhantom";
 //const char output_folder[] = "waterPhantom";
 //const char input_folder[] = "catphan";
 //const char output_folder[] = "catphan";
-const char input_folder[] = "DetectData";
-const char output_folder[] = "DetectData";
+//const char input_folder[] = "DetectData";
+//const char output_folder[] = "DetectData";
 //const char input_folder[] = "Rat_Scan2";
 //const char output_folder[] = "Rat_Scan2";
 //const char input_folder[] = "sim_noerror";
@@ -77,13 +79,13 @@ const char output_folder[] = "DetectData";
 //const char output_folder[] = "Simulated_Data\\9-21";
 
 /******************************* Prefix of the input data set filename (_trans%d_%03d.txt (or .dat) will be added to this) *******************************/
-//const char input_base_name[] = "projection";			//waterPhantom, catphan
-const char input_base_name[] = "simdata";				//DetectData files
+const char input_base_name[] = "projection";			//waterPhantom, catphan
+//const char input_base_name[] = "simdata";				//DetectData files
 //const char input_base_name[] = "rat_scan2_shift";
 //const char input_base_name[] = "ped_scan1";			//  anthropomorphic pediatric head phantom (Model 715-HN, CIRS1)
 
-//const char file_extension[] = ".bin";					// Binary file extension
-const char file_extension[] = ".dat";					// Generic data file extension, independent of encoding (various encodings can be used)
+const char file_extension[] = ".bin";					// Binary file extension
+//const char file_extension[] = ".dat";					// Generic data file extension, independent of encoding (various encodings can be used)
 //const char file_extension[] = ".txt";					// ASCII text file extension
 /*********************************************************************************************************************************************************/
 /****************************************************************** Preprocessing Constants **************************************************************/
@@ -91,7 +93,7 @@ const char file_extension[] = ".dat";					// Generic data file extension, indepe
 
 /****************************************************** Host/GPU computation and structure information ***************************************************/
 #define BYTES_PER_HISTORY 48								// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
-#define MAX_GPU_HISTORIES 200000							// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_GPU_HISTORIES 300000							// [#] Number of histories to process on the GPU at a time, based on GPU capacity
 #define THREADS_PER_BLOCK 512								// [#] Number of threads assigned to each block on the GPU
 
 /********************************** Scanning and detector system (source distance, tracking plane dimensions) parameters *********************************/
