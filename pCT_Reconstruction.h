@@ -24,74 +24,72 @@ using namespace std;
 /*********************************************************************************************************************************************************************/
 
 /****************************************************************** Execution and Early Exit Options *****************************************************************/
-const bool RUN_ON = false;						// Turn preprocessing on (T) or off (F) for function testing, i.e. run test_func, test_func_kernel, test_func_device)
-const bool EXIT_AFTER_BINNING = false;		// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_HULL_DETECTION = false;		// Exit program early after completing hull-detection
+const bool RUN_ON = true;						// Turn preprocessing on (T) or off (F) for function testing, i.e. run test_func, test_func_kernel, test_func_device)
+const bool EXIT_AFTER_BINNING = false;			// Exit program early after completing data read and initial processing
+const bool EXIT_AFTER_HULL_DETECTION = true;	// Exit program early after completing hull-detection
 const bool EXIT_AFTER_STATISTICAL_CUTS = false;	// Exit program early after completing statistical cuts
-const bool EXIT_AFTER_FBP = false;					// Exit program early after completing FBP
-
+const bool EXIT_AFTER_FBP = false;				// Exit program early after completing FBP
 /******************************************************************* Preprocessing Option Parameters *****************************************************************/
-const bool BINARY_ENCODING = true;		// Input data provided in binary (T) encoded files or ASCI text files (F)
-const bool SINGLE_DATA_FILE = false;	// Individual file for each gantry angle (T) or single data file for all data (F)
-const bool DEBUG_TEXT_ON = true;		// Provide (T) or suppress (F) print statements to console during execution
-const bool MICAH_SIM = true;			// Using Micah's simulated data (T) or not (F)
-const bool SAMPLE_STD_DEV = true;		// Use sample (T) or population (F) standard deviation in statistical analysis (i.e. divide cumulative error by N/N-1)
-const bool SSD_IN_MM = true;			// SSD distances from rotation axis given in mm (T) or cm (F)
-const bool DATA_IN_MM = true;			// Input data given in mm (T) or cm (F)
-const bool FBP_ON = true;				// Turn FBP on (T) or off (F)
-const bool SC_ON = true;				// Turn Space Carving on (T) or off (F)
-const bool MSC_ON = true;				// Turn Modified Space Carving on (T) or off (F)
-const bool SM_ON = false;				// Turn Space Modeling on (T) or off (F)
-const bool WRITE_BIN_WEPLS = false;		// Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
-const bool WRITE_SSD_ANGLES = false;	// Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F) 
-
-/****************************************************************** Input Data Format Specification ******************************************************************/
-const int DATA_FORMAT = 0;				// Input data in format used prior to specification of Version 0 (-1), Version 0 (0), or Version 1 (1)
+const bool DEBUG_TEXT_ON = true;				// Provide (T) or suppress (F) print statements to console during execution
+const bool SAMPLE_STD_DEV = true;				// Use sample (T) or population (F) standard deviation in statistical analysis (i.e. divide cumulative error by N/N-1)
+const bool FBP_ON = false;						// Turn FBP on (T) or off (F)
+const bool SC_ON = true;						// Turn Space Carving on (T) or off (F)
+const bool MSC_ON = false;						// Turn Modified Space Carving on (T) or off (F)
+const bool SM_ON = false;						// Turn Space Modeling on (T) or off (F)
 /*********************************************************************************************************************************************************************/
-/******************************************************************* Preprocessing Path Information ******************************************************************/
+/************************************************************** Input/output specifications and options **************************************************************/
 /*********************************************************************************************************************************************************************/
-
+enum HULL_TYPES {SC_HULL, MSC_HULL, SM_HULL, FBP_HULL};
+const HULL_TYPES MLP_INPUT_HULL = MSC_HULL;
 /**************************************************************** Path to the input/output directories ***************************************************************/
-const char input_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\";
-const char output_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
-
+const char INPUT_DIRECTORY[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\";
+const char OUTPUT_DIRECTORY[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
 /***************************************** Name of the folder where the input data resides and output data is to be written ******************************************/
-const char input_folder[] = "input_water_Geant500000";
-const char output_folder[] = "input_water_Geant500000";
-//const char input_folder[] = "waterPhantom";
-//const char output_folder[] = "waterPhantom";
-//const char input_folder[] = "catphan";
-//const char output_folder[] = "catphan";
-//const char input_folder[] = "DetectData";
-//const char output_folder[] = "DetectData";
-//const char input_folder[] = "Rat_Scan2";
-//const char output_folder[] = "Rat_Scan2";
-//const char input_folder[] = "sim_noerror";
-//const char output_folder[] = "sim_noerror";
-//const char input_folder[] = "sim_error1";
-//const char output_folder[] = "sim_error1";
-//const char input_folder[] = "DetectDataWeplNoisy1";
-//const char output_folder[] = "DetectDataWeplNoisy1";
-//const char input_folder[] = "NoisyUniform1";
-//const char output_folder[] = "NoisyUniform1";
-//const char input_folder[] = "NoisyUniform2";
-//const char output_folder[] = "NoisyUniform2";
-//const char input_folder[] = "NoisyUniform3";
-//const char output_folder[] = "NoisyUniform3";
-//const char input_folder[] = "input_noisefloor40";
-//const char output_folder[] = "input_noisefloor40";
-//const char input_folder[] = "Simulated_Data\\9-21";
-//const char output_folder[] = "Simulated_Data\\9-21";
-
+const char INPUT_FOLDER[] = "input_water_Geant500000";
+const char OUTPUT_FOLDER[] = "input_water_Geant500000";
+//const char INPUT_FOLDER[] = "waterPhantom";
+//const char OUTPUT_FOLDER[] = "waterPhantom";
+//const char INPUT_FOLDER[] = "catphan";
+//const char OUTPUT_FOLDER[] = "catphan";
+//const char INPUT_FOLDER[] = "DetectData";
+//const char OUTPUT_FOLDER[] = "DetectData";
+//const char INPUT_FOLDER[] = "Rat_Scan2";
+//const char OUTPUT_FOLDER[] = "Rat_Scan2";
+//const char INPUT_FOLDER[] = "sim_noerror";
+//const char OUTPUT_FOLDER[] = "sim_noerror";
+//const char INPUT_FOLDER[] = "sim_error1";
+//const char OUTPUT_FOLDER[] = "sim_error1";
+//const char INPUT_FOLDER[] = "DetectDataWeplNoisy1";
+//const char OUTPUT_FOLDER[] = "DetectDataWeplNoisy1";
+//const char INPUT_FOLDER[] = "NoisyUniform1";
+//const char OUTPUT_FOLDER[] = "NoisyUniform1";
+//const char INPUT_FOLDER[] = "NoisyUniform2";
+//const char OUTPUT_FOLDER[] = "NoisyUniform2";
+//const char INPUT_FOLDER[] = "NoisyUniform3";
+//const char OUTPUT_FOLDER[] = "NoisyUniform3";
+//const char INPUT_FOLDER[] = "input_noisefloor40";
+//const char OUTPUT_FOLDER[] = "input_noisefloor40";
+//const char INPUT_FOLDER[] = "Simulated_Data\\9-21";
+//const char OUTPUT_FOLDER[] = "Simulated_Data\\9-21";
 /************************************* Prefix of the input data set filename (_trans%d_%03d.txt (or .dat) will be added to this) *************************************/
-const char input_base_name[] = "projection";			//waterPhantom, catphan
-//const char input_base_name[] = "simdata";				//DetectData files
-//const char input_base_name[] = "rat_scan2_shift";
-//const char input_base_name[] = "ped_scan1";			//  anthropomorphic pediatric head phantom (Model 715-HN, CIRS1)
-
-const char file_extension[] = ".bin";					// Binary file extension
-//const char file_extension[] = ".dat";					// Generic data file extension, independent of encoding (various encodings can be used)
-//const char file_extension[] = ".txt";					// ASCII text file extension
+const char INPUT_BASE_NAME[] = "projection";			// waterPhantom, catphan, input_water_Geant500000
+//const char INPUT_BASE_NAME[] = "simdata";				// Simulated data sets generated by Micah: DetectData, DetectDataWeplNoisy1, NoisyUniform1, NoisyUniform2,...
+//const char INPUT_BASE_NAME[] = "rat_scan2_shift";		// Anesthetized rat held in restraints
+//const char INPUT_BASE_NAME[] = "ped_scan1";			// Anthropomorphic pediatric head phantom (Model 715-HN, CIRS1)
+/***************************************************************** File extension for the input data *****************************************************************/
+const char FILE_EXTENSION[] = ".bin";					// Binary file extension
+//const char FILE_EXTENSION[] = ".dat";					// Generic data file extension, independent of encoding (various encodings can be used)
+//const char FILE_EXTENSION[] = ".txt";					// ASCII text file extension
+/****************************************************************** Input Data Format Specification ******************************************************************/
+enum DATA_FORMATS {OLD_FORMAT, VERSION_0, VERSION_1};	// Define the only values 
+const DATA_FORMATS DATA_FORMAT = VERSION_0;				
+const bool BINARY_ENCODING = true;						// Input data provided in binary (T) encoded files or ASCI text files (F)
+const bool SINGLE_DATA_FILE = false;					// Individual file for each gantry angle (T) or single data file for all data (F)
+const bool SSD_IN_MM = true;							// SSD distances from rotation axis given in mm (T) or cm (F)
+const bool DATA_IN_MM = true;							// Input data given in mm (T) or cm (F)
+const bool WRITE_BIN_WEPLS = false;						// Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
+const bool WRITE_SSD_ANGLES = false;					// Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F) 
+const bool MICAH_SIM = false;							// Using Micah's simulated data (T) or not (F)
 /*********************************************************************************************************************************************************************/
 /********************************************************************** Preprocessing Constants **********************************************************************/
 /*********************************************************************************************************************************************************************/
@@ -100,7 +98,6 @@ const char file_extension[] = ".bin";					// Binary file extension
 #define BYTES_PER_HISTORY 48								// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
 #define MAX_GPU_HISTORIES 300000							// [#] Number of histories to process on the GPU at a time, based on GPU capacity
 #define THREADS_PER_BLOCK 512								// [#] Number of threads assigned to each block on the GPU
-
 /************************************* Scanning and detector system (source distance, tracking plane dimensions) parameters ******************************************/
 #define SOURCE_RADIUS 265.7									// [cm] distance  to source/scatterer
 #define GANTRY_ANGLE_INTERVAL 4.0							// [degrees]
@@ -109,7 +106,6 @@ const char file_extension[] = ".bin";					// Binary file extension
 #define NUM_FILES ( NUM_SCANS * GANTRY_ANGLES )				// [#] 1 file per gantry angle per translation
 #define SSD_T_SIZE 18.0										// [cm] length of SSD 
 #define SSD_V_SIZE 9.0										// [cm] length of SSD 
-
 /********************************************** Binning (for Statistical analysis) and sinogram (for FBP) parameters *************************************************/
 #define T_BIN_SIZE 0.1										// [cm]
 #define T_BINS int( SSD_T_SIZE / T_BIN_SIZE + 0.5 )			// [#]
@@ -119,14 +115,12 @@ const char file_extension[] = ".bin";					// Binary file extension
 #define ANGULAR_BINS int( 360.0 / ANGULAR_BIN_SIZE + 0.5 )	// [#]
 #define NUM_BINS ( ANGULAR_BINS * T_BINS * V_BINS )			// [#]
 #define SIGMAS_TO_KEEP 3									// [#]
-#define FILTER_NUM 1 // Ram-Lak = 0, Shepp-Logan = 1
-#define FBP_THRESHOLD 0.6
-
+#define FILTER_NUM 1										// Dictates whether FBP uses Ram-Lak filter (0) or Shepp-Logan filter (1)
+#define FBP_THRESHOLD 0.6									// RSP threshold used to generate FBP_hull from FBP_image
 /**************************************************************** Reconstruction cylinder parameters *****************************************************************/
 #define RECON_CYL_RADIUS 8.0								// [cm] Radius of reconstruction cylinder
 #define RECON_CYL_DIAMETER ( 2 * RECON_CYL_RADIUS )			// [cm] Diameter of reconstruction cylinder
 #define RECON_CYL_HEIGHT (SSD_V_SIZE - 1.0)					// [cm] Height of reconstruction cylinder
-
 /****************************************************************** Reconstruction image parameters ******************************************************************/
 #define IMAGE_WIDTH ( COLUMNS * VOXEL_WIDTH )				// [cm] 
 #define IMAGE_HEIGHT ( ROWS * VOXEL_HEIGHT )				// [cm]
@@ -140,21 +134,17 @@ const char file_extension[] = ".bin";					// Binary file extension
 #define VOXEL_THICKNESS (IMAGE_THICKNESS / SLICES)			// [cm]
 #define SLICE_THICKNESS 0.25								// [cm]
 #define VOXEL_STEP_SIZE ( VOXEL_WIDTH / 2 )					// [cm]
-
 /********************************************************************* Hull-Detection Parameters *********************************************************************/
-//#define WEPL_CUT_ALLOWANCE 0.1
-#define RESTRICTED_ANGLES 1
-#define MSC_DIFF_THRESH 50  
-#define SC_THRESHOLD 0.0 
-#define MSC_THRESHOLD 1.0 
-#define SM_THRESHOLD_MULTIPLIER 1.0
-#define SM_LOWER_THRESHOLD 6.0 
-#define SM_UPPER_THRESHOLD 21.0
-
+#define MSC_DIFF_THRESH 50									// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
+#define SC_THRESHOLD 0.0									// [cm] WEPL threshold used by SC to identify protons that missed the object, i.e. WEPL < SC_THRESHOLD
+#define MSC_THRESHOLD 1.0									// [cm] WEPL threshold used by MSC to identify protons that missed the object, i.e. WEPL < MSC_THRESHOLD
+#define SM_THRESHOLD_MULTIPLIER 1.0							// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
+#define SM_LOWER_THRESHOLD 6.0								// [cm] WEPL threshold used by SM to identify protons that traversed the object, i.e. WEPL > SM_LOWER_THRESHOLD
+#define SM_UPPER_THRESHOLD 21.0								// [cm] WEPL threshold used by SM to identify protons that traversed the object, i.e. WEPL < SM_UPPER_THRESHOLD
 /*************************************************************************** MLP Parameters **************************************************************************/
-#define E_0 13.6	// [MeV/c] empirical constant
-#define X_0 36.1	// [cm] radiation length
-
+#define E_0 13.6											// [MeV/c] empirical constant
+#define X_0 36.1											// [cm] radiation length
+#define RSP_AIR 0.00113										// Approximate RSP of air
 // 200 MeV coefficients
 double A_0 = (  7.457 * pow( 10, -6.0  ) );
 double A_1 = (  4.548 * pow( 10, -7.0  ) );
@@ -162,7 +152,6 @@ double A_2 = ( -5.777 * pow( 10, -8.0  ) );
 double A_3 = (  1.301 * pow( 10, -8.0  ) );
 double A_4 = ( -9.228 * pow( 10, -10.0 ) );
 double A_5 = (  2.687 * pow( 10, -11.0 ) );
-
 /******************************************************** Memory allocation size for arrays (binning, image) *********************************************************/
 #define MEM_SIZE_BINS_FLOATS	( NUM_BINS * sizeof(float)	)
 #define MEM_SIZE_BINS_INTS		( NUM_BINS * sizeof(int)	)
@@ -172,19 +161,19 @@ double A_5 = (  2.687 * pow( 10, -11.0 ) );
 #define MEM_SIZE_IMAGE_FLOAT	( VOXELS * sizeof(float)	)
 #define MEM_SIZE_IMAGE_BOOL		( VOXELS * sizeof(bool)		)
 #define MEM_SIZE_IMAGE_CHAR		( VOXELS * sizeof(bool)		)
-
 /********************************************************************** Precalculated Constants **********************************************************************/
-#define PI_OVER_4			( atanf( 1.0 ) )
-#define PI_OVER_2			( 2 * atanf( 1.0 ) )
-#define THREE_PI_OVER_4		( 3 * atanf( 1.0 ) )
-#define PI					( 4 * atanf( 1.0 ) )
-#define FIVE_PI_OVER_4		( 5 * atanf( 1.0 ) )
-#define SEVEN_PI_OVER_4		( 7 * atanf( 1.0 ) )
-#define TWO_PI				( 8 * atanf( 1.0 ) )
+#define PI_OVER_4			( atanf( 1.0 ) )				// 1*pi/4 radians =   pi/4 radians = 45 degrees
+#define PI_OVER_2			( 2 * atanf( 1.0 ) )			// 2*pi/4 radians =   pi/2 radians = 90 degrees
+#define THREE_PI_OVER_4		( 3 * atanf( 1.0 ) )			// 3*pi/4 radians = 3*pi/4 radians = 135 degrees
+#define PI					( 4 * atanf( 1.0 ) )			// 4*pi/4 radians =   pi   radians = 180 degrees
+#define FIVE_PI_OVER_4		( 5 * atanf( 1.0 ) )			// 5*pi/4 radians = 5*pi/4 radians = 225 degrees
+#define SIX_PI_OVER_4		( 5 * atanf( 1.0 ) )			// 6*pi/4 radians = 3*pi/2 radians = 270 degrees
+#define SEVEN_PI_OVER_4		( 7 * atanf( 1.0 ) )			// 7*pi/4 radians = 7*pi/4 radians = 315 degrees
+#define TWO_PI				( 8 * atanf( 1.0 ) )			// 8*pi/4 radians = 2*pi   radians = 360 degrees = 0 degrees
 #define ANGLE_TO_RADIANS	( PI/180.0 )					// Convertion from angle to radians
 #define RADIANS_TO_ANGLE	( 180.0/PI )					// Convertion from radians to angle
-#define ROOT_TWO			sqrtf(2.0)
-
+#define ROOT_TWO			sqrtf(2.0)						// 2^(1/2) = Square root of 2 
+#define MM_TO_CM			0.1								// 10 [mm] = 1 [cm] => 1 [mm] = 0.1 [cm]
 /*********************************************************************************************************************************************************************/
 /****************************************************************** Preprocessing Array Declerations *****************************************************************/
 /*********************************************************************************************************************************************************************/
@@ -195,10 +184,8 @@ int* histories_per_projection, * histories_per_gantry_angle, * histories_per_fil
 int* recon_vol_histories_per_projection;
 int histories_per_scan[NUM_SCANS];
 int post_cut_histories = 0;
-
 /******************************************* Declaration of array used to store tracking plane distances from rotation axis ******************************************/
 float SSD_u_Positions[8];
-
 float* ut_entry_angle, * uv_entry_angle, * ut_exit_angle, * uv_exit_angle; 
 /********************************************** Declaration of arrays for storage of input data for use on the host (_h) *********************************************/
 int* gantry_angle_h, * bin_num_h, * bin_counts_h;
@@ -214,7 +201,6 @@ float* xy_entry_angle_h, * xy_exit_angle_h;
 float* xz_entry_angle_h, * xz_exit_angle_h;
 float* relative_ut_angle_h, * relative_uv_angle_h;
 float* WEPL_h;
-
 /******************************************** Declaration of arrays for storage of input data for use on the device (_d) *********************************************/
 int* gantry_angle_d, * bin_num_d, * bin_counts_d;
 bool* traversed_recon_volume_d, * passed_cuts_d;
@@ -229,7 +215,6 @@ float* xy_entry_angle_d, * xy_exit_angle_d;
 float* xz_entry_angle_d, * xz_exit_angle_d;
 float* relative_ut_angle_d, * relative_uv_angle_d;
 float* WEPL_d;
-
 /******************************************* Declaration of statistical analysis arrays for use on host(_h) or device (_d) *******************************************/
 float* mean_WEPL_h, * mean_WEPL_d;
 float* mean_rel_ut_angle_h, * mean_rel_ut_angle_d;
@@ -237,19 +222,20 @@ float* mean_rel_uv_angle_h, * mean_rel_uv_angle_d;
 float* stddev_rel_ut_angle_h, * stddev_rel_ut_angle_d;
 float* stddev_rel_uv_angle_h, * stddev_rel_uv_angle_d;
 float* stddev_WEPL_h, * stddev_WEPL_d;
-
 /***************************************** Declaration of pre/post filter sinogram for FBP for use on host(_h) or device (_d) ****************************************/
 float* sinogram_h, * sinogram_d;
 float* sinogram_filtered_h, * sinogram_filtered_d;
-
 /************************************************** Declaration of image arrays for use on host(_h) or device (_d) ***************************************************/
 float* X_h, * X_d;
-bool* SC_image_h, * SC_image_d;
-int* MSC_image_h, * MSC_image_d;
-int* SM_image_h, * SM_image_d;
-int* FBP_object_h, * FBP_object_d;
+bool* X_hull_h, * X_hull_d;
+bool* SC_hull_h, * SC_hull_d;
+int* MSC_counts_h, * MSC_counts_d;
+bool* MSC_hull_h, * MSC_hull_d;
+int* SM_counts_h, * SM_counts_d;
+bool* SM_hull_h, * SM_hull_d;
+float* FBP_image_h, * FBP_image_d;
+bool* FBP_hull_h, * FBP_hull_d;
 int* MLP_test_image_h, * MLP_test_image_d;
-
 /******************************* Declaration of vectors used to accumulate data from histories that have passed currently applied cuts *******************************/		
 vector<int>	bin_num_vector;			
 vector<int>	gantry_angle_vector;	
@@ -266,7 +252,6 @@ vector<float> xy_exit_angle_vector;
 vector<float> xz_exit_angle_vector;	
 vector<float> relative_ut_angle_vector;	
 vector<float> relative_uv_angle_vector;
-
 /******************************************************************** Execution timer variables **********************************************************************/
 clock_t start_time, end_time, execution_time;
 /*********************************************************************************************************************************************************************/
@@ -283,17 +268,19 @@ int MLP_IMAGE_RECON_CYL_RADIUS_VOXELS = 40;
 int MLP_IMAGE_RECON_CYL_HEIGHT_VOXELS = 5;
 int MLP_PHANTOM_A_VOXELS = 15, MLP_PHANTOM_B_VOXELS = 25;
 
-float MLP_IMAGE_VOXEL_WIDTH = 0.1;
-float MLP_IMAGE_VOXEL_HEIGHT = 0.1;
-float MLP_IMAGE_VOXEL_THICKNESS = 1.0;
+double MLP_IMAGE_VOXEL_WIDTH = 0.1;
+double MLP_IMAGE_VOXEL_HEIGHT = 0.1;
+double MLP_IMAGE_VOXEL_THICKNESS = 1.0;
 
-float MLP_IMAGE_RECON_CYL_RADIUS = MLP_IMAGE_RECON_CYL_RADIUS_VOXELS * MLP_IMAGE_VOXEL_WIDTH;
-float MLP_IMAGE_RECON_CYL_HEIGHT = MLP_IMAGE_RECON_CYL_HEIGHT_VOXELS * MLP_IMAGE_VOXEL_THICKNESS;
-float MLP_PHANTOM_A = MLP_PHANTOM_A_VOXELS * MLP_IMAGE_VOXEL_WIDTH;
-float MLP_PHANTOM_B = MLP_PHANTOM_B_VOXELS * MLP_IMAGE_VOXEL_HEIGHT;
+double MLP_IMAGE_RECON_CYL_RADIUS = MLP_IMAGE_RECON_CYL_RADIUS_VOXELS * MLP_IMAGE_VOXEL_WIDTH;
+double MLP_IMAGE_RECON_CYL_HEIGHT = MLP_IMAGE_RECON_CYL_HEIGHT_VOXELS * MLP_IMAGE_VOXEL_THICKNESS;
+double MLP_PHANTOM_A = MLP_PHANTOM_A_VOXELS * MLP_IMAGE_VOXEL_WIDTH;
+double MLP_PHANTOM_B = MLP_PHANTOM_B_VOXELS * MLP_IMAGE_VOXEL_HEIGHT;
 
-float MLP_IMAGE_WIDTH = MLP_IMAGE_COLUMNS * MLP_IMAGE_VOXEL_WIDTH;
-float MLP_IMAGE_HEIGHT = MLP_IMAGE_ROWS * MLP_IMAGE_VOXEL_HEIGHT;
-float MLP_IMAGE_THICKNESS = MLP_IMAGE_SLICES * MLP_IMAGE_VOXEL_THICKNESS;
-
+double MLP_IMAGE_WIDTH = MLP_IMAGE_COLUMNS * MLP_IMAGE_VOXEL_WIDTH;
+double MLP_IMAGE_HEIGHT = MLP_IMAGE_ROWS * MLP_IMAGE_VOXEL_HEIGHT;
+double MLP_IMAGE_THICKNESS = MLP_IMAGE_SLICES * MLP_IMAGE_VOXEL_THICKNESS;
+/*********************************************************************************************************************************************************************/
+/********************************************************************* End of Parameter Definitions ******************************************************************/
+/*********************************************************************************************************************************************************************/
 #endif // _PCT_RECONSTRUCTION_H_
