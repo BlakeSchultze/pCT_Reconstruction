@@ -24,6 +24,7 @@ void read_data_chunk_v0( const int, const int, const int );
 void read_data_chunk_v1( const int, const int, const int );
 void tracker_2_global_coordinates( const int );
 void recon_volume_intersections( const int );
+void recon_volume_intersections2( const int );
 void bin_valid_histories( const int );
 void calculate_means();
 void initialize_stddev();
@@ -41,17 +42,16 @@ void backprojection();
 void hull_detection_initializations();
 void hull_detection( const int );
 void hull_detection_finish();
-void initialize_SC_hull( bool*&, bool*& );
-void initialize_MSC_counts( int*&, int*& );
-void initialize_SM_counts( int*&, int*& );
+void initialize_hull( bool*&, bool*& );
+void initialize_counts( int*&, int*& );
 void initialize_float_image( float*&, float*& );
 void SC( const int );
 void MSC( const int );
-void MSC_threshold();
+void MSC_edge_detection();
 void SM( const int );
-void SM_threshold();
-void SM_threshold_2();
-void averaging_filter( bool*&, bool*&, const int);
+void SM_edge_detection();
+void SM_edge_detection_2();
+template<typename T> void averaging_filter( T*&, T*& );
 void convert_counts_to_hull( int*&, bool*& );
 void hull_selection();
 
@@ -92,8 +92,9 @@ void test_func2( const int);
 //********************************************************************************************************************************************************//
 
 // Preprocessing routines
-__global__ void tracker_2_global_coordinates_GPU( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void recon_volume_intersections_GPU( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
+__global__ void tracker_2_global_coordinates_GPU( int, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
+__global__ void recon_volume_intersections_GPU2( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
+__global__ void recon_volume_intersections_GPU( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void bin_valid_histories_GPU( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void calculate_means_GPU( int*, float*, float*, float* );
 __global__ void sum_squared_deviations_GPU( int, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*  );
@@ -113,12 +114,12 @@ __global__ void FBP_image_2_hull_GPU( float*, bool* );
 __global__ void SC_GPU( const int, bool*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void MSC_GPU( const int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void SM_GPU( const int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void MSC_threshold_GPU( int* );
-__global__ void SM_threshold_GPU( int*, int* );
-__global__ void SM_threshold_GPU_2( int*, int* );
+__global__ void MSC_edge_detection_GPU( int* );
+__global__ void SM_edge_detection_GPU( int*, int* );
+__global__ void SM_edge_detection_GPU_2( int*, int* );
 __global__ void carve_differences( int*, int* );
-__global__ void averaging_filter_GPU( bool*, const int, const float );
-
+template<typename T> __global__ void averaging_filter_GPU( T*, T*, bool );
+template<typename T> __global__ void apply_averaging_filter_GPU( T*, T* );
 // New routine test functions
 __global__ void test_func_GPU( int* );
 __device__ void test_func_device( int&, int&, int&);
@@ -393,7 +394,7 @@ void count_histories()
 }
 void count_histories_old()
 {
-	char user_response[20];
+	//char user_response[20];
 	char data_filename[128];
 	int file_size, num_histories, file_number = 0, gantry_position_number = 0;
 	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += GANTRY_ANGLE_INTERVAL, gantry_position_number++ )
@@ -434,7 +435,7 @@ void count_histories_old()
 }
 void count_histories_v0()
 {
-	char user_response[20];
+	//char user_response[20];
 	char data_filename[256];
 	int num_histories, file_number = 0, gantry_position_number = 0;
 	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += GANTRY_ANGLE_INTERVAL, gantry_position_number++ )
@@ -479,7 +480,7 @@ void count_histories_v0()
 }
 void count_histories_v1()
 {
-	char user_response[20];
+	//char user_response[20];
 	char data_filename[256];
 	int num_histories, file_number = 0, gantry_position_number = 0;
 	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += GANTRY_ANGLE_INTERVAL, gantry_position_number++ )
@@ -713,7 +714,7 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 		u3 (float * N)
 		WEPL in mm (float * N)
 	*/
-	char user_response[20];
+	//char user_response[20];
 	char data_filename[128];
 	char magic_number[5];
 	int version_id;
@@ -723,7 +724,9 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 			int phantom_name_size, data_source_size, prepared_by_size;
 			char *phantom_name, *data_source, *prepared_by;
 			int data_size;
-	int array_index = 0, gantry_position, gantry_angle, scan_number, scan_histories;
+	//int gantry_position, gantry_angle, scan_histories;
+	int gantry_position, gantry_angle, scan_number, scan_histories;
+	//int array_index = 0;
 	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
 	{
 		gantry_position = file_num / NUM_SCANS;
@@ -889,7 +892,7 @@ void read_data_chunk_v1( const int num_histories, const int start_file_num, cons
 		u3 (float * N)
 		WEPL in mm (float * N)
 	*/
-	char user_response[20];
+	//char user_response[20];
 	char data_filename[128];
 	//int array_index = 0;
 	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
@@ -994,7 +997,7 @@ void tracker_2_global_coordinates( const int num_histories )
 	//printf("There are %d histories in this projection\n", num_histories );
 	unsigned int size_floats = sizeof(float) * num_histories;
 	unsigned int size_ints = sizeof(int) * num_histories;
-	unsigned int size_bool = sizeof(bool) * num_histories;
+	//unsigned int size_bool = sizeof(bool) * num_histories;
 
 	cudaMalloc((void**) &x_entry_d,				size_floats);
 	cudaMalloc((void**) &y_entry_d,				size_floats);
@@ -1008,7 +1011,7 @@ void tracker_2_global_coordinates( const int num_histories )
 	cudaMalloc((void**) &xz_exit_angle_d,		size_floats);
 	cudaMalloc((void**) &relative_ut_angle_d,	size_floats);
 	cudaMalloc((void**) &relative_uv_angle_d,	size_floats);
-	cudaMalloc((void**) &missed_recon_volume_d,	size_bool);	
+	//cudaMalloc((void**) &missed_recon_volume_d,	size_bool);	
 
 	// Allocate GPU memory
 	cudaMalloc((void**) &t_in_1_d,				size_floats);
@@ -1023,7 +1026,7 @@ void tracker_2_global_coordinates( const int num_histories )
 	cudaMalloc((void**) &v_in_2_d,				size_floats);
 	cudaMalloc((void**) &v_out_1_d,				size_floats);
 	cudaMalloc((void**) &v_out_2_d,				size_floats);		
-	cudaMalloc((void**) &WEPL_d,				size_floats);
+	//cudaMalloc((void**) &WEPL_d,				size_floats);
 	cudaMalloc((void**) &gantry_angle_d,		size_ints);
 
 	
@@ -1041,13 +1044,13 @@ void tracker_2_global_coordinates( const int num_histories )
 	cudaMemcpy(v_out_1_d,		v_out_1_h,		size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(v_out_2_d,		v_out_2_h,		size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(gantry_angle_d,	gantry_angle_h,	size_ints,   cudaMemcpyHostToDevice) ;
-	cudaMemcpy(WEPL_d,			WEPL_h,			size_floats, cudaMemcpyHostToDevice) ;
+	//cudaMemcpy(WEPL_d,			WEPL_h,			size_floats, cudaMemcpyHostToDevice) ;
 
 	dim3 dimBlock(THREADS_PER_BLOCK);
 	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
-	recon_volume_intersections_GPU<<<dimGrid, dimBlock>>>
+	tracker_2_global_coordinates_GPU<<<dimGrid, dimBlock>>>
 	(
-		num_histories, gantry_angle_d, missed_recon_volume_d, WEPL_d,
+		num_histories, gantry_angle_d, //missed_recon_volume_d, WEPL_d,
 		t_in_1_d, t_in_2_d, t_out_1_d, t_out_2_d,
 		u_in_1_d, u_in_2_d, u_out_1_d, u_out_2_d,
 		v_in_1_d, v_in_2_d, v_out_1_d, v_out_2_d, 	
@@ -1085,7 +1088,7 @@ void tracker_2_global_coordinates( const int num_histories )
 }
 __global__ void tracker_2_global_coordinates_GPU
 (
-	int num_histories, int* gantry_angle, bool* missed_recon_volume, float* WEPL,
+	int num_histories, int* gantry_angle,
 	float* t_in_1, float* t_in_2, float* t_out_1, float* t_out_2,
 	float* u_in_1, float* u_in_2, float* u_out_1, float* u_out_2,
 	float* v_in_1, float* v_in_2, float* v_out_1, float* v_out_2, 	
@@ -1095,17 +1098,7 @@ __global__ void tracker_2_global_coordinates_GPU
 )
 {
 	/*
-			Determine if the proton path passes through the reconstruction volume (i.e. intersects the reconstruction 
-		cylinder twice) and if it does, determine the x, y, and z positions in the global/object coordinate system where 
-		the proton enters and exits the reconstruction volume.  The origin of the object coordinate system is defined to 
-		be at the center of the reconstruction cylinder so that its volume is bounded by:
-
-			-RECON_CYL_RADIUS	<= x <= RECON_CYL_RADIUS
-			-RECON_CYL_RADIUS	<= y <= RECON_CYL_RADIUS 
-			-RECON_CYL_HEIGHT/2 <= z <= RECON_CYL_HEIGHT/2
-
-			First, the coordinates of the points where the proton path intersected the entry/exit detectors must be 
-		calculated.  Since the detectors records data in the detector coordinate system, data in the utv coordinate 
+		Since the detectors records data in the detector coordinate system, data in the utv coordinate 
 		system must be converted into the global/object coordinate system.  The coordinate transformation can be 
 		accomplished using a rotation matrix with an angle of rotation determined by the angle between the two 
 		coordinate systems, which is the gantry_angle, in this case:
@@ -1118,19 +1111,14 @@ __global__ void tracker_2_global_coordinates_GPU
 				t = cos( gantry_angle ) * y - sin( gantry_angle ) * x
 	*/
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	float rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
 	//missed_recon_volume[i] = true;
 	if( i < num_histories )
 	{
 		/***************************************************************************************************************/
 		/**************************************** Check entry information **********************************************/
 		/***************************************************************************************************************/
-		
-		// Determine if the proton path enters the reconstruction volume.  The proton path is defined using the entry angle and
-		// position where the proton intersected the entry SSD which is closest to the object.  If this line projected onto the 
-		// xy plane intersects the reconstruction cylinder, the line will intersect the circle in the xy plane which describes the
-		// boundary of the reconstruction cylinder twice and its entry elevation will be within the height of the cylinder.   
-
+  
+		float rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
 		// Relevant angles in radians: gantry angle, proton path entry angle in ut and xy planes.
 		float ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );	
 		xy_entry_angle[i] = ut_entry_angle + rotation_angle_radians;
@@ -1138,8 +1126,8 @@ __global__ void tracker_2_global_coordinates_GPU
 			xy_entry_angle[i] += TWO_PI;
 
 		// Rotate entry detector positions
-		float x_in = ( cos( rotation_angle_radians ) * u_in_2[i] ) - ( sin( rotation_angle_radians ) * t_in_2[i] );
-		float y_in = ( sin( rotation_angle_radians ) * u_in_2[i] ) + ( cos( rotation_angle_radians ) * t_in_2[i] );
+		x_entry[i] = ( cos( rotation_angle_radians ) * u_in_2[i] ) - ( sin( rotation_angle_radians ) * t_in_2[i] );
+		y_entry[i] = ( sin( rotation_angle_radians ) * u_in_2[i] ) + ( cos( rotation_angle_radians ) * t_in_2[i] );
 
 
 		/***************************************************************************************************************/
@@ -1154,8 +1142,8 @@ __global__ void tracker_2_global_coordinates_GPU
 			xy_exit_angle[i] += TWO_PI;
 
 		// Rotate exit detector positions
-		float x_out = ( cos(rotation_angle_radians) * u_out_1[i] ) - ( sin(rotation_angle_radians) * t_out_1[i] );
-		float y_out = ( sin(rotation_angle_radians) * u_out_1[i] ) + ( cos(rotation_angle_radians) * t_out_1[i] );
+		x_exit[i] = ( cos(rotation_angle_radians) * u_out_1[i] ) - ( sin(rotation_angle_radians) * t_out_1[i] );
+		y_exit[i] = ( sin(rotation_angle_radians) * u_out_1[i] ) + ( cos(rotation_angle_radians) * t_out_1[i] );
 
 		/***************************************************************************************************************/
 		/***************************************** Check z(v) direction ************************************************/
@@ -1186,19 +1174,17 @@ __global__ void tracker_2_global_coordinates_GPU
 		float u_exit = ( cosf(rotation_angle_radians) * x_exit[i] ) + ( sinf(rotation_angle_radians) * y_exit[i] );
 		z_entry[i] = v_in_2[i] + uv_entry_slope * ( u_entry - u_in_2[i] );
 		z_exit[i] = v_out_1[i] - uv_exit_slope * ( u_out_1[i] - u_exit );
-
-
 	}	
 }
-void recon_volume_intersections( const int num_histories )
+void recon_volume_intersections2( const int num_histories )
 {
 	//printf("There are %d histories in this projection\n", num_histories );
-	unsigned int size_floats = sizeof(float) * num_histories;
-	unsigned int size_ints = sizeof(int) * num_histories;
+	//unsigned int size_floats = sizeof(float) * num_histories;
+	//unsigned int size_ints = sizeof(int) * num_histories;
 	unsigned int size_bool = sizeof(bool) * num_histories;
 
 	// Allocate GPU memory
-	cudaMalloc((void**) &t_in_1_d,				size_floats);
+	/*cudaMalloc((void**) &t_in_1_d,				size_floats);
 	cudaMalloc((void**) &t_in_2_d,				size_floats);
 	cudaMalloc((void**) &t_out_1_d,				size_floats);
 	cudaMalloc((void**) &t_out_2_d,				size_floats);
@@ -1211,9 +1197,9 @@ void recon_volume_intersections( const int num_histories )
 	cudaMalloc((void**) &v_out_1_d,				size_floats);
 	cudaMalloc((void**) &v_out_2_d,				size_floats);		
 	cudaMalloc((void**) &WEPL_d,				size_floats);
-	cudaMalloc((void**) &gantry_angle_d,		size_ints);
+	cudaMalloc((void**) &gantry_angle_d,		size_ints);*/
 
-	cudaMalloc((void**) &x_entry_d,				size_floats);
+	/*cudaMalloc((void**) &x_entry_d,				size_floats);
 	cudaMalloc((void**) &y_entry_d,				size_floats);
 	cudaMalloc((void**) &z_entry_d,				size_floats);
 	cudaMalloc((void**) &x_exit_d,				size_floats);
@@ -1224,10 +1210,10 @@ void recon_volume_intersections( const int num_histories )
 	cudaMalloc((void**) &xy_exit_angle_d,		size_floats);
 	cudaMalloc((void**) &xz_exit_angle_d,		size_floats);
 	cudaMalloc((void**) &relative_ut_angle_d,	size_floats);
-	cudaMalloc((void**) &relative_uv_angle_d,	size_floats);
+	cudaMalloc((void**) &relative_uv_angle_d,	size_floats);*/
 	cudaMalloc((void**) &missed_recon_volume_d,	size_bool);	
 
-	cudaMemcpy(t_in_1_d,		t_in_1_h,		size_floats, cudaMemcpyHostToDevice) ;
+	/*cudaMemcpy(t_in_1_d,		t_in_1_h,		size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(t_in_2_d,		t_in_2_h,		size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(t_out_1_d,		t_out_1_h,		size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(t_out_2_d,		t_out_2_h,		size_floats, cudaMemcpyHostToDevice) ;
@@ -1240,13 +1226,13 @@ void recon_volume_intersections( const int num_histories )
 	cudaMemcpy(v_out_1_d,		v_out_1_h,		size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(v_out_2_d,		v_out_2_h,		size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(gantry_angle_d,	gantry_angle_h,	size_ints,   cudaMemcpyHostToDevice) ;
-	cudaMemcpy(WEPL_d,			WEPL_h,			size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(WEPL_d,			WEPL_h,			size_floats, cudaMemcpyHostToDevice) ;*/
 
 	dim3 dimBlock(THREADS_PER_BLOCK);
 	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
 	recon_volume_intersections_GPU<<<dimGrid, dimBlock>>>
 	(
-		num_histories, gantry_angle_d, missed_recon_volume_d, WEPL_d,
+		num_histories, gantry_angle_d, missed_recon_volume_d, //WEPL_d,
 		t_in_1_d, t_in_2_d, t_out_1_d, t_out_2_d,
 		u_in_1_d, u_in_2_d, u_out_1_d, u_out_2_d,
 		v_in_1_d, v_in_2_d, v_out_1_d, v_out_2_d, 	
@@ -1282,9 +1268,9 @@ void recon_volume_intersections( const int num_histories )
 	cudaFree(u_out_2_d);
 	cudaFree(gantry_angle_d);
 }
-__global__ void recon_volume_intersections_GPU
+__global__ void recon_volume_intersections_GPU2
 (
-	int num_histories, int* gantry_angle, bool* missed_recon_volume, float* WEPL,
+	int num_histories, int* gantry_angle, bool* missed_recon_volume,
 	float* t_in_1, float* t_in_2, float* t_out_1, float* t_out_2,
 	float* u_in_1, float* u_in_2, float* u_out_1, float* u_out_2,
 	float* v_in_1, float* v_in_2, float* v_out_1, float* v_out_2, 	
@@ -1354,7 +1340,371 @@ __global__ void recon_volume_intersections_GPU
 	*/
 	float a = 0, b = 0, c = 0;
 	float x_intercept_1, x_intercept_2, y_intercept_1, y_intercept_2, squared_distance_1, squared_distance_2;
-	float x_temp, y_temp;
+	float x_temp;
+	//float x_temp, y_temp;
+	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
+	float rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
+	//missed_recon_volume[i] = true;
+	if( i < num_histories )
+	{
+		/***************************************************************************************************************/
+		/**************************************** Check entry information **********************************************/
+		/***************************************************************************************************************/
+		
+		// Determine if the proton path enters the reconstruction volume.  The proton path is defined using the entry angle and
+		// position where the proton intersected the entry SSD which is closest to the object.  If this line projected onto the 
+		// xy plane intersects the reconstruction cylinder, the line will intersect the circle in the xy plane which describes the
+		// boundary of the reconstruction cylinder twice and its entry elevation will be within the height of the cylinder.   
+
+		// Relevant angles in radians: gantry angle, proton path entry angle in ut and xy planes.
+		float ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );	
+		xy_entry_angle[i] = ut_entry_angle + rotation_angle_radians;
+		if( xy_entry_angle[i] < 0 )
+			xy_entry_angle[i] += TWO_PI;
+
+		// Rotate entry detector positions
+		float x_in = ( cos( rotation_angle_radians ) * u_in_2[i] ) - ( sin( rotation_angle_radians ) * t_in_2[i] );
+		float y_in = ( sin( rotation_angle_radians ) * u_in_2[i] ) + ( cos( rotation_angle_radians ) * t_in_2[i] );
+
+		// Determine if entry points should be rotated
+		bool entry_in_cone = 
+		( (xy_entry_angle[i] > PI_OVER_4) && (xy_entry_angle[i] < THREE_PI_OVER_4) ) 
+		|| 
+		( (xy_entry_angle[i] > FIVE_PI_OVER_4) && (xy_entry_angle[i] < SEVEN_PI_OVER_4) );
+
+		// Rotate x_in & y_in by 90 degrees, if necessary
+		if( entry_in_cone )
+		{
+			x_temp = x_in;	
+			x_in = -y_in;
+			y_in = x_temp;
+			xy_entry_angle[i] += PI_OVER_2;
+		}
+
+		float m_in = tan( xy_entry_angle[i] );	// proton entry path slope
+		float b_in = y_in - m_in * x_in;				// proton entry path y-intercept
+		
+		// Quadratic formula coefficients
+		a = 1 + pow(m_in, 2);								// x^2 coefficient 
+		b = 2 * m_in * b_in;								// x coefficient
+		c = pow(b_in, 2) - pow(RECON_CYL_RADIUS, 2 );		// 1 coefficient
+		float entry_discriminant = pow(b, 2) - (4 * a * c);	// Quadratic formula discriminant		
+		bool entered = ( entry_discriminant > 0 );			// Proton path intersected twice
+		
+		// Find both intersection points of the circle; closest one to the entry SSDs is the entry position
+		// Notice that x_intercept_2 = ( -b - sqrt(...) ) / ( 2 * a ) has the negative sign pulled out and following calculations modified as necessary
+		// e.g. x_intercept_2 = -x_real_2
+		//		y_intercept_2 = -y_real_2
+		//		squared_distance_2 = sqd_real_2		since (x_intercept_2 + x_in)^2 = (-x_intercept_2 - x_in)^2 = (x_real_2 - x_in)^2 (same for y term)
+		// This negation is also considered when assigning x_entry/y_entry using -x_intercept_2/y_intercept_2 *(TRUE/FALSE = 1/0) 
+		if( entered )
+		{
+			x_intercept_1 = ( sqrtf(entry_discriminant) - b ) / ( 2 * a );
+			x_intercept_2 = ( sqrtf(entry_discriminant) + b ) / ( 2 * a );
+			y_intercept_1 = m_in * x_intercept_1 + b_in;
+			y_intercept_2 = m_in * x_intercept_2 - b_in;
+			squared_distance_1 = pow(x_intercept_1 - x_in, 2) + pow(y_intercept_1 - y_in, 2);
+			squared_distance_2 = pow(x_intercept_2 + x_in, 2) + pow(y_intercept_2 + y_in, 2);
+			x_entry[i] = x_intercept_1 * (squared_distance_1 <= squared_distance_2) - x_intercept_2 * (squared_distance_1 > squared_distance_2);
+			y_entry[i] = y_intercept_1 * (squared_distance_1 <= squared_distance_2) - y_intercept_2 * (squared_distance_1 > squared_distance_2);
+		}
+		// Unrotate by 90 degrees, if necessary
+		if( entry_in_cone )
+		{
+			x_temp = x_entry[i];
+			x_entry[i] = y_entry[i];
+			y_entry[i] = -x_temp;
+			xy_entry_angle[i] -= PI_OVER_2;
+		}
+		/***************************************************************************************************************/
+		/****************************************** Check exit information *********************************************/
+		/***************************************************************************************************************/
+		
+		// Repeat the procedure above, this time to determine if the proton path exited the reconstruction volume and if so, the
+		// x,y,z position where it exited
+		float ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );
+		xy_exit_angle[i] = ut_exit_angle + rotation_angle_radians;
+		if( xy_exit_angle[i] < 0 )
+			xy_exit_angle[i] += TWO_PI;
+
+		// Rotate exit detector positions
+		float x_out = ( cos(rotation_angle_radians) * u_out_1[i] ) - ( sin(rotation_angle_radians) * t_out_1[i] );
+		float y_out = ( sin(rotation_angle_radians) * u_out_1[i] ) + ( cos(rotation_angle_radians) * t_out_1[i] );
+
+		// Determine if exit points should be rotated
+		bool exit_in_cone = 
+		( (xy_exit_angle[i] > PI_OVER_4) &&	(xy_exit_angle[i] < THREE_PI_OVER_4) ) 
+		|| 
+		( (xy_exit_angle[i] > FIVE_PI_OVER_4) && (xy_exit_angle[i] < SEVEN_PI_OVER_4) );
+
+		// Rotate x_out & y_out by 90 degrees, if necessary
+		if( exit_in_cone )
+		{
+			x_temp = x_out;	
+			x_out = -y_out;
+			y_out = x_temp;	
+			xy_exit_angle[i] += PI_OVER_2;
+		}	
+
+		float m_out = tan( xy_exit_angle[i] );	// proton entry path slope
+		float b_out = y_out - m_out * x_out;			// proton entry path y-intercept
+		
+		// Quadratic formula coefficients
+		a = 1 + pow(m_out, 2);								// x^2 coefficient 
+		b = 2 * m_out * b_out;								// x coefficient
+		c = pow(b_out, 2) - pow(RECON_CYL_RADIUS, 2);		// 1 coefficient
+		float exit_discriminant = pow(b, 2)  - (4 * a * c); // Quadratic formula discriminant
+		bool exited = ( exit_discriminant > 0 );			// Proton path intersected twice
+		
+			
+		// Find both intersection points of the circle; closest one to the exit SSDs is the exit position
+		if( exited )
+		{
+			x_intercept_1 = ( sqrtf(exit_discriminant) - b ) / ( 2 * a );
+			x_intercept_2 = ( sqrtf(exit_discriminant) + b ) / ( 2 * a );// -x calculated
+			y_intercept_1 = m_out * x_intercept_1 + b_out;
+			y_intercept_2 = m_out * x_intercept_2 - b_out;// -y calculated
+			squared_distance_1 = pow(x_intercept_1 - x_out, 2) + pow(y_intercept_1 - y_out, 2);
+			squared_distance_2 = pow(x_intercept_2 + x_out, 2) + pow(y_intercept_2 + y_out, 2);// modified due to -x and -y calcs above
+			x_exit[i] = x_intercept_1 * (squared_distance_1 <= squared_distance_2) - x_intercept_2 * (squared_distance_1 > squared_distance_2);
+			y_exit[i] = y_intercept_1 * (squared_distance_1 <= squared_distance_2) - y_intercept_2 * (squared_distance_1 > squared_distance_2);
+		}
+		// Unrotate by 90 degrees, if necessary
+		if( exit_in_cone )
+		{
+			x_temp = x_exit[i];
+			x_exit[i] = y_exit[i];
+			y_exit[i] = -x_temp;	
+			xy_exit_angle[i] -= PI_OVER_2;
+		}
+		/***************************************************************************************************************/
+		/***************************************** Check z(v) direction ************************************************/
+		/***************************************************************************************************************/		
+
+		// Relevant angles/slopes in radians for entry and exit in the uv plane
+		float uv_entry_slope = ( v_in_2[i] - v_in_1[i] ) / ( u_in_2[i] - u_in_1[i] );
+		float uv_exit_slope = ( v_out_2[i] - v_out_1[i] ) / ( u_out_2[i] - u_out_1[i] );
+		
+		float uv_entry_angle = atan2( v_in_2[i] - v_in_1[i], u_in_2[i] - u_in_1[i] );
+		float uv_exit_angle = atan2( v_out_2[i] - v_out_1[i],  u_out_2[i] - u_out_1[i] );
+
+		xz_entry_angle[i] = uv_entry_angle;
+		xz_exit_angle[i] = uv_exit_angle;
+		if( xz_entry_angle[i] < 0 )
+			xz_entry_angle[i] += TWO_PI;
+		if( xz_exit_angle[i] < 0 )
+			xz_exit_angle[i] += TWO_PI;
+
+		// Calculate the u coordinate for the entry and exit points of the reconstruction volume and then use the uv slope calculated 
+		// from the detector entry and exit positions to determine the z position of the proton as it entered and exited the 
+		// reconstruction volume 
+		/*
+			u-coordinate of the entry and exit points of the reconsruction cylinder can be found using an inverse rotation 
+				u = cos( gantry_angle ) * x + sin( gantry_angle ) * y
+		*/
+		float u_entry = ( cosf( rotation_angle_radians ) * x_entry[i] ) + ( sinf( rotation_angle_radians ) * y_entry[i] );
+		float u_exit = ( cosf(rotation_angle_radians) * x_exit[i] ) + ( sinf(rotation_angle_radians) * y_exit[i] );
+		z_entry[i] = v_in_2[i] + uv_entry_slope * ( u_entry - u_in_2[i] );
+		z_exit[i] = v_out_1[i] - uv_exit_slope * ( u_out_1[i] - u_exit );
+
+		// Even if the proton path intersected the circle describing the boundary of the cylinder twice, it may not have actually
+		// passed through the reconstruction volume or may have only passed through part way.  If |z_entry|> RECON_CYL_HEIGHT/2 ,
+		// then something off happened since the the source is around z=0 and we do not want to use this history.  If the 
+		// |z_entry| < RECON_CYL_HEIGHT/2 and |z_exit| > RECON_CYL_HEIGHT/2 then we want to use the history but the x_exit and
+		// y_exit positions need to be calculated again based on how far through the cylinder the proton passed before exiting it
+		if( entered && exited )
+		{
+			if( ( fabs(z_entry[i]) < RECON_CYL_HEIGHT * 0.5 ) && ( fabs(z_exit[i]) > RECON_CYL_HEIGHT * 0.5 ) )
+			{
+				float recon_cyl_fraction = fabs( ( ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5 - z_entry[i] ) / ( z_exit[i] - z_entry[i] ) );
+				x_exit[i] = x_entry[i] + recon_cyl_fraction * ( x_exit[i] - x_entry[i] );
+				y_exit[i] = y_entry[i] + recon_cyl_fraction * ( y_exit[i] - y_entry[i] );
+				z_exit[i] = ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5;
+			}
+			else if( fabs(z_entry[i]) > RECON_CYL_HEIGHT * 0.5 )
+			{
+				entered = false;
+				exited = false;
+			}
+			// Check the measurement locations. Do not allow more than 5 cm difference in entry and exit in t and v. This gets 
+			// rid of spurious events.
+			if( ( fabs(t_out_1[i] - t_in_2[i]) > 5 ) || ( fabs(v_out_1[i] - v_in_2[i]) > 5 ) )
+			{
+				entered = false;
+				exited = false;
+			}
+		}
+		relative_ut_angle[i] = ut_exit_angle - ut_entry_angle;
+		relative_uv_angle[i] = uv_exit_angle - uv_entry_angle;
+
+		// Proton passed through the reconstruction volume only if it both entered and exited the reconstruction cylinder
+		missed_recon_volume[i] = !entered || !exited;
+	}	
+}
+void recon_volume_intersections( const int num_histories )
+{
+	//printf("There are %d histories in this projection\n", num_histories );
+	unsigned int size_floats = sizeof(float) * num_histories;
+	unsigned int size_ints = sizeof(int) * num_histories;
+	unsigned int size_bool = sizeof(bool) * num_histories;
+
+	// Allocate GPU memory
+	cudaMalloc((void**) &t_in_1_d,				size_floats);
+	cudaMalloc((void**) &t_in_2_d,				size_floats);
+	cudaMalloc((void**) &t_out_1_d,				size_floats);
+	cudaMalloc((void**) &t_out_2_d,				size_floats);
+	cudaMalloc((void**) &u_in_1_d,				size_floats);
+	cudaMalloc((void**) &u_in_2_d,				size_floats);
+	cudaMalloc((void**) &u_out_1_d,				size_floats);
+	cudaMalloc((void**) &u_out_2_d,				size_floats);
+	cudaMalloc((void**) &v_in_1_d,				size_floats);
+	cudaMalloc((void**) &v_in_2_d,				size_floats);
+	cudaMalloc((void**) &v_out_1_d,				size_floats);
+	cudaMalloc((void**) &v_out_2_d,				size_floats);		
+	cudaMalloc((void**) &gantry_angle_d,		size_ints);
+
+	cudaMalloc((void**) &x_entry_d,				size_floats);
+	cudaMalloc((void**) &y_entry_d,				size_floats);
+	cudaMalloc((void**) &z_entry_d,				size_floats);
+	cudaMalloc((void**) &x_exit_d,				size_floats);
+	cudaMalloc((void**) &y_exit_d,				size_floats);
+	cudaMalloc((void**) &z_exit_d,				size_floats);
+	cudaMalloc((void**) &xy_entry_angle_d,		size_floats);	
+	cudaMalloc((void**) &xz_entry_angle_d,		size_floats);
+	cudaMalloc((void**) &xy_exit_angle_d,		size_floats);
+	cudaMalloc((void**) &xz_exit_angle_d,		size_floats);
+	cudaMalloc((void**) &relative_ut_angle_d,	size_floats);
+	cudaMalloc((void**) &relative_uv_angle_d,	size_floats);
+	cudaMalloc((void**) &missed_recon_volume_d,	size_bool);	
+
+	cudaMemcpy(t_in_1_d,		t_in_1_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(t_in_2_d,		t_in_2_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(t_out_1_d,		t_out_1_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(t_out_2_d,		t_out_2_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(u_in_1_d,		u_in_1_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(u_in_2_d,		u_in_2_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(u_out_1_d,		u_out_1_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(u_out_2_d,		u_out_2_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(v_in_1_d,		v_in_1_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(v_in_2_d,		v_in_2_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(v_out_1_d,		v_out_1_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(v_out_2_d,		v_out_2_h,		size_floats, cudaMemcpyHostToDevice) ;
+	cudaMemcpy(gantry_angle_d,	gantry_angle_h,	size_ints,   cudaMemcpyHostToDevice) ;
+
+	dim3 dimBlock(THREADS_PER_BLOCK);
+	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
+	recon_volume_intersections_GPU<<<dimGrid, dimBlock>>>
+	(
+		num_histories, gantry_angle_d, missed_recon_volume_d,
+		t_in_1_d, t_in_2_d, t_out_1_d, t_out_2_d,
+		u_in_1_d, u_in_2_d, u_out_1_d, u_out_2_d,
+		v_in_1_d, v_in_2_d, v_out_1_d, v_out_2_d, 	
+		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d, 		
+		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d,
+		relative_ut_angle_d, relative_uv_angle_d
+	);
+
+	free(t_in_1_h);
+	free(t_in_2_h);
+	free(v_in_1_h);
+	free(v_in_2_h);
+	free(u_in_1_h);
+	free(u_in_2_h);
+	free(t_out_1_h);
+	free(t_out_2_h);
+	free(v_out_1_h);
+	free(v_out_2_h);
+	free(u_out_1_h);
+	free(u_out_2_h);
+
+	cudaFree(t_in_1_d);
+	cudaFree(t_in_2_d);
+	cudaFree(v_in_1_d);
+	cudaFree(v_in_2_d);
+	cudaFree(u_in_1_d);
+	cudaFree(u_in_2_d);
+	cudaFree(t_out_1_d);
+	cudaFree(t_out_2_d);
+	cudaFree(v_out_1_d);
+	cudaFree(v_out_2_d);
+	cudaFree(u_out_1_d);
+	cudaFree(u_out_2_d);
+	cudaFree(gantry_angle_d);
+}
+__global__ void recon_volume_intersections_GPU
+(
+	int num_histories, int* gantry_angle, bool* missed_recon_volume,
+	float* t_in_1, float* t_in_2, float* t_out_1, float* t_out_2,
+	float* u_in_1, float* u_in_2, float* u_out_1, float* u_out_2,
+	float* v_in_1, float* v_in_2, float* v_out_1, float* v_out_2, 	
+	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit, 	
+	float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle,
+	float* relative_ut_angle, float* relative_uv_angle
+)
+{
+	/*
+			Determine if the proton path passes through the reconstruction volume (i.e. intersects the reconstruction 
+		cylinder twice) and if it does, determine the x, y, and z positions in the global/object coordinate system where 
+		the proton enters and exits the reconstruction volume.  The origin of the object coordinate system is defined to 
+		be at the center of the reconstruction cylinder so that its volume is bounded by:
+
+			-RECON_CYL_RADIUS	<= x <= RECON_CYL_RADIUS
+			-RECON_CYL_RADIUS	<= y <= RECON_CYL_RADIUS 
+			-RECON_CYL_HEIGHT/2 <= z <= RECON_CYL_HEIGHT/2
+
+			First, the coordinates of the points where the proton path intersected the entry/exit detectors must be 
+		calculated.  Since the detectors records data in the detector coordinate system, data in the utv coordinate 
+		system must be converted into the global/object coordinate system.  The coordinate transformation can be 
+		accomplished using a rotation matrix with an angle of rotation determined by the angle between the two 
+		coordinate systems, which is the gantry_angle, in this case:
+
+		Rotate ut-coordinate system to xy-coordinate system
+				x = cos( gantry_angle ) * u - sin( gantry_angle ) * t
+				y = sin( gantry_angle ) * u + cos( gantry_angle ) * t
+		Rotate xy-coordinate system to ut-coordinate system
+				u = cos( gantry_angle ) * x + sin( gantry_angle ) * y
+				t = cos( gantry_angle ) * y - sin( gantry_angle ) * x
+
+			 If a proton passes through the reconstruction volume, then the line defining its path in the
+		xy-plane will intersect the circle defining the boundary of the reconstruction cylinder in the xy-plane twice.  
+		We can determine if the proton path passes through the reconstruction volume by equating the equations of the 
+		proton path and the circle.  This produces a second order polynomial which we must solve:
+
+										  f(x)_proton = f(x)_cylinder
+												 mx+b = sqrt(r^2 - x^2)
+								  m^2x^2 + 2mbx + b^2 = r^2 - x^2
+					(m^2 + 1)x^2 + 2mbx + (b^2 - r^2) = 0
+										ax^2 + bx + c = 0
+												=>	a = m^2 + 1
+													b = 2mb
+													c = b^2 - r^2
+
+			We can solve this using the quadratic formula ([-b +/- sqrt(b^2-4ac)]/2a).  If the proton passed through the 
+		reconstruction volume, then the determinant will be greater than zero ( b^2-4ac > 0 ) and the quadratic formula 
+		will return two unique points of intersection.  The intersection point closest to where the proton entry/exit 
+		path intersects the entry/exit
+		detector plane is calculated and The proton entry/exit path If the determinant <= 0, then the proton path does not go through the reconstruction 
+		volume and we need not determine intersection coordinates.  Two points are returned by the quadratic formula
+		for each reconstruction cylinder intersection, the coordinates closest to the point where the entry/exit path
+		intersected the detector plane are determined 
+
+			If the exit/entry path travels through the cone bounded by y=|x| && y=-|x| the x_coordinates will be small
+		and the difference between the entry and exit x-coordinates will approach zero, causing instabilities in trig
+		functions and slope calculations ( x difference in denominator).  To overcome these innaccurate calculations, 
+		coordinates for these proton paths will be rotated PI/2 radians(90 degrees) prior to calculations and rotated
+		back when they are completed using a rotation matrix transformation again:
+		
+		 Positive Rotation By 90 Degrees
+				x' = cos( 90 ) * x - sin( 90 ) * y = -y
+				y' = sin( 90 ) * x + cos( 90 ) * y = x
+		 Negative Rotation By 90 Degree
+				x' = cos( 90 ) * x + sin( 90 ) * y = y
+				y' = cos( 90 ) * y - sin( 90 ) * x = -x
+	*/
+	float a = 0, b = 0, c = 0;
+	float x_intercept_1, x_intercept_2, y_intercept_1, y_intercept_2, squared_distance_1, squared_distance_2;
+	float x_temp;
+	//float x_temp, y_temp;
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
 	float rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
 	//missed_recon_volume[i] = true;
@@ -1576,7 +1926,10 @@ void bin_valid_histories( const int num_histories )
 	relative_ut_angle_h			= (float*) calloc( num_histories, sizeof(float) );
 	relative_uv_angle_h			= (float*) calloc( num_histories, sizeof(float) );
 
+	cudaMalloc((void**) &WEPL_d,				size_floats);
 	cudaMalloc((void**) &bin_num_d,	size_ints );
+
+	cudaMemcpy(WEPL_d,			WEPL_h,			size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy( bin_num_d,	bin_num_h,	size_ints, cudaMemcpyHostToDevice );
 
 	dim3 dimBlock( THREADS_PER_BLOCK );
@@ -3122,11 +3475,10 @@ void FBP_image_2_hull()
 	puts("Performing thresholding on FBP image to generate FBP hull...");
 
 	bool FBP_hull_on_GPU = false;
-	clock_t FBP_start_time2, FBP_end_time2, FBP_execution_time2;
-	FBP_hull_h = (bool*) calloc( COLUMNS * ROWS * SLICES, sizeof(bool) );
+	
 	if( FBP_hull_on_GPU )
 	{
-		cudaMalloc((void**) &FBP_hull_d, SIZE_IMAGE_BOOL );
+		initialize_hull( FBP_hull_h, FBP_hull_d );
 		dim3 dimBlock( SLICES );
 		dim3 dimGrid( COLUMNS, ROWS );   
 		FBP_image_2_hull_GPU<<< dimGrid, dimBlock >>>( FBP_image_d, FBP_hull_d );	
@@ -3134,6 +3486,7 @@ void FBP_image_2_hull()
 	}
 	else
 	{
+		FBP_hull_h = (bool*) calloc( COLUMNS * ROWS * SLICES, sizeof(bool) );
 		for( int iteration = 0; iteration < 1; iteration++ )
 		{
 			for( int slice = 0; slice < SLICES; slice++ )
@@ -3171,15 +3524,15 @@ __global__ void FBP_image_2_hull_GPU( float* FBP_image, bool* FBP_hull )
 	double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
 	double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
 	double d_squared = pow(x, 2) + pow(y, 2);
-	if(FBP_image[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] > FBP_THRESHOLD && (d_squared < pow(RECON_CYL_RADIUS, 2) ) ) 
-		FBP_hull[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] = true; 
+	if(FBP_image[voxel] > FBP_THRESHOLD && (d_squared < pow(RECON_CYL_RADIUS, 2) ) ) 
+		FBP_hull[voxel] = true; 
 	else
-		FBP_hull[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] = false; 
+		FBP_hull[voxel] = false; 
 }
 /************************************************************************************************************************************************************/
 /****************************************************************** Image Initialization  *******************************************************************/
 /************************************************************************************************************************************************************/
-void initialize_SC_hull( bool*& SC_hull_h, bool*& SC_hull_d )
+void initialize_hull( bool*& hull_h, bool*& hull_d )
 {
 	/* Allocate Memory and Initialize Images for Hull Detection Algorithms.  Use the Image and	*/
 	/* Reconstruction Cylinder Parameters to Determine the Location of the Perimeter of the		*/
@@ -3189,7 +3542,7 @@ void initialize_SC_hull( bool*& SC_hull_h, bool*& SC_hull_d )
 	puts("Initializing SC hull-detection...");
 
 	// Allocate memory for the hull image on the host and initialize to zeros
-	SC_hull_h = (bool*)calloc( VOXELS, sizeof(bool));
+	hull_h = (bool*)calloc( VOXELS, sizeof(bool));
 
 	double x, y;
 	// Set the inner cylinder of the hull image to 1s
@@ -3200,27 +3553,19 @@ void initialize_SC_hull( bool*& SC_hull_h, bool*& SC_hull_d )
 				x = ( column - COLUMNS/2 + 0.5) * VOXEL_WIDTH;
 				y = ( ROWS/2 - row - 0.5) * VOXEL_HEIGHT;
 				if( ( (x * x) + (y * y) ) < double(RECON_CYL_RADIUS * RECON_CYL_RADIUS) )
-					SC_hull_h[slice * COLUMNS * ROWS + row * COLUMNS + column] = true;
+					hull_h[slice * COLUMNS * ROWS + row * COLUMNS + column] = true;
 			}
 	// Allocate memory for the initialized hull image on the GPU and then transfer it to the GPU	
-	cudaMalloc((void**) &SC_hull_d,	SIZE_IMAGE_BOOL);
-	cudaMemcpy(SC_hull_d, SC_hull_h, SIZE_IMAGE_BOOL, cudaMemcpyHostToDevice) ;
+	cudaMalloc((void**) &hull_d,	SIZE_IMAGE_BOOL);
+	cudaMemcpy(hull_d, hull_h, SIZE_IMAGE_BOOL, cudaMemcpyHostToDevice) ;
 }
-void initialize_MSC_counts( int*& MSC_counts_h, int*& MSC_counts_d )
+void initialize_counts( int*& counts_h, int*& counts_d )
 {
 	/* Allocate host and GPU memory for MSC counts image and initialize these to 0*/
 	puts("Initializing MSC hull-detection...");
-	MSC_counts_h = (int*)calloc( VOXELS, sizeof(int));
-	cudaMalloc((void**) &MSC_counts_d,	SIZE_IMAGE_INT);
-	cudaMemcpy(MSC_counts_d, MSC_counts_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice) ;
-}
-void initialize_SM_counts( int*& SM_counts_h, int*& SM_counts_d )
-{
-	/* Allocate host and GPU memory for SM counts image and initialize these to 0*/
-	puts("Initializing SM hull-detection...");
-	SM_counts_h = (int*)calloc( VOXELS, sizeof(int));
-	cudaMalloc((void**) &SM_counts_d,	SIZE_IMAGE_INT);
-	cudaMemcpy(SM_counts_d, SM_counts_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice) ;
+	counts_h = (int*)calloc( VOXELS, sizeof(int));
+	cudaMalloc((void**) &counts_d,	SIZE_IMAGE_INT);
+	cudaMemcpy(counts_d, counts_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice) ;
 }
 void initialize_float_image( float*& float_image_h, float*& float_image_d )
 {
@@ -3249,11 +3594,11 @@ void initialize_float_image( float*& float_image_h, float*& float_image_d )
 void hull_detection_initializations()
 {		
 	if( SC_ON )
-		initialize_SC_hull( SC_hull_h, SC_hull_d );
+		initialize_hull( SC_hull_h, SC_hull_d );
 	if( MSC_ON )
-		initialize_MSC_counts( MSC_counts_h, MSC_counts_d );
+		initialize_counts( MSC_counts_h, MSC_counts_d );
 	if( SM_ON )
-		initialize_SM_counts( SM_counts_h, SM_counts_d );
+		initialize_counts( SM_counts_h, SM_counts_d );
 }
 void hull_detection( const int histories_to_process)
 {
@@ -3444,23 +3789,42 @@ __device__ void voxel_walk_GPU( bool*& image, float x_entry, float y_entry, floa
 __device__ float x_remaining_GPU( float x, int x_move_direction, int& voxel_x )
 {
 	double voxel_x_float;
-	double x_inside = modf( ( x + RECON_CYL_RADIUS) /VOXEL_WIDTH, &voxel_x_float)*VOXEL_WIDTH;	
+	double x_inside = modf( (x + RECON_CYL_RADIUS) / VOXEL_WIDTH, &voxel_x_float ) * VOXEL_WIDTH;	
 	voxel_x = voxel_x_float;
 	return ( x_move_direction > 0 ) * (VOXEL_WIDTH - x_inside) + ( x_move_direction <= 0 ) * x_inside;	
 }
 __device__ float y_remaining_GPU( float y, int y_move_direction, int& voxel_y )
 {
 	double voxel_y_float;
-	double y_inside = modf( ( RECON_CYL_RADIUS - y) /VOXEL_HEIGHT, &voxel_y_float)*VOXEL_HEIGHT;
+	double y_inside = modf( (RECON_CYL_RADIUS - y) / VOXEL_HEIGHT, &voxel_y_float ) * VOXEL_HEIGHT;
 	voxel_y = voxel_y_float;
 	return ( y_move_direction > 0 ) * (VOXEL_HEIGHT - y_inside) + ( y_move_direction <= 0 ) * y_inside;	
 }
 __device__ float z_remaining_GPU( float z, int z_move_direction, int& voxel_z )
 {
 	float voxel_z_float;
-	float z_inside = modf( ( RECON_CYL_HEIGHT/2 - z) /VOXEL_THICKNESS, &voxel_z_float)*VOXEL_THICKNESS;
+	float z_inside = modf( (RECON_CYL_HEIGHT/2 - z) / VOXEL_THICKNESS, &voxel_z_float ) * VOXEL_THICKNESS;
 	voxel_z = voxel_z_float;
 	return ( z_move_direction > 0 ) * (VOXEL_THICKNESS - z_inside) + ( z_move_direction <= 0 ) * z_inside;
+}
+__global__ void carve_differences( int* carve_differences, int* image )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
+	if( (row != 0) && (row != ROWS - 1) && (column != 0) && (column != COLUMNS - 1) )
+	{
+		int difference, max_difference = 0;
+		for( int current_row = row - 1; current_row <= row + 1; current_row++ )
+		{
+			for( int current_column = column - 1; current_column <= column + 1; current_column++ )
+			{
+				difference = image[voxel] - image[current_column + current_row * COLUMNS + slice * COLUMNS * ROWS];
+				if( difference > max_difference )
+					max_difference = difference;
+			}
+		}
+		carve_differences[voxel] = max_difference;
+	}
 }
 /************************************************************************************************************************************************************/
 void SC( const int num_histories )
@@ -3828,7 +4192,7 @@ __global__ void MSC_GPU
 		}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
 	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
 }
-void MSC_threshold()
+void MSC_edge_detection()
 {
 	puts("Performing edge-detection on MSC_counts...");
 
@@ -3839,7 +4203,7 @@ void MSC_threshold()
 	}
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( COLUMNS, ROWS );   
-	MSC_threshold_GPU<<< dimGrid, dimBlock >>>( MSC_counts_d );
+	MSC_edge_detection_GPU<<< dimGrid, dimBlock >>>( MSC_counts_d );
 
 	puts("MSC hull-detection complete.  Writing results to disk...");
 
@@ -3851,7 +4215,7 @@ void MSC_threshold()
 	if( MLP_HULL != MSC_HULL )
 		free(MSC_counts_h);
 }
-__global__ void MSC_threshold_GPU( int* MSC_counts )
+__global__ void MSC_edge_detection_GPU( int* MSC_counts )
 {
 	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
 	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
@@ -3872,8 +4236,6 @@ __global__ void MSC_threshold_GPU( int* MSC_counts )
 	}
 	syncthreads();
 	if( max_difference > MSC_DIFF_THRESH )
-		MSC_counts[voxel] = 0;
-	else if( MSC_counts[voxel] == 0 )
 		MSC_counts[voxel] = 0;
 	else
 		MSC_counts[voxel] = 1;
@@ -4064,7 +4426,7 @@ __global__ void SM_GPU
 		}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
 	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
 }
-void SM_threshold()
+void SM_edge_detection()
 {
 	puts("Performing edge-detection on SM_counts...");	
 
@@ -4099,7 +4461,10 @@ void SM_threshold()
 				SM_thresholds_h[slice] = SM_counts_h[voxel];
 			}
 		}
-		printf( "Slice %d : The maximum space_model difference = %d and the space_model threshold = %d\n", slice, max_difference, SM_thresholds_h[slice] );
+		if( DEBUG_TEXT_ON )
+		{
+			//printf( "Slice %d : The maximum space_model difference = %d and the space_model threshold = %d\n", slice, max_difference, SM_thresholds_h[slice] );
+		}
 		max_difference = 0;
 	}
 
@@ -4108,7 +4473,7 @@ void SM_threshold()
 	cudaMalloc((void**) &SM_thresholds_d, threshold_size );
 	cudaMemcpy( SM_thresholds_d, SM_thresholds_h, threshold_size, cudaMemcpyHostToDevice );
 
-	SM_threshold_GPU<<< dimGrid, dimBlock >>>( SM_counts_d, SM_thresholds_d);
+	SM_edge_detection_GPU<<< dimGrid, dimBlock >>>( SM_counts_d, SM_thresholds_d);
 	
 	puts("SM hull-detection complete.  Writing results to disk...");
 
@@ -4125,7 +4490,7 @@ void SM_threshold()
 	if( MLP_HULL != SM_HULL)
 		free(SM_counts_h);	
 }
-__global__ void SM_threshold_GPU( int* SM_counts, int* SM_threshold )
+__global__ void SM_edge_detection_GPU( int* SM_counts, int* SM_threshold )
 {
 	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
 	float x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
@@ -4141,7 +4506,7 @@ __global__ void SM_threshold_GPU( int* SM_counts, int* SM_threshold )
 			SM_counts[voxel] = 0;
 	}
 }
-void SM_threshold_2()
+void SM_edge_detection_2()
 {
 	puts("Performing edge-detection on SM_counts...");
 
@@ -4183,7 +4548,7 @@ void SM_threshold_2()
 	cudaMalloc((void**) &SM_thresholds_d, threshold_size );
 	cudaMemcpy( SM_thresholds_d, SM_thresholds_h, threshold_size, cudaMemcpyHostToDevice );
 
-	SM_threshold_GPU<<< dimGrid, dimBlock >>>( SM_counts_d, SM_thresholds_d);
+	SM_edge_detection_GPU<<< dimGrid, dimBlock >>>( SM_counts_d, SM_thresholds_d);
 
 	puts("SM hull-detection complete.  Writing results to disk...");
 
@@ -4200,7 +4565,7 @@ void SM_threshold_2()
 	if( MLP_HULL != SM_HULL)
 		free(SM_counts_h);	
 }
-__global__ void SM_threshold_GPU_2( int* SM_counts, int* SM_differences )
+__global__ void SM_edge_detection_GPU_2( int* SM_counts, int* SM_differences )
 {
 	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
 	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
@@ -4251,59 +4616,54 @@ void hull_detection_finish()
 		write_array_to_disk("x_sc", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
 	}
 	if( MSC_ON )
-		MSC_threshold();
+		MSC_edge_detection();
 	if( SM_ON )
-		SM_threshold();
+		SM_edge_detection();
 }
 /************************************************************************************************************************************************************/
-__global__ void carve_differences( int* carve_differences, int* image )
+template<typename T> void averaging_filter( T*& image_h, T*& image_d )
 {
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-	if( (row != 0) && (row != ROWS - 1) && (column != 0) && (column != COLUMNS - 1) )
-	{
-		int difference, max_difference = 0;
-		for( int current_row = row - 1; current_row <= row + 1; current_row++ )
-		{
-			for( int current_column = column - 1; current_column <= column + 1; current_column++ )
-			{
-				difference = image[voxel] - image[current_column + current_row * COLUMNS + slice * COLUMNS * ROWS];
-				if( difference > max_difference )
-					max_difference = difference;
-			}
-		}
-		carve_differences[voxel] = max_difference;
-	}
-}
-void averaging_filter( bool*& image_h, bool*& image_d, const int filter_size )
-{
-	initialize_SC_hull(image_h, image_d);
+	bool is_hull = ( typeid(bool) == typeid(*image_d) );
+	T* new_value_d;
+	int new_value_size = VOXELS * sizeof(T);
+	cudaMalloc(&new_value_d, new_value_size );
 
-	float threshold = 0;
-	
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( COLUMNS, ROWS );   
-	averaging_filter_GPU<<< dimGrid, dimBlock >>>( image_d, filter_size, threshold);
-
-	cudaMemcpy(image_h, image_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost) ;
-	write_array_to_disk( "test", OUTPUT_DIRECTORY, OUTPUT_FOLDER, image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	averaging_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d, is_hull );
+	apply_averaging_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d );
+	cudaFree(new_value_d);
 }
-__global__ void averaging_filter_GPU( bool* image, const int filter_size, const float threshold )
+template<typename T> __global__ void averaging_filter_GPU( T* image, T* new_value, bool is_hull )
 {
 	int voxel_x = blockIdx.x;
 	int voxel_y = blockIdx.y;	
 	int voxel_z = threadIdx.x;
 	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-	int sum = image[voxel];
-	if( (voxel_x > 0) && (voxel_y > 0) && (voxel_x < COLUMNS - 1) && (voxel_y < ROWS - 1) )
-	{
-		for( int i = voxel_x - filter_size/2; i <= voxel_x + filter_size/2; i++ )
-			for( int j = voxel_y - filter_size/2; j <= voxel_y + filter_size/2; j++ )
-				sum += image[i + j * COLUMNS + voxel_z * COLUMNS * ROWS];
-	}
-	//value[voxel] = sum > threshold;
-	syncthreads();
-	image[voxel] = sum > threshold;
+	int left_edge = max( voxel_x - AVG_FILTER_RADIUS, 0 );
+	int right_edge = min( voxel_x + AVG_FILTER_RADIUS, COLUMNS - 1);
+	int top_edge = max( voxel_y - AVG_FILTER_RADIUS, 0 );
+	int bottom_edge = min( voxel_y + AVG_FILTER_RADIUS, ROWS - 1);	
+	int neighborhood_voxels = ( right_edge - left_edge + 1 ) * ( bottom_edge - top_edge + 1 );
+	double sum_threshold = neighborhood_voxels * AVG_FILTER_THRESHOLD;
+	double sum = 0;
+	// Determine neighborhood sum for voxels whose neighborhood is completely enclosed in image
+	// Strip of size floor(AVG_FILTER_SIZE/2) around image perimeter must be ignored
+	for( int column = left_edge; column <= right_edge; column++ )
+		for( int row = top_edge; row <= bottom_edge; row++ )
+			sum += image[column + (row * COLUMNS) + (voxel_z * COLUMNS * ROWS)];
+	if( is_hull)
+		new_value[voxel] = ( sum > sum_threshold );
+	else
+		new_value[voxel] = sum / neighborhood_voxels;
+}
+template<typename T> __global__ void apply_averaging_filter_GPU( T* image, T* new_value )
+{
+	int voxel_x = blockIdx.x;
+	int voxel_y = blockIdx.y;	
+	int voxel_z = threadIdx.x;
+	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+	image[voxel] = new_value[voxel];
 }
 void convert_counts_to_hull( int*& counts, bool*& hull )
 {
@@ -4324,6 +4684,13 @@ void hull_selection()
 	}
 	if( WRITE_X_HULL )
 		write_array_to_disk("x_hull", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	if( AVG_FILTER_ON )
+		averaging_filter( x_hull_h, x_hull_d );
+	if( WRITE_FILTERED_HULL )
+	{
+		cudaMemcpy(x_hull_h, x_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost) ;
+		write_array_to_disk( "x_hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	}
 }
 /************************************************************************************************************************************************************/
 /******************************************************** Memory Transfers, Maintenance, and Cleaning *******************************************************/
@@ -4599,6 +4966,22 @@ void stop_execution_timing()
 /************************************************************************************************************************************************************/
 void test_func()
 {
+	bool bool_comparison;
+	bool* bool_array;
+	//cout << (typeid(bool) == typeid(*bool_array)) << endl;
+	//initialize_hull(SC_hull_h, SC_hull_d);
+	//initialize_float_image(FBP_image_h, FBP_image_d);
+	//write_array_to_disk("x_sc_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	//write_array_to_disk("FBP_image_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	//averaging_filter( FBP_image_h, FBP_image_d, true );
+	//cudaMemcpy(FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
+	//write_array_to_disk("FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	//averaging_filter( SC_hull_h, SC_hull_d, true );
+	//cudaMemcpy(SC_hull_h, SC_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost) ;
+	//write_array_to_disk("x_sc_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	/*float x = 100;
+	bool yes = ( x < 10);
+	cout << "yes = " << yes << endl;
 	char user_response[20];
 	int* a_h = (int*) calloc( 3, sizeof(int) );
 	int* a_d;
@@ -4611,7 +4994,7 @@ void test_func()
 	cudaMemcpy(a_h, a_d, 3 * sizeof(int), cudaMemcpyDeviceToHost );
 	//printf("a = %d", *a_h );
 	//printf("hello");
-	fgets(user_response, sizeof(user_response), stdin);
+	fgets(user_response, sizeof(user_response), stdin);*/
 }
 void test_func2( int x)
 {
@@ -4644,8 +5027,8 @@ __device__ void test_func_device( int& x, int& y, int& z )
 }
 __global__ void test_func_GPU( int* a)
 {
-	int i = threadIdx.x;
-	double delta_yx = 1.0/0.0;
+	//int i = threadIdx.x;
+	double delta_yx = 1.0/1.0;
 	double x_to_go = 0.024;
 	double y_to_go = 0.015;
 	double y_to_go2 = y_to_go;
