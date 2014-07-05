@@ -4,29 +4,31 @@
 #include "cuda.h"
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <omp.h>
-#include <time.h>
-#include <vector>
-#include <math.h>
-#include <new>
-#include <numeric>
-#include <functional>
 
-using namespace std;
+#include <algorithm>    // std::transform
+#include <fstream>
+#include <functional>	// std::multiplies, std::plus
+#include <iostream>
+#include <math.h>
+//#include <new>			
+#include <numeric>		// inner_product, partial_sum, adjacent_difference, accumulate
+#include <omp.h>		// OpenMP
+#include <sstream>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>		// clock()
+#include <vector>
+
+//using namespace std;
 
 /***************************************************************************************************************************************************************************/
 /************************************************************************ Preprocessing Usage Options **********************************************************************/
 /***************************************************************************************************************************************************************************/
 
 /********************************************************************* Execution and Early Exit Options ********************************************************************/
-const bool RUN_ON			   = false;							// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
+const bool RUN_ON			   = true;							// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
 const bool EXIT_AFTER_BINNING  = false;							// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_HULLS    = true;							// Exit program early after completing hull-detection
+const bool EXIT_AFTER_HULLS    = false;							// Exit program early after completing hull-detection
 const bool EXIT_AFTER_CUTS     = false;							// Exit program early after completing statistical cuts
 const bool EXIT_AFTER_FBP	   = false;							// Exit program early after completing FBP
 /********************************************************************** Preprocessing Option Parameters ********************************************************************/
@@ -35,8 +37,9 @@ const bool SAMPLE_STD_DEV	   = true;							// Use sample/population standard dev
 const bool FBP_ON			   = true;							// Turn FBP on (T) or off (F)
 const bool SC_ON			   = true;							// Turn Space Carving on (T) or off (F)
 const bool MSC_ON			   = true;							// Turn Modified Space Carving on (T) or off (F)
-const bool SM_ON			   = true;							// Turn Space Modeling on (T) or off (F)
-const bool AVG_FILTER_ON	   = false;							// Apply averaging filter to hull (T) or not (F)
+const bool SM_ON			   = false;							// Turn Space Modeling on (T) or off (F)
+const bool HULL_FILTER_ON	   = false;							// Apply averaging filter to hull (T) or not (F)
+const bool COUNT_0_WEPLS	   = false;							// Count the number of histories with WEPL = 0 (T) or not (F)
 /***************************************************************************************************************************************************************************/
 /***************************************************************** Input/output specifications and options *****************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -52,7 +55,7 @@ const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
 //const char INPUT_FOLDER[]	   = "waterPhantom";
 //const char OUTPUT_FOLDER[]   = "waterPhantom";
 //const char INPUT_FOLDER[]	   = "catphan";
-//const char OUTPUT_FOLDER[]   = "catphan";
+//const char OUTPUT_FOLDER[]     = "catphan";
 //const char INPUT_FOLDER[]	   = "DetectData";
 //const char OUTPUT_FOLDER[]   = "DetectData";
 //const char INPUT_FOLDER[]	   = "Rat_Scan2";
@@ -100,8 +103,9 @@ const bool WRITE_SM_COUNTS	   = true;									// Write SM counts array to disk (
 const bool WRITE_SM_HULL	   = true;									// Write SM hull to disk (T) or not (F)
 const bool WRITE_FBP_IMAGE	   = true;									// Write FBP image before thresholding to disk (T) or not (F)
 const bool WRITE_FBP_HULL	   = true;									// Write FBP hull to disk (T) or not (F)
-const bool WRITE_FILTERED_HULL = false;									// Write average filtered hull to disk (T) or not (F)
-const bool WRITE_X_HULL		   = false;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_FILTERED_HULL = true;									// Write average filtered hull to disk (T) or not (F)
+const bool WRITE_X_HULL		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_X_K0		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
 /***************************************************************************************************************************************************************************/
 /************************************************************************* Preprocessing Constants *************************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -158,7 +162,7 @@ const FILTER_TYPES FBP_FILTER  = SHEPP_LOGAN;			  				// Specifies which of the 
 #define SM_SCALE_THRESHOLD	   1.0										// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
 /****************************************************************************** MLP Parameters *****************************************************************************/
 enum  HULL_TYPES {SC_HULL, MSC_HULL, SM_HULL, FBP_HULL };				// Define valid choices for which hull to use in MLP calculations
-const HULL_TYPES MLP_HULL	   = FBP_HULL;								// Specify which of the HULL_TYPES to use in this run's MLP calculations
+const HULL_TYPES MLP_HULL	   = MSC_HULL;								// Specify which of the HULL_TYPES to use in this run's MLP calculations
 #define E_0					   13.6										// [MeV/c] empirical constant
 #define X_0					   36.1										// [cm] radiation length
 #define RSP_AIR				   0.00113									// [cm/cm] Approximate RSP of air
@@ -171,8 +175,8 @@ double A_3 = (  1.301 * pow( 10, -8.0  ) );
 double A_4 = ( -9.228 * pow( 10, -10.0 ) );
 double A_5 = (  2.687 * pow( 10, -11.0 ) );
 /*************************************************************** Iterative Image Reconstruction Parameters *****************************************************************/
-enum  INITIAL_ITERATE {HULL, FBP_IMAGE };								// Define valid choices for which hull to use in MLP calculations
-const INITIAL_ITERATE X_K0	   = FBP_IMAGE;								// Specify which of the HULL_TYPES to use in this run's MLP calculations
+enum  INITIAL_ITERATE { X_HULL, FBP_IMAGE, HYBRID };					// Define valid choices for which hull to use in MLP calculations
+const INITIAL_ITERATE X_K0	   = HYBRID;								// Specify which of the HULL_TYPES to use in this run's MLP calculations
 /*********************************************************** Memory allocation size for arrays (binning, image) ************************************************************/
 #define SIZE_BINS_CHAR		( NUM_BINS * sizeof(char)	)				// Amount of memory required for a character array used for binning
 #define SIZE_BINS_BOOL		( NUM_BINS * sizeof(bool)	)				// Amount of memory required for a boolean array used for binning
@@ -251,34 +255,34 @@ float* stddev_WEPL_h, * stddev_WEPL_d;
 float* sinogram_h, * sinogram_d;
 float* sinogram_filtered_h, * sinogram_filtered_d;
 /***************************************************** Declaration of image arrays for use on host(_h) or device (_d) ******************************************************/
-float* X_h, * X_d;
-bool* x_hull_h, * x_hull_d;
 bool* SC_hull_h, * SC_hull_d;
-int* MSC_counts_h, * MSC_counts_d;
 bool* MSC_hull_h, * MSC_hull_d;
-int* SM_counts_h, * SM_counts_d;
 bool* SM_hull_h, * SM_hull_d;
-float* FBP_image_h, * FBP_image_d;
 bool* FBP_hull_h, * FBP_hull_d;
+bool* x_hull_h, * x_hull_d;
+int* MSC_counts_h, * MSC_counts_d;
+int* SM_counts_h, * SM_counts_d;
 int* MLP_test_image_h, * MLP_test_image_d;
+float* FBP_image_h, * FBP_image_d;
+float* x_h, * x_d;
 /********************************** Declaration of vectors used to accumulate data from histories that have passed currently applied cuts **********************************/		
-vector<int>		bin_index_vector;
-vector<float>	bin_WEPL_vector;
-vector<int>		bin_num_vector;			
-vector<int>		gantry_angle_vector;	
-vector<float>	WEPL_vector;		
-vector<float>	x_entry_vector;		
-vector<float>	y_entry_vector;		
-vector<float>	z_entry_vector;		
-vector<float>	x_exit_vector;			
-vector<float>	y_exit_vector;			
-vector<float>	z_exit_vector;			
-vector<float>	xy_entry_angle_vector;	
-vector<float>	xz_entry_angle_vector;	
-vector<float>	xy_exit_angle_vector;	
-vector<float>	xz_exit_angle_vector;	
-vector<float>	relative_ut_angle_vector;	
-vector<float>	relative_uv_angle_vector;
+std::vector<int>	bin_index_vector;
+std::vector<float>	bin_WEPL_vector;
+std::vector<int>	bin_num_vector;			
+std::vector<int>	gantry_angle_vector;	
+std::vector<float>	WEPL_vector;		
+std::vector<float>	x_entry_vector;		
+std::vector<float>	y_entry_vector;		
+std::vector<float>	z_entry_vector;		
+std::vector<float>	x_exit_vector;			
+std::vector<float>	y_exit_vector;			
+std::vector<float>	z_exit_vector;			
+std::vector<float>	xy_entry_angle_vector;	
+std::vector<float>	xz_entry_angle_vector;	
+std::vector<float>	xy_exit_angle_vector;	
+std::vector<float>	xz_exit_angle_vector;	
+std::vector<float>	relative_ut_angle_vector;	
+std::vector<float>	relative_uv_angle_vector;
 /*********************************************************************** Execution timer variables *************************************************************************/
 clock_t start_time, end_time, execution_time;
 /***************************************************************************************************************************************************************************/
@@ -297,7 +301,7 @@ int MLP_PHANTOM_A_VOXELS = 15, MLP_PHANTOM_B_VOXELS = 25;
 
 double MLP_IMAGE_VOXEL_WIDTH = 0.1;
 double MLP_IMAGE_VOXEL_HEIGHT = 0.1;
-double MLP_IMAGE_VOXEL_THICKNESS = 1.0;
+double MLP_IMAGE_VOXEL_THICKNESS = 1.0; 
 
 double MLP_IMAGE_RECON_CYL_RADIUS = MLP_IMAGE_RECON_CYL_RADIUS_VOXELS * MLP_IMAGE_VOXEL_WIDTH;
 double MLP_IMAGE_RECON_CYL_HEIGHT = MLP_IMAGE_RECON_CYL_HEIGHT_VOXELS * MLP_IMAGE_VOXEL_THICKNESS;

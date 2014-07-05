@@ -25,7 +25,7 @@ void read_data_chunk_v1( const int, const int, const int );
 void tracker_2_global_coordinates( const int );
 void recon_volume_intersections( const int );
 void recon_volume_intersections2( const int );
-void bin_valid_histories( const int );
+void binning( const int );
 void calculate_means();
 void initialize_stddev();
 void sum_squared_deviations( const int, const int );
@@ -40,20 +40,17 @@ void backprojection();
 
 // Hull-Detection 
 void hull_detection_initializations();
+template<typename T> void initialize_hull( T*&, T*& );
 void hull_detection( const int );
 void hull_detection_finish();
-void initialize_hull( bool*&, bool*& );
-void initialize_counts( int*&, int*& );
-void initialize_float_image( float*&, float*& );
 void SC( const int );
 void MSC( const int );
 void MSC_edge_detection();
 void SM( const int );
 void SM_edge_detection();
 void SM_edge_detection_2();
-template<typename T> void averaging_filter( T*&, T*& );
-void convert_counts_to_hull( int*&, bool*& );
 void hull_selection();
+template<typename T, typename T2> void averaging_filter( T*&, T2*& );
 
 // MLP: IN DEVELOPMENT
 void create_MLP_test_image();	
@@ -62,11 +59,15 @@ void MLP();
 void MLP_entry_exit( int&, int&, int& );
 float mean_chord_length( float, float );
 
+// Image Reconstruction
+void create_hull_image_hybrid();
+void define_initial_iterate();
+
 // Write arrays/vectors to file(s)
 template<typename T> void write_array_to_disk( char*, const char*, const char*, T*, const int, const int, const int, const int, const bool );
-template<typename T> void write_vector_to_disk( char*, const char*, const char*, vector<T>, const int, const int, const int, const bool );
-template<typename T> void write_bin_WEPLs( char*, const char*, const char*, vector<int>&, vector<T>&);
-void convert_bin_2_text_files();
+template<typename T> void write_vector_to_disk( char*, const char*, const char*, std::vector<T>, const int, const int, const int, const bool );
+template<typename T> void write_bin_WEPLs( char*, const char*, const char*, std::vector<int>&, std::vector<T>&);
+void bin_2_txt();
 
 // Memory transfers and allocations/deallocations
 void post_cut_memory_clean(); 
@@ -75,13 +76,14 @@ void shrink_vectors( const int );
 void initial_processing_memory_clean();
 
 // Helper Functions
-bool bad_data_angle( const int );								// Just for use with Micah's simultated data
+bool is_bad_angle( const int );								// Just for use with Micah's simultated data
 int calculate_x_voxel( const float, const int, const float );
 int calculate_y_voxel( const float, const int, const float );
 int calculate_slice( const float, const int, const float );
 void exit_program_if( bool );
 void start_execution_timing();
 void stop_execution_timing();
+void pause_execution();
 
 //// New routine test functions
 void test_func();
@@ -95,21 +97,22 @@ void test_func2( const int);
 __global__ void tracker_2_global_coordinates_GPU( int, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void recon_volume_intersections_GPU2( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void recon_volume_intersections_GPU( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void bin_valid_histories_GPU( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
+__global__ void binning_GPU( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void calculate_means_GPU( int*, float*, float*, float* );
 __global__ void sum_squared_deviations_GPU( int, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*  );
 __global__ void calculate_standard_deviations_GPU( int*, float*, float*, float* );
 __global__ void statistical_cuts_GPU( int, int*, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, bool*, float*, float* );
 __global__ void construct_sinogram_GPU( int*, float* );
 __global__ void filter_GPU( float*, float* );
+__global__ void backprojection_GPU( float*, float* );
 
 // Hull-Detection 
+template<typename T> __global__ void initialize_hull_GPU( T* );
 __device__ int position_2_voxel_GPU( float &x, float &y, float &z );
 __device__ void voxel_walk_GPU( bool*&, float, float, float, float, float, float );
-__device__ float x_remaining_GPU( float, int, int& );
-__device__ float y_remaining_GPU( float, int, int& );
-__device__ float z_remaining_GPU( float, int, int& );
-__global__ void backprojection_GPU( float*, float* );
+__device__ double x_remaining_GPU( double, int, int& );
+__device__ double y_remaining_GPU( double, int, int& );
+__device__ double z_remaining_GPU( double, int, int& );
 __global__ void FBP_image_2_hull_GPU( float*, bool* );
 __global__ void SC_GPU( const int, bool*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void MSC_GPU( const int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
@@ -118,8 +121,12 @@ __global__ void MSC_edge_detection_GPU( int* );
 __global__ void SM_edge_detection_GPU( int*, int* );
 __global__ void SM_edge_detection_GPU_2( int*, int* );
 __global__ void carve_differences( int*, int* );
-template<typename T> __global__ void averaging_filter_GPU( T*, T*, bool );
-template<typename T> __global__ void apply_averaging_filter_GPU( T*, T* );
+template<typename H, typename D> __global__ void averaging_filter_GPU( H*, D*, bool );
+template<typename D> __global__ void apply_averaging_filter_GPU( D*, D* );
+
+// Image Reconstruction
+__global__ void create_hull_image_hybrid_GPU( bool*&, float*& );
+
 // New routine test functions
 __global__ void test_func_GPU( int* );
 __device__ void test_func_device( int&, int&, int&);
@@ -147,14 +154,13 @@ int main(int argc, char** argv)
 			assign_SSD_positions();		// Read the detector plane u-coordinates from config file
 		initializations();				// allocate and initialize host and GPU memory for binning
 		count_histories();				// count the number of histories per file, per scan, total, etc.
-		//exit_program_if(true);
 		/********************************************************************************************************************************************************/
 		/* Iteratively Read and Process Data One Chunk at a Time. There are at Most	MAX_GPU_HISTORIES Per Chunk (i.e. Iteration). On Each Iteration:			*/
 		/*	(1) Read data from file																																*/
 		/*	(2) Determine which histories traverse the reconstruction volume and store this	information in a boolean array										*/
 		/*	(3) Determine which bin each history belongs to																										*/
 		/*	(4) Use the boolean array to determine which histories to keep and then push the intermediate data from these histories onto the permanent 			*/
-		/*		storage vectors																																	*/
+		/*		storage std::vectors																																	*/
 		/*	(5) Free up temporary host/GPU array memory allocated during iteration																				*/
 		/********************************************************************************************************************************************************/
 		puts("Iteratively reading data from hard disk");
@@ -173,17 +179,18 @@ int main(int argc, char** argv)
 			}
 			read_data_chunk( histories_to_process, start_file_num, end_file_num );
 			recon_volume_intersections( histories_to_process );
-			bin_valid_histories( histories_to_process );
+			binning( histories_to_process );
 			hull_detection( histories_to_process );
 			initial_processing_memory_clean();
 			start_file_num = end_file_num;
 			histories_to_process = 0;
 		}
-		cout << "Histories with WEPL = 0 : " << zero_WEPL << endl;
+		if( COUNT_0_WEPLS )
+			std::cout << "Histories with WEPL = 0 : " << zero_WEPL << std::endl;
 		puts("Data reading complete.");
 		exit_program_if( EXIT_AFTER_BINNING );
 		/********************************************************************************************************************************************************/
-		/* Reduce vector capacities to their size, the number of histories remaining afterhistories that didn't intersect reconstruction volume were ignored	*/																				
+		/* Reduce std::vector capacities to their size, the number of histories remaining afterhistories that didn't intersect reconstruction volume were ignored	*/																				
 		/********************************************************************************************************************************************************/
 		shrink_vectors( recon_vol_histories );
 		/********************************************************************************************************************************************************/
@@ -197,7 +204,7 @@ int main(int argc, char** argv)
 		calculate_means();
 		initialize_stddev();
 		/********************************************************************************************************************************************************/
-		/* Calculate the standard deviation in WEPL, relative ut-angle, and relative uv-angle for each bin.  Iterate through the valid history vectors one		*/
+		/* Calculate the standard deviation in WEPL, relative ut-angle, and relative uv-angle for each bin.  Iterate through the valid history std::vectors one		*/
 		/* chunk at a time, with at most MAX_GPU_HISTORIES per chunk, and calculate the difference between the mean WEPL and WEPL, mean relative ut-angle and	*/ 
 		/* relative ut-angle, and mean relative uv-angle and relative uv-angle for each history. The standard deviation is then found by calculating the sum	*/
 		/* of these differences for each bin and dividing it by the number of histories in the bin 																*/
@@ -221,7 +228,7 @@ int main(int argc, char** argv)
 		/********************************************************************************************************************************************************/
 		initialize_sinogram();
 		/********************************************************************************************************************************************************/
-		/* Iterate through the valid history vectors one chunk at a time, with at most MAX_GPU_HISTORIES per chunk, and perform statistical cuts				*/
+		/* Iterate through the valid history std::vectors one chunk at a time, with at most MAX_GPU_HISTORIES per chunk, and perform statistical cuts				*/
 		/********************************************************************************************************************************************************/
 		puts("Performing statistical cuts...");
 		remaining_histories = recon_vol_histories, start_position = 0;
@@ -235,10 +242,10 @@ int main(int argc, char** argv)
 			remaining_histories -= MAX_GPU_HISTORIES;
 			start_position		+= MAX_GPU_HISTORIES;
 		}
-		puts("Statistical cuts complete...");
+		puts("Statistical cuts complete.");
 		printf("%d out of %d (%4.2f%%) histories passed cuts\n", post_cut_histories, total_histories, (double) post_cut_histories / total_histories * 100  );
 		/********************************************************************************************************************************************************/
-		/* Free host memory for bin number array, free GPU memory for the statistics arrays, and shrink vectors to the number of histories that passed cuts		*/
+		/* Free host memory for bin number array, free GPU memory for the statistics arrays, and shrink std::vectors to the number of histories that passed cuts		*/
 		/********************************************************************************************************************************************************/		
 		post_cut_memory_clean();
 		resize_vectors( post_cut_histories );
@@ -254,10 +261,12 @@ int main(int argc, char** argv)
 		if( FBP_ON )
 			FBP();
 		exit_program_if( EXIT_AFTER_FBP );
+		hull_selection();
+		define_initial_iterate();
 	}
 	else
 	{
-		//convert_bin_2_text_files();
+		//bin_2_txt();
 		test_func();
 	}
 	/************************************************************************************************************************************************************/
@@ -278,7 +287,7 @@ void write_run_settings()
 	sprintf(run_settings_filename, "%s%s\\run_settings.cfg", INPUT_DIRECTORY, INPUT_FOLDER);
 	if( DEBUG_TEXT_ON )
 		printf("Opening run settings file %s...\n", run_settings_filename);
-	ofstream run_settings_file(run_settings_filename);		
+	std::ofstream run_settings_file(run_settings_filename);		
 	if( !run_settings_file.is_open() ) {
 		printf("ERROR: run settings file file not found at %s!\n", run_settings_filename);	
 		exit_program_if(true);
@@ -291,24 +300,24 @@ void write_run_settings()
 	}
 	if( DEBUG_TEXT_ON )
 		puts("Loading run settings...");
-	run_settings_file << "MAX_GPU_HISTORIES = " << MAX_GPU_HISTORIES << endl;
-	run_settings_file << "GANTRY_ANGLE_INTERVAL = " << GANTRY_ANGLE_INTERVAL << endl;
-	run_settings_file << "SSD_T_SIZE = " << SSD_T_SIZE << endl;
-	run_settings_file << "SSD_V_SIZE = " << SSD_V_SIZE << endl;
-	run_settings_file << "T_BIN_SIZE = " << T_BIN_SIZE << endl;
-	run_settings_file << "V_BIN_SIZE = " << V_BIN_SIZE << endl;
-	run_settings_file << "ANGULAR_BIN_SIZE = " << ANGULAR_BIN_SIZE << endl;
-	run_settings_file << "GANTRY_ANGLE_INTERVAL = " << GANTRY_ANGLE_INTERVAL << endl;
-	run_settings_file << "RECON_CYL_RADIUS = " << RECON_CYL_RADIUS << endl;
-	run_settings_file << "RECON_CYL_HEIGHT = " << RECON_CYL_HEIGHT << endl;
-	run_settings_file << "COLUMNS = " << COLUMNS << endl;
-	run_settings_file << "ROWS = " << ROWS << endl;
-	run_settings_file << "SLICE_THICKNESS" << SLICE_THICKNESS << endl;
-	//run_settings_file << "RECON_CYL_RADIUS = " << RECON_CYL_RADIUS << endl;
-	//run_settings_file << "RECON_CYL_HEIGHT = " << RECON_CYL_HEIGHT << endl;
-	//run_settings_file << "COLUMNS = " << COLUMNS << endl;
-	//run_settings_file << "ROWS = " << ROWS << endl;
-	//run_settings_file << "SLICE_THICKNESS" << SLICE_THICKNESS << endl;
+	run_settings_file << "MAX_GPU_HISTORIES = " << MAX_GPU_HISTORIES << std::endl;
+	run_settings_file << "GANTRY_ANGLE_INTERVAL = " << GANTRY_ANGLE_INTERVAL << std::endl;
+	run_settings_file << "SSD_T_SIZE = " << SSD_T_SIZE << std::endl;
+	run_settings_file << "SSD_V_SIZE = " << SSD_V_SIZE << std::endl;
+	run_settings_file << "T_BIN_SIZE = " << T_BIN_SIZE << std::endl;
+	run_settings_file << "V_BIN_SIZE = " << V_BIN_SIZE << std::endl;
+	run_settings_file << "ANGULAR_BIN_SIZE = " << ANGULAR_BIN_SIZE << std::endl;
+	run_settings_file << "GANTRY_ANGLE_INTERVAL = " << GANTRY_ANGLE_INTERVAL << std::endl;
+	run_settings_file << "RECON_CYL_RADIUS = " << RECON_CYL_RADIUS << std::endl;
+	run_settings_file << "RECON_CYL_HEIGHT = " << RECON_CYL_HEIGHT << std::endl;
+	run_settings_file << "COLUMNS = " << COLUMNS << std::endl;
+	run_settings_file << "ROWS = " << ROWS << std::endl;
+	run_settings_file << "SLICE_THICKNESS" << SLICE_THICKNESS << std::endl;
+	//run_settings_file << "RECON_CYL_RADIUS = " << RECON_CYL_RADIUS << std::endl;
+	//run_settings_file << "RECON_CYL_HEIGHT = " << RECON_CYL_HEIGHT << std::endl;
+	//run_settings_file << "COLUMNS = " << COLUMNS << std::endl;
+	//run_settings_file << "ROWS = " << ROWS << std::endl;
+	//run_settings_file << "SLICE_THICKNESS" << SLICE_THICKNESS << std::endl;
 	run_settings_file.close();
 }
 void assign_SSD_positions()	//HERE THE COORDINATES OF THE DETECTORS PLANES ARE LOADED, THE CONFIG FILE IS CREATED BY FORD (RWS)
@@ -320,7 +329,7 @@ void assign_SSD_positions()	//HERE THE COORDINATES OF THE DETECTORS PLANES ARE L
 	sprintf(configFilename, "%s%s\\scan.cfg", INPUT_DIRECTORY, INPUT_FOLDER);
 	if( DEBUG_TEXT_ON )
 		printf("Opening config file %s...\n", configFilename);
-	ifstream configFile(configFilename);		
+	std::ifstream configFile(configFilename);		
 	if( !configFile.is_open() ) {
 		printf("ERROR: config file not found at %s!\n", configFilename);	
 		exit_program_if(true);
@@ -397,7 +406,7 @@ void count_histories_old()
 	//char user_response[20];
 	char data_filename[128];
 	int file_size, num_histories, file_number = 0, gantry_position_number = 0;
-	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += GANTRY_ANGLE_INTERVAL, gantry_position_number++ )
+	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += int(GANTRY_ANGLE_INTERVAL), gantry_position_number++ )
 	{
 		for( int scan_number = 1; scan_number <= NUM_SCANS; scan_number++, file_number++ )
 		{
@@ -438,12 +447,12 @@ void count_histories_v0()
 	//char user_response[20];
 	char data_filename[256];
 	int num_histories, file_number = 0, gantry_position_number = 0;
-	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += GANTRY_ANGLE_INTERVAL, gantry_position_number++ )
+	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += int(GANTRY_ANGLE_INTERVAL), gantry_position_number++ )
 	{
 		for( int scan_number = 1; scan_number <= NUM_SCANS; scan_number++, file_number++ )
 		{
 			sprintf(data_filename, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION  );
-			ifstream data_file(data_filename, ios::binary);
+			std::ifstream data_file(data_filename, std::ios::binary);
 			if( data_file == NULL )
 			{
 				fputs( "File not found:  Check that the directories and files are properly named.", stderr ); 
@@ -483,12 +492,12 @@ void count_histories_v1()
 	//char user_response[20];
 	char data_filename[256];
 	int num_histories, file_number = 0, gantry_position_number = 0;
-	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += GANTRY_ANGLE_INTERVAL, gantry_position_number++ )
+	for( int gantry_angle = 0; gantry_angle < 360; gantry_angle += int(GANTRY_ANGLE_INTERVAL), gantry_position_number++ )
 	{
 		for( int scan_number = 1; scan_number <= NUM_SCANS; scan_number++, file_number++ )
 		{
 			sprintf(data_filename, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION  );
-			ifstream data_file(data_filename, ios::binary);
+			std::ifstream data_file(data_filename, std::ios::binary);
 			if( data_file == NULL )
 			{
 				fputs( "File not found:  Check that the directories and files are properly named.", stderr ); 
@@ -549,7 +558,7 @@ void read_data_chunk( const int histories_to_process, const int start_file_num, 
 	// The GPU cannot process all the histories at once, so they are broken up into chunks that can fit on the GPU.  As we iterate 
 	// through the data one chunk at a time, we determine which histories enter the reconstruction volume and if they belong to a 
 	// valid bin (i.e. t, v, and angular bin number is greater than zero and less than max).  If both are true, we push the bin
-	// number, WEPL, and relative entry/exit ut/uv angles to the back of their corresponding vector.
+	// number, WEPL, and relative entry/exit ut/uv angles to the back of their corresponding std::vector.
 
 	switch( DATA_FORMAT )
 	{
@@ -587,7 +596,7 @@ void read_data_chunk_old( const int num_histories, const int start_file_num, con
 	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
 	{
 		gantry_position = file_num / NUM_SCANS;
-		gantry_angle = gantry_position * GANTRY_ANGLE_INTERVAL;
+		gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
 		scan_number = file_num % NUM_SCANS + 1;
 		scan_histories = histories_per_file[file_num];
 
@@ -730,13 +739,13 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
 	{
 		gantry_position = file_num / NUM_SCANS;
-		gantry_angle = gantry_position * GANTRY_ANGLE_INTERVAL;
+		gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
 		scan_number = file_num % NUM_SCANS + 1;
 		scan_histories = histories_per_file[file_num];
 
 		printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
 		sprintf(data_filename, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION );	
-		ifstream data_file(data_filename, ios::binary);
+		std::ifstream data_file(data_filename, std::ios::binary);
 		if( data_file == NULL )
 		{
 			fputs( "File not found:  Check that the directories and files are properly named.", stderr ); 
@@ -803,13 +812,13 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 					t_out_1_h[i]	*= MM_TO_CM;
 					t_out_2_h[i]	*= MM_TO_CM;
 					WEPL_h[i]		*= MM_TO_CM;
-					if( WEPL_h[i] < 0 )
-						printf("WEPL[%d] = %3f\n", i, WEPL_h[i] );
+					//if( WEPL_h[i] < 0 )
+						//printf("WEPL[%d] = %3f\n", i, WEPL_h[i] );
 					u_in_1_h[i]		*= MM_TO_CM;
 					u_in_2_h[i]		*= MM_TO_CM;
 					u_out_1_h[i]	*= MM_TO_CM;
 					u_out_2_h[i]	*= MM_TO_CM;
-					if( WEPL_h[i] == 0 )
+					if( COUNT_0_WEPLS && WEPL_h[i] == 0 )
 					{
 						zero_WEPL++;
 						zero_WEPL_files++;
@@ -838,7 +847,7 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 			}
 		}
 	}
-	cout << "Histories in " << gantry_angle_h[0] << "with WEPL = 0 :" << zero_WEPL_files << endl;
+	std::cout << "Histories in " << gantry_angle_h[0] << "with WEPL = 0 :" << zero_WEPL_files << std::endl;
 	zero_WEPL_files = 0;
 }
 void read_data_chunk_v1( const int num_histories, const int start_file_num, const int end_file_num )
@@ -898,13 +907,13 @@ void read_data_chunk_v1( const int num_histories, const int start_file_num, cons
 	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
 	{
 		int gantry_position = file_num / NUM_SCANS;
-		int gantry_angle = gantry_position * GANTRY_ANGLE_INTERVAL;
+		int gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
 		int scan_number = file_num % NUM_SCANS + 1;
 		//int scan_histories = histories_per_file[file_num];
 
 		printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
 		sprintf(data_filename, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION );	
-		ifstream data_file(data_filename, ios::binary);
+		std::ifstream data_file(data_filename, std::ios::binary);
 		if( data_file == NULL )
 		{
 			fputs( "File not found:  Check that the directories and files are properly named.", stderr ); 
@@ -1338,57 +1347,56 @@ __global__ void recon_volume_intersections_GPU2
 				x' = cos( 90 ) * x + sin( 90 ) * y = y
 				y' = cos( 90 ) * y - sin( 90 ) * x = -x
 	*/
-	float a = 0, b = 0, c = 0;
-	float x_intercept_1, x_intercept_2, y_intercept_1, y_intercept_2, squared_distance_1, squared_distance_2;
-	float x_temp;
-	//float x_temp, y_temp;
-	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	float rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
 	//missed_recon_volume[i] = true;
+	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
+
 	if( i < num_histories )
 	{
+		double a = 0, b = 0, c = 0;
+		double u_intercept_1, u_intercept_2, t_intercept_1, t_intercept_2;//, squared_distance_1, squared_distance_2;
+		double u_temp;
+		double x_intercept_1, x_intercept_2, y_intercept_1, y_intercept_2, squared_distance_1, squared_distance_2;
+		double x_temp;
+		//double x_temp, y_temp;		
+		double rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
 		/***************************************************************************************************************/
 		/**************************************** Check entry information **********************************************/
 		/***************************************************************************************************************/
 		
-		// Determine if the proton path enters the reconstruction volume.  The proton path is defined using the entry angle and
-		// position where the proton intersected the entry SSD which is closest to the object.  If this line projected onto the 
+		// Determine if the proton path enters the reconstruction volume.  The proton path is defined using the exit angle and
+		// position where the proton intersected the exit SSD which is closest to the object.  If this line projected onto the 
 		// xy plane intersects the reconstruction cylinder, the line will intersect the circle in the xy plane which describes the
-		// boundary of the reconstruction cylinder twice and its entry elevation will be within the height of the cylinder.   
+		// boundary of the reconstruction cylinder twice and its exit elevation will be within the height of the cylinder.   
 
 		// Relevant angles in radians: gantry angle, proton path entry angle in ut and xy planes.
-		float ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );	
-		xy_entry_angle[i] = ut_entry_angle + rotation_angle_radians;
-		if( xy_entry_angle[i] < 0 )
-			xy_entry_angle[i] += TWO_PI;
+		double ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );	
 
-		// Rotate entry detector positions
-		float x_in = ( cos( rotation_angle_radians ) * u_in_2[i] ) - ( sin( rotation_angle_radians ) * t_in_2[i] );
-		float y_in = ( sin( rotation_angle_radians ) * u_in_2[i] ) + ( cos( rotation_angle_radians ) * t_in_2[i] );
+		double u_entry, t_entry;
+		double u_in, t_in;
 
 		// Determine if entry points should be rotated
 		bool entry_in_cone = 
-		( (xy_entry_angle[i] > PI_OVER_4) && (xy_entry_angle[i] < THREE_PI_OVER_4) ) 
+		( (ut_entry_angle > PI_OVER_4) && (ut_entry_angle < THREE_PI_OVER_4) ) 
 		|| 
-		( (xy_entry_angle[i] > FIVE_PI_OVER_4) && (xy_entry_angle[i] < SEVEN_PI_OVER_4) );
+		( (ut_entry_angle > FIVE_PI_OVER_4) && (ut_entry_angle < SEVEN_PI_OVER_4) );
 
-		// Rotate x_in & y_in by 90 degrees, if necessary
+		// Rotate u_in & t_in by 90 degrees, if necessary
 		if( entry_in_cone )
 		{
-			x_temp = x_in;	
-			x_in = -y_in;
-			y_in = x_temp;
-			xy_entry_angle[i] += PI_OVER_2;
+			u_temp = u_in_2[i];	
+			u_in = -t_in_2[i];
+			t_in = u_temp;
+			ut_entry_angle += PI_OVER_2;
 		}
 
-		float m_in = tan( xy_entry_angle[i] );	// proton entry path slope
-		float b_in = y_in - m_in * x_in;				// proton entry path y-intercept
+		double m_in = tan( ut_entry_angle );	// proton entry path slope
+		double b_in = t_in_2[i] - m_in * u_in_2[i];				// proton entry path y-intercept
 		
 		// Quadratic formula coefficients
 		a = 1 + pow(m_in, 2);								// x^2 coefficient 
 		b = 2 * m_in * b_in;								// x coefficient
 		c = pow(b_in, 2) - pow(RECON_CYL_RADIUS, 2 );		// 1 coefficient
-		float entry_discriminant = pow(b, 2) - (4 * a * c);	// Quadratic formula discriminant		
+		double entry_discriminant = pow(b, 2) - (4 * a * c);	// Quadratic formula discriminant		
 		bool entered = ( entry_discriminant > 0 );			// Proton path intersected twice
 		
 		// Find both intersection points of the circle; closest one to the entry SSDs is the entry position
@@ -1399,94 +1407,165 @@ __global__ void recon_volume_intersections_GPU2
 		// This negation is also considered when assigning x_entry/y_entry using -x_intercept_2/y_intercept_2 *(TRUE/FALSE = 1/0) 
 		if( entered )
 		{
-			x_intercept_1 = ( sqrtf(entry_discriminant) - b ) / ( 2 * a );
-			x_intercept_2 = ( sqrtf(entry_discriminant) + b ) / ( 2 * a );
-			y_intercept_1 = m_in * x_intercept_1 + b_in;
-			y_intercept_2 = m_in * x_intercept_2 - b_in;
-			squared_distance_1 = pow(x_intercept_1 - x_in, 2) + pow(y_intercept_1 - y_in, 2);
-			squared_distance_2 = pow(x_intercept_2 + x_in, 2) + pow(y_intercept_2 + y_in, 2);
-			x_entry[i] = x_intercept_1 * (squared_distance_1 <= squared_distance_2) - x_intercept_2 * (squared_distance_1 > squared_distance_2);
-			y_entry[i] = y_intercept_1 * (squared_distance_1 <= squared_distance_2) - y_intercept_2 * (squared_distance_1 > squared_distance_2);
+			u_intercept_1 = ( sqrt(entry_discriminant) - b ) / ( 2 * a );
+			u_intercept_2 = ( sqrt(entry_discriminant) + b ) / ( 2 * a );
+			t_intercept_1 = m_in * u_intercept_1 + b_in;
+			t_intercept_2 = m_in * u_intercept_2 - b_in;
+			squared_distance_1 = pow(u_intercept_1 - u_in_2[i], 2) + pow(t_intercept_1 - t_in_2[i], 2);
+			squared_distance_2 = pow(u_intercept_2 + u_in_2[i], 2) + pow(t_intercept_2 + t_in_2[i], 2);
+			u_entry = u_intercept_1 * (squared_distance_1 <= squared_distance_2) - u_intercept_2 * (squared_distance_1 > squared_distance_2);
+			t_entry = t_intercept_1 * (squared_distance_1 <= squared_distance_2) - t_intercept_2 * (squared_distance_1 > squared_distance_2);
 		}
 		// Unrotate by 90 degrees, if necessary
 		if( entry_in_cone )
 		{
-			x_temp = x_entry[i];
-			x_entry[i] = y_entry[i];
-			y_entry[i] = -x_temp;
-			xy_entry_angle[i] -= PI_OVER_2;
+			u_temp = u_entry;
+			u_entry = t_entry;
+			t_entry = -u_temp;
+			ut_entry_angle -= PI_OVER_2;
 		}
+		xy_entry_angle[i] = ut_entry_angle + rotation_angle_radians;
+		if( xy_entry_angle[i] < 0 )
+			xy_entry_angle[i] += TWO_PI;
+
+		// Rotate exit detector positions
+		x_entry[i] = ( cos( rotation_angle_radians ) * u_entry ) - ( sin( rotation_angle_radians ) * t_entry );
+		y_entry[i] = ( sin( rotation_angle_radians ) * u_entry ) + ( cos( rotation_angle_radians ) * t_entry );
 		/***************************************************************************************************************/
 		/****************************************** Check exit information *********************************************/
 		/***************************************************************************************************************/
+		// Relevant angles in radians: gantry angle, proton path exit angle in ut and xy planes.
+		double ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );	
+
+		double u_exit, t_exit;
+		double u_out, t_out;
+
+		// Determine if exit points should be rotated
+		bool exit_in_cone = 
+		( (ut_exit_angle > PI_OVER_4) && (ut_exit_angle < THREE_PI_OVER_4) ) 
+		|| 
+		( (ut_exit_angle > FIVE_PI_OVER_4) && (ut_exit_angle < SEVEN_PI_OVER_4) );
+
+		// Rotate u_out & t_out by 90 degrees, if necessary
+		if( exit_in_cone )
+		{
+			u_temp = u_out_1[i];	
+			u_out = -t_out_1[i];
+			t_out = u_temp;
+			ut_exit_angle += PI_OVER_2;
+		}
+
+		double m_out = tan( ut_exit_angle );	// proton exit path slope
+		double b_out = t_out_1[i] - m_out * u_out_1[i];				// proton exit path y-intercept
 		
-		// Repeat the procedure above, this time to determine if the proton path exited the reconstruction volume and if so, the
-		// x,y,z position where it exited
-		float ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );
+		// Quadratic formula coefficients
+		a = 1 + pow(m_out, 2);								// x^2 coefficient 
+		b = 2 * m_out * b_out;								// x coefficient
+		c = pow(b_out, 2) - pow(RECON_CYL_RADIUS, 2 );		// 1 coefficient
+		double exit_discriminant = pow(b, 2) - (4 * a * c);	// Quadratic formula discriminant		
+		bool exited = ( exit_discriminant > 0 );			// Proton path intersected twice
+		
+		// Find both intersection points of the circle; closest one to the exit SSDs is the exit position
+		// Notice that x_intercept_2 = ( -b - sqrt(...) ) / ( 2 * a ) has the negative sign pulled out and following calculations modified as necessary
+		// e.g. x_intercept_2 = -x_real_2
+		//		y_intercept_2 = -y_real_2
+		//		squared_distance_2 = sqd_real_2		since (x_intercept_2 + x_in)^2 = (-x_intercept_2 - x_in)^2 = (x_real_2 - x_in)^2 (same for y term)
+		// This negation is also considered when assigning x_exit/y_exit using -x_intercept_2/y_intercept_2 *(TRUE/FALSE = 1/0) 
+		if( exited )
+		{
+			u_intercept_1 = ( sqrt(exit_discriminant) - b ) / ( 2 * a );
+			u_intercept_2 = ( sqrt(exit_discriminant) + b ) / ( 2 * a );
+			t_intercept_1 = m_out * u_intercept_1 + b_out;
+			t_intercept_2 = m_out * u_intercept_2 - b_out;
+			squared_distance_1 = pow(u_intercept_1 - u_out_1[i], 2) + pow(t_intercept_1 - t_out_1[i], 2);
+			squared_distance_2 = pow(u_intercept_2 + u_out_1[i], 2) + pow(t_intercept_2 + t_out_1[i], 2);
+			u_exit = u_intercept_1 * (squared_distance_1 <= squared_distance_2) - u_intercept_2 * (squared_distance_1 > squared_distance_2);
+			t_exit = t_intercept_1 * (squared_distance_1 <= squared_distance_2) - t_intercept_2 * (squared_distance_1 > squared_distance_2);
+		}
+		// Unrotate by 90 degrees, if necessary
+		if( exit_in_cone )
+		{
+			u_temp = u_exit;
+			u_exit = t_exit;
+			t_exit = -u_temp;
+			ut_exit_angle -= PI_OVER_2;
+		}
+
 		xy_exit_angle[i] = ut_exit_angle + rotation_angle_radians;
 		if( xy_exit_angle[i] < 0 )
 			xy_exit_angle[i] += TWO_PI;
 
 		// Rotate exit detector positions
-		float x_out = ( cos(rotation_angle_radians) * u_out_1[i] ) - ( sin(rotation_angle_radians) * t_out_1[i] );
-		float y_out = ( sin(rotation_angle_radians) * u_out_1[i] ) + ( cos(rotation_angle_radians) * t_out_1[i] );
+		x_exit[i] = ( cos( rotation_angle_radians ) * u_exit ) - ( sin( rotation_angle_radians ) * t_exit );
+		y_exit[i] = ( sin( rotation_angle_radians ) * u_exit ) + ( cos( rotation_angle_radians ) * t_exit );
 
-		// Determine if exit points should be rotated
-		bool exit_in_cone = 
-		( (xy_exit_angle[i] > PI_OVER_4) &&	(xy_exit_angle[i] < THREE_PI_OVER_4) ) 
-		|| 
-		( (xy_exit_angle[i] > FIVE_PI_OVER_4) && (xy_exit_angle[i] < SEVEN_PI_OVER_4) );
+		//// Repeat the procedure above, this time to determine if the proton path exited the reconstruction volume and if so, the
+		//// x,y,z position where it exited
+		//double ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );
+		//xy_exit_angle[i] = ut_exit_angle + rotation_angle_radians;
+		//if( xy_exit_angle[i] < 0 )
+		//	xy_exit_angle[i] += TWO_PI;
 
-		// Rotate x_out & y_out by 90 degrees, if necessary
-		if( exit_in_cone )
-		{
-			x_temp = x_out;	
-			x_out = -y_out;
-			y_out = x_temp;	
-			xy_exit_angle[i] += PI_OVER_2;
-		}	
+		//// Rotate exit detector positions
+		//double x_out = ( cos(rotation_angle_radians) * u_out_1[i] ) - ( sin(rotation_angle_radians) * t_out_1[i] );
+		//double y_out = ( sin(rotation_angle_radians) * u_out_1[i] ) + ( cos(rotation_angle_radians) * t_out_1[i] );
 
-		float m_out = tan( xy_exit_angle[i] );	// proton entry path slope
-		float b_out = y_out - m_out * x_out;			// proton entry path y-intercept
-		
-		// Quadratic formula coefficients
-		a = 1 + pow(m_out, 2);								// x^2 coefficient 
-		b = 2 * m_out * b_out;								// x coefficient
-		c = pow(b_out, 2) - pow(RECON_CYL_RADIUS, 2);		// 1 coefficient
-		float exit_discriminant = pow(b, 2)  - (4 * a * c); // Quadratic formula discriminant
-		bool exited = ( exit_discriminant > 0 );			// Proton path intersected twice
-		
-			
-		// Find both intersection points of the circle; closest one to the exit SSDs is the exit position
-		if( exited )
-		{
-			x_intercept_1 = ( sqrtf(exit_discriminant) - b ) / ( 2 * a );
-			x_intercept_2 = ( sqrtf(exit_discriminant) + b ) / ( 2 * a );// -x calculated
-			y_intercept_1 = m_out * x_intercept_1 + b_out;
-			y_intercept_2 = m_out * x_intercept_2 - b_out;// -y calculated
-			squared_distance_1 = pow(x_intercept_1 - x_out, 2) + pow(y_intercept_1 - y_out, 2);
-			squared_distance_2 = pow(x_intercept_2 + x_out, 2) + pow(y_intercept_2 + y_out, 2);// modified due to -x and -y calcs above
-			x_exit[i] = x_intercept_1 * (squared_distance_1 <= squared_distance_2) - x_intercept_2 * (squared_distance_1 > squared_distance_2);
-			y_exit[i] = y_intercept_1 * (squared_distance_1 <= squared_distance_2) - y_intercept_2 * (squared_distance_1 > squared_distance_2);
-		}
-		// Unrotate by 90 degrees, if necessary
-		if( exit_in_cone )
-		{
-			x_temp = x_exit[i];
-			x_exit[i] = y_exit[i];
-			y_exit[i] = -x_temp;	
-			xy_exit_angle[i] -= PI_OVER_2;
-		}
+		//// Determine if exit points should be rotated
+		//bool exit_in_cone = 
+		//( (xy_exit_angle[i] > PI_OVER_4) &&	(xy_exit_angle[i] < THREE_PI_OVER_4) ) 
+		//|| 
+		//( (xy_exit_angle[i] > FIVE_PI_OVER_4) && (xy_exit_angle[i] < SEVEN_PI_OVER_4) );
+
+		//// Rotate x_out & y_out by 90 degrees, if necessary
+		//if( exit_in_cone )
+		//{
+		//	x_temp = x_out;	
+		//	x_out = -y_out;
+		//	y_out = x_temp;	
+		//	xy_exit_angle[i] += PI_OVER_2;
+		//}	
+
+		//double m_out = tan( xy_exit_angle[i] );	// proton entry path slope
+		//double b_out = y_out - m_out * x_out;			// proton entry path y-intercept
+		//
+		//// Quadratic formula coefficients
+		//a = 1 + pow(m_out, 2);								// x^2 coefficient 
+		//b = 2 * m_out * b_out;								// x coefficient
+		//c = pow(b_out, 2) - pow(RECON_CYL_RADIUS, 2);		// 1 coefficient
+		//double exit_discriminant = pow(b, 2)  - (4 * a * c); // Quadratic formula discriminant
+		//bool exited = ( exit_discriminant > 0 );			// Proton path intersected twice
+		//
+		//	
+		//// Find both intersection points of the circle; closest one to the exit SSDs is the exit position
+		//if( exited )
+		//{
+		//	x_intercept_1 = ( sqrtf(exit_discriminant) - b ) / ( 2 * a );
+		//	x_intercept_2 = ( sqrtf(exit_discriminant) + b ) / ( 2 * a );// -x calculated
+		//	y_intercept_1 = m_out * x_intercept_1 + b_out;
+		//	y_intercept_2 = m_out * x_intercept_2 - b_out;// -y calculated
+		//	squared_distance_1 = pow(x_intercept_1 - x_out, 2) + pow(y_intercept_1 - y_out, 2);
+		//	squared_distance_2 = pow(x_intercept_2 + x_out, 2) + pow(y_intercept_2 + y_out, 2);// modified due to -x and -y calcs above
+		//	x_exit[i] = x_intercept_1 * (squared_distance_1 <= squared_distance_2) - x_intercept_2 * (squared_distance_1 > squared_distance_2);
+		//	y_exit[i] = y_intercept_1 * (squared_distance_1 <= squared_distance_2) - y_intercept_2 * (squared_distance_1 > squared_distance_2);
+		//}
+		//// Unrotate by 90 degrees, if necessary
+		//if( exit_in_cone )
+		//{
+		//	x_temp = x_exit[i];
+		//	x_exit[i] = y_exit[i];
+		//	y_exit[i] = -x_temp;	
+		//	xy_exit_angle[i] -= PI_OVER_2;
+		//}
 		/***************************************************************************************************************/
 		/***************************************** Check z(v) direction ************************************************/
 		/***************************************************************************************************************/		
 
 		// Relevant angles/slopes in radians for entry and exit in the uv plane
-		float uv_entry_slope = ( v_in_2[i] - v_in_1[i] ) / ( u_in_2[i] - u_in_1[i] );
-		float uv_exit_slope = ( v_out_2[i] - v_out_1[i] ) / ( u_out_2[i] - u_out_1[i] );
+		double uv_entry_slope = ( v_in_2[i] - v_in_1[i] ) / ( u_in_2[i] - u_in_1[i] );
+		double uv_exit_slope = ( v_out_2[i] - v_out_1[i] ) / ( u_out_2[i] - u_out_1[i] );
 		
-		float uv_entry_angle = atan2( v_in_2[i] - v_in_1[i], u_in_2[i] - u_in_1[i] );
-		float uv_exit_angle = atan2( v_out_2[i] - v_out_1[i],  u_out_2[i] - u_out_1[i] );
+		double uv_entry_angle = atan2( v_in_2[i] - v_in_1[i], u_in_2[i] - u_in_1[i] );
+		double uv_exit_angle = atan2( v_out_2[i] - v_out_1[i],  u_out_2[i] - u_out_1[i] );
 
 		xz_entry_angle[i] = uv_entry_angle;
 		xz_exit_angle[i] = uv_exit_angle;
@@ -1502,8 +1581,8 @@ __global__ void recon_volume_intersections_GPU2
 			u-coordinate of the entry and exit points of the reconsruction cylinder can be found using an inverse rotation 
 				u = cos( gantry_angle ) * x + sin( gantry_angle ) * y
 		*/
-		float u_entry = ( cosf( rotation_angle_radians ) * x_entry[i] ) + ( sinf( rotation_angle_radians ) * y_entry[i] );
-		float u_exit = ( cosf(rotation_angle_radians) * x_exit[i] ) + ( sinf(rotation_angle_radians) * y_exit[i] );
+		u_entry = ( cos( rotation_angle_radians ) * x_entry[i] ) + ( sin( rotation_angle_radians ) * y_entry[i] );
+		u_exit = ( cos(rotation_angle_radians) * x_exit[i] ) + ( sin(rotation_angle_radians) * y_exit[i] );
 		z_entry[i] = v_in_2[i] + uv_entry_slope * ( u_entry - u_in_2[i] );
 		z_exit[i] = v_out_1[i] - uv_exit_slope * ( u_out_1[i] - u_exit );
 
@@ -1516,7 +1595,7 @@ __global__ void recon_volume_intersections_GPU2
 		{
 			if( ( fabs(z_entry[i]) < RECON_CYL_HEIGHT * 0.5 ) && ( fabs(z_exit[i]) > RECON_CYL_HEIGHT * 0.5 ) )
 			{
-				float recon_cyl_fraction = fabs( ( ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5 - z_entry[i] ) / ( z_exit[i] - z_entry[i] ) );
+				double recon_cyl_fraction = fabs( ( ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5 - z_entry[i] ) / ( z_exit[i] - z_entry[i] ) );
 				x_exit[i] = x_entry[i] + recon_cyl_fraction * ( x_exit[i] - x_entry[i] );
 				y_exit[i] = y_entry[i] + recon_cyl_fraction * ( y_exit[i] - y_entry[i] );
 				z_exit[i] = ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5;
@@ -1526,13 +1605,14 @@ __global__ void recon_volume_intersections_GPU2
 				entered = false;
 				exited = false;
 			}
+			//printf("Something\n");
 			// Check the measurement locations. Do not allow more than 5 cm difference in entry and exit in t and v. This gets 
 			// rid of spurious events.
-			if( ( fabs(t_out_1[i] - t_in_2[i]) > 5 ) || ( fabs(v_out_1[i] - v_in_2[i]) > 5 ) )
-			{
-				entered = false;
-				exited = false;
-			}
+			//if( ( fabs(t_out_1[i] - t_in_2[i]) > 5 ) || ( fabs(v_out_1[i] - v_in_2[i]) > 5 ) )
+			//{
+			//	entered = false;
+			//	exited = false;
+			//}
 		}
 		relative_ut_angle[i] = ut_exit_angle - ut_entry_angle;
 		relative_uv_angle[i] = uv_exit_angle - uv_entry_angle;
@@ -1593,7 +1673,7 @@ void recon_volume_intersections( const int num_histories )
 
 	dim3 dimBlock(THREADS_PER_BLOCK);
 	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
-	recon_volume_intersections_GPU<<<dimGrid, dimBlock>>>
+	recon_volume_intersections_GPU2<<<dimGrid, dimBlock>>>
 	(
 		num_histories, gantry_angle_d, missed_recon_volume_d,
 		t_in_1_d, t_in_2_d, t_out_1_d, t_out_2_d,
@@ -1701,15 +1781,17 @@ __global__ void recon_volume_intersections_GPU
 				x' = cos( 90 ) * x + sin( 90 ) * y = y
 				y' = cos( 90 ) * y - sin( 90 ) * x = -x
 	*/
-	float a = 0, b = 0, c = 0;
-	float x_intercept_1, x_intercept_2, y_intercept_1, y_intercept_2, squared_distance_1, squared_distance_2;
-	float x_temp;
-	//float x_temp, y_temp;
+	
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	float rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
+	
 	//missed_recon_volume[i] = true;
 	if( i < num_histories )
 	{
+		double a = 0, b = 0, c = 0;
+		double x_intercept_1, x_intercept_2, y_intercept_1, y_intercept_2, squared_distance_1, squared_distance_2;
+		double x_temp;
+		//float x_temp, y_temp;
+		double rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
 		/***************************************************************************************************************/
 		/**************************************** Check entry information **********************************************/
 		/***************************************************************************************************************/
@@ -1720,14 +1802,14 @@ __global__ void recon_volume_intersections_GPU
 		// boundary of the reconstruction cylinder twice and its entry elevation will be within the height of the cylinder.   
 
 		// Relevant angles in radians: gantry angle, proton path entry angle in ut and xy planes.
-		float ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );	
+		double ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );	
 		xy_entry_angle[i] = ut_entry_angle + rotation_angle_radians;
 		if( xy_entry_angle[i] < 0 )
 			xy_entry_angle[i] += TWO_PI;
 
 		// Rotate entry detector positions
-		float x_in = ( cos( rotation_angle_radians ) * u_in_2[i] ) - ( sin( rotation_angle_radians ) * t_in_2[i] );
-		float y_in = ( sin( rotation_angle_radians ) * u_in_2[i] ) + ( cos( rotation_angle_radians ) * t_in_2[i] );
+		double x_in = ( cos( rotation_angle_radians ) * u_in_2[i] ) - ( sin( rotation_angle_radians ) * t_in_2[i] );
+		double y_in = ( sin( rotation_angle_radians ) * u_in_2[i] ) + ( cos( rotation_angle_radians ) * t_in_2[i] );
 
 		// Determine if entry points should be rotated
 		bool entry_in_cone = 
@@ -1744,14 +1826,14 @@ __global__ void recon_volume_intersections_GPU
 			xy_entry_angle[i] += PI_OVER_2;
 		}
 
-		float m_in = tan( xy_entry_angle[i] );	// proton entry path slope
-		float b_in = y_in - m_in * x_in;				// proton entry path y-intercept
+		double m_in = tan( xy_entry_angle[i] );	// proton entry path slope
+		double b_in = y_in - m_in * x_in;				// proton entry path y-intercept
 		
 		// Quadratic formula coefficients
 		a = 1 + pow(m_in, 2);								// x^2 coefficient 
 		b = 2 * m_in * b_in;								// x coefficient
 		c = pow(b_in, 2) - pow(RECON_CYL_RADIUS, 2 );		// 1 coefficient
-		float entry_discriminant = pow(b, 2) - (4 * a * c);	// Quadratic formula discriminant		
+		double entry_discriminant = pow(b, 2) - (4 * a * c);	// Quadratic formula discriminant		
 		bool entered = ( entry_discriminant > 0 );			// Proton path intersected twice
 		
 		// Find both intersection points of the circle; closest one to the entry SSDs is the entry position
@@ -1762,8 +1844,8 @@ __global__ void recon_volume_intersections_GPU
 		// This negation is also considered when assigning x_entry/y_entry using -x_intercept_2/y_intercept_2 *(TRUE/FALSE = 1/0) 
 		if( entered )
 		{
-			x_intercept_1 = ( sqrtf(entry_discriminant) - b ) / ( 2 * a );
-			x_intercept_2 = ( sqrtf(entry_discriminant) + b ) / ( 2 * a );
+			x_intercept_1 = ( sqrt(entry_discriminant) - b ) / ( 2 * a );
+			x_intercept_2 = ( sqrt(entry_discriminant) + b ) / ( 2 * a );
 			y_intercept_1 = m_in * x_intercept_1 + b_in;
 			y_intercept_2 = m_in * x_intercept_2 - b_in;
 			squared_distance_1 = pow(x_intercept_1 - x_in, 2) + pow(y_intercept_1 - y_in, 2);
@@ -1785,14 +1867,14 @@ __global__ void recon_volume_intersections_GPU
 		
 		// Repeat the procedure above, this time to determine if the proton path exited the reconstruction volume and if so, the
 		// x,y,z position where it exited
-		float ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );
+		double ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );
 		xy_exit_angle[i] = ut_exit_angle + rotation_angle_radians;
 		if( xy_exit_angle[i] < 0 )
 			xy_exit_angle[i] += TWO_PI;
 
 		// Rotate exit detector positions
-		float x_out = ( cos(rotation_angle_radians) * u_out_1[i] ) - ( sin(rotation_angle_radians) * t_out_1[i] );
-		float y_out = ( sin(rotation_angle_radians) * u_out_1[i] ) + ( cos(rotation_angle_radians) * t_out_1[i] );
+		double x_out = ( cos(rotation_angle_radians) * u_out_1[i] ) - ( sin(rotation_angle_radians) * t_out_1[i] );
+		double y_out = ( sin(rotation_angle_radians) * u_out_1[i] ) + ( cos(rotation_angle_radians) * t_out_1[i] );
 
 		// Determine if exit points should be rotated
 		bool exit_in_cone = 
@@ -1809,22 +1891,22 @@ __global__ void recon_volume_intersections_GPU
 			xy_exit_angle[i] += PI_OVER_2;
 		}	
 
-		float m_out = tan( xy_exit_angle[i] );	// proton entry path slope
-		float b_out = y_out - m_out * x_out;			// proton entry path y-intercept
+		double m_out = tan( xy_exit_angle[i] );	// proton entry path slope
+		double b_out = y_out - m_out * x_out;			// proton entry path y-intercept
 		
 		// Quadratic formula coefficients
 		a = 1 + pow(m_out, 2);								// x^2 coefficient 
 		b = 2 * m_out * b_out;								// x coefficient
 		c = pow(b_out, 2) - pow(RECON_CYL_RADIUS, 2);		// 1 coefficient
-		float exit_discriminant = pow(b, 2)  - (4 * a * c); // Quadratic formula discriminant
+		double exit_discriminant = pow(b, 2)  - (4 * a * c); // Quadratic formula discriminant
 		bool exited = ( exit_discriminant > 0 );			// Proton path intersected twice
 		
 			
 		// Find both intersection points of the circle; closest one to the exit SSDs is the exit position
 		if( exited )
 		{
-			x_intercept_1 = ( sqrtf(exit_discriminant) - b ) / ( 2 * a );
-			x_intercept_2 = ( sqrtf(exit_discriminant) + b ) / ( 2 * a );// -x calculated
+			x_intercept_1 = ( sqrt(exit_discriminant) - b ) / ( 2 * a );
+			x_intercept_2 = ( sqrt(exit_discriminant) + b ) / ( 2 * a );// -x calculated
 			y_intercept_1 = m_out * x_intercept_1 + b_out;
 			y_intercept_2 = m_out * x_intercept_2 - b_out;// -y calculated
 			squared_distance_1 = pow(x_intercept_1 - x_out, 2) + pow(y_intercept_1 - y_out, 2);
@@ -1845,11 +1927,11 @@ __global__ void recon_volume_intersections_GPU
 		/***************************************************************************************************************/		
 
 		// Relevant angles/slopes in radians for entry and exit in the uv plane
-		float uv_entry_slope = ( v_in_2[i] - v_in_1[i] ) / ( u_in_2[i] - u_in_1[i] );
-		float uv_exit_slope = ( v_out_2[i] - v_out_1[i] ) / ( u_out_2[i] - u_out_1[i] );
+		double uv_entry_slope = ( v_in_2[i] - v_in_1[i] ) / ( u_in_2[i] - u_in_1[i] );
+		double uv_exit_slope = ( v_out_2[i] - v_out_1[i] ) / ( u_out_2[i] - u_out_1[i] );
 		
-		float uv_entry_angle = atan2( v_in_2[i] - v_in_1[i], u_in_2[i] - u_in_1[i] );
-		float uv_exit_angle = atan2( v_out_2[i] - v_out_1[i],  u_out_2[i] - u_out_1[i] );
+		double uv_entry_angle = atan2( v_in_2[i] - v_in_1[i], u_in_2[i] - u_in_1[i] );
+		double uv_exit_angle = atan2( v_out_2[i] - v_out_1[i],  u_out_2[i] - u_out_1[i] );
 
 		xz_entry_angle[i] = uv_entry_angle;
 		xz_exit_angle[i] = uv_exit_angle;
@@ -1865,8 +1947,8 @@ __global__ void recon_volume_intersections_GPU
 			u-coordinate of the entry and exit points of the reconsruction cylinder can be found using an inverse rotation 
 				u = cos( gantry_angle ) * x + sin( gantry_angle ) * y
 		*/
-		float u_entry = ( cosf( rotation_angle_radians ) * x_entry[i] ) + ( sinf( rotation_angle_radians ) * y_entry[i] );
-		float u_exit = ( cosf(rotation_angle_radians) * x_exit[i] ) + ( sinf(rotation_angle_radians) * y_exit[i] );
+		double u_entry = ( cos( rotation_angle_radians ) * x_entry[i] ) + ( sin( rotation_angle_radians ) * y_entry[i] );
+		double u_exit = ( cos(rotation_angle_radians) * x_exit[i] ) + ( sin(rotation_angle_radians) * y_exit[i] );
 		z_entry[i] = v_in_2[i] + uv_entry_slope * ( u_entry - u_in_2[i] );
 		z_exit[i] = v_out_1[i] - uv_exit_slope * ( u_out_1[i] - u_exit );
 
@@ -1904,7 +1986,7 @@ __global__ void recon_volume_intersections_GPU
 		missed_recon_volume[i] = !entered || !exited;
 	}	
 }
-void bin_valid_histories( const int num_histories )
+void binning( const int num_histories )
 {
 	unsigned int size_floats	= sizeof(float) * num_histories;
 	unsigned int size_ints		= sizeof(int) * num_histories;
@@ -1934,7 +2016,7 @@ void bin_valid_histories( const int num_histories )
 
 	dim3 dimBlock( THREADS_PER_BLOCK );
 	dim3 dimGrid( (int)( num_histories/THREADS_PER_BLOCK ) + 1 );
-	bin_valid_histories_GPU<<<dimGrid, dimBlock>>>
+	binning_GPU<<<dimGrid, dimBlock>>>
 	( 
 		num_histories, bin_counts_d, bin_num_d, missed_recon_volume_d,
 		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d, 
@@ -2018,7 +2100,7 @@ void bin_valid_histories( const int num_histories )
 	cudaFree( relative_ut_angle_d );
 	cudaFree( relative_uv_angle_d );
 }
-__global__ void bin_valid_histories_GPU
+__global__ void binning_GPU
 ( 
 	int num_histories, int* bin_counts, int* bin_num, bool* missed_recon_volume, 
 	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit, 
@@ -2065,7 +2147,6 @@ __global__ void bin_valid_histories_GPU
 			}
 	}
 }
-
 /************************************************************************************************************************************************************/
 /*************************************************************** Statistical Analysis and Cuts **************************************************************/
 /************************************************************************************************************************************************************/
@@ -2341,6 +2422,1536 @@ __global__ void statistical_cuts_GPU
 	}
 }
 /************************************************************************************************************************************************************/
+/************************************************************************ FBP *******************************************************************************/
+/************************************************************************************************************************************************************/
+void initialize_sinogram()
+{
+	puts("Allocating host/GPU memory and initializing sinogram...");
+	sinogram_h = (float*) calloc( NUM_BINS, sizeof(float) );
+	cudaMalloc((void**) &sinogram_d, SIZE_BINS_FLOAT );
+	cudaMemcpy( sinogram_d,	sinogram_h,	SIZE_BINS_FLOAT, cudaMemcpyHostToDevice );	
+}
+void construct_sinogram()
+{
+	puts("Recalculating the mean WEPL for each bin and constructing the sinogram...");
+	dim3 dimBlock( T_BINS );
+	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
+	construct_sinogram_GPU<<< dimGrid, dimBlock >>>( bin_counts_d, sinogram_d );
+
+	//cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
+	//write_array_to_disk("sinogram", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+
+	//bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
+	//cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
+	//write_array_to_disk( "bin_counts_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+}
+__global__ void construct_sinogram_GPU( int* bin_counts, float* sinogram )
+{
+	int v = blockIdx.x, angle = blockIdx.y, t = threadIdx.x;
+	int bin = t + angle * T_BINS + v * T_BINS * ANGULAR_BINS;
+	if( bin_counts[bin] > 0 )
+		sinogram[bin] /= bin_counts[bin];		
+}
+void FBP()
+{
+	// Filter the sinogram before backprojecting
+	filter();
+	
+	puts("Performing backprojection...");
+
+	bool FBP_on_GPU = true;
+	FBP_image_h = (float*) calloc( VOXELS, sizeof(float) );
+	if( FBP_image_h == NULL ) 
+	{
+		printf("ERROR: Memory not allocated for FBP_image_h!\n");
+		exit_program_if(true);
+	}
+	if( FBP_on_GPU )
+	{
+		cudaMalloc((void**) &FBP_image_d, SIZE_IMAGE_FLOAT );
+		cudaMemcpy( FBP_image_d, FBP_image_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
+
+		dim3 dimBlock( SLICES );
+		dim3 dimGrid( COLUMNS, ROWS );   
+		backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );			
+	}
+	else
+		backprojection();	
+
+	free(sinogram_filtered_h);	
+	cudaFree(sinogram_filtered_d);
+
+	if( WRITE_FBP_IMAGE )
+	{
+		cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
+		write_array_to_disk( "FBP_image_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	}
+
+	// Generate FBP hull by thresholding FBP image
+	FBP_image_2_hull();
+
+	// Discard FBP image unless it is to be used as the initial iterate x_0 in iterative image reconstruction
+	if( X_K0 != FBP_IMAGE && X_K0 != HYBRID )
+	{
+		free(FBP_image_h);
+		cudaFree(FBP_image_d);
+	}
+}
+void filter()
+{
+	puts("Filtering the sinogram...");	
+
+	sinogram_filtered_h = (float*) calloc( NUM_BINS, sizeof(float) );
+	cudaMalloc((void**) &sinogram_filtered_d, SIZE_BINS_FLOAT);
+	cudaMemcpy( sinogram_filtered_d, sinogram_filtered_h, SIZE_BINS_FLOAT, cudaMemcpyHostToDevice);
+
+	dim3 dimBlock( T_BINS );
+	dim3 dimGrid( V_BINS, ANGULAR_BINS );   	
+	filter_GPU<<< dimGrid, dimBlock >>>( sinogram_d, sinogram_filtered_d );
+
+	cudaMemcpy(sinogram_filtered_h, sinogram_filtered_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost) ;
+
+	free(sinogram_h);
+	cudaFree(sinogram_d);
+	//cudaFree(sinogram_filtered_d);
+}
+__global__ void filter_GPU( float* sinogram, float* sinogram_filtered )
+{	
+	int t_bin_ref, t_bin_sep;
+	double filtered, t, scale_factor;
+	
+	int v_bin = blockIdx.x;
+	int angle_bin = blockIdx.y;
+	int t_bin = threadIdx.x;
+	int strip_index; 
+	double v = ( v_bin - V_BINS/2 ) * V_BIN_SIZE + V_BIN_SIZE/2.0;
+	
+	// Loop over strips for this strip
+	for( t_bin_ref = 0; t_bin_ref < T_BINS; t_bin_ref++ )
+	{
+		t = ( t_bin_ref - T_BINS/2 ) * T_BIN_SIZE + T_BIN_SIZE/2.0;
+		t_bin_sep = t_bin - t_bin_ref;
+		// scale_factor = r . path = cos(theta_{r,path})
+		scale_factor = SOURCE_RADIUS / sqrt( SOURCE_RADIUS * SOURCE_RADIUS + t * t + v * v );
+		switch( FBP_FILTER )
+		{
+			case NONE: 
+				break;
+			case RAM_LAK:
+				if( t_bin_sep == 0 )
+					filtered = 1.0 / ( 4.0 * pow( RAM_LAK_TAU, 2.0 ) );
+				else if( t_bin_sep % 2 == 0 )
+					filtered = 0;
+				else
+					filtered = -1.0 / ( pow( RAM_LAK_TAU * PI * t_bin_sep, 2.0 ) );	
+				break;
+			case SHEPP_LOGAN:
+				filtered = pow( pow(T_BIN_SIZE * PI, 2.0) * ( 1.0 - pow(2 * t_bin_sep, 2.0) ), -1.0 );
+		}
+		strip_index = ( v_bin * ANGULAR_BINS * T_BINS ) + ( angle_bin * T_BINS );
+		sinogram_filtered[strip_index + t_bin] += T_BIN_SIZE * sinogram[strip_index + t_bin_ref] * filtered * scale_factor;
+	}
+}
+void backprojection()
+{
+	//// Check that we don't have any corruptions up until now
+	//for( int i = 0; i < NUM_BINS; i++ )
+	//	if( sinogram_filtered_h[i] != sinogram_filtered_h[i] )
+	//		printf("We have a nan in bin #%d\n", i);
+
+	double delta = GANTRY_ANGLE_INTERVAL * ANGLE_TO_RADIANS;
+	int voxel;
+	double x, y, z;
+	double u, t, v;
+	double detector_number_t, detector_number_v;
+	double eta, epsilon;
+	double scale_factor;
+	int t_bin, v_bin, bin, bin_below;
+	// Loop over the voxels
+	for( int slice = 0; slice < SLICES; slice++ )
+	{
+		for( int column = 0; column < COLUMNS; column++ )
+		{
+
+			for( int row = 0; row < ROWS; row++ )
+			{
+				voxel = column +  ( row * COLUMNS ) + ( slice * COLUMNS * ROWS);
+				x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
+				y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
+				z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
+				// If the voxel is outside the cylinder defining the reconstruction volume, set RSP to air
+				if( ( x * x + y * y ) > ( RECON_CYL_RADIUS * RECON_CYL_RADIUS ) )
+					FBP_image_h[voxel] = RSP_AIR;							
+				else
+				{	  
+					// Sum over projection angles
+					for( int angle_bin = 0; angle_bin < ANGULAR_BINS; angle_bin++ )
+					{
+						// Rotate the pixel position to the beam-detector coordinate system
+						u = x * cos( angle_bin * delta ) + y * sin( angle_bin * delta );
+						t = -x * sin( angle_bin * delta ) + y * cos( angle_bin * delta );
+						v = z;
+
+						// Project to find the detector number
+						detector_number_t = ( t - u *( t / ( SOURCE_RADIUS + u ) ) ) / T_BIN_SIZE + T_BINS/2.0;
+						t_bin = int( detector_number_t);
+						if( t_bin > detector_number_t )
+							t_bin -= 1;
+						eta = detector_number_t - t_bin;
+
+						// Now project v to get detector number in v axis
+						detector_number_v = ( v - u * ( v / ( SOURCE_RADIUS + u ) ) ) / V_BIN_SIZE + V_BINS/2.0;
+						v_bin = int( detector_number_v);
+						if( v_bin > detector_number_v )
+							v_bin -= 1;
+						epsilon = detector_number_v - v_bin;
+
+						// Calculate the fan beam scaling factor
+						scale_factor = pow( SOURCE_RADIUS / ( SOURCE_RADIUS + u ), 2 );
+		  
+						// Compute the back-projection
+						bin = t_bin + angle_bin * T_BINS + v_bin * ANGULAR_BINS * T_BINS;
+						bin_below = bin + ( ANGULAR_BINS * T_BINS );
+
+						// If in last v_vin, there is no bin below so only use adjacent bins
+						if( v_bin == V_BINS - 1 || ( bin < 0 ) )
+							FBP_image_h[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered_h[bin] ) + ( eta * sinogram_filtered_h[bin + 1] ) ) ;
+					/*	if( t_bin < T_BINS - 1 )
+								FBP_image_h[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered_h[bin] ) + ( eta * sinogram_filtered_h[bin + 1] ) );
+							if( v_bin < V_BINS - 1 )
+								FBP_image_h[voxel] += scale_factor * ( ( ( 1 - epsilon ) * sinogram_filtered_h[bin] ) + ( epsilon * sinogram_filtered_h[bin_below] ) );
+							if( t_bin == T_BINS - 1 && v_bin == V_BINS - 1 )
+								FBP_image_h[voxel] += scale_factor * sinogram_filtered_h[bin];*/
+						else 
+						{
+							// Technically this is to be multiplied by delta as well, but since delta is constant, it is more accurate numerically to multiply result by delta instead
+							FBP_image_h[voxel] += scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered_h[bin] 
+							+ eta * ( 1 - epsilon ) * sinogram_filtered_h[bin + 1]
+							+ ( 1 - eta ) * epsilon * sinogram_filtered_h[bin_below]
+							+ eta * epsilon * sinogram_filtered_h[bin_below + 1] );
+						} 
+					}
+					FBP_image_h[voxel] *= delta;
+				}
+			}
+		}
+	}
+	//free(sinogram_filtered_h);	
+}
+__global__ void backprojection_GPU( float* sinogram_filtered, float* FBP_image )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = slice * COLUMNS * ROWS + row * COLUMNS + column;
+	
+	if ( voxel < VOXELS )
+	{
+		double delta = GANTRY_ANGLE_INTERVAL * ANGLE_TO_RADIANS;
+		double u, t, v;
+		double detector_number_t, detector_number_v;
+		double eta, epsilon;
+		double scale_factor;
+		int t_bin, v_bin, bin;
+		double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
+		double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
+		double z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
+
+		//// If the voxel is outside a cylinder contained in the reconstruction volume, set to air
+		if( ( x * x + y * y ) > ( RECON_CYL_RADIUS * RECON_CYL_RADIUS ) )
+			FBP_image[( slice * COLUMNS * ROWS) + ( row * COLUMNS ) + column] = RSP_AIR;							
+		else
+		{	  
+			// Sum over projection angles
+			for( int angle_bin = 0; angle_bin < ANGULAR_BINS; angle_bin++ )
+			{
+				// Rotate the pixel position to the beam-detector coordinate system
+				u = x * cos( angle_bin * delta ) + y * sin( angle_bin * delta );
+				t = -x * sin( angle_bin * delta ) + y * cos( angle_bin * delta );
+				v = z;
+
+				// Project to find the detector number
+				detector_number_t = ( t - u *( t / ( SOURCE_RADIUS + u ) ) ) / T_BIN_SIZE + T_BINS/2.0;
+				t_bin = int( detector_number_t);
+				if( t_bin > detector_number_t )
+					t_bin -= 1;
+				eta = detector_number_t - t_bin;
+
+				// Now project v to get detector number in v axis
+				detector_number_v = ( v - u * ( v / ( SOURCE_RADIUS + u ) ) ) / V_BIN_SIZE + V_BINS/2.0;
+				v_bin = int( detector_number_v);
+				if( v_bin > detector_number_v )
+					v_bin -= 1;
+				epsilon = detector_number_v - v_bin;
+
+				// Calculate the fan beam scaling factor
+				scale_factor = pow( SOURCE_RADIUS / ( SOURCE_RADIUS + u ), 2 );
+		  
+				//bin_num[i] = t_bin + angle_bin * T_BINS + v_bin * T_BINS * ANGULAR_BINS;
+				// Compute the back-projection
+				bin = t_bin + angle_bin * T_BINS + v_bin * ANGULAR_BINS * T_BINS;
+				// not sure why this won't compile without calculating the index ahead of time instead inside []s
+				//int index = ANGULAR_BINS * T_BINS;
+
+				//if( ( ( bin + ANGULAR_BINS * T_BINS + 1 ) >= NUM_BINS ) || ( bin < 0 ) );
+				if( v_bin == V_BINS - 1 || ( bin < 0 ) )
+					FBP_image[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered[bin] ) + ( eta * sinogram_filtered[bin + 1] ) ) ;
+					//printf("The bin selected for this voxel does not exist!\n Slice: %d\n Column: %d\n Row: %d\n", slice, column, row);
+				else 
+				{
+					// not sure why this won't compile without calculating the index ahead of time instead inside []s
+					/*FBP_image[voxel] += delta * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
+					+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
+					+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + ANGULAR_BINS * T_BINS]
+					+ eta * epsilon * sinogram_filtered[bin + ANGULAR_BINS * T_BINS + 1] ) * scale_factor;*/
+
+					// Multilpying by the gantry angle interval for each gantry angle is equivalent to multiplying the final answer by 2*PI and is better numerically
+					// so multiplying by delta each time should be replaced by FBP_image_h[voxel] *= 2 * PI after all contributions have been made, which is commented out below
+					FBP_image[voxel] += scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
+					+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
+					+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS)]
+					+ eta * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS) + 1] );
+				}				
+			}
+			FBP_image[voxel] *= delta; 
+		}
+	}
+}
+void FBP_image_2_hull()
+{
+	puts("Performing thresholding on FBP image to generate FBP hull...");
+
+	bool FBP_hull_on_GPU = false;
+	
+	if( FBP_hull_on_GPU )
+	{
+		initialize_hull( FBP_hull_h, FBP_hull_d );
+		dim3 dimBlock( SLICES );
+		dim3 dimGrid( COLUMNS, ROWS );   
+		FBP_image_2_hull_GPU<<< dimGrid, dimBlock >>>( FBP_image_d, FBP_hull_d );	
+		cudaMemcpy( FBP_hull_h, FBP_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost );
+	}
+	else
+	{
+		FBP_hull_h = (bool*) calloc( COLUMNS * ROWS * SLICES, sizeof(bool) );
+		for( int iteration = 0; iteration < 1; iteration++ )
+		{
+			for( int slice = 0; slice < SLICES; slice++ )
+			{
+				for( int row = 0; row < ROWS; row++ )
+				{
+					for( int column = 0; column < COLUMNS; column++ )
+					{
+						double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
+						double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
+						double d_squared = pow(x, 2) + pow(y, 2);
+						if( FBP_image_h[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] > FBP_THRESHOLD && (d_squared < pow(RECON_CYL_RADIUS, 2) ) ) 
+							FBP_hull_h[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] = true; 
+						else
+							FBP_hull_h[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] = false; 
+					}
+				}
+			}
+		}
+	}
+	if( WRITE_FBP_HULL )
+		write_array_to_disk( "x_FBP", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+
+	if( MLP_HULL != FBP_HULL)
+	{
+		//cudaFree();		
+		free(FBP_hull_h);
+		cudaFree(FBP_hull_d);
+	}
+}
+__global__ void FBP_image_2_hull_GPU( float* FBP_image, bool* FBP_hull )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = slice * COLUMNS * ROWS + row * COLUMNS + column; 
+	double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
+	double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
+	double d_squared = pow(x, 2) + pow(y, 2);
+	if(FBP_image[voxel] > FBP_THRESHOLD && (d_squared < pow(RECON_CYL_RADIUS, 2) ) ) 
+		FBP_hull[voxel] = true; 
+	else
+		FBP_hull[voxel] = false; 
+}
+/************************************************************************************************************************************************************/
+/****************************************************************** Image Initialization  *******************************************************************/
+/************************************************************************************************************************************************************/
+template<typename T> void initialize_hull( T*& hull_h, T*& hull_d )
+{
+	/* Allocate memory and initialize hull on the GPU.  Use the image and reconstruction cylinder parameters to determine the location of the perimeter of  */
+	/* the reconstruction cylinder, which is centered on the origin (center) of the image.  Assign voxels inside the perimeter of the reconstruction volume */
+	/* the value 1 and those outside 0.																														*/
+
+	int image_size = VOXELS * sizeof(T);
+	cudaMalloc((void**) &hull_d, image_size );
+
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( COLUMNS, ROWS );   
+	initialize_hull_GPU<<< dimGrid, dimBlock >>>( hull_d );
+}
+template<typename T> __global__ void initialize_hull_GPU( T* hull )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = column + ( row * COLUMNS ) + ( slice * COLUMNS * ROWS );
+	double x = ( column - COLUMNS/2 + 0.5) * VOXEL_WIDTH;
+	double y = ( ROWS/2 - row - 0.5) * VOXEL_HEIGHT;
+	if( pow(x, 2) + pow(y, 2) < pow(RECON_CYL_RADIUS, 2) )
+		hull[voxel] = 1;
+	else
+		hull[voxel] = 0;
+}
+/************************************************************************************************************************************************************/
+/******************************************************************* Hull Detection *************************************************************************/
+/************************************************************************************************************************************************************/
+void hull_detection_initializations()
+{		
+	if( SC_ON )
+		initialize_hull( SC_hull_h, SC_hull_d );
+	if( MSC_ON )
+		initialize_hull( MSC_counts_h, MSC_counts_d );
+	if( SM_ON )
+		initialize_hull( SM_counts_h, SM_counts_d );
+}
+void hull_detection( const int histories_to_process)
+{
+	if( SC_ON  ) 
+		SC( histories_to_process );		
+	if( MSC_ON )
+		MSC( histories_to_process );
+	if( SM_ON )
+		SM( histories_to_process );   
+}
+__device__ int position_2_voxel_GPU( float &x, float &y, float &z )
+{
+	int voxel_x = ( x + RECON_CYL_RADIUS ) / VOXEL_WIDTH;
+	int voxel_y = ( RECON_CYL_RADIUS - y ) / VOXEL_HEIGHT;
+	int voxel_z = ( RECON_CYL_HEIGHT/2 - z ) /VOXEL_THICKNESS;
+	return voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+}
+__device__ void voxel_walk_GPU( bool*& image, float x_entry, float y_entry, float z_entry, float x_exit, float y_exit, float z_exit )
+{
+	/********************************************************************************************/
+	/********************************* Voxel Walk Parameters ************************************/
+	/********************************************************************************************/
+	int x_move_direction, y_move_direction, z_move_direction;
+	float delta_yx, delta_zx, delta_zy;
+	//float x_move = 0, y_move = 0, z_move = 0;
+	/********************************************************************************************/
+	/**************************** Status Tracking Information ***********************************/
+	/********************************************************************************************/
+	float x = x_entry, y = y_entry, z = z_entry;
+	float x_to_go, y_to_go, z_to_go;		
+	float x_extension, y_extension;	
+	int voxel_x, voxel_y, voxel_z;
+	int voxel, voxel_x_out, voxel_y_out, voxel_z_out, voxel_out; 
+	bool end_walk;
+	/********************************************************************************************/
+	/******************** Initial Conditions and Movement Characteristics ***********************/
+	/********************************************************************************************/
+	x_move_direction = ( x_entry <= x_exit ) - ( x_entry > x_exit );
+	y_move_direction = ( y_entry <= y_exit ) - ( y_entry > y_exit );
+	z_move_direction = ( z_entry <= z_exit ) - ( z_entry > z_exit );
+	
+	x_to_go = x_remaining_GPU( x, x_move_direction, voxel_x );
+	y_to_go = y_remaining_GPU( y, -y_move_direction, voxel_y );
+	z_to_go = z_remaining_GPU( z, -z_move_direction, voxel_z );
+	voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+	/********************************************************************************************/
+	/***************************** Path and Walk Information ************************************/
+	/********************************************************************************************/
+	// Lengths/Distances as x is Incremented One Voxel
+	delta_yx = abs( (y_exit - y_entry)/(x_exit - x_entry) );
+	delta_zx = abs( (z_exit - z_entry)/(x_exit - x_entry) );
+	delta_zy = abs( (z_exit - z_entry)/(y_exit - y_entry) );
+	/********************************************************************************************/
+	/************************* Initialize and Check Exit Conditions *****************************/
+	/********************************************************************************************/
+	voxel_x_out = int( ( x_exit + RECON_CYL_RADIUS ) / VOXEL_WIDTH );
+	voxel_y_out = int( ( RECON_CYL_RADIUS - y_exit ) / VOXEL_HEIGHT );
+	voxel_z_out = int( ( RECON_CYL_HEIGHT/2 - z_exit ) /VOXEL_THICKNESS );
+	voxel_out = int(voxel_x_out + voxel_y_out * COLUMNS + voxel_z_out * COLUMNS * ROWS);
+		
+	end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+	if( !end_walk )
+		image[voxel] = 0;
+	/********************************************************************************************/
+	/*********************************** Voxel Walk Routine *************************************/
+	/********************************************************************************************/
+	if( z_entry != z_exit )
+	{
+		while( !end_walk )
+		{
+			// Change in z for Move to Voxel Edge in x and y
+			x_extension = delta_zx * x_to_go;
+			y_extension = delta_zy * y_to_go;
+			if( z_to_go <= x_extension && z_to_go <= y_extension )
+			{
+				//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
+				//x_move = z_to_go / delta_zx;
+				//y_move = z_to_go / delta_zy;
+				//z_move = z_to_go;
+				//x_to_go -= x_move;
+				//y_to_go -= y_move;
+				x_to_go -= z_to_go / delta_zx;
+				y_to_go -= z_to_go / delta_zy;
+				z_to_go = VOXEL_THICKNESS;
+				voxel_z -= z_move_direction;
+				if( x_to_go <= 0 )
+				{
+					voxel_x += x_move_direction;
+					x_to_go = VOXEL_WIDTH;
+				}
+				if(	y_to_go <= 0 )
+				{
+					voxel_y -= y_move_direction;
+					y_to_go = VOXEL_HEIGHT;
+				}
+			}
+			//If Next Voxel Edge is in x or xy Diagonal
+			else if( x_extension <= y_extension )
+			{
+				//printf(" x_extension <= y_extension \n");
+				//x_move = x_to_go;
+				//y_move = delta_yx * x_to_go;
+				//z_move = delta_zx * x_to_go;
+				x_to_go = VOXEL_WIDTH;
+				y_to_go -= delta_yx * x_to_go;
+				z_to_go -= delta_zx * x_to_go;
+				//x_to_go = VOXEL_WIDTH;
+				//y_to_go -= y_move;
+				//z_to_go -= z_move;
+				voxel_x += x_move_direction;
+				if( y_to_go <= 0 )
+				{
+					y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+			}
+			// Else Next Voxel Edge is in y
+			else
+			{
+				//printf(" y_extension < x_extension \n");
+				//x_move = y_to_go / delta_yx;
+				//y_move = y_to_go;
+				//z_move = delta_zy * y_to_go;
+				x_to_go -= y_to_go / delta_yx;
+				y_to_go = VOXEL_HEIGHT;
+				z_to_go -= delta_zy * y_to_go;
+				/*x_to_go -= x_move;
+				y_to_go = VOXEL_HEIGHT;
+				z_to_go -= z_move;*/
+				voxel_y -= y_move_direction;
+			}
+			//x += x_move_direction * x_move;
+			//y += y_move_direction * y_move;
+			//z += z_move_direction * z_move;				
+			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+			end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+			if( !end_walk )
+				image[voxel] = 0;
+		}
+	}
+	else
+	{
+		//printf("hello");
+		//int i = 0;
+		//printf("z_exit[i] == z_entry[i]\n");
+		while( !end_walk )
+		{
+			// Change in x for Move to Voxel Edge in y
+			y_extension = y_to_go / delta_yx;
+			//If Next Voxel Edge is in x or xy Diagonal
+			if( x_to_go <= y_extension )
+			{
+				//printf(" x_to_go <= y_extension \n");
+				//x_move = x_to_go;
+				//y_move = delta_yx * x_to_go;	
+				x_to_go = VOXEL_WIDTH;
+				y_to_go -= delta_yx * x_to_go;
+				//y_to_go -= y_move;
+				voxel_x += x_move_direction;
+				if( y_to_go <= 0 )
+				{
+					y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+			}
+			// Else Next Voxel Edge is in y
+			else
+			{
+				//printf(" y_extension < x_extension \n");
+				//x_move = y_to_go / delta_yx;
+				//y_move = y_to_go;
+				//x_to_go -= x_move;
+				x_to_go -= y_to_go / delta_yx;
+				y_to_go = VOXEL_HEIGHT;
+				voxel_y -= y_move_direction;
+			}
+			//x += x_move_direction * x_move;
+			//y += y_move_direction * y_move;
+			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;			
+			end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+			if( !end_walk )
+				image[voxel] = 0;
+			//i++;
+		}// end: while( !end_walk )
+		//printf("i = %d", i );
+	}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
+}
+__device__ double x_remaining_GPU( double x, int x_move_direction, int& voxel_x )
+{
+	double voxel_x_float;
+	double x_inside = modf( (x + RECON_CYL_RADIUS) / VOXEL_WIDTH, &voxel_x_float ) * VOXEL_WIDTH;	
+	voxel_x = voxel_x_float;
+	return ( x_move_direction > 0 ) * (VOXEL_WIDTH - x_inside) + ( x_move_direction <= 0 ) * x_inside;	
+}
+__device__ double y_remaining_GPU( double y, int y_move_direction, int& voxel_y )
+{
+	double voxel_y_float;
+	double y_inside = modf( (RECON_CYL_RADIUS - y) / VOXEL_HEIGHT, &voxel_y_float ) * VOXEL_HEIGHT;
+	voxel_y = voxel_y_float;
+	return ( y_move_direction > 0 ) * (VOXEL_HEIGHT - y_inside) + ( y_move_direction <= 0 ) * y_inside;	
+}
+__device__ double z_remaining_GPU( double z, int z_move_direction, int& voxel_z )
+{
+	float voxel_z_float;
+	float z_inside = modf( (RECON_CYL_HEIGHT/2 - z) / VOXEL_THICKNESS, &voxel_z_float ) * VOXEL_THICKNESS;
+	voxel_z = voxel_z_float;
+	return ( z_move_direction > 0 ) * (VOXEL_THICKNESS - z_inside) + ( z_move_direction <= 0 ) * z_inside;
+}
+__global__ void carve_differences( int* carve_differences, int* image )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
+	if( (row != 0) && (row != ROWS - 1) && (column != 0) && (column != COLUMNS - 1) )
+	{
+		int difference, max_difference = 0;
+		for( int current_row = row - 1; current_row <= row + 1; current_row++ )
+		{
+			for( int current_column = column - 1; current_column <= column + 1; current_column++ )
+			{
+				difference = image[voxel] - image[current_column + current_row * COLUMNS + slice * COLUMNS * ROWS];
+				if( difference > max_difference )
+					max_difference = difference;
+			}
+		}
+		carve_differences[voxel] = max_difference;
+	}
+}
+/************************************************************************************************************************************************************/
+void SC( const int num_histories )
+{
+	dim3 dimBlock(THREADS_PER_BLOCK);
+	dim3 dimGrid( (int)( num_histories / THREADS_PER_BLOCK ) + 1 );
+	SC_GPU<<<dimGrid, dimBlock>>>
+	(
+		num_histories, SC_hull_d, bin_num_d, missed_recon_volume_d, WEPL_d,
+		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d
+	);
+}
+__global__ void SC_GPU
+( 
+	const int num_histories, bool* SC_hull, int* bin_num, bool* missed_recon_volume, float* WEPL,
+	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
+)
+{
+	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
+	if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= SC_THRESHOLD) )
+	{
+		/********************************************************************************************/
+		/********************************* Voxel Walk Parameters ************************************/
+		/********************************************************************************************/
+		int x_move_direction, y_move_direction, z_move_direction;
+		double delta_yx, delta_zx, delta_zy;
+		double x_move = 0, y_move = 0, z_move = 0;
+		/********************************************************************************************/
+		/**************************** Status Tracking Information ***********************************/
+		/********************************************************************************************/
+		//float x = x_entry[i], y = y_entry[i], z = z_entry[i];
+		double x_to_go, y_to_go, z_to_go;		
+		double x_extension, y_extension;	
+		int voxel_x, voxel_y, voxel_z;
+		//int voxel_x_out, voxel_y_out, voxel_z_out; 
+		int voxel, voxel_out; 
+		bool end_walk;
+		/********************************************************************************************/
+		/******************** Initial Conditions and Movement Characteristics ***********************/
+		/********************************************************************************************/
+		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] >= x_exit[i] );
+		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
+		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
+		x_to_go = x_remaining_GPU( x_entry[i], x_move_direction, voxel_x );
+		y_to_go = y_remaining_GPU( y_entry[i], -y_move_direction, voxel_y );
+		z_to_go = z_remaining_GPU( z_entry[i], -z_move_direction, voxel_z );
+		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+		voxel_out = position_2_voxel_GPU( x_exit[i], y_exit[i], z_exit[i] ); 
+		/********************************************************************************************/
+		/***************************** Path and Walk Information ************************************/
+		/********************************************************************************************/
+		// Lengths/Distances as x is Incremented One Voxel
+		delta_yx = abs( y_exit[i] - y_entry[i] ) / abs( x_exit[i] - x_entry[i] );
+		delta_zx = abs( z_exit[i] - z_entry[i] ) / abs( x_exit[i] - x_entry[i] );
+		delta_zy = abs( z_exit[i] - z_entry[i] ) / abs( y_exit[i] - y_entry[i] );
+		/********************************************************************************************/
+		/************************* Initialize and Check Exit Conditions *****************************/
+		/********************************************************************************************/		
+		end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+		if( !end_walk )
+			SC_hull[voxel] = 0;
+		/********************************************************************************************/
+		/*********************************** Voxel Walk Routine *************************************/
+		/********************************************************************************************/
+		if( z_move_direction != 0 )
+		{
+			//printf("z_exit[i] != z_entry[i]\n");
+			while( !end_walk )
+			{
+				// Change in z for Move to Voxel Edge in x and y
+				x_extension = delta_zx * x_to_go;
+				y_extension = delta_zy * y_to_go;
+				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
+				{
+					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
+					x_move = z_to_go / delta_zx;
+					y_move = z_to_go / delta_zy;
+					z_move = z_to_go;
+					x_to_go -= x_move * abs(x_move_direction);
+					y_to_go -= y_move * abs(y_move_direction);
+					//x_to_go -= z_to_go / delta_zx * abs(x_move_direction);
+					//y_to_go -= z_to_go / delta_zy * abs(y_move_direction);
+					z_to_go = VOXEL_THICKNESS;
+					voxel_z -= z_move_direction;
+					if( x_to_go == 0 )
+					{
+						voxel_x += x_move_direction;
+						x_to_go = VOXEL_WIDTH;
+					}
+					if(	y_to_go == 0 )
+					{
+						voxel_y -= y_move_direction;
+						y_to_go = VOXEL_HEIGHT;
+					}
+				}
+				//If Next Voxel Edge is in x or xy Diagonal
+				else if( x_extension <= y_extension )
+				{
+					//printf(" x_extension <= y_extension \n");
+					x_move = x_to_go;
+					y_move = delta_yx * x_to_go;
+					z_move = delta_zx * x_to_go;
+					x_to_go = VOXEL_WIDTH;
+					y_to_go -= y_move * abs(y_move_direction);
+					z_to_go -= z_move * abs(z_move_direction);				
+					//y_to_go -= delta_yx * x_to_go * abs(y_move_direction);
+					//z_to_go -= delta_zx * x_to_go * abs(z_move_direction);
+					//x_to_go = VOXEL_WIDTH;
+					voxel_x += x_move_direction;
+					if( y_to_go == 0 )
+					{
+						y_to_go = VOXEL_HEIGHT;
+						voxel_y -= y_move_direction;
+					}
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");
+					x_move = y_to_go / delta_yx;
+					y_move = y_to_go;
+					z_move = delta_zy * y_to_go;
+					x_to_go -= x_move * abs(x_move_direction);
+					y_to_go = VOXEL_HEIGHT;
+					z_to_go -= z_move * abs(z_move_direction);
+					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
+					//z_to_go -= delta_zy * y_to_go * abs(z_move_direction);
+					//y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				//x += x_move_direction * x_move;
+				//y += y_move_direction * y_move;
+				//z += z_move_direction * z_move;				
+				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+				if( !end_walk )
+					SC_hull[voxel] = 0;
+			}// end !end_walk 
+		}
+		else
+		{
+			//printf("z_exit[i] == z_entry[i]\n");
+			while( !end_walk )
+			{
+				// Change in x for Move to Voxel Edge in y
+				y_extension = y_to_go / delta_yx;
+				//If Next Voxel Edge is in x or xy Diagonal
+				if( x_to_go <= y_extension )
+				{
+					//printf(" x_to_go <= y_extension \n");
+					x_move = x_to_go;
+					y_move = delta_yx * x_to_go;	
+					x_to_go = VOXEL_WIDTH;
+					//y_to_go -= (delta_yx * x_to_go) * abs(y_move_direction);
+					y_to_go -= y_move * abs(y_move_direction);
+					voxel_x += x_move_direction;
+					if( y_to_go == 0 )
+					{
+						y_to_go = VOXEL_HEIGHT;
+						voxel_y -= y_move_direction;
+					}
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");
+					x_move = y_to_go / delta_yx;
+					y_move = y_to_go;
+					x_to_go -= x_move * abs(x_move_direction);
+					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
+					y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				//x += x_move_direction * x_move;
+				//y += y_move_direction * y_move;
+				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
+				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+				if( !end_walk )
+					SC_hull[voxel] = 0;
+			}// end: while( !end_walk )
+			//printf("i = %d", i );
+		}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
+	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= SC_THRESHOLD) )
+}
+/************************************************************************************************************************************************************/
+void MSC( const int num_histories )
+{
+	dim3 dimBlock(THREADS_PER_BLOCK);
+	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
+	MSC_GPU<<<dimGrid, dimBlock>>>
+	(
+		num_histories, MSC_counts_d, bin_num_d, missed_recon_volume_d, WEPL_d,
+		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d
+	);
+}
+__global__ void MSC_GPU
+( 
+	const int num_histories, int* MSC_counts, int* bin_num, bool* missed_recon_volume, float* WEPL,
+	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
+)
+{
+	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
+	if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
+	{
+		/********************************************************************************************/
+		/********************************* Voxel Walk Parameters ************************************/
+		/********************************************************************************************/
+		int x_move_direction, y_move_direction, z_move_direction;
+		double delta_yx, delta_zx, delta_zy;
+		double x_move = 0, y_move = 0, z_move = 0;
+		/********************************************************************************************/
+		/**************************** Status Tracking Information ***********************************/
+		/********************************************************************************************/
+		//double x = x_entry[i], y = y_entry[i], z = z_entry[i];
+		double x_to_go, y_to_go, z_to_go;		
+		double x_extension, y_extension;	
+		int voxel_x, voxel_y, voxel_z;
+		//int voxel_x_out, voxel_y_out, voxel_z_out; 
+		int voxel, voxel_out; 
+		bool end_walk;
+		/********************************************************************************************/
+		/******************** Initial Conditions and Movement Characteristics ***********************/
+		/********************************************************************************************/
+		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] >= x_exit[i] );
+		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
+		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
+		x_to_go = x_remaining_GPU( x_entry[i], x_move_direction, voxel_x );
+		y_to_go = y_remaining_GPU( y_entry[i], -y_move_direction, voxel_y );
+		z_to_go = z_remaining_GPU( z_entry[i], -z_move_direction, voxel_z );
+		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+		voxel_out = position_2_voxel_GPU( x_exit[i], y_exit[i], z_exit[i] ); 
+		/********************************************************************************************/
+		/***************************** Path and Walk Information ************************************/
+		/********************************************************************************************/
+		// Lengths/Distances as x is Incremented One Voxel
+		delta_yx = abs( y_exit[i] - y_entry[i] ) / abs( x_exit[i] - x_entry[i] );
+		delta_zx = abs( z_exit[i] - z_entry[i] ) / abs( x_exit[i] - x_entry[i] );
+		delta_zy = abs( z_exit[i] - z_entry[i] ) / abs( y_exit[i] - y_entry[i] );
+		/********************************************************************************************/
+		/************************* Initialize and Check Exit Conditions *****************************/
+		/********************************************************************************************/		
+		end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+		if( !end_walk )
+			atomicAdd( &MSC_counts[voxel], 1 );
+		/********************************************************************************************/
+		/*********************************** Voxel Walk Routine *************************************/
+		/********************************************************************************************/
+		if( z_move_direction != 0 )
+		{
+			//printf("z_exit[i] != z_entry[i]\n");
+			while( !end_walk )
+			{
+				// Change in z for Move to Voxel Edge in x and y
+				x_extension = delta_zx * x_to_go;
+				y_extension = delta_zy * y_to_go;
+				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
+				{
+					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
+					x_move = z_to_go / delta_zx;
+					y_move = z_to_go / delta_zy;
+					z_move = z_to_go;
+					x_to_go -= x_move * abs(x_move_direction);
+					y_to_go -= y_move * abs(y_move_direction);
+					//x_to_go -= z_to_go / delta_zx * abs(x_move_direction);
+					//y_to_go -= z_to_go / delta_zy * abs(y_move_direction);
+					z_to_go = VOXEL_THICKNESS;
+					voxel_z -= z_move_direction;
+					if( x_to_go == 0 )
+					{
+						voxel_x += x_move_direction;
+						x_to_go = VOXEL_WIDTH;
+					}
+					if(	y_to_go == 0 )
+					{
+						voxel_y -= y_move_direction;
+						y_to_go = VOXEL_HEIGHT;
+					}
+				}
+				//If Next Voxel Edge is in x or xy Diagonal
+				else if( x_extension <= y_extension )
+				{
+					//printf(" x_extension <= y_extension \n");
+					x_move = x_to_go;
+					y_move = delta_yx * x_to_go;
+					z_move = delta_zx * x_to_go;
+					x_to_go = VOXEL_WIDTH;
+					y_to_go -= y_move * abs(y_move_direction);
+					z_to_go -= z_move * abs(z_move_direction);				
+					//y_to_go -= delta_yx * x_to_go * abs(y_move_direction);
+					//z_to_go -= delta_zx * x_to_go * abs(z_move_direction);
+					//x_to_go = VOXEL_WIDTH;
+					voxel_x += x_move_direction;
+					if( y_to_go == 0 )
+					{
+						y_to_go = VOXEL_HEIGHT;
+						voxel_y -= y_move_direction;
+					}
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");
+					x_move = y_to_go / delta_yx;
+					y_move = y_to_go;
+					z_move = delta_zy * y_to_go;
+					x_to_go -= x_move * abs(x_move_direction);
+					y_to_go = VOXEL_HEIGHT;
+					z_to_go -= z_move * abs(z_move_direction);
+					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
+					//z_to_go -= delta_zy * y_to_go * abs(z_move_direction);
+					//y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				//x += x_move_direction * x_move;
+				//y += y_move_direction * y_move;
+				//z += z_move_direction * z_move;				
+				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+				if( !end_walk )
+					atomicAdd( &MSC_counts[voxel], 1 );
+			}// end !end_walk 
+		}
+		else
+		{
+			//printf("z_exit[i] == z_entry[i]\n");
+			while( !end_walk )
+			{
+				// Change in x for Move to Voxel Edge in y
+				y_extension = y_to_go / delta_yx;
+				//If Next Voxel Edge is in x or xy Diagonal
+				if( x_to_go <= y_extension )
+				{
+					//printf(" x_to_go <= y_extension \n");
+					x_move = x_to_go;
+					y_move = delta_yx * x_to_go;	
+					x_to_go = VOXEL_WIDTH;
+					//y_to_go -= (delta_yx * x_to_go) * abs(y_move_direction);
+					y_to_go -= y_move * abs(y_move_direction);
+					voxel_x += x_move_direction;
+					if( y_to_go == 0 )
+					{
+						y_to_go = VOXEL_HEIGHT;
+						voxel_y -= y_move_direction;
+					}
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");
+					x_move = y_to_go / delta_yx;
+					y_move = y_to_go;
+					x_to_go -= x_move * abs(x_move_direction);
+					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
+					y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				//x += x_move_direction * x_move;
+				//y += y_move_direction * y_move;
+				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
+				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+				if( !end_walk )
+					atomicAdd( &MSC_counts[voxel], 1 );
+			}// end: while( !end_walk )
+			//printf("i = %d", i );
+		}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
+	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
+}
+void MSC_edge_detection()
+{
+	puts("Performing edge-detection on MSC_counts...");
+
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( COLUMNS, ROWS );   
+	MSC_edge_detection_GPU<<< dimGrid, dimBlock >>>( MSC_counts_d );
+
+	puts("MSC hull-detection and edge-detection complete.");	
+}
+__global__ void MSC_edge_detection_GPU( int* MSC_counts )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
+	float x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
+	float y = ( ROWS/2 - row - 0.5 ) * VOXEL_HEIGHT;
+	int difference, max_difference = 0;
+	if( (row != 0) && (row != ROWS - 1) && (column != 0) && (column != COLUMNS - 1) )
+	{		
+		for( int current_row = row - 1; current_row <= row + 1; current_row++ )
+		{
+			for( int current_column = column - 1; current_column <= column + 1; current_column++ )
+			{
+				difference = MSC_counts[voxel] - MSC_counts[current_column + current_row * COLUMNS + slice * COLUMNS * ROWS];
+				if( difference > max_difference )
+					max_difference = difference;
+			}
+		}
+	}
+	syncthreads();
+	if( max_difference > MSC_DIFF_THRESH )
+		MSC_counts[voxel] = 0;
+	else
+		MSC_counts[voxel] = 1;
+	if( pow(x, 2) + pow(y, 2) >= pow(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
+		MSC_counts[voxel] = 0;
+
+}
+/************************************************************************************************************************************************************/
+void SM( const int num_histories)
+{
+	dim3 dimBlock(THREADS_PER_BLOCK);
+	dim3 dimGrid( (int)( num_histories / THREADS_PER_BLOCK ) + 1 );
+	SM_GPU <<< dimGrid, dimBlock >>>
+	(
+		num_histories, SM_counts_d, bin_num_d, missed_recon_volume_d, WEPL_d,
+		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d
+	);
+}
+__global__ void SM_GPU
+( 
+	const int num_histories, int* SM_counts, int* bin_num, bool* missed_recon_volume, float* WEPL,
+	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
+)
+{
+	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
+	if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] >= SM_LOWER_THRESHOLD) )
+	{
+		/********************************************************************************************/
+		/********************************* Voxel Walk Parameters ************************************/
+		/********************************************************************************************/
+		int x_move_direction, y_move_direction, z_move_direction;
+		double delta_yx, delta_zx, delta_zy;
+		double x_move = 0, y_move = 0, z_move = 0;
+		/********************************************************************************************/
+		/**************************** Status Tracking Information ***********************************/
+		/********************************************************************************************/
+		//double x = x_entry[i], y = y_entry[i], z = z_entry[i];
+		double x_to_go, y_to_go, z_to_go;		
+		double x_extension, y_extension;	
+		int voxel_x, voxel_y, voxel_z;
+		//int voxel_x_out, voxel_y_out, voxel_z_out; 
+		int voxel, voxel_out; 
+		bool end_walk;
+		/********************************************************************************************/
+		/******************** Initial Conditions and Movement Characteristics ***********************/
+		/********************************************************************************************/
+		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] >= x_exit[i] );
+		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
+		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
+		x_to_go = x_remaining_GPU( x_entry[i], x_move_direction, voxel_x );
+		y_to_go = y_remaining_GPU( y_entry[i], -y_move_direction, voxel_y );
+		z_to_go = z_remaining_GPU( z_entry[i], -z_move_direction, voxel_z );
+		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+		voxel_out = position_2_voxel_GPU( x_exit[i], y_exit[i], z_exit[i] ); 
+		/********************************************************************************************/
+		/***************************** Path and Walk Information ************************************/
+		/********************************************************************************************/
+		// Lengths/Distances as x is Incremented One Voxel
+		delta_yx = abs( y_exit[i] - y_entry[i] ) / abs( x_exit[i] - x_entry[i] );
+		delta_zx = abs( z_exit[i] - z_entry[i] ) / abs( x_exit[i] - x_entry[i] );
+		delta_zy = abs( z_exit[i] - z_entry[i] ) / abs( y_exit[i] - y_entry[i] );
+		/********************************************************************************************/
+		/************************* Initialize and Check Exit Conditions *****************************/
+		/********************************************************************************************/		
+		end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+		if( !end_walk )
+			atomicAdd( &SM_counts[voxel], 1 );
+		/********************************************************************************************/
+		/*********************************** Voxel Walk Routine *************************************/
+		/********************************************************************************************/
+		if( z_move_direction != 0 )
+		{
+			//printf("z_exit[i] != z_entry[i]\n");
+			while( !end_walk )
+			{
+				// Change in z for Move to Voxel Edge in x and y
+				x_extension = delta_zx * x_to_go;
+				y_extension = delta_zy * y_to_go;
+				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
+				{
+					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
+					x_move = z_to_go / delta_zx;
+					y_move = z_to_go / delta_zy;
+					z_move = z_to_go;
+					x_to_go -= x_move * abs(x_move_direction);
+					y_to_go -= y_move * abs(y_move_direction);
+					//x_to_go -= z_to_go / delta_zx * abs(x_move_direction);
+					//y_to_go -= z_to_go / delta_zy * abs(y_move_direction);
+					z_to_go = VOXEL_THICKNESS;
+					voxel_z -= z_move_direction;
+					if( x_to_go == 0 )
+					{
+						voxel_x += x_move_direction;
+						x_to_go = VOXEL_WIDTH;
+					}
+					if(	y_to_go == 0 )
+					{
+						voxel_y -= y_move_direction;
+						y_to_go = VOXEL_HEIGHT;
+					}
+				}
+				//If Next Voxel Edge is in x or xy Diagonal
+				else if( x_extension <= y_extension )
+				{
+					//printf(" x_extension <= y_extension \n");
+					x_move = x_to_go;
+					y_move = delta_yx * x_to_go;
+					z_move = delta_zx * x_to_go;
+					x_to_go = VOXEL_WIDTH;
+					y_to_go -= y_move * abs(y_move_direction);
+					z_to_go -= z_move * abs(z_move_direction);				
+					//y_to_go -= delta_yx * x_to_go * abs(y_move_direction);
+					//z_to_go -= delta_zx * x_to_go * abs(z_move_direction);
+					//x_to_go = VOXEL_WIDTH;
+					voxel_x += x_move_direction;
+					if( y_to_go == 0 )
+					{
+						y_to_go = VOXEL_HEIGHT;
+						voxel_y -= y_move_direction;
+					}
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");
+					x_move = y_to_go / delta_yx;
+					y_move = y_to_go;
+					z_move = delta_zy * y_to_go;
+					x_to_go -= x_move * abs(x_move_direction);
+					y_to_go = VOXEL_HEIGHT;
+					z_to_go -= z_move * abs(z_move_direction);
+					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
+					//z_to_go -= delta_zy * y_to_go * abs(z_move_direction);
+					//y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				//x += x_move_direction * x_move;
+				//y += y_move_direction * y_move;
+				//z += z_move_direction * z_move;				
+				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+				if( !end_walk )
+					atomicAdd( &SM_counts[voxel], 1 );
+			}// end !end_walk 
+		}
+		else
+		{
+			//printf("z_exit[i] == z_entry[i]\n");
+			while( !end_walk )
+			{
+				// Change in x for Move to Voxel Edge in y
+				y_extension = y_to_go / delta_yx;
+				//If Next Voxel Edge is in x or xy Diagonal
+				if( x_to_go <= y_extension )
+				{
+					//printf(" x_to_go <= y_extension \n");
+					x_move = x_to_go;
+					y_move = delta_yx * x_to_go;	
+					x_to_go = VOXEL_WIDTH;
+					//y_to_go -= (delta_yx * x_to_go) * abs(y_move_direction);
+					y_to_go -= y_move * abs(y_move_direction);
+					voxel_x += x_move_direction;
+					if( y_to_go == 0 )
+					{
+						y_to_go = VOXEL_HEIGHT;
+						voxel_y -= y_move_direction;
+					}
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");
+					x_move = y_to_go / delta_yx;
+					y_move = y_to_go;
+					x_to_go -= x_move * abs(x_move_direction);
+					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
+					y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				//x += x_move_direction * x_move;
+				//y += y_move_direction * y_move;
+				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
+				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+				if( !end_walk )
+					atomicAdd( &SM_counts[voxel], 1 );
+			}// end: while( !end_walk )
+			//printf("i = %d", i );
+		}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
+	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
+}
+void SM_edge_detection()
+{
+	puts("Performing edge-detection on SM_counts...");	
+
+	/*if( WRITE_SM_COUNTS )
+	{
+		cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
+		write_array_to_disk("SM_counts", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+	}*/
+
+	int* SM_differences_h = (int*) calloc( VOXELS, sizeof(int) );
+	int* SM_differences_d;	
+	cudaMalloc((void**) &SM_differences_d, SIZE_IMAGE_INT );
+	cudaMemcpy( SM_differences_d, SM_differences_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice );
+
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( COLUMNS, ROWS );   
+	carve_differences<<< dimGrid, dimBlock >>>( SM_differences_d, SM_counts_d );
+	
+	cudaMemcpy( SM_differences_h, SM_differences_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost );
+
+	int* SM_thresholds_h = (int*) calloc( SLICES, sizeof(int) );
+	int voxel;	
+	int max_difference = 0;
+	for( int slice = 0; slice < SLICES; slice++ )
+	{
+		for( int pixel = 0; pixel < COLUMNS * ROWS; pixel++ )
+		{
+			voxel = pixel + slice * COLUMNS * ROWS;
+			if( SM_differences_h[voxel] > max_difference )
+			{
+				max_difference = SM_differences_h[voxel];
+				SM_thresholds_h[slice] = SM_counts_h[voxel];
+			}
+		}
+		if( DEBUG_TEXT_ON )
+		{
+			//printf( "Slice %d : The maximum space_model difference = %d and the space_model threshold = %d\n", slice, max_difference, SM_thresholds_h[slice] );
+		}
+		max_difference = 0;
+	}
+
+	int* SM_thresholds_d;
+	unsigned int threshold_size = SLICES * sizeof(int);
+	cudaMalloc((void**) &SM_thresholds_d, threshold_size );
+	cudaMemcpy( SM_thresholds_d, SM_thresholds_h, threshold_size, cudaMemcpyHostToDevice );
+
+	SM_edge_detection_GPU<<< dimGrid, dimBlock >>>( SM_counts_d, SM_thresholds_d);
+	
+	puts("SM hull-detection and edge-detection complete.");
+	//cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
+	//cudaFree( SM_counts_d );
+	cudaFree( SM_differences_d );
+	cudaFree( SM_thresholds_d );
+
+	free(SM_differences_h);
+	free(SM_thresholds_h);
+	
+	/*if( WRITE_SM_HULL )
+		write_array_to_disk("x_SM", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	if( MLP_HULL != SM_HULL)
+		free(SM_counts_h);	*/
+}
+__global__ void SM_edge_detection_GPU( int* SM_counts, int* SM_threshold )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	float x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
+	float y = ( ROWS/2 - row - 0.5 ) * VOXEL_HEIGHT;
+	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
+	if( voxel < VOXELS )
+	{
+		if( SM_counts[voxel] > SM_SCALE_THRESHOLD * SM_threshold[slice] )
+			SM_counts[voxel] = 1;
+		else
+			SM_counts[voxel] = 0;
+		if( pow(x, 2) + pow(y, 2) >= pow(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
+			SM_counts[voxel] = 0;
+	}
+}
+void SM_edge_detection_2()
+{
+	puts("Performing edge-detection on SM_counts...");
+
+	// Copy the space modeled image from the GPU to the CPU and write it to file.
+	cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
+	write_array_to_disk("SM_counts", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+
+	int* SM_differences_h = (int*) calloc( VOXELS, sizeof(int) );
+	int* SM_differences_d;
+	cudaMalloc((void**) &SM_differences_d, SIZE_IMAGE_INT );
+	cudaMemcpy( SM_differences_d, SM_differences_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice );
+
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( COLUMNS, ROWS );   
+
+	carve_differences<<< dimGrid, dimBlock >>>( SM_differences_d, SM_counts_d );
+	cudaMemcpy( SM_differences_h, SM_differences_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost );
+
+	int* SM_thresholds_h = (int*) calloc( SLICES, sizeof(int) );
+	int voxel;	
+	int max_difference = 0;
+	for( int slice = 0; slice < SLICES; slice++ )
+	{
+		for( int pixel = 0; pixel < COLUMNS * ROWS; pixel++ )
+		{
+			voxel = pixel + slice * COLUMNS * ROWS;
+			if( SM_differences_h[voxel] > max_difference )
+			{
+				max_difference = SM_differences_h[voxel];
+				SM_thresholds_h[slice] = SM_counts_h[voxel];
+			}
+		}
+		printf( "Slice %d : The maximum space_model difference = %d and the space_model threshold = %d\n", slice, max_difference, SM_thresholds_h[slice] );
+		max_difference = 0;
+	}
+
+	int* SM_thresholds_d;
+	unsigned int threshold_size = SLICES * sizeof(int);
+	cudaMalloc((void**) &SM_thresholds_d, threshold_size );
+	cudaMemcpy( SM_thresholds_d, SM_thresholds_h, threshold_size, cudaMemcpyHostToDevice );
+
+	SM_edge_detection_GPU<<< dimGrid, dimBlock >>>( SM_counts_d, SM_thresholds_d);
+
+	puts("SM hull-detection complete.  Writing results to disk...");
+
+	cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
+	cudaFree( SM_counts_d );
+	cudaFree( SM_differences_d );
+	cudaFree( SM_thresholds_d );
+
+	free(SM_differences_h);
+	free(SM_thresholds_h);
+	
+	if( WRITE_SM_HULL )
+		write_array_to_disk("x_SM", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	if( MLP_HULL != SM_HULL)
+		free(SM_counts_h);	
+}
+__global__ void SM_edge_detection_GPU_2( int* SM_counts, int* SM_differences )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
+	int difference, max_difference = 0;
+	if( (row != 0) && (row != ROWS - 1) && (column != 0) && (column != COLUMNS - 1) )
+	{
+		for( int current_row = row - 1; current_row <= row + 1; current_row++ )
+		{
+			for( int current_column = column - 1; current_column <= column + 1; current_column++ )
+			{
+				difference = SM_counts[voxel] - SM_counts[current_column + current_row * COLUMNS + slice * COLUMNS * ROWS];
+				if( difference > max_difference )
+					max_difference = difference;
+			}
+		}
+		SM_differences[voxel] = max_difference;
+	}
+	syncthreads();
+	int slice_threshold;
+	max_difference = 0;
+	for( int pixel = 0; pixel < COLUMNS * ROWS; pixel++ )
+	{
+		voxel = pixel + slice * COLUMNS * ROWS;
+		if( SM_differences[voxel] > max_difference )
+		{
+			max_difference = SM_differences[voxel];
+			slice_threshold = SM_counts[voxel];
+		}
+	}
+	syncthreads();
+	float x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
+	float y = ( ROWS/2 - row - 0.5 ) * VOXEL_HEIGHT;
+	if( voxel < VOXELS )
+	{
+		if( SM_counts[voxel] > SM_SCALE_THRESHOLD * slice_threshold )
+			SM_counts[voxel] = 1;
+		else
+			SM_counts[voxel] = 0;
+		if( pow(x, 2) + pow(y, 2) >= pow(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
+			SM_counts[voxel] = 0;
+	}
+}
+void hull_detection_finish()
+{
+	if( SC_ON )
+	{
+		SC_hull_h = (bool*) calloc( VOXELS, sizeof(bool) );
+		cudaMemcpy(SC_hull_h,  SC_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
+		if( WRITE_SC_HULL )
+		{
+			puts("Writing SC hull to disk...");
+			write_array_to_disk("x_SC", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+		}
+		if( MLP_HULL != SC_HULL )
+		{
+			free( SC_hull_h );
+			cudaFree(SC_hull_d);
+		}
+	}
+	if( MSC_ON )
+	{
+		MSC_counts_h = (int*) calloc( VOXELS, sizeof(int) );
+		if( WRITE_MSC_COUNTS )
+		{		
+			puts("Writing MSC counts to disk...");		
+			cudaMemcpy(MSC_counts_h,  MSC_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
+			write_array_to_disk("MSC_counts_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );	
+		}
+		if( WRITE_MSC_HULL || (MLP_HULL == MSC_HULL) )
+		{
+			MSC_edge_detection();
+			cudaMemcpy(MSC_counts_h,  MSC_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
+			if( WRITE_MSC_HULL )
+			{
+				puts("Writing MSC hull to disk...");		
+				write_array_to_disk("x_MSC", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );	
+			}
+		}
+		if( MLP_HULL != MSC_HULL )
+			free( MSC_counts_h );
+		cudaFree(MSC_counts_d);
+	}
+	if( SM_ON )
+	{
+		SM_counts_h = (int*) calloc( VOXELS, sizeof(int) );
+		if( WRITE_SM_COUNTS )
+		{		
+			puts("Writing SM counts to disk...");
+			cudaMemcpy(SM_counts_h,  SM_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
+			write_array_to_disk("SM_counts_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );	
+		}
+		if( WRITE_SM_HULL || (MLP_HULL == SM_HULL) )
+		{
+			SM_edge_detection();
+			cudaMemcpy(SM_counts_h,  SM_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
+			if( WRITE_SM_HULL )
+			{
+				puts("Writing SM hull to disk...");		
+				write_array_to_disk("x_SM", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );	
+			}
+		}
+		if( MLP_HULL != SM_HULL )
+			free( SM_counts_h );
+		cudaFree(SM_counts_d);
+	}
+}
+/************************************************************************************************************************************************************/
+template<typename H, typename D> void averaging_filter( H*& image_h, D*& image_d )
+{
+	bool is_hull = ( typeid(bool) == typeid(D) );
+	D* new_value_d;
+	int new_value_size = VOXELS * sizeof(D);
+	cudaMalloc(&new_value_d, new_value_size );
+
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( COLUMNS, ROWS );   
+	averaging_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d, is_hull );
+	//apply_averaging_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d );
+	//cudaFree(new_value_d);
+	cudaFree(image_d);
+	image_d = new_value_d;
+}
+template<typename D> __global__ void averaging_filter_GPU( D* image, D* new_value, bool is_hull )
+{
+	int voxel_x = blockIdx.x;
+	int voxel_y = blockIdx.y;	
+	int voxel_z = threadIdx.x;
+	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+	int left_edge = max( voxel_x - AVG_FILTER_RADIUS, 0 );
+	int right_edge = min( voxel_x + AVG_FILTER_RADIUS, COLUMNS - 1);
+	int top_edge = max( voxel_y - AVG_FILTER_RADIUS, 0 );
+	int bottom_edge = min( voxel_y + AVG_FILTER_RADIUS, ROWS - 1);	
+	int neighborhood_voxels = ( right_edge - left_edge + 1 ) * ( bottom_edge - top_edge + 1 );
+	double sum_threshold = neighborhood_voxels * AVG_FILTER_THRESHOLD;
+	double sum = 0;
+	// Determine neighborhood sum for voxels whose neighborhood is completely enclosed in image
+	// Strip of size floor(AVG_FILTER_SIZE/2) around image perimeter must be ignored
+	for( int column = left_edge; column <= right_edge; column++ )
+		for( int row = top_edge; row <= bottom_edge; row++ )
+			sum += image[column + (row * COLUMNS) + (voxel_z * COLUMNS * ROWS)];
+	if( is_hull)
+		new_value[voxel] = ( sum > sum_threshold );
+	else
+		new_value[voxel] = sum / neighborhood_voxels;
+}
+template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( T* image, T2* new_value )
+{
+	int voxel_x = blockIdx.x;
+	int voxel_y = blockIdx.y;	
+	int voxel_z = threadIdx.x;
+	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+	image[voxel] = new_value[voxel];
+}
+void hull_selection()
+{
+	puts("Performing hull selection...");
+
+	x_hull_h = (bool*) calloc( VOXELS, sizeof(bool) );
+	switch( MLP_HULL )
+	{
+		case SC_HULL  : x_hull_h = SC_hull_h;																						break;
+		case MSC_HULL : std::transform( MSC_counts_h, MSC_counts_h + VOXELS, MSC_counts_h, x_hull_h, std::logical_or<int> () );		break;
+		case SM_HULL  : std::transform( SM_counts_h, SM_counts_h + VOXELS, SM_counts_h, x_hull_h, std::logical_or<int> () );		break;
+		case FBP_HULL : x_hull_h = FBP_hull_h;								
+	}
+	if( WRITE_X_HULL )
+	{
+		puts("Writing selected hull to disk...");
+		write_array_to_disk("x_hull", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	}
+	cudaMalloc((void**) &x_hull_d, SIZE_IMAGE_BOOL );
+	cudaMemcpy( x_hull_d, x_hull_h, SIZE_IMAGE_BOOL, cudaMemcpyHostToDevice );
+	if( HULL_FILTER_ON )
+	{
+		puts("Filtering hull...");
+		averaging_filter( x_hull_h, x_hull_d );
+		puts("Hull Filtering complete");
+		if( WRITE_FILTERED_HULL )
+		{
+			puts("Writing filtered hull to disk...");
+			cudaMemcpy(x_hull_h, x_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost) ;
+			write_array_to_disk( "x_hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+		}
+	}
+	puts("Hull selection complete.");
+}
+/************************************************************************************************************************************************************/
 /*********************************************************************** MLP ********************************************************************************/
 /************************************************************************************************************************************************************/
 void create_MLP_test_image()
@@ -2365,13 +3976,7 @@ void create_MLP_test_image()
 		}
 	}
 }
-void MLP_entry_exit
-( 
-	int*& image, bool entry,
-	float x_start, float y_start, float z_start, 
-	float xy_angle, float xz_angle, 
-	float x_object, float y_object, float z_object  
-)
+void MLP_entry_exit( int*& image, bool entry, float x_start, float y_start, float z_start, float xy_angle, float xz_angle, float x_object, float y_object, float z_object )
 {
 //	/********************************************************************************************/
 //	/********************************* Voxel Walk Parameters ************************************/
@@ -2998,6 +4603,10 @@ void MLP_test()
 	x_inside = modf( ( x_in_object + MLP_IMAGE_WIDTH/2 ) / MLP_IMAGE_VOXEL_WIDTH, &voxel_x ) * MLP_IMAGE_VOXEL_WIDTH;	
 	y_inside = modf( ( MLP_IMAGE_HEIGHT/2 - y_in_object ) / MLP_IMAGE_VOXEL_HEIGHT, &voxel_y ) * MLP_IMAGE_VOXEL_HEIGHT;
 	z_inside = modf( ( MLP_IMAGE_THICKNESS/2 - z_in_object ) / MLP_IMAGE_VOXEL_THICKNESS, &voxel_z ) * MLP_IMAGE_VOXEL_THICKNESS;
+
+	//x_inside = x_remaining_GPU( x_in_object, 1, voxel_x );
+	//y_inside = y_remaining_GPU( y_in_object, 1, voxel_y );
+	//z_inside = z_remaining_GPU( z_in_object, 1, voxel_z );
 	//printf("voxel_x = %3f \nvoxel_y = %3f \nvoxel_z = %3f\n", voxel_x, voxel_y, voxel_z);
 	//printf("x_inside = %3f y_inside = %3f z_inside = %3f\n", x_inside, y_inside, z_inside);	
 	voxel = int(voxel_x + voxel_y * MLP_IMAGE_COLUMNS + voxel_z * MLP_IMAGE_COLUMNS * MLP_IMAGE_ROWS);
@@ -3176,1521 +4785,67 @@ void MLP_test()
 		voxel_previous = voxel;
 	}
 }
-/************************************************************************************************************************************************************/
-/************************************************************************ FBP *******************************************************************************/
-/************************************************************************************************************************************************************/
-void initialize_sinogram()
+float mean_chord_length( float, float )
 {
-	puts("Allocating host/GPU memory and initializing sinogram...");
-	sinogram_h = (float*) calloc( NUM_BINS, sizeof(float) );
-	cudaMalloc((void**) &sinogram_d, SIZE_BINS_FLOAT );
-	cudaMemcpy( sinogram_d,	sinogram_h,	SIZE_BINS_FLOAT, cudaMemcpyHostToDevice );	
-}
-void construct_sinogram()
-{
-	puts("Recalculating the mean WEPL for each bin and constructing the sinogram...");
-	dim3 dimBlock( T_BINS );
-	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
-	construct_sinogram_GPU<<< dimGrid, dimBlock >>>( bin_counts_d, sinogram_d );
-
-	//cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
-	//write_array_to_disk("sinogram", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-
-	//bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
-	//cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
-	//write_array_to_disk( "bin_counts_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-}
-__global__ void construct_sinogram_GPU( int* bin_counts, float* sinogram )
-{
-	int v = blockIdx.x, angle = blockIdx.y, t = threadIdx.x;
-	int bin = t + angle * T_BINS + v * T_BINS * ANGULAR_BINS;
-	if( bin_counts[bin] > 0 )
-		sinogram[bin] /= bin_counts[bin];		
-}
-void FBP()
-{
-	// Filter the sinogram before backprojecting
-	filter();
+	float eff_angle_t,eff_angle_v;
 	
-	puts("Performing backprojection...");
-
-	bool FBP_on_GPU = true;
-	FBP_image_h = (float*) calloc( VOXELS, sizeof(float) );
-	if( FBP_image_h == NULL ) 
-	{
-		printf("ERROR: Memory not allocated for FBP_image_h!\n");
-		exit_program_if(true);
-	}
-	if( FBP_on_GPU )
-	{
-		cudaMalloc((void**) &FBP_image_d, SIZE_IMAGE_FLOAT );
-		cudaMemcpy( FBP_image_d, FBP_image_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
-
-		dim3 dimBlock( SLICES );
-		dim3 dimGrid( COLUMNS, ROWS );   
-		backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );			
-	}
-	else
-		backprojection();	
-
-	free(sinogram_filtered_h);	
-	cudaFree(sinogram_filtered_d);
-
-	if( WRITE_FBP_IMAGE )
-	{
-		cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
-		write_array_to_disk( "FBP_image_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
-	}
-
-	// Generate FBP hull by thresholding FBP image
-	FBP_image_2_hull();
-
-	// Discard FBP image unless it is to be used as the initial iterate x_0 in iterative image reconstruction
-	if( X_K0 != FBP_IMAGE )
-	{
-		free(FBP_image_h);
-		cudaFree(FBP_image_d);
-	}
-}
-void filter()
-{
-	puts("Filtering the sinogram...");	
-
-	sinogram_filtered_h = (float*) calloc( NUM_BINS, sizeof(float) );
-	cudaMalloc((void**) &sinogram_filtered_d, SIZE_BINS_FLOAT);
-	cudaMemcpy( sinogram_filtered_d, sinogram_filtered_h, SIZE_BINS_FLOAT, cudaMemcpyHostToDevice);
-
-	dim3 dimBlock( T_BINS );
-	dim3 dimGrid( V_BINS, ANGULAR_BINS );   	
-	filter_GPU<<< dimGrid, dimBlock >>>( sinogram_d, sinogram_filtered_d );
-
-	cudaMemcpy(sinogram_filtered_h, sinogram_filtered_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost) ;
-
-	free(sinogram_h);
-	cudaFree(sinogram_d);
-	//cudaFree(sinogram_filtered_d);
-}
-__global__ void filter_GPU( float* sinogram, float* sinogram_filtered )
-{	
-	int t_bin_ref, t_bin_sep;
-	double filtered, t, scale_factor;
-	
-	int v_bin = blockIdx.x;
-	int angle_bin = blockIdx.y;
-	int t_bin = threadIdx.x;
-	int strip_index; 
-	double v = ( v_bin - V_BINS/2 ) * V_BIN_SIZE + V_BIN_SIZE/2.0;
-	
-	// Loop over strips for this strip
-	for( t_bin_ref = 0; t_bin_ref < T_BINS; t_bin_ref++ )
-	{
-		t = ( t_bin_ref - T_BINS/2 ) * T_BIN_SIZE + T_BIN_SIZE/2.0;
-		t_bin_sep = t_bin - t_bin_ref;
-		// scale_factor = r . path = cos(theta_{r,path})
-		scale_factor = SOURCE_RADIUS / sqrt( SOURCE_RADIUS * SOURCE_RADIUS + t * t + v * v );
-		switch( FBP_FILTER )
-		{
-			case NONE: 
-				break;
-			case RAM_LAK:
-				if( t_bin_sep == 0 )
-					filtered = 1.0 / ( 4.0 * pow( RAM_LAK_TAU, 2.0 ) );
-				else if( t_bin_sep % 2 == 0 )
-					filtered = 0;
-				else
-					filtered = -1.0 / ( pow( RAM_LAK_TAU * PI * t_bin_sep, 2.0 ) );	
-				break;
-			case SHEPP_LOGAN:
-				filtered = pow( pow(T_BIN_SIZE * PI, 2.0) * ( 1.0 - pow(2 * t_bin_sep, 2.0) ), -1.0 );
-		}
-		strip_index = ( v_bin * ANGULAR_BINS * T_BINS ) + ( angle_bin * T_BINS );
-		sinogram_filtered[strip_index + t_bin] += T_BIN_SIZE * sinogram[strip_index + t_bin_ref] * filtered * scale_factor;
-	}
-}
-void backprojection()
-{
-	//// Check that we don't have any corruptions up until now
-	//for( int i = 0; i < NUM_BINS; i++ )
-	//	if( sinogram_filtered_h[i] != sinogram_filtered_h[i] )
-	//		printf("We have a nan in bin #%d\n", i);
-
-	double delta = GANTRY_ANGLE_INTERVAL * ANGLE_TO_RADIANS;
-	int voxel;
-	double x, y, z;
-	double u, t, v;
-	double detector_number_t, detector_number_v;
-	double eta, epsilon;
-	double scale_factor;
-	int t_bin, v_bin, bin, bin_below;
-	// Loop over the voxels
-	for( int slice = 0; slice < SLICES; slice++ )
-	{
-		for( int column = 0; column < COLUMNS; column++ )
-		{
-
-			for( int row = 0; row < ROWS; row++ )
-			{
-				voxel = column +  ( row * COLUMNS ) + ( slice * COLUMNS * ROWS);
-				x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
-				y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
-				z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
-				// If the voxel is outside the cylinder defining the reconstruction volume, set RSP to air
-				if( ( x * x + y * y ) > ( RECON_CYL_RADIUS * RECON_CYL_RADIUS ) )
-					FBP_image_h[voxel] = RSP_AIR;							
-				else
-				{	  
-					// Sum over projection angles
-					for( int angle_bin = 0; angle_bin < ANGULAR_BINS; angle_bin++ )
-					{
-						// Rotate the pixel position to the beam-detector coordinate system
-						u = x * cos( angle_bin * delta ) + y * sin( angle_bin * delta );
-						t = -x * sin( angle_bin * delta ) + y * cos( angle_bin * delta );
-						v = z;
-
-						// Project to find the detector number
-						detector_number_t = ( t - u *( t / ( SOURCE_RADIUS + u ) ) ) / T_BIN_SIZE + T_BINS/2.0;
-						t_bin = int( detector_number_t);
-						if( t_bin > detector_number_t )
-							t_bin -= 1;
-						eta = detector_number_t - t_bin;
-
-						// Now project v to get detector number in v axis
-						detector_number_v = ( v - u * ( v / ( SOURCE_RADIUS + u ) ) ) / V_BIN_SIZE + V_BINS/2.0;
-						v_bin = int( detector_number_v);
-						if( v_bin > detector_number_v )
-							v_bin -= 1;
-						epsilon = detector_number_v - v_bin;
-
-						// Calculate the fan beam scaling factor
-						scale_factor = pow( SOURCE_RADIUS / ( SOURCE_RADIUS + u ), 2 );
-		  
-						// Compute the back-projection
-						bin = t_bin + angle_bin * T_BINS + v_bin * ANGULAR_BINS * T_BINS;
-						bin_below = bin + ( ANGULAR_BINS * T_BINS );
-
-						// If in last v_vin, there is no bin below so only use adjacent bins
-						if( v_bin == V_BINS - 1 || ( bin < 0 ) )
-							FBP_image_h[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered_h[bin] ) + ( eta * sinogram_filtered_h[bin + 1] ) ) ;
-					/*	if( t_bin < T_BINS - 1 )
-								FBP_image_h[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered_h[bin] ) + ( eta * sinogram_filtered_h[bin + 1] ) );
-							if( v_bin < V_BINS - 1 )
-								FBP_image_h[voxel] += scale_factor * ( ( ( 1 - epsilon ) * sinogram_filtered_h[bin] ) + ( epsilon * sinogram_filtered_h[bin_below] ) );
-							if( t_bin == T_BINS - 1 && v_bin == V_BINS - 1 )
-								FBP_image_h[voxel] += scale_factor * sinogram_filtered_h[bin];*/
-						else 
-						{
-							// Technically this is to be multiplied by delta as well, but since delta is constant, it is more accurate numerically to multiply result by delta instead
-							FBP_image_h[voxel] += scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered_h[bin] 
-							+ eta * ( 1 - epsilon ) * sinogram_filtered_h[bin + 1]
-							+ ( 1 - eta ) * epsilon * sinogram_filtered_h[bin_below]
-							+ eta * epsilon * sinogram_filtered_h[bin_below + 1] );
-						} 
-					}
-					FBP_image_h[voxel] *=delta;
-				}
-			}
-		}
-	}
-	//free(sinogram_filtered_h);	
-}
-__global__ void backprojection_GPU( float* sinogram_filtered, float* FBP_image )
-{
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int voxel = slice * COLUMNS * ROWS + row * COLUMNS + column;
-	
-	if ( voxel < VOXELS )
-	{
-		double delta = GANTRY_ANGLE_INTERVAL * ANGLE_TO_RADIANS;
-		double u, t, v;
-		double detector_number_t, detector_number_v;
-		double eta, epsilon;
-		double scale_factor;
-		int t_bin, v_bin, bin;
-		double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
-		double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
-		double z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
-
-		//// If the voxel is outside a cylinder contained in the reconstruction volume, set to air
-		if( ( x * x + y * y ) > ( RECON_CYL_RADIUS * RECON_CYL_RADIUS ) )
-			FBP_image[( slice * COLUMNS * ROWS) + ( row * COLUMNS ) + column] = RSP_AIR;							
-		else
-		{	  
-			// Sum over projection angles
-			for( int angle_bin = 0; angle_bin < ANGULAR_BINS; angle_bin++ )
-			{
-				// Rotate the pixel position to the beam-detector coordinate system
-				u = x * cos( angle_bin * delta ) + y * sin( angle_bin * delta );
-				t = -x * sin( angle_bin * delta ) + y * cos( angle_bin * delta );
-				v = z;
-
-				// Project to find the detector number
-				detector_number_t = ( t - u *( t / ( SOURCE_RADIUS + u ) ) ) / T_BIN_SIZE + T_BINS/2.0;
-				t_bin = int( detector_number_t);
-				if( t_bin > detector_number_t )
-					t_bin -= 1;
-				eta = detector_number_t - t_bin;
-
-				// Now project v to get detector number in v axis
-				detector_number_v = ( v - u * ( v / ( SOURCE_RADIUS + u ) ) ) / V_BIN_SIZE + V_BINS/2.0;
-				v_bin = int( detector_number_v);
-				if( v_bin > detector_number_v )
-					v_bin -= 1;
-				epsilon = detector_number_v - v_bin;
-
-				// Calculate the fan beam scaling factor
-				scale_factor = pow( SOURCE_RADIUS / ( SOURCE_RADIUS + u ), 2 );
-		  
-				//bin_num[i] = t_bin + angle_bin * T_BINS + v_bin * T_BINS * ANGULAR_BINS;
-				// Compute the back-projection
-				bin = t_bin + angle_bin * T_BINS + v_bin * ANGULAR_BINS * T_BINS;
-				// not sure why this won't compile without calculating the index ahead of time instead inside []s
-				//int index = ANGULAR_BINS * T_BINS;
-
-				//if( ( ( bin + ANGULAR_BINS * T_BINS + 1 ) >= NUM_BINS ) || ( bin < 0 ) );
-				if( v_bin == V_BINS - 1 || ( bin < 0 ) )
-					FBP_image[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered[bin] ) + ( eta * sinogram_filtered[bin + 1] ) ) ;
-					//printf("The bin selected for this voxel does not exist!\n Slice: %d\n Column: %d\n Row: %d\n", slice, column, row);
-				else 
-				{
-					// not sure why this won't compile without calculating the index ahead of time instead inside []s
-					/*FBP_image[voxel] += delta * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
-					+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
-					+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + ANGULAR_BINS * T_BINS]
-					+ eta * epsilon * sinogram_filtered[bin + ANGULAR_BINS * T_BINS + 1] ) * scale_factor;*/
-
-					// Multilpying by the gantry angle interval for each gantry angle is equivalent to multiplying the final answer by 2*PI and is better numerically
-					// so multiplying by delta each time should be replaced by FBP_image_h[voxel] *= 2 * PI after all contributions have been made, which is commented out below
-					FBP_image[voxel] += scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
-					+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
-					+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS)]
-					+ eta * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS) + 1] );
-				}				
-			}
-			FBP_image[voxel] *= delta; 
-		}
-	}
-}
-void FBP_image_2_hull()
-{
-	puts("Performing thresholding on FBP image to generate FBP hull...");
-
-	bool FBP_hull_on_GPU = false;
-	
-	if( FBP_hull_on_GPU )
-	{
-		initialize_hull( FBP_hull_h, FBP_hull_d );
-		dim3 dimBlock( SLICES );
-		dim3 dimGrid( COLUMNS, ROWS );   
-		FBP_image_2_hull_GPU<<< dimGrid, dimBlock >>>( FBP_image_d, FBP_hull_d );	
-		cudaMemcpy( FBP_hull_h, FBP_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost );
-	}
-	else
-	{
-		FBP_hull_h = (bool*) calloc( COLUMNS * ROWS * SLICES, sizeof(bool) );
-		for( int iteration = 0; iteration < 1; iteration++ )
-		{
-			for( int slice = 0; slice < SLICES; slice++ )
-			{
-				for( int row = 0; row < ROWS; row++ )
-				{
-					for( int column = 0; column < COLUMNS; column++ )
-					{
-						double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
-						double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
-						double d_squared = pow(x, 2) + pow(y, 2);
-						if( FBP_image_h[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] > FBP_THRESHOLD && (d_squared < pow(RECON_CYL_RADIUS, 2) ) ) 
-							FBP_hull_h[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] = true; 
-						else
-							FBP_hull_h[( slice * COLUMNS * ROWS ) + ( row * COLUMNS ) + column] = false; 
-					}
-				}
-			}
-		}
-	}
-	if( WRITE_FBP_HULL )
-		write_array_to_disk( "x_FBP", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
-
-	if( MLP_HULL != FBP_HULL)
-	{
-		//cudaFree();		
-		free(FBP_hull_h);
-		cudaFree(FBP_hull_d);
-	}
-}
-__global__ void FBP_image_2_hull_GPU( float* FBP_image, bool* FBP_hull )
-{
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int voxel = slice * COLUMNS * ROWS + row * COLUMNS + column; 
-	double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
-	double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
-	double d_squared = pow(x, 2) + pow(y, 2);
-	if(FBP_image[voxel] > FBP_THRESHOLD && (d_squared < pow(RECON_CYL_RADIUS, 2) ) ) 
-		FBP_hull[voxel] = true; 
-	else
-		FBP_hull[voxel] = false; 
+	//eff_angle_t=abs_angle_t-((int)(abs_angle_t/(PI/2)))*(PI/2);
+	//
+	//eff_angle_v=fabs(abs_angle_v);
+	//
+	//// Get the effective chord in the t-u plane
+	//float step_fraction=step_length/pixel_size;
+	//float chord_length_2D=(1/3.0)*((step_fraction*step_fraction*sinf(2*eff_angle_t)-6)/(step_fraction*sinf(2*eff_angle_t)-2*(cosf(eff_angle_t)+sinf(eff_angle_t))) + step_fraction*step_fraction*sinf(2*eff_angle_t)/(2*(cosf(eff_angle_t)+sinf(eff_angle_t))));
+	//
+	//// Multiply this by the effective chord in the v-u plane
+	//float mean_pixel_width=pixel_size/(cosf(eff_angle_t)+sinf(eff_angle_t));
+	//float height_fraction=slice_thickness/mean_pixel_width;
+	//step_fraction=step_length/mean_pixel_width;
+	//float chord_length_3D=(1/3.0)*((step_fraction*step_fraction*sinf(2*eff_angle_v)-6*height_fraction)/(step_fraction*sinf(2*eff_angle_v)-2*(height_fraction*cosf(eff_angle_v)+sinf(eff_angle_v))) + step_fraction*step_fraction*sinf(2*eff_angle_v)/(2*(height_fraction*cosf(eff_angle_v)+sinf(eff_angle_v))));
+	//
+	return 0;
+	//return pixel_size*chord_length_2D*chord_length_3D;
 }
 /************************************************************************************************************************************************************/
-/****************************************************************** Image Initialization  *******************************************************************/
+/*************************************************************** Image Reconstruction ***********************************************************************/
 /************************************************************************************************************************************************************/
-void initialize_hull( bool*& hull_h, bool*& hull_d )
+void define_initial_iterate()
 {
-	/* Allocate Memory and Initialize Images for Hull Detection Algorithms.  Use the Image and	*/
-	/* Reconstruction Cylinder Parameters to Determine the Location of the Perimeter of the		*/
-	/* Reconstruction Cylinder, Which is Centered on the Origin (Center) of the Image.  Assign	*/
-	/* Voxels Inside the Perimeter of the Reconstruction Volume the Value 1 and Those Outside 0	*/
+	float* x_h = (float*) calloc( VOXELS, sizeof(float) );
 
-	puts("Initializing SC hull-detection...");
-
-	// Allocate memory for the hull image on the host and initialize to zeros
-	hull_h = (bool*)calloc( VOXELS, sizeof(bool));
-
-	double x, y;
-	// Set the inner cylinder of the hull image to 1s
-	for( int slice = 0; slice < SLICES; slice++ )
-		for( int row = 0; row < ROWS; row++ )
-			for( int column = 0; column < COLUMNS; column++ )
-			{
-				x = ( column - COLUMNS/2 + 0.5) * VOXEL_WIDTH;
-				y = ( ROWS/2 - row - 0.5) * VOXEL_HEIGHT;
-				if( ( (x * x) + (y * y) ) < double(RECON_CYL_RADIUS * RECON_CYL_RADIUS) )
-					hull_h[slice * COLUMNS * ROWS + row * COLUMNS + column] = true;
-			}
-	// Allocate memory for the initialized hull image on the GPU and then transfer it to the GPU	
-	cudaMalloc((void**) &hull_d,	SIZE_IMAGE_BOOL);
-	cudaMemcpy(hull_d, hull_h, SIZE_IMAGE_BOOL, cudaMemcpyHostToDevice) ;
-}
-void initialize_counts( int*& counts_h, int*& counts_d )
-{
-	/* Allocate host and GPU memory for MSC counts image and initialize these to 0*/
-	puts("Initializing MSC hull-detection...");
-	counts_h = (int*)calloc( VOXELS, sizeof(int));
-	cudaMalloc((void**) &counts_d,	SIZE_IMAGE_INT);
-	cudaMemcpy(counts_d, counts_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice) ;
-}
-void initialize_float_image( float*& float_image_h, float*& float_image_d )
-{
-	puts("Initializing floating point image...");
-
-	//Create space carve object, init to zeros
-	float_image_h = (float*)calloc( VOXELS, sizeof(float));
-
-	double x, y;
-	// Set inner cylinder to 1s
-	for( int slice = 0; slice < SLICES; slice++ )
-		for( int row = 0; row < ROWS; row++ )
-			for( int column = 0; column < COLUMNS; column++ )
-			{
-				x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
-				y = ( ROWS/2 - row - 0.5 ) * VOXEL_HEIGHT;
-				if( ( (x * x) + (y * y) ) < double(RECON_CYL_RADIUS * RECON_CYL_RADIUS) )
-					float_image_h[slice * COLUMNS * ROWS + row * COLUMNS + column] = 1;
-			}
-	cudaMalloc((void**) &float_image_d,	SIZE_IMAGE_FLOAT);
-	cudaMemcpy(float_image_d, float_image_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice) ;
-}
-/************************************************************************************************************************************************************/
-/******************************************************************* Hull Detection *************************************************************************/
-/************************************************************************************************************************************************************/
-void hull_detection_initializations()
-{		
-	if( SC_ON )
-		initialize_hull( SC_hull_h, SC_hull_d );
-	if( MSC_ON )
-		initialize_counts( MSC_counts_h, MSC_counts_d );
-	if( SM_ON )
-		initialize_counts( SM_counts_h, SM_counts_d );
-}
-void hull_detection( const int histories_to_process)
-{
-	if( SC_ON  ) 
-		SC( histories_to_process );		
-	if( MSC_ON )
-		MSC( histories_to_process );
-	if( SM_ON )
-		SM( histories_to_process );   
-}
-__device__ int position_2_voxel_GPU( float &x, float &y, float &z )
-{
-	int voxel_x = ( x + RECON_CYL_RADIUS ) / VOXEL_WIDTH;
-	int voxel_y = ( RECON_CYL_RADIUS - y ) / VOXEL_HEIGHT;
-	int voxel_z = ( RECON_CYL_HEIGHT/2 - z ) /VOXEL_THICKNESS;
-	return voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-}
-__device__ void voxel_walk_GPU( bool*& image, float x_entry, float y_entry, float z_entry, float x_exit, float y_exit, float z_exit )
-{
-	/********************************************************************************************/
-	/********************************* Voxel Walk Parameters ************************************/
-	/********************************************************************************************/
-	int x_move_direction, y_move_direction, z_move_direction;
-	float delta_yx, delta_zx, delta_zy;
-	//float x_move = 0, y_move = 0, z_move = 0;
-	/********************************************************************************************/
-	/**************************** Status Tracking Information ***********************************/
-	/********************************************************************************************/
-	float x = x_entry, y = y_entry, z = z_entry;
-	float x_to_go, y_to_go, z_to_go;		
-	float x_extension, y_extension;	
-	int voxel_x, voxel_y, voxel_z;
-	int voxel, voxel_x_out, voxel_y_out, voxel_z_out, voxel_out; 
-	bool end_walk;
-	/********************************************************************************************/
-	/******************** Initial Conditions and Movement Characteristics ***********************/
-	/********************************************************************************************/
-	x_move_direction = ( x_entry <= x_exit ) - ( x_entry > x_exit );
-	y_move_direction = ( y_entry <= y_exit ) - ( y_entry > y_exit );
-	z_move_direction = ( z_entry <= z_exit ) - ( z_entry > z_exit );
-	
-	x_to_go = x_remaining_GPU( x, x_move_direction, voxel_x );
-	y_to_go = y_remaining_GPU( y, -y_move_direction, voxel_y );
-	z_to_go = z_remaining_GPU( z, -z_move_direction, voxel_z );
-	voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-	/********************************************************************************************/
-	/***************************** Path and Walk Information ************************************/
-	/********************************************************************************************/
-	// Lengths/Distances as x is Incremented One Voxel
-	delta_yx = abs( (y_exit - y_entry)/(x_exit - x_entry) );
-	delta_zx = abs( (z_exit - z_entry)/(x_exit - x_entry) );
-	delta_zy = abs( (z_exit - z_entry)/(y_exit - y_entry) );
-	/********************************************************************************************/
-	/************************* Initialize and Check Exit Conditions *****************************/
-	/********************************************************************************************/
-	voxel_x_out = int( ( x_exit + RECON_CYL_RADIUS ) / VOXEL_WIDTH );
-	voxel_y_out = int( ( RECON_CYL_RADIUS - y_exit ) / VOXEL_HEIGHT );
-	voxel_z_out = int( ( RECON_CYL_HEIGHT/2 - z_exit ) /VOXEL_THICKNESS );
-	voxel_out = int(voxel_x_out + voxel_y_out * COLUMNS + voxel_z_out * COLUMNS * ROWS);
-		
-	end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-	if( !end_walk )
-		image[voxel] = 0;
-	/********************************************************************************************/
-	/*********************************** Voxel Walk Routine *************************************/
-	/********************************************************************************************/
-	if( z_entry != z_exit )
+	switch( X_K0 )
 	{
-		while( !end_walk )
-		{
-			// Change in z for Move to Voxel Edge in x and y
-			x_extension = delta_zx * x_to_go;
-			y_extension = delta_zy * y_to_go;
-			if( z_to_go <= x_extension && z_to_go <= y_extension )
-			{
-				//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
-				//x_move = z_to_go / delta_zx;
-				//y_move = z_to_go / delta_zy;
-				//z_move = z_to_go;
-				//x_to_go -= x_move;
-				//y_to_go -= y_move;
-				x_to_go -= z_to_go / delta_zx;
-				y_to_go -= z_to_go / delta_zy;
-				z_to_go = VOXEL_THICKNESS;
-				voxel_z -= z_move_direction;
-				if( x_to_go <= 0 )
-				{
-					voxel_x += x_move_direction;
-					x_to_go = VOXEL_WIDTH;
-				}
-				if(	y_to_go <= 0 )
-				{
-					voxel_y -= y_move_direction;
-					y_to_go = VOXEL_HEIGHT;
-				}
-			}
-			//If Next Voxel Edge is in x or xy Diagonal
-			else if( x_extension <= y_extension )
-			{
-				//printf(" x_extension <= y_extension \n");
-				//x_move = x_to_go;
-				//y_move = delta_yx * x_to_go;
-				//z_move = delta_zx * x_to_go;
-				x_to_go = VOXEL_WIDTH;
-				y_to_go -= delta_yx * x_to_go;
-				z_to_go -= delta_zx * x_to_go;
-				//x_to_go = VOXEL_WIDTH;
-				//y_to_go -= y_move;
-				//z_to_go -= z_move;
-				voxel_x += x_move_direction;
-				if( y_to_go <= 0 )
-				{
-					y_to_go = VOXEL_HEIGHT;
-					voxel_y -= y_move_direction;
-				}
-			}
-			// Else Next Voxel Edge is in y
-			else
-			{
-				//printf(" y_extension < x_extension \n");
-				//x_move = y_to_go / delta_yx;
-				//y_move = y_to_go;
-				//z_move = delta_zy * y_to_go;
-				x_to_go -= y_to_go / delta_yx;
-				y_to_go = VOXEL_HEIGHT;
-				z_to_go -= delta_zy * y_to_go;
-				/*x_to_go -= x_move;
-				y_to_go = VOXEL_HEIGHT;
-				z_to_go -= z_move;*/
-				voxel_y -= y_move_direction;
-			}
-			//x += x_move_direction * x_move;
-			//y += y_move_direction * y_move;
-			//z += z_move_direction * z_move;				
-			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-			end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-			if( !end_walk )
-				image[voxel] = 0;
-		}
-	}
-	else
-	{
-		//printf("hello");
-		//int i = 0;
-		//printf("z_exit[i] == z_entry[i]\n");
-		while( !end_walk )
-		{
-			// Change in x for Move to Voxel Edge in y
-			y_extension = y_to_go / delta_yx;
-			//If Next Voxel Edge is in x or xy Diagonal
-			if( x_to_go <= y_extension )
-			{
-				//printf(" x_to_go <= y_extension \n");
-				//x_move = x_to_go;
-				//y_move = delta_yx * x_to_go;	
-				x_to_go = VOXEL_WIDTH;
-				y_to_go -= delta_yx * x_to_go;
-				//y_to_go -= y_move;
-				voxel_x += x_move_direction;
-				if( y_to_go <= 0 )
-				{
-					y_to_go = VOXEL_HEIGHT;
-					voxel_y -= y_move_direction;
-				}
-			}
-			// Else Next Voxel Edge is in y
-			else
-			{
-				//printf(" y_extension < x_extension \n");
-				//x_move = y_to_go / delta_yx;
-				//y_move = y_to_go;
-				//x_to_go -= x_move;
-				x_to_go -= y_to_go / delta_yx;
-				y_to_go = VOXEL_HEIGHT;
-				voxel_y -= y_move_direction;
-			}
-			//x += x_move_direction * x_move;
-			//y += y_move_direction * y_move;
-			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;			
-			end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-			if( !end_walk )
-				image[voxel] = 0;
-			//i++;
-		}// end: while( !end_walk )
-		//printf("i = %d", i );
-	}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
-}
-__device__ float x_remaining_GPU( float x, int x_move_direction, int& voxel_x )
-{
-	double voxel_x_float;
-	double x_inside = modf( (x + RECON_CYL_RADIUS) / VOXEL_WIDTH, &voxel_x_float ) * VOXEL_WIDTH;	
-	voxel_x = voxel_x_float;
-	return ( x_move_direction > 0 ) * (VOXEL_WIDTH - x_inside) + ( x_move_direction <= 0 ) * x_inside;	
-}
-__device__ float y_remaining_GPU( float y, int y_move_direction, int& voxel_y )
-{
-	double voxel_y_float;
-	double y_inside = modf( (RECON_CYL_RADIUS - y) / VOXEL_HEIGHT, &voxel_y_float ) * VOXEL_HEIGHT;
-	voxel_y = voxel_y_float;
-	return ( y_move_direction > 0 ) * (VOXEL_HEIGHT - y_inside) + ( y_move_direction <= 0 ) * y_inside;	
-}
-__device__ float z_remaining_GPU( float z, int z_move_direction, int& voxel_z )
-{
-	float voxel_z_float;
-	float z_inside = modf( (RECON_CYL_HEIGHT/2 - z) / VOXEL_THICKNESS, &voxel_z_float ) * VOXEL_THICKNESS;
-	voxel_z = voxel_z_float;
-	return ( z_move_direction > 0 ) * (VOXEL_THICKNESS - z_inside) + ( z_move_direction <= 0 ) * z_inside;
-}
-__global__ void carve_differences( int* carve_differences, int* image )
-{
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-	if( (row != 0) && (row != ROWS - 1) && (column != 0) && (column != COLUMNS - 1) )
-	{
-		int difference, max_difference = 0;
-		for( int current_row = row - 1; current_row <= row + 1; current_row++ )
-		{
-			for( int current_column = column - 1; current_column <= column + 1; current_column++ )
-			{
-				difference = image[voxel] - image[current_column + current_row * COLUMNS + slice * COLUMNS * ROWS];
-				if( difference > max_difference )
-					max_difference = difference;
-			}
-		}
-		carve_differences[voxel] = max_difference;
-	}
-}
-/************************************************************************************************************************************************************/
-void SC( const int num_histories )
-{
-	dim3 dimBlock(THREADS_PER_BLOCK);
-	dim3 dimGrid( (int)( num_histories / THREADS_PER_BLOCK ) + 1 );
-	SC_GPU<<<dimGrid, dimBlock>>>
-	(
-		num_histories, SC_hull_d, bin_num_d, missed_recon_volume_d, WEPL_d,
-		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d
-	);
-}
-__global__ void SC_GPU
-( 
-	const int num_histories, bool* SC_hull, int* bin_num, bool* missed_recon_volume, float* WEPL,
-	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
-)
-{
-	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= SC_THRESHOLD) )
-	{
-		/********************************************************************************************/
-		/********************************* Voxel Walk Parameters ************************************/
-		/********************************************************************************************/
-		int x_move_direction, y_move_direction, z_move_direction;
-		double delta_yx, delta_zx, delta_zy;
-		double x_move = 0, y_move = 0, z_move = 0;
-		/********************************************************************************************/
-		/**************************** Status Tracking Information ***********************************/
-		/********************************************************************************************/
-		//float x = x_entry[i], y = y_entry[i], z = z_entry[i];
-		double x_to_go, y_to_go, z_to_go;		
-		double x_extension, y_extension;	
-		int voxel_x, voxel_y, voxel_z;
-		//int voxel_x_out, voxel_y_out, voxel_z_out; 
-		int voxel, voxel_out; 
-		bool end_walk;
-		/********************************************************************************************/
-		/******************** Initial Conditions and Movement Characteristics ***********************/
-		/********************************************************************************************/
-		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] >= x_exit[i] );
-		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
-		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
-		x_to_go = x_remaining_GPU( x_entry[i], x_move_direction, voxel_x );
-		y_to_go = y_remaining_GPU( y_entry[i], -y_move_direction, voxel_y );
-		z_to_go = z_remaining_GPU( z_entry[i], -z_move_direction, voxel_z );
-		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-		voxel_out = position_2_voxel_GPU( x_exit[i], y_exit[i], z_exit[i] ); 
-		/********************************************************************************************/
-		/***************************** Path and Walk Information ************************************/
-		/********************************************************************************************/
-		// Lengths/Distances as x is Incremented One Voxel
-		delta_yx = abs( y_exit[i] - y_entry[i] ) / abs( x_exit[i] - x_entry[i] );
-		delta_zx = abs( z_exit[i] - z_entry[i] ) / abs( x_exit[i] - x_entry[i] );
-		delta_zy = abs( z_exit[i] - z_entry[i] ) / abs( y_exit[i] - y_entry[i] );
-		/********************************************************************************************/
-		/************************* Initialize and Check Exit Conditions *****************************/
-		/********************************************************************************************/		
-		end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-		if( !end_walk )
-			SC_hull[voxel] = 0;
-		/********************************************************************************************/
-		/*********************************** Voxel Walk Routine *************************************/
-		/********************************************************************************************/
-		if( z_move_direction != 0 )
-		{
-			//printf("z_exit[i] != z_entry[i]\n");
-			while( !end_walk )
-			{
-				// Change in z for Move to Voxel Edge in x and y
-				x_extension = delta_zx * x_to_go;
-				y_extension = delta_zy * y_to_go;
-				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
-				{
-					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
-					x_move = z_to_go / delta_zx;
-					y_move = z_to_go / delta_zy;
-					z_move = z_to_go;
-					x_to_go -= x_move * abs(x_move_direction);
-					y_to_go -= y_move * abs(y_move_direction);
-					//x_to_go -= z_to_go / delta_zx * abs(x_move_direction);
-					//y_to_go -= z_to_go / delta_zy * abs(y_move_direction);
-					z_to_go = VOXEL_THICKNESS;
-					voxel_z -= z_move_direction;
-					if( x_to_go == 0 )
-					{
-						voxel_x += x_move_direction;
-						x_to_go = VOXEL_WIDTH;
-					}
-					if(	y_to_go == 0 )
-					{
-						voxel_y -= y_move_direction;
-						y_to_go = VOXEL_HEIGHT;
-					}
-				}
-				//If Next Voxel Edge is in x or xy Diagonal
-				else if( x_extension <= y_extension )
-				{
-					//printf(" x_extension <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_yx * x_to_go;
-					z_move = delta_zx * x_to_go;
-					x_to_go = VOXEL_WIDTH;
-					y_to_go -= y_move * abs(y_move_direction);
-					z_to_go -= z_move * abs(z_move_direction);				
-					//y_to_go -= delta_yx * x_to_go * abs(y_move_direction);
-					//z_to_go -= delta_zx * x_to_go * abs(z_move_direction);
-					//x_to_go = VOXEL_WIDTH;
-					voxel_x += x_move_direction;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y -= y_move_direction;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = y_to_go / delta_yx;
-					y_move = y_to_go;
-					z_move = delta_zy * y_to_go;
-					x_to_go -= x_move * abs(x_move_direction);
-					y_to_go = VOXEL_HEIGHT;
-					z_to_go -= z_move * abs(z_move_direction);
-					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
-					//z_to_go -= delta_zy * y_to_go * abs(z_move_direction);
-					//y_to_go = VOXEL_HEIGHT;
-					voxel_y -= y_move_direction;
-				}
-				//x += x_move_direction * x_move;
-				//y += y_move_direction * y_move;
-				//z += z_move_direction * z_move;				
-				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					SC_hull[voxel] = 0;
-			}// end !end_walk 
-		}
-		else
-		{
-			//printf("z_exit[i] == z_entry[i]\n");
-			while( !end_walk )
-			{
-				// Change in x for Move to Voxel Edge in y
-				y_extension = y_to_go / delta_yx;
-				//If Next Voxel Edge is in x or xy Diagonal
-				if( x_to_go <= y_extension )
-				{
-					//printf(" x_to_go <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_yx * x_to_go;	
-					x_to_go = VOXEL_WIDTH;
-					//y_to_go -= (delta_yx * x_to_go) * abs(y_move_direction);
-					y_to_go -= y_move * abs(y_move_direction);
-					voxel_x += x_move_direction;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y -= y_move_direction;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = y_to_go / delta_yx;
-					y_move = y_to_go;
-					x_to_go -= x_move * abs(x_move_direction);
-					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
-					y_to_go = VOXEL_HEIGHT;
-					voxel_y -= y_move_direction;
-				}
-				//x += x_move_direction * x_move;
-				//y += y_move_direction * y_move;
-				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					SC_hull[voxel] = 0;
-			}// end: while( !end_walk )
-			//printf("i = %d", i );
-		}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
-	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= SC_THRESHOLD) )
-}
-/************************************************************************************************************************************************************/
-void MSC( const int num_histories )
-{
-	dim3 dimBlock(THREADS_PER_BLOCK);
-	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
-	MSC_GPU<<<dimGrid, dimBlock>>>
-	(
-		num_histories, MSC_counts_d, bin_num_d, missed_recon_volume_d, WEPL_d,
-		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d
-	);
-}
-__global__ void MSC_GPU
-( 
-	const int num_histories, int* MSC_counts, int* bin_num, bool* missed_recon_volume, float* WEPL,
-	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
-)
-{
-	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
-	{
-		/********************************************************************************************/
-		/********************************* Voxel Walk Parameters ************************************/
-		/********************************************************************************************/
-		int x_move_direction, y_move_direction, z_move_direction;
-		double delta_yx, delta_zx, delta_zy;
-		double x_move = 0, y_move = 0, z_move = 0;
-		/********************************************************************************************/
-		/**************************** Status Tracking Information ***********************************/
-		/********************************************************************************************/
-		//double x = x_entry[i], y = y_entry[i], z = z_entry[i];
-		double x_to_go, y_to_go, z_to_go;		
-		double x_extension, y_extension;	
-		int voxel_x, voxel_y, voxel_z;
-		//int voxel_x_out, voxel_y_out, voxel_z_out; 
-		int voxel, voxel_out; 
-		bool end_walk;
-		/********************************************************************************************/
-		/******************** Initial Conditions and Movement Characteristics ***********************/
-		/********************************************************************************************/
-		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] >= x_exit[i] );
-		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
-		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
-		x_to_go = x_remaining_GPU( x_entry[i], x_move_direction, voxel_x );
-		y_to_go = y_remaining_GPU( y_entry[i], -y_move_direction, voxel_y );
-		z_to_go = z_remaining_GPU( z_entry[i], -z_move_direction, voxel_z );
-		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-		voxel_out = position_2_voxel_GPU( x_exit[i], y_exit[i], z_exit[i] ); 
-		/********************************************************************************************/
-		/***************************** Path and Walk Information ************************************/
-		/********************************************************************************************/
-		// Lengths/Distances as x is Incremented One Voxel
-		delta_yx = abs( y_exit[i] - y_entry[i] ) / abs( x_exit[i] - x_entry[i] );
-		delta_zx = abs( z_exit[i] - z_entry[i] ) / abs( x_exit[i] - x_entry[i] );
-		delta_zy = abs( z_exit[i] - z_entry[i] ) / abs( y_exit[i] - y_entry[i] );
-		/********************************************************************************************/
-		/************************* Initialize and Check Exit Conditions *****************************/
-		/********************************************************************************************/		
-		end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-		if( !end_walk )
-			atomicAdd( &MSC_counts[voxel], 1 );
-		/********************************************************************************************/
-		/*********************************** Voxel Walk Routine *************************************/
-		/********************************************************************************************/
-		if( z_move_direction != 0 )
-		{
-			//printf("z_exit[i] != z_entry[i]\n");
-			while( !end_walk )
-			{
-				// Change in z for Move to Voxel Edge in x and y
-				x_extension = delta_zx * x_to_go;
-				y_extension = delta_zy * y_to_go;
-				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
-				{
-					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
-					x_move = z_to_go / delta_zx;
-					y_move = z_to_go / delta_zy;
-					z_move = z_to_go;
-					x_to_go -= x_move * abs(x_move_direction);
-					y_to_go -= y_move * abs(y_move_direction);
-					//x_to_go -= z_to_go / delta_zx * abs(x_move_direction);
-					//y_to_go -= z_to_go / delta_zy * abs(y_move_direction);
-					z_to_go = VOXEL_THICKNESS;
-					voxel_z -= z_move_direction;
-					if( x_to_go == 0 )
-					{
-						voxel_x += x_move_direction;
-						x_to_go = VOXEL_WIDTH;
-					}
-					if(	y_to_go == 0 )
-					{
-						voxel_y -= y_move_direction;
-						y_to_go = VOXEL_HEIGHT;
-					}
-				}
-				//If Next Voxel Edge is in x or xy Diagonal
-				else if( x_extension <= y_extension )
-				{
-					//printf(" x_extension <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_yx * x_to_go;
-					z_move = delta_zx * x_to_go;
-					x_to_go = VOXEL_WIDTH;
-					y_to_go -= y_move * abs(y_move_direction);
-					z_to_go -= z_move * abs(z_move_direction);				
-					//y_to_go -= delta_yx * x_to_go * abs(y_move_direction);
-					//z_to_go -= delta_zx * x_to_go * abs(z_move_direction);
-					//x_to_go = VOXEL_WIDTH;
-					voxel_x += x_move_direction;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y -= y_move_direction;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = y_to_go / delta_yx;
-					y_move = y_to_go;
-					z_move = delta_zy * y_to_go;
-					x_to_go -= x_move * abs(x_move_direction);
-					y_to_go = VOXEL_HEIGHT;
-					z_to_go -= z_move * abs(z_move_direction);
-					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
-					//z_to_go -= delta_zy * y_to_go * abs(z_move_direction);
-					//y_to_go = VOXEL_HEIGHT;
-					voxel_y -= y_move_direction;
-				}
-				//x += x_move_direction * x_move;
-				//y += y_move_direction * y_move;
-				//z += z_move_direction * z_move;				
-				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					atomicAdd( &MSC_counts[voxel], 1 );
-			}// end !end_walk 
-		}
-		else
-		{
-			//printf("z_exit[i] == z_entry[i]\n");
-			while( !end_walk )
-			{
-				// Change in x for Move to Voxel Edge in y
-				y_extension = y_to_go / delta_yx;
-				//If Next Voxel Edge is in x or xy Diagonal
-				if( x_to_go <= y_extension )
-				{
-					//printf(" x_to_go <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_yx * x_to_go;	
-					x_to_go = VOXEL_WIDTH;
-					//y_to_go -= (delta_yx * x_to_go) * abs(y_move_direction);
-					y_to_go -= y_move * abs(y_move_direction);
-					voxel_x += x_move_direction;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y -= y_move_direction;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = y_to_go / delta_yx;
-					y_move = y_to_go;
-					x_to_go -= x_move * abs(x_move_direction);
-					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
-					y_to_go = VOXEL_HEIGHT;
-					voxel_y -= y_move_direction;
-				}
-				//x += x_move_direction * x_move;
-				//y += y_move_direction * y_move;
-				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					atomicAdd( &MSC_counts[voxel], 1 );
-			}// end: while( !end_walk )
-			//printf("i = %d", i );
-		}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
-	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
-}
-void MSC_edge_detection()
-{
-	puts("Performing edge-detection on MSC_counts...");
-
-	if( WRITE_MSC_COUNTS )
-	{
-		cudaMemcpy(MSC_counts_h,  MSC_counts_d,	 SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-		write_array_to_disk("MSC_counts", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, VOXELS, false );
-	}
-	dim3 dimBlock( SLICES );
-	dim3 dimGrid( COLUMNS, ROWS );   
-	MSC_edge_detection_GPU<<< dimGrid, dimBlock >>>( MSC_counts_d );
-
-	puts("MSC hull-detection complete.  Writing results to disk...");
-
-	cudaMemcpy(MSC_counts_h,  MSC_counts_d,	 SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-	cudaFree( MSC_counts_d );
-
-	if( WRITE_MSC_HULL )
-		write_array_to_disk("x_MSC", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );
-	if( MLP_HULL != MSC_HULL )
-		free(MSC_counts_h);
-}
-__global__ void MSC_edge_detection_GPU( int* MSC_counts )
-{
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-	float x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
-	float y = ( ROWS/2 - row - 0.5 ) * VOXEL_HEIGHT;
-	int difference, max_difference = 0;
-	if( (row != 0) && (row != ROWS - 1) && (column != 0) && (column != COLUMNS - 1) )
-	{		
-		for( int current_row = row - 1; current_row <= row + 1; current_row++ )
-		{
-			for( int current_column = column - 1; current_column <= column + 1; current_column++ )
-			{
-				difference = MSC_counts[voxel] - MSC_counts[current_column + current_row * COLUMNS + slice * COLUMNS * ROWS];
-				if( difference > max_difference )
-					max_difference = difference;
-			}
-		}
-	}
-	syncthreads();
-	if( max_difference > MSC_DIFF_THRESH )
-		MSC_counts[voxel] = 0;
-	else
-		MSC_counts[voxel] = 1;
-	if( pow(x, 2) + pow(y, 2) >= pow(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
-		MSC_counts[voxel] = 0;
-
-}
-/************************************************************************************************************************************************************/
-void SM( const int num_histories)
-{
-	dim3 dimBlock(THREADS_PER_BLOCK);
-	dim3 dimGrid( (int)( num_histories / THREADS_PER_BLOCK ) + 1 );
-	SM_GPU <<< dimGrid, dimBlock >>>
-	(
-		num_histories, SM_counts_d, bin_num_d, missed_recon_volume_d, WEPL_d,
-		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d
-	);
-}
-__global__ void SM_GPU
-( 
-	const int num_histories, int* SM_counts, int* bin_num, bool* missed_recon_volume, float* WEPL,
-	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
-)
-{
-	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] >= SM_LOWER_THRESHOLD) )
-	{
-		/********************************************************************************************/
-		/********************************* Voxel Walk Parameters ************************************/
-		/********************************************************************************************/
-		int x_move_direction, y_move_direction, z_move_direction;
-		double delta_yx, delta_zx, delta_zy;
-		double x_move = 0, y_move = 0, z_move = 0;
-		/********************************************************************************************/
-		/**************************** Status Tracking Information ***********************************/
-		/********************************************************************************************/
-		//double x = x_entry[i], y = y_entry[i], z = z_entry[i];
-		double x_to_go, y_to_go, z_to_go;		
-		double x_extension, y_extension;	
-		int voxel_x, voxel_y, voxel_z;
-		//int voxel_x_out, voxel_y_out, voxel_z_out; 
-		int voxel, voxel_out; 
-		bool end_walk;
-		/********************************************************************************************/
-		/******************** Initial Conditions and Movement Characteristics ***********************/
-		/********************************************************************************************/
-		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] >= x_exit[i] );
-		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
-		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
-		x_to_go = x_remaining_GPU( x_entry[i], x_move_direction, voxel_x );
-		y_to_go = y_remaining_GPU( y_entry[i], -y_move_direction, voxel_y );
-		z_to_go = z_remaining_GPU( z_entry[i], -z_move_direction, voxel_z );
-		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-		voxel_out = position_2_voxel_GPU( x_exit[i], y_exit[i], z_exit[i] ); 
-		/********************************************************************************************/
-		/***************************** Path and Walk Information ************************************/
-		/********************************************************************************************/
-		// Lengths/Distances as x is Incremented One Voxel
-		delta_yx = abs( y_exit[i] - y_entry[i] ) / abs( x_exit[i] - x_entry[i] );
-		delta_zx = abs( z_exit[i] - z_entry[i] ) / abs( x_exit[i] - x_entry[i] );
-		delta_zy = abs( z_exit[i] - z_entry[i] ) / abs( y_exit[i] - y_entry[i] );
-		/********************************************************************************************/
-		/************************* Initialize and Check Exit Conditions *****************************/
-		/********************************************************************************************/		
-		end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-		if( !end_walk )
-			atomicAdd( &SM_counts[voxel], 1 );
-		/********************************************************************************************/
-		/*********************************** Voxel Walk Routine *************************************/
-		/********************************************************************************************/
-		if( z_move_direction != 0 )
-		{
-			//printf("z_exit[i] != z_entry[i]\n");
-			while( !end_walk )
-			{
-				// Change in z for Move to Voxel Edge in x and y
-				x_extension = delta_zx * x_to_go;
-				y_extension = delta_zy * y_to_go;
-				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
-				{
-					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");
-					x_move = z_to_go / delta_zx;
-					y_move = z_to_go / delta_zy;
-					z_move = z_to_go;
-					x_to_go -= x_move * abs(x_move_direction);
-					y_to_go -= y_move * abs(y_move_direction);
-					//x_to_go -= z_to_go / delta_zx * abs(x_move_direction);
-					//y_to_go -= z_to_go / delta_zy * abs(y_move_direction);
-					z_to_go = VOXEL_THICKNESS;
-					voxel_z -= z_move_direction;
-					if( x_to_go == 0 )
-					{
-						voxel_x += x_move_direction;
-						x_to_go = VOXEL_WIDTH;
-					}
-					if(	y_to_go == 0 )
-					{
-						voxel_y -= y_move_direction;
-						y_to_go = VOXEL_HEIGHT;
-					}
-				}
-				//If Next Voxel Edge is in x or xy Diagonal
-				else if( x_extension <= y_extension )
-				{
-					//printf(" x_extension <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_yx * x_to_go;
-					z_move = delta_zx * x_to_go;
-					x_to_go = VOXEL_WIDTH;
-					y_to_go -= y_move * abs(y_move_direction);
-					z_to_go -= z_move * abs(z_move_direction);				
-					//y_to_go -= delta_yx * x_to_go * abs(y_move_direction);
-					//z_to_go -= delta_zx * x_to_go * abs(z_move_direction);
-					//x_to_go = VOXEL_WIDTH;
-					voxel_x += x_move_direction;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y -= y_move_direction;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = y_to_go / delta_yx;
-					y_move = y_to_go;
-					z_move = delta_zy * y_to_go;
-					x_to_go -= x_move * abs(x_move_direction);
-					y_to_go = VOXEL_HEIGHT;
-					z_to_go -= z_move * abs(z_move_direction);
-					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
-					//z_to_go -= delta_zy * y_to_go * abs(z_move_direction);
-					//y_to_go = VOXEL_HEIGHT;
-					voxel_y -= y_move_direction;
-				}
-				//x += x_move_direction * x_move;
-				//y += y_move_direction * y_move;
-				//z += z_move_direction * z_move;				
-				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					atomicAdd( &SM_counts[voxel], 1 );
-			}// end !end_walk 
-		}
-		else
-		{
-			//printf("z_exit[i] == z_entry[i]\n");
-			while( !end_walk )
-			{
-				// Change in x for Move to Voxel Edge in y
-				y_extension = y_to_go / delta_yx;
-				//If Next Voxel Edge is in x or xy Diagonal
-				if( x_to_go <= y_extension )
-				{
-					//printf(" x_to_go <= y_extension \n");
-					x_move = x_to_go;
-					y_move = delta_yx * x_to_go;	
-					x_to_go = VOXEL_WIDTH;
-					//y_to_go -= (delta_yx * x_to_go) * abs(y_move_direction);
-					y_to_go -= y_move * abs(y_move_direction);
-					voxel_x += x_move_direction;
-					if( y_to_go == 0 )
-					{
-						y_to_go = VOXEL_HEIGHT;
-						voxel_y -= y_move_direction;
-					}
-				}
-				// Else Next Voxel Edge is in y
-				else
-				{
-					//printf(" y_extension < x_extension \n");
-					x_move = y_to_go / delta_yx;
-					y_move = y_to_go;
-					x_to_go -= x_move * abs(x_move_direction);
-					//x_to_go -= y_to_go / delta_yx * abs(x_move_direction);
-					y_to_go = VOXEL_HEIGHT;
-					voxel_y -= y_move_direction;
-				}
-				//x += x_move_direction * x_move;
-				//y += y_move_direction * y_move;
-				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					atomicAdd( &SM_counts[voxel], 1 );
-			}// end: while( !end_walk )
-			//printf("i = %d", i );
-		}//end: else: z_entry[i] != z_exit[i] => z_entry[i] == z_exit[i]
-	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
-}
-void SM_edge_detection()
-{
-	puts("Performing edge-detection on SM_counts...");	
-
-	if( WRITE_SM_COUNTS )
-	{
-		cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-		write_array_to_disk("SM_counts", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, false );
+		case X_HULL		: std::copy( x_hull_h, x_hull_h + VOXELS, x_h );	break;
+		case FBP_IMAGE	: x_h = FBP_image_h;								break;
+		case HYBRID		: std::transform(FBP_image_h, FBP_image_h + VOXELS, x_hull_h, x_h, std::multiplies<float>() );
 	}
 
-	int* SM_differences_h = (int*) calloc( VOXELS, sizeof(int) );
-	int* SM_differences_d;	
-	cudaMalloc((void**) &SM_differences_d, SIZE_IMAGE_INT );
-	cudaMemcpy( SM_differences_d, SM_differences_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice );
-
-	dim3 dimBlock( SLICES );
-	dim3 dimGrid( COLUMNS, ROWS );   
-	carve_differences<<< dimGrid, dimBlock >>>( SM_differences_d, SM_counts_d );
-	
-	cudaMemcpy( SM_differences_h, SM_differences_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost );
-
-	int* SM_thresholds_h = (int*) calloc( SLICES, sizeof(int) );
-	int voxel;	
-	int max_difference = 0;
-	for( int slice = 0; slice < SLICES; slice++ )
-	{
-		for( int pixel = 0; pixel < COLUMNS * ROWS; pixel++ )
-		{
-			voxel = pixel + slice * COLUMNS * ROWS;
-			if( SM_differences_h[voxel] > max_difference )
-			{
-				max_difference = SM_differences_h[voxel];
-				SM_thresholds_h[slice] = SM_counts_h[voxel];
-			}
-		}
-		if( DEBUG_TEXT_ON )
-		{
-			//printf( "Slice %d : The maximum space_model difference = %d and the space_model threshold = %d\n", slice, max_difference, SM_thresholds_h[slice] );
-		}
-		max_difference = 0;
-	}
-
-	int* SM_thresholds_d;
-	unsigned int threshold_size = SLICES * sizeof(int);
-	cudaMalloc((void**) &SM_thresholds_d, threshold_size );
-	cudaMemcpy( SM_thresholds_d, SM_thresholds_h, threshold_size, cudaMemcpyHostToDevice );
-
-	SM_edge_detection_GPU<<< dimGrid, dimBlock >>>( SM_counts_d, SM_thresholds_d);
-	
-	puts("SM hull-detection complete.  Writing results to disk...");
-
-	cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-	cudaFree( SM_counts_d );
-	cudaFree( SM_differences_d );
-	cudaFree( SM_thresholds_d );
-
-	free(SM_differences_h);
-	free(SM_thresholds_h);
-	
-	if( WRITE_SM_HULL )
-		write_array_to_disk("x_SM", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );
-	if( MLP_HULL != SM_HULL)
-		free(SM_counts_h);	
+	if( WRITE_X_K0 )
+		write_array_to_disk("x_k0", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, VOXELS, true );
 }
-__global__ void SM_edge_detection_GPU( int* SM_counts, int* SM_threshold )
+void create_hull_image_hybrid()
 {
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	float x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
-	float y = ( ROWS/2 - row - 0.5 ) * VOXEL_HEIGHT;
-	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-	if( voxel < VOXELS )
-	{
-		if( SM_counts[voxel] > SM_SCALE_THRESHOLD * SM_threshold[slice] )
-			SM_counts[voxel] = 1;
-		else
-			SM_counts[voxel] = 0;
-		if( pow(x, 2) + pow(y, 2) >= pow(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
-			SM_counts[voxel] = 0;
-	}
-}
-void SM_edge_detection_2()
-{
-	puts("Performing edge-detection on SM_counts...");
-
-	// Copy the space modeled image from the GPU to the CPU and write it to file.
-	cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-	write_array_to_disk("SM_counts", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, false );
-
-	int* SM_differences_h = (int*) calloc( VOXELS, sizeof(int) );
+	/*int* SM_differences_h = (int*) calloc( VOXELS, sizeof(int) );
 	int* SM_differences_d;
 	cudaMalloc((void**) &SM_differences_d, SIZE_IMAGE_INT );
-	cudaMemcpy( SM_differences_d, SM_differences_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice );
+	cudaMemcpy( SM_differences_d, SM_differences_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice );*/
+
+	
 
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( COLUMNS, ROWS );   
 
-	carve_differences<<< dimGrid, dimBlock >>>( SM_differences_d, SM_counts_d );
-	cudaMemcpy( SM_differences_h, SM_differences_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost );
+	create_hull_image_hybrid_GPU<<< dimGrid, dimBlock >>>( x_hull_d, FBP_image_d );
+	cudaMemcpy( x_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
 
-	int* SM_thresholds_h = (int*) calloc( SLICES, sizeof(int) );
-	int voxel;	
-	int max_difference = 0;
-	for( int slice = 0; slice < SLICES; slice++ )
-	{
-		for( int pixel = 0; pixel < COLUMNS * ROWS; pixel++ )
-		{
-			voxel = pixel + slice * COLUMNS * ROWS;
-			if( SM_differences_h[voxel] > max_difference )
-			{
-				max_difference = SM_differences_h[voxel];
-				SM_thresholds_h[slice] = SM_counts_h[voxel];
-			}
-		}
-		printf( "Slice %d : The maximum space_model difference = %d and the space_model threshold = %d\n", slice, max_difference, SM_thresholds_h[slice] );
-		max_difference = 0;
-	}
-
-	int* SM_thresholds_d;
-	unsigned int threshold_size = SLICES * sizeof(int);
-	cudaMalloc((void**) &SM_thresholds_d, threshold_size );
-	cudaMemcpy( SM_thresholds_d, SM_thresholds_h, threshold_size, cudaMemcpyHostToDevice );
-
-	SM_edge_detection_GPU<<< dimGrid, dimBlock >>>( SM_counts_d, SM_thresholds_d);
-
-	puts("SM hull-detection complete.  Writing results to disk...");
-
-	cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-	cudaFree( SM_counts_d );
-	cudaFree( SM_differences_d );
-	cudaFree( SM_thresholds_d );
-
-	free(SM_differences_h);
-	free(SM_thresholds_h);
-	
-	if( WRITE_SM_HULL )
-		write_array_to_disk("x_SM", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );
-	if( MLP_HULL != SM_HULL)
-		free(SM_counts_h);	
+	if( WRITE_X_K0 )
+		write_array_to_disk("x_k0", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, VOXELS, true );
 }
-__global__ void SM_edge_detection_GPU_2( int* SM_counts, int* SM_differences )
+__global__ void create_hull_image_hybrid_GPU( bool*& x_hull, float*& FBP_image)
 {
 	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
 	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-	int difference, max_difference = 0;
-	if( (row != 0) && (row != ROWS - 1) && (column != 0) && (column != COLUMNS - 1) )
-	{
-		for( int current_row = row - 1; current_row <= row + 1; current_row++ )
-		{
-			for( int current_column = column - 1; current_column <= column + 1; current_column++ )
-			{
-				difference = SM_counts[voxel] - SM_counts[current_column + current_row * COLUMNS + slice * COLUMNS * ROWS];
-				if( difference > max_difference )
-					max_difference = difference;
-			}
-		}
-		SM_differences[voxel] = max_difference;
-	}
-	syncthreads();
-	int slice_threshold;
-	max_difference = 0;
-	for( int pixel = 0; pixel < COLUMNS * ROWS; pixel++ )
-	{
-		voxel = pixel + slice * COLUMNS * ROWS;
-		if( SM_differences[voxel] > max_difference )
-		{
-			max_difference = SM_differences[voxel];
-			slice_threshold = SM_counts[voxel];
-		}
-	}
-	syncthreads();
-	float x = ( column - COLUMNS/2 + 0.5 ) * VOXEL_WIDTH;
-	float y = ( ROWS/2 - row - 0.5 ) * VOXEL_HEIGHT;
-	if( voxel < VOXELS )
-	{
-		if( SM_counts[voxel] > SM_SCALE_THRESHOLD * slice_threshold )
-			SM_counts[voxel] = 1;
-		else
-			SM_counts[voxel] = 0;
-		if( pow(x, 2) + pow(y, 2) >= pow(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
-			SM_counts[voxel] = 0;
-	}
-}
-void hull_detection_finish()
-{
-	if( SC_ON )
-	{
-		cudaMemcpy(SC_hull_h,  SC_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
-		write_array_to_disk("x_sc", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
-	}
-	if( MSC_ON )
-		MSC_edge_detection();
-	if( SM_ON )
-		SM_edge_detection();
-}
-/************************************************************************************************************************************************************/
-template<typename T> void averaging_filter( T*& image_h, T*& image_d )
-{
-	bool is_hull = ( typeid(bool) == typeid(*image_d) );
-	T* new_value_d;
-	int new_value_size = VOXELS * sizeof(T);
-	cudaMalloc(&new_value_d, new_value_size );
-
-	dim3 dimBlock( SLICES );
-	dim3 dimGrid( COLUMNS, ROWS );   
-	averaging_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d, is_hull );
-	apply_averaging_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d );
-	cudaFree(new_value_d);
-}
-template<typename T> __global__ void averaging_filter_GPU( T* image, T* new_value, bool is_hull )
-{
-	int voxel_x = blockIdx.x;
-	int voxel_y = blockIdx.y;	
-	int voxel_z = threadIdx.x;
-	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-	int left_edge = max( voxel_x - AVG_FILTER_RADIUS, 0 );
-	int right_edge = min( voxel_x + AVG_FILTER_RADIUS, COLUMNS - 1);
-	int top_edge = max( voxel_y - AVG_FILTER_RADIUS, 0 );
-	int bottom_edge = min( voxel_y + AVG_FILTER_RADIUS, ROWS - 1);	
-	int neighborhood_voxels = ( right_edge - left_edge + 1 ) * ( bottom_edge - top_edge + 1 );
-	double sum_threshold = neighborhood_voxels * AVG_FILTER_THRESHOLD;
-	double sum = 0;
-	// Determine neighborhood sum for voxels whose neighborhood is completely enclosed in image
-	// Strip of size floor(AVG_FILTER_SIZE/2) around image perimeter must be ignored
-	for( int column = left_edge; column <= right_edge; column++ )
-		for( int row = top_edge; row <= bottom_edge; row++ )
-			sum += image[column + (row * COLUMNS) + (voxel_z * COLUMNS * ROWS)];
-	if( is_hull)
-		new_value[voxel] = ( sum > sum_threshold );
-	else
-		new_value[voxel] = sum / neighborhood_voxels;
-}
-template<typename T> __global__ void apply_averaging_filter_GPU( T* image, T* new_value )
-{
-	int voxel_x = blockIdx.x;
-	int voxel_y = blockIdx.y;	
-	int voxel_z = threadIdx.x;
-	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-	image[voxel] = new_value[voxel];
-}
-void convert_counts_to_hull( int*& counts, bool*& hull )
-{
-	hull = (bool*) calloc(VOXELS, sizeof(bool));
-	for( int i = 0; i < VOXELS; i++ )
-	{
-		hull[i] = counts[i];
-	}
-}
-void hull_selection()
-{
-	switch( MLP_HULL )
-	{
-		case SC_HULL  : x_hull_h = SC_hull_h;								break;
-		case MSC_HULL : convert_counts_to_hull( MSC_counts_h, x_hull_h );	break;
-		case SM_HULL  : convert_counts_to_hull( SM_counts_h, x_hull_h );	break;
-		case FBP_HULL : x_hull_h = FBP_hull_h;								break;
-	}
-	if( WRITE_X_HULL )
-		write_array_to_disk("x_hull", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
-	if( AVG_FILTER_ON )
-		averaging_filter( x_hull_h, x_hull_d );
-	if( WRITE_FILTERED_HULL )
-	{
-		cudaMemcpy(x_hull_h, x_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost) ;
-		write_array_to_disk( "x_hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
-	}
+	FBP_image[voxel] *= x_hull[voxel];
 }
 /************************************************************************************************************************************************************/
 /******************************************************** Memory Transfers, Maintenance, and Cleaning *******************************************************/
@@ -4711,7 +4866,7 @@ void initial_processing_memory_clean()
 }
 void post_cut_memory_clean()
 {
-	puts("Freeing unnecessary memory, resizing vectors  and shrinking vectors to just fit remaining histories...");
+	puts("Freeing unnecessary memory, resizing vectors, and shrinking vectors to fit just the remaining histories...");
 
 	free(failed_cuts_h );
 	free(stddev_rel_ut_angle_h);
@@ -4777,7 +4932,7 @@ void shrink_vectors( const int new_capacity )
 template<typename T> void write_array_to_disk( char* filename_base, const char* directory, const char* folder, T* data, const int x_max, const int y_max, const int z_max, const int elements, const bool single_file )
 {
 	char filename[256];
-	ofstream output_file;
+	std::ofstream output_file;
 	int index;
 	int num_files = z_max;
 	int z_start = 0;
@@ -4807,7 +4962,7 @@ template<typename T> void write_array_to_disk( char* filename_base, const char* 
 				}	
 				if( index >= elements )
 					break;
-				output_file << endl;
+				output_file << std::endl;
 			}
 			if( index >= elements )
 				break;
@@ -4817,10 +4972,10 @@ template<typename T> void write_array_to_disk( char* filename_base, const char* 
 		output_file.close();
 	}
 }
-template<typename T> void write_vector_to_disk( char* filename_base, const char* directory, const char* folder, vector<T> data, const int x_max, const int y_max, const int z_max, const bool single_file )
+template<typename T> void write_vector_to_disk( char* filename_base, const char* directory, const char* folder, std::vector<T> data, const int x_max, const int y_max, const int z_max, const bool single_file )
 {
 	char filename[256];
-	ofstream output_file;
+	std::ofstream output_file;
 	int elements = data.size();
 	int index;
 	int num_files = z_max;
@@ -4851,7 +5006,7 @@ template<typename T> void write_vector_to_disk( char* filename_base, const char*
 				}	
 				if( index >= elements )
 					break;
-				output_file << endl;
+				output_file << std::endl;
 			}
 			if( index >= elements )
 				break;
@@ -4861,7 +5016,7 @@ template<typename T> void write_vector_to_disk( char* filename_base, const char*
 		output_file.close();
 	}
 }
-template<typename T> void write_bin_WEPLs( char* filename_base, const char* directory, const char* folder, vector<int>& bin_indexes, vector<T>& WEPL_values )
+template<typename T> void write_bin_WEPLs( char* filename_base, const char* directory, const char* folder, std::vector<int>& bin_indexes, std::vector<T>& WEPL_values )
 {
 	char filename[256];
 	FILE* output_file;
@@ -4878,7 +5033,7 @@ template<typename T> void write_bin_WEPLs( char* filename_base, const char* dire
 	}
 	fclose (output_file);
 }
-void convert_bin_2_text_files()
+void bin_2_txt()
 {
 	initializations();	
 	count_histories();
@@ -4912,33 +5067,28 @@ void convert_bin_2_text_files()
 /************************************************************************************************************************************************************/
 /********************************************************************* Helper Functions *********************************************************************/
 /************************************************************************************************************************************************************/
-bool bad_data_angle( const int angle )
+bool is_bad_angle( const int angle )
 {
-	static const int bad_angles_array[] = {80, 84, 88, 92, 96, 100, 00, 180, 260, 264, 268, 272, 276};
-	vector<int> bad_angles(bad_angles_array, bad_angles_array + sizeof(bad_angles_array) / sizeof(bad_angles_array[0]) );
-	bool bad_angle = false;
-	for( unsigned int i = 0; i < bad_angles.size(); i++ )
-		if( angle == bad_angles[i] )
-			bad_angle = true;
-	return bad_angle;
+	static const int bad_angles[] = {0, 80, 84, 88, 92, 96, 100, 180, 260, 264, 268, 272, 276};
+	return std::binary_search( bad_angles, bad_angles + sizeof(bad_angles) / sizeof(int), angle );
 }
 int calculate_x_voxel(const float x_position, const int x_voxels, const float voxel_width )
 {
 	// x_range = COLUMNS * VOXEL_WIDTH / 2.0;//50
 	// voxel_x = (  x_position + x_range) / VOXEL_WIDTH;//-10+50/1 = 40
-	return floor( ( COLUMNS / 2.0 ) + ( x_position / VOXEL_WIDTH ) );
+	return int( ( COLUMNS / 2.0 ) + ( x_position / VOXEL_WIDTH ) );
 }
 int calculate_y_voxel(const float y_position, const int y_voxels, const float voxel_height )
 {
 	// y_range = ROWS * VOXEL_HEIGHT / 2.0;
 	// voxel_y = ( y_range - y_position ) / VOXEL_HEIGHT;
-	return floor( ( ROWS / 2.0) - ( y_position / VOXEL_HEIGHT ) );
+	return int( ( ROWS / 2.0) - ( y_position / VOXEL_HEIGHT ) );
 }
 int calculate_slice(const float z_position, const int z_voxels, const float voxel_thickness )
 {
 	// z_range = SLICES * VOXEL_THICKNESS / 2.0 
 	// voxel_z = ( z_range - z_position ) / VOXEL_THICKNESS
-	return  floor( ( SLICES / 2.0 ) - ( z_position / VOXEL_THICKNESS ) );
+	return  int( ( SLICES / 2.0 ) - ( z_position / VOXEL_THICKNESS ) );
 }
 void exit_program_if( bool early_exit)
 {
@@ -4961,14 +5111,78 @@ void stop_execution_timing()
 	execution_time = (end_time - start_time) / CLOCKS_PER_SEC;
 	printf( "Total execution time : %3f\n", double(execution_time) );		
 }
+void pause_execution()
+{
+	char user_response[20];
+	fgets(user_response, sizeof(user_response), stdin);
+}
 /************************************************************************************************************************************************************/
 /****************************************************************** Testing Functions ***********************************************************************/
 /************************************************************************************************************************************************************/
 void test_func()
 {
-	bool bool_comparison;
-	bool* bool_array;
-	//cout << (typeid(bool) == typeid(*bool_array)) << endl;
+	float x = -2.1415;
+	bool t = false;
+	float y = t * x;
+	std::cout << y << std::endl;
+	/*initialize_hull( SC_hull_h, SC_hull_d );
+	write_array_to_disk("x_sc_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	averaging_filter( SC_hull_h, SC_hull_d );
+	cudaMemcpy( SC_hull_h, SC_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost );
+	write_array_to_disk("x_sc_init_filt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );*/
+	////for( int i = 0; i < 100; i++ )
+	//	//SC_hull_h[i] += i;
+	//
+	//initialize_hull( MSC_counts_h, MSC_counts_d );
+	//std::transform( MSC_counts_h, MSC_counts_h + VOXELS, MSC_counts_h, SC_hull_h, std::logical_or<int> () );
+
+	//// std::logical_and<bool>() 
+	////std::logical_or<bool> ()
+	//// std::equal_to<int> ()
+	////for( int i = 0; i < 100; i++ )
+	//	//MSC_counts_h[i] += i;
+	//write_array_to_disk("x_sc_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	//write_array_to_disk("x_msc_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	//initialize_hull( FBP_image_h, FBP_image_d );
+	////for( int i = 0; i < 100; i++ )
+	//	//FBP_image_h[i] += i * (1.1);
+	//write_array_to_disk("x_fbp_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	//averaging_filter( FBP_image_h, FBP_image_d );
+	//cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
+	//write_array_to_disk("x_fbp_init_filt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, VOXELS, true );
+	/*std::cout << is_bad_angle( 60 ) << std::endl;
+	std::cout << is_bad_angle( 0 ) << std::endl;
+	std::cout << is_bad_angle( 120 ) << std::endl;
+	std::cout << is_bad_angle( 84 ) << std::endl;*/
+	/*bool bool_comparison = true;
+
+	int xy = -5 * (bool_comparison == false) + 3 * (!bool_comparison == false);
+	std::cout << bool_comparison%2 << " " << xy << std::endl;
+	int testarr[2][2] = {1,2, 3, 4};
+	bool bool_array[] = {1, 0, 1, 1};
+	float float_array[] = {1,2,3,4};
+	for( int i = 0; i < 4; i++ )
+		std::cout << bool_array[i] << float_array[i] << std::endl;
+	std::transform(bool_array, bool_array + 4, float_array, float_array, std::multiplies<float>() );
+	for( int i = 0; i < 4; i++ )
+		std::cout << float_array[i] << std::endl;
+	std::copy( bool_array, bool_array + 4, float_array );
+	for( int i = 0; i < 4; i++ )
+		std::cout << float_array[i] << std::endl;
+	bool_array[0] = 2;
+	bool_array[1] = -1;
+
+	bool bool_array2[] = {0,0,0,0};
+	bool_array2[0] = 2;
+	bool_array2[1] = -1;
+	for( int i = 0; i < 4; i++ )
+		std::cout << bool_array2[i] << " ";
+	std::cout << std::endl;
+
+	
+	std::cout << testarr[1][1] << " " << **(&testarr[1]+2) << " " << **(testarr) << std::endl;
+	std::cout << (bool_array2[0] == bool(2)) << std::endl;*/
+	//printf("%c", (typeid(bool)));
 	//initialize_hull(SC_hull_h, SC_hull_d);
 	//initialize_float_image(FBP_image_h, FBP_image_d);
 	//write_array_to_disk("x_sc_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
@@ -4981,8 +5195,7 @@ void test_func()
 	//write_array_to_disk("x_sc_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, VOXELS, true );
 	/*float x = 100;
 	bool yes = ( x < 10);
-	cout << "yes = " << yes << endl;
-	char user_response[20];
+	std::cout << "yes = " << yes << std::endl;
 	int* a_h = (int*) calloc( 3, sizeof(int) );
 	int* a_d;
 	cudaMalloc((void**) &a_d, 3*sizeof(int) );
@@ -5010,14 +5223,14 @@ void test_func2( int x)
 	//}
 	//for( int i = 0; i < num_elements; i++ )
 	//{
-	//	cout << series1[i] << endl;
-	//	cout << series2[i] << endl;
+	//	std::cout << series1[i] << std::endl;
+	//	std::cout << series2[i] << std::endl;
 	//}
 	////int series[5] = {1, 2, 3, 4, 5 };
-	////vector<int> vec (series, series + sizeof(series) / sizeof(int) );
+	////std::std::vector<int> vec (series, series + sizeof(series) / sizeof(int) );
 
 	//int result = inner_product(series1, series1 + num_elements, series2, init );
-	//cout << result << endl;
+	//std::cout << result << std::endl;
 }
 __device__ void test_func_device( int& x, int& y, int& z )
 {
