@@ -1,0 +1,74 @@
+﻿Build started 6/24/2014 3:51:23 AM.
+     1>Project "C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\pCT_Reconstruction.vcxproj" on node 2 (build target(s)).
+     1>InitializeBuildStatus:
+         Creating "Release\pCT_Reconstruction.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       AddCudaCompileDeps:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /D_MBCS /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\bin" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include" /I. /FIcuda_runtime.h /c C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu 
+       AddCudaCompilePropsDeps:
+       Skipping target "AddCudaCompilePropsDeps" because all output files are up-to-date with respect to the input files.
+       CudaBuild:
+         Compiling CUDA source file ..\pCT_Reconstruction.cu...
+         cmd.exe /C "C:\Users\Blake\AppData\Local\Temp\tmp8a90a6e64734481caa3b7248d62e822f.cmd"
+         "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_21,compute_20\" --use-local-env --cl-version 2010 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include"     --keep-dir Release -maxrregcount=0  --machine 32 --compile -cudart static     -D_MBCS -Xcompiler "/EHsc /W3 /nologo /O2 /Zi  /MD  " -o Release\pCT_Reconstruction.cu.obj "C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu"
+         
+         C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_21,compute_20\" --use-local-env --cl-version 2010 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include"     --keep-dir Release -maxrregcount=0  --machine 32 --compile -cudart static     -D_MBCS -Xcompiler "/EHsc /W3 /nologo /O2 /Zi  /MD  " -o Release\pCT_Reconstruction.cu.obj "C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu" 
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2472): warning : variable "R_0T" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2531): warning : variable "theta_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2543): warning : variable "phi_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2458): warning : variable "t_1_previous" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2458): warning : variable "v_1_previous" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2463): warning : variable "voxel_previous" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2472): warning : variable "R_0T" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2531): warning : variable "theta_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2543): warning : variable "phi_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2458): warning : variable "t_1_previous" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2458): warning : variable "v_1_previous" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2463): warning : variable "voxel_previous" was set but never used
+         
+         pCT_Reconstruction.cu
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(344): warning C4244: '+=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(404): warning C4244: '+=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(478): warning C4244: '+=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(598): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(729): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(899): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2460): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2461): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2462): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2570): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2607): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2608): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2609): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2735): warning C4305: '=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2773): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2784): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3882): warning C4800: 'int' : forcing value to bool 'true' or 'false' (performance warning)
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4082): warning C4244: 'return' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4089): warning C4244: 'return' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4096): warning C4244: 'return' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4124): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
+       Link:
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Release\pCT_Reconstruction.exe" /NOLOGO /LIBPATH:"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\lib\Win32" cudart.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Release\pCT_Reconstruction.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Release\pCT_Reconstruction.pdb" /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Release\pCT_Reconstruction.lib" /MACHINE:X86 Release\pCT_Reconstruction.cu.obj -LTCG 
+         LINK : /LTCG specified but no code generation required; remove /LTCG from the link command line to improve linker performance
+         pCT_Reconstruction.vcxproj -> C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Release\pCT_Reconstruction.exe
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Release\pCT_Reconstruction.exe;#1" /manifest Release\pCT_Reconstruction.exe.intermediate.manifest
+       FinalizeBuildStatus:
+         Deleting file "Release\pCT_Reconstruction.unsuccessfulbuild".
+         Touching "Release\pCT_Reconstruction.lastbuildstate".
+     1>Done Building Project "C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\pCT_Reconstruction.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:10.83

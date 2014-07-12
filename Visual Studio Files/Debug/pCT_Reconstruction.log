@@ -1,0 +1,58 @@
+﻿Build started 6/22/2014 3:48:57 AM.
+     1>Project "C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\pCT_Reconstruction.vcxproj" on node 2 (build target(s)).
+     1>InitializeBuildStatus:
+         Creating "Debug\pCT_Reconstruction.unsuccessfulbuild" because "AlwaysCreate" was specified.
+       AddCudaCompileDeps:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\bin" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\include" /I. /FIcuda_runtime.h /c C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu 
+       AddCudaCompilePropsDeps:
+       Skipping target "AddCudaCompilePropsDeps" because all output files are up-to-date with respect to the input files.
+       CudaBuild:
+         Compiling CUDA source file ..\pCT_Reconstruction.cu...
+         cmd.exe /C "C:\Users\Blake\AppData\Local\Temp\tmpcac462987dd647328e5ba26807bf4d52.cmd"
+         "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\bin\nvcc.exe" -gencode=arch=compute_30,code=\"sm_30,compute_30\" --use-local-env --cl-version 2010 -ccbin "c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\include"  -G   -maxrregcount=0  --machine 32 --compile -I. -g    -Xcompiler "/EHsc /nologo /Od /Zi  /MDd  " -o "Debug\pCT_Reconstruction.cu.obj" "C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu"
+         
+         C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\bin\nvcc.exe" -gencode=arch=compute_30,code=\"sm_30,compute_30\" --use-local-env --cl-version 2010 -ccbin "c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\include"  -G   -maxrregcount=0  --machine 32 --compile -I. -g    -Xcompiler "/EHsc /nologo /Od /Zi  /MDd  " -o "Debug\pCT_Reconstruction.cu.obj" "C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu" 
+         pCT_Reconstruction.cu
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2463): warning : variable "R_0T" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2522): warning : variable "theta_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2534): warning : variable "phi_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2449): warning : variable "t_1_previous" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2449): warning : variable "v_1_previous" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2454): warning : variable "voxel_previous" was set but never used
+         
+         tmpxft_000b09ec_00000000-0_pCT_Reconstruction.cudafe1.gpu
+         tmpxft_000b09ec_00000000-5_pCT_Reconstruction.cudafe2.gpu
+         pCT_Reconstruction.cu
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2463): warning : variable "R_0T" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2522): warning : variable "theta_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2534): warning : variable "phi_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2449): warning : variable "t_1_previous" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2449): warning : variable "v_1_previous" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2454): warning : variable "voxel_previous" was set but never used
+         
+         tmpxft_000b09ec_00000000-0_pCT_Reconstruction.cudafe1.cpp
+         tmpxft_000b09ec_00000000-11_pCT_Reconstruction.ii
+       Link:
+         c:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Debug\pCT_Reconstruction.exe" /NOLOGO /LIBPATH:"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v4.2\lib\Win32" cudart.lib cuda.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"Debug\pCT_Reconstruction.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Debug\pCT_Reconstruction.pdb" /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Debug\pCT_Reconstruction.lib" /MACHINE:X86 Debug\pCT_Reconstruction.cu.obj
+         LINK : C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Debug\pCT_Reconstruction.exe not found or not built by the last incremental link; performing full link
+         pCT_Reconstruction.vcxproj -> C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Debug\pCT_Reconstruction.exe
+       Manifest:
+         C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\Debug\pCT_Reconstruction.exe;#1" /manifest Debug\pCT_Reconstruction.exe.intermediate.manifest
+       FinalizeBuildStatus:
+         Deleting file "Debug\pCT_Reconstruction.unsuccessfulbuild".
+         Touching "Debug\pCT_Reconstruction.lastbuildstate".
+     1>Done Building Project "C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\pCT_Reconstruction.vcxproj" (build target(s)).
+
+Build succeeded.
+
+Time Elapsed 00:00:12.14

@@ -1,0 +1,864 @@
+\documentclass{article}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Included Packages %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%\usepackage{ams}               % basic American Mathematical Society commands;
+\usepackage{amsfonts}           %
+%\usepackage{accents}           % fixes dddots, ddddots, ... and other accent issues
+\usepackage{amssymb}            % AMS fonts for reals, complex numbers, etc
+\usepackage{amsmath}            % AMS matrix commands
+\usepackage{amsthm}
+%\usepackage{fouriernc}
+\usepackage{booktabs}           % professional table style
+\usepackage{bbm}                % alternative bold font representations
+\usepackage{calc}               % extends types of calculations possible with LaTeXCalc
+\usepackage{cancel}             % line through math
+\usepackage{caption}
+\usepackage{changepage}         % local margin change environment
+%\usepackage[usenames]{color}   % color
+\usepackage{courier}
+\usepackage{empheq}             % multiline boxes
+\usepackage{enumitem}           % provides more options and greater control of numering/lettering in enumerate environment
+\usepackage{fancyvrb}
+\usepackage{fancybox}
+\usepackage{fancyhdr}
+\usepackage{fancyref}
+\usepackage{float}
+\usepackage[nomessages]{fp}                 % perform simple arithmetic inside LaTeX
+%\usepackage[cm]{fullpage}
+\usepackage{gensymb}
+\usepackage{graphicx}           % new way of doing eps files
+\usepackage{graphpap}           % create graph paper in figures.
+\usepackage{hyperref}           % url links
+\usepackage{listings}           % nice code layout
+\usepackage{longtable}
+\usepackage{lscape}
+%\usepackage{mathabx}            % just for measured angle
+\usepackage{mathbbol}           % bold text
+\usepackage{mdframed}
+\usepackage{moreverb}           % verbatim tab environment
+%\usepackage[lite]{mtpro2}
+\usepackage{multirow}           % for \multirow
+%\usepackage{natbib}
+\usepackage{nicefrac}           % \nicefrac fraction command
+
+\usepackage{pifont}             % access to dingbat symbols
+\usepackage{relsize}            % relative size package
+\usepackage{rotating}           % for sideways
+\usepackage{scalerel}           % relative scale/stretch delimiters
+%\usepackage{setspace}
+\usepackage{soul}
+\usepackage{suffix}
+\usepackage{tabularx}
+
+\usepackage{txfonts}
+\usepackage{url}                % insert functional web links
+\usepackage{verbatim}           % multiline comments
+\usepackage[svgnames, table,
+    dvipsnames, usenames,
+    x11names, fixpdftex,
+    hyperref]{xcolor}           % provides access to color tables allowing usage of named colors
+\usepackage{xfrac}              % sfrac fraction command
+\usepackage{xparse}
+\usepackage{pgf}                % perform calculations
+\usepackage{wrapfig}
+
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usetikzlibrary{shapes.gates.logic.US,trees,positioning,arrows, graphs}
+\usepackage{tikz-cd}
+\usetikzlibrary{decorations.markings}
+\usetikzlibrary{arrows}
+%\usetikzlibrary{calc}
+%\usetikzlibrary{libraryquotes}
+%\usepackage{tikz-cd}
+\pagestyle{fancy}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Directory Settings and Definitions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Declare a graphics directory; removes the need for a directory in the filename argument of graphics commands
+\graphicspath{{./Images/}}
+\renewcommand{\qedsymbol}{$\blacksquare$}
+\DeclareCaptionLabelFormat{bf-parens}{Fig2.49}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Define Delimeter Commands %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% |x|:"Absolute value" delimiter; resizes delimiters to match argument height
+\DeclarePairedDelimiter\abs{\lvert}{\rvert}
+
+% ||x||: "Vector norm" (i.e. 2-norm) delimiter; resizes delimiters to match argument height
+\DeclarePairedDelimiter\norm{\lVert}{\rVert}
+
+% Swap the definition of \abs* and \norm*, so that \abs and \norm resize the delimiters to match the argument height, and the starred version does not.
+\makeatletter
+\let\oldabs\abs
+\def\abs{\@ifstar{\oldabs}{\oldabs*}}
+\let\oldnorm\norm
+\def\norm{\@ifstar{\oldnorm}{\oldnorm*}}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Import Symbol Font Families %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\DeclareFontFamily{U}{mathb}{\hyphenchar\font45}
+\DeclareFontShape{U}{mathb}{m}{n}{
+      <5> <6> <7> <8> <9> <10> gen * mathb
+      <10.95> mathb10 <12> <14.4> <17.28> <20.74> <24.88> mathb12
+      }{}
+\DeclareSymbolFont{mathb}{U}{mathb}{m}{n}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Import/Define Symbols from Alternative Font/Package %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+% Define subset characters from mathabx.dcl
+\DeclareMathSymbol{\phase}{0}{mathb}{"3E}
+%\DeclareMathSymbol{\varrightarrow}{3}{matha}{"D1}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Define Math Operators %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Define math operators/symbols
+\DeclareMathOperator{\degrees}{\ensuremath{^\circ}}
+\DeclareMathOperator{\fourier}{\mathcal{F}}
+\DeclareMathOperator{\dft}{\mathcal{F}_D}
+\DeclareMathOperator{\radon}{\mathcal{R}}
+\DeclareMathOperator{\ifourier}{\mathcal{F}^{-1}}
+\DeclareMathOperator{\laplace}{\mathcal{L}}
+\DeclareMathOperator{\ilaplace}{\mathcal{L}^{-1}}
+\DeclareMathOperator{\iradon}{\mathcal{R}^{-1}}
+\DeclareMathOperator{\idft}{\mathcal{D}^{-1}}
+\DeclareMathOperator{\sinc}{sinc}
+\DeclareMathOperator{\rect}{rect}
+\DeclareMathOperator{\tri}{\scaleobj{1.5}{\wedge}\kern -2pt}
+\DeclareMathOperator{\signum}{signum}
+\DeclareMathOperator{\sign}{sign}
+\DeclareMathOperator{\lcm}{lcm}
+\DeclareMathOperator{\lcd}{lcd}
+%\DeclareMathOperator{\phase}{\scaleobj{1.5}{\angle}\kern -2pt}
+\DeclareMathOperator{\ihat}{\boldsymbol{\hat{\textbf{\i}}}}
+\DeclareMathOperator{\jhat}{\boldsymbol{\hat{\textbf{\j}}}}
+\DeclareMathOperator{\khat}{\,\,\raisebox{2.5pt}{$\boldsymbol{\hat{\!\!}}$}\textbf{k}}
+%\newcommand{\khat}{\,\,\boldsymbol{\raisebox{2.5pt}{$\hat{\!\!}$}}\textbf{k}} % works, but the hat is slightly off the k's vertical line
+%\newcommand{\khat}{\,\,\boldsymbol{^{\hat{\!\!\!}}\mathbf{k}}} % works but hat is little smaller than it should be
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Define Starred Versions of Math Operators %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Automatically enclose operator argument in curly braces
+\WithSuffix\newcommand{\fourier}*[1]{\fourier\left\{#1\right\}}
+\WithSuffix\newcommand{\laplace}*[1]{\laplace\left\{#1\right\}}
+\WithSuffix\newcommand{\dft}*[1]{\dft\left\{#1\right\}}
+\WithSuffix\newcommand{\radon}*[1]{\radon\left\{#1\right\}}
+\WithSuffix\newcommand{\ifourier}*[1]{\ifourier\left\{#1\right\}}
+\WithSuffix\newcommand{\ilaplace}*[1]{\ilaplace\left\{#1\right\}}
+\WithSuffix\newcommand{\idft}*[1]{\idft\left\{#1\right\}}
+\WithSuffix\newcommand{\iradon}*[1]{\iradon\left\{#1\right\}}
+
+% Automatically enclose operator argument in parenthesis
+\WithSuffix\newcommand{\exp}*[1]{\exp\left(#1\right)}
+\WithSuffix\newcommand{\sinc}*[1]{\sinc\left(#1\right)}
+\WithSuffix\newcommand{\rect}*[1]{\rect\left(#1\right)}
+\WithSuffix\newcommand{\sin}*[1]{\sin\left(#1\right)}
+\WithSuffix\newcommand{\cos}*[1]{\cos\left(#1\right)}
+\WithSuffix\newcommand{\tan}*[1]{\tan\left(#1\right)}
+\WithSuffix\newcommand{\csc}*[1]{\csc\left(#1\right)}
+\WithSuffix\newcommand{\sec}*[1]{\sec\left(#1\right)}
+\WithSuffix\newcommand{\cot}*[1]{\cot\left(#1\right)}
+\WithSuffix\newcommand{\asin}*[1]{\arcsin\left(#1\right)}
+\WithSuffix\newcommand{\acos}*[1]{\arccos\left(#1\right)}
+\WithSuffix\newcommand{\atan}*[1]{\arctan\left(#1\right)}
+\WithSuffix\newcommand{\signum}*[1]{\signum\left(#1\right)}
+\WithSuffix\newcommand{\sign}*[1]{\sign\left(#1\right)}
+\WithSuffix\newcommand{\phase}*[1]{\phase\left(#1\right)}
+
+% Automatically enclose operator argument in square brackets
+\WithSuffix\newcommand{\sqexp}*[1]{\exp\left[#1\right]}
+\WithSuffix\newcommand{\sqsinc}*[1]{\sinc\left[#1\right]}
+\WithSuffix\newcommand{\sqrect}*[1]{\rect\left[#1\right]}
+\WithSuffix\newcommand{\sqsin}*[1]{\sin\left[#1\right]}
+\WithSuffix\newcommand{\sqcos}*[1]{\cos\left[#1\right]}
+\WithSuffix\newcommand{\sqtan}*[1]{\tan\left[#1\right]}
+\WithSuffix\newcommand{\sqcsc}*[1]{\csc\left[#1\right]}
+\WithSuffix\newcommand{\sqsec}*[1]{\sec\left[#1\right]}
+\WithSuffix\newcommand{\sqcot}*[1]{\cot\left[#1\right]}
+\WithSuffix\newcommand{\sqasin}*[1]{\arcsin\left[#1\right]}
+\WithSuffix\newcommand{\sqacos}*[1]{\arccos\left[#1\right]}
+\WithSuffix\newcommand{\sqatan}*[1]{\arctan\left[#1\right]}
+\WithSuffix\newcommand{\sqsignum}*[1]{\signum\left[#1\right]}
+\WithSuffix\newcommand{\sqsign}*[1]{\sign\left[#1\right]}
+\WithSuffix\newcommand{\sqphase}*[1]{\phase\left[#1\right]}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Define Math Accent and Symbol Combination Commands %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%Define default, bold, hat, and wide hat vectors
+\newcommand{\avector}[1]{\boldsymbol{#1}}
+\newcommand{\boldvector}[1]{\mathbf{#1}}
+\newcommand{\hatvector}[1]{\boldsymbol{\mathbf{\hat{#1}}}}
+\newcommand{\widehatvector}[1]{\boldsymbol{\mathbf{\widehat{#1}}}}
+
+% Place symbols above/below arrows
+\newcommand{\overrarrow}[1]{{\buildrel{#1}\over\longrightarrow\;}}
+\newcommand{\overlarrow}[1]{{\buildrel{#1}\over\longleftarrow\;}}
+\newcommand{\overdarrow}[1]{{\buildrel{#1}\over\longleftrightarrow\;}}
+\newcommand{\underrarrow}[1]{{\buildrel{#1}\under\longrightarrow\;}}
+\newcommand{\underlarrow}[1]{{\buildrel{#1}\under\longleftarrow\;}}
+\newcommand{\underdarrow}[1]{{\buildrel{#1}\under\longleftrightarrow\;}}
+
+% Fix dot placement and raised argument issues with dddot, ddddot, ...
+\makeatletter
+\renewcommand{\dddot}[1]{%
+  {\mathop{\kern\z@#1}\limits^{\vbox to-1.4\ex@{\kern-\tw@\ex@
+   \hbox{\normalfont ...}\vss}}}}
+\renewcommand{\ddddot}[1]{%
+  {\mathop{\kern\z@#1}\limits^{\vbox to-1.4\ex@{\kern-\tw@\ex@
+   \hbox{\normalfont....}\vss}}}}
+\makeatother
+
+% Adjust the size of the dot on dot/ddot/dddot/ddddot commands, particularly for use with matrices
+\newsavebox{\hght}
+\newsavebox{\scalefac}
+\newcommand\dotmtx[2]{\savebox{\hght}{$\FPeval{\result}{1/#1}\scaleobj{\result}{#2}$}\scaleobj{#1}{\dot{\raisebox{0pt}[\ht\hght]{$\FPeval{\result}{1/#1}\scaleobj{\result}{#2}$}}}}
+\newcommand\ddotmtx[2]{\savebox{\hght}{$\FPeval{\result}{1/#1}\scaleobj{\result}{#2}$}\scaleobj{#1}{\ddot{\raisebox{0pt}[\ht\hght]{$\FPeval{\result}{1/#1}\scaleobj{\result}{#2}$}}}}
+\newcommand\dddotmtx[2]{\savebox{\hght}{$\FPeval{\result}{1/#1}\scaleobj{\result}{#2}$}\scaleobj{#1}{\dddot{\raisebox{0pt}[\ht\hght]{$\FPeval{\result}{1/#1}\scaleobj{\result}{#2}$}}}}
+\newcommand\ddddotmtx[2]{\savebox{\hght}{$\FPeval{\result}{1/#1}\scaleobj{\result}{#2}$}\scaleobj{#1}{\ddddot{\raisebox{0pt}[\ht\hght]{$\FPeval{\result}{1/#1}\scaleobj{\result}{#2}$}}}}
+%\def\dotmtx#1{\savebox{\hght}{$\scaleobj{.5}{#1}$}\scaleobj{2}{\dot{\raisebox{0pt}[\ht\hght]{$\scaleobj{.5}{#1}$}}}}
+%\def\ddotmtx#1{\savebox{\hght}{$\scaleobj{.5}{#1}$}\scaleobj{2}{\ddot{\raisebox{0pt}[\ht\hght]{$\scaleobj{.5}{#1}$}}}}
+%\def\dddotmtx#1{\savebox{\hght}{$\scaleobj{.5}{#1}$}\scaleobj{2}{\dddot{\raisebox{0pt}[\ht\hght]{$\scaleobj{.5}{#1}$}}}}
+%\def\ddddotmtx#1{\savebox{\hght}{$\scaleobj{.5}{#1}$}\scaleobj{2}{\ddddot{\raisebox{0pt}[\ht\hght]{$\scaleobj{.5}{#1}$}}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Define Box and Page Commands %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Insert a blank page
+\newcommand{\blankpage}{
+\newpage
+\thispagestyle{empty}
+\mbox{}
+\newpage
+}
+
+% Used to box an equation and maintain alignment with other equations inside an aligned multiline equation environment
+% such as align/eqnarray without using the "&" character since alignment characters are not allowed in boxed argument
+\newlength\dlf
+\newcommand\alignedbox[2]{
+  % #1 = before alignment character
+  % #2 = after alignment character
+  &
+  \begingroup
+  \settowidth\dlf{$\displaystyle #1$}
+  \addtolength\dlf{\fboxsep+\fboxrule}
+  \hspace{-\dlf}
+  \boxed{#1 #2}
+  \endgroup
+}
+
+% Color the shadowbox rule
+\makeatletter
+\newcommand\Cshadowbox{\VerbBox\@Cshadowbox}
+\def\@Cshadowbox#1{%
+  \setbox\@fancybox\hbox{\fcolorbox{ShadowRule}{BaylorGoldCMYK}{\textcolor{Black}{#1}}}%
+  \leavevmode\vbox{%
+    \offinterlineskip
+    \dimen@=\shadowsize
+    %\fboxrule = 4.5mm
+    %\fboxsep = 1.5mm
+    \advance\dimen@ .5\fboxrule
+    \hbox{\copy\@fancybox\kern.5\fboxrule\lower\shadowsize\hbox{%
+      \color{BaylorGreenCMYK}\vrule \@height\ht\@fancybox \@depth\dp\@fancybox \@width\dimen@}}%
+    \vskip\dimexpr-\dimen@+0.5\fboxrule\relax
+    \moveright\shadowsize\vbox{%
+      \color{BaylorGreenCMYK}\hrule \@width\wd\@fancybox \@height\dimen@}}}
+\makeatother
+
+% Color the shadowbox rule
+\makeatletter
+\newcommand\Cshadowtitle{\VerbBox\@Cshadowtitle}
+\def\@Cshadowtitle#1{%
+  \setbox\@fancybox\hbox{\fcolorbox{ShadowRule}{BaylorGoldCMYK}{\fboxrule = 0.4mm\fcolorbox{BaylorGreenCMYK}{White}{\textcolor{Black}{#1}}}}%
+  \leavevmode\vbox{%
+    \offinterlineskip
+    \dimen@=\shadowsize
+    %\fboxrule = 4.5mm
+    %\fboxsep = 1.5mm
+    \advance\dimen@ .5\fboxrule
+    \hbox{\copy\@fancybox\kern.5\fboxrule\lower\shadowsize\hbox{%
+      \color{BaylorGreenCMYK}\vrule \@height\ht\@fancybox \@depth\dp\@fancybox \@width\dimen@}}%
+    \vskip\dimexpr-\dimen@+0.5\fboxrule\relax
+    \moveright\shadowsize\vbox{%
+      \color{BaylorGreenCMYK}\hrule \@width\wd\@fancybox \@height\dimen@}}}
+\makeatother
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Custom Colors %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Define colors by name
+\definecolor{listinggray}{gray}{0.9}
+\definecolor{graphgray}{gray}{0.7}
+\definecolor{ans}{rgb}{1,0,0}
+\definecolor{blue}{rgb}{0,0,1}
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{java_keyword}{rgb}{1, 0, 0.67}
+\definecolor{javapurple}{rgb}{0.5,0,0.35}
+\definecolor{BaylorGreen}{HTML}{2B4C3F}
+\definecolor{BaylorGreen2}{HTML}{00190B}
+\definecolor{BaylorGreenS}{HTML}{003015} %standard
+\definecolor{BaylorGreenL}{HTML}{005525} %lighter
+\definecolor{BaylorGreenD}{HTML}{002510} %darker
+\definecolor{BaylorGold}{HTML}{FCB514}
+\definecolor{BaylorGold2}{HTML}{FECB00}
+\definecolor{BaylorGoldRGB}{RGB}{255,188,25}
+\definecolor{BaylorGoldCMYK}{cmyk}{0.0,0.21,1.00,0.00}
+\definecolor{BaylorGreenRGB}{RGB}{0,48,21}
+\definecolor{BaylorGreenCMYK}{cmyk}{0.80,0.00,0.63,0.75}
+\definecolor{ShadowColor}{HTML}{2B4C3F}
+\definecolor{ShadowRule}{HTML}{FFFFFF}
+\definecolor{ShadowFill}{HTML}{FCB514}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Custom environment definitions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\newenvironment{colframe}
+{%
+    \begin{Sbox}
+        \begin{minipage}{.8\columnwidth}
+        \end{minipage}
+    \end{Sbox}
+    \begin{center}
+        \fcolorbox{black}{listinggray}{\TheSbox}
+    \end{center}
+}{}
+\newenvironment{baylortitle}[5]
+{
+        \begin{figure}[t!]
+            \centering
+            \Cshadowbox{\includegraphics[width=0.8\textwidth]{C:/Users/Blake/Documents/School/Baylor/logos/Baylor_vert.png}}
+        \end{figure}
+        \title
+        {
+            \centering
+            \vspace{-15mm}
+            \Cshadowtitle{#1: #2}\\
+            \vspace{3mm}\hrule\hrule\vspace{1mm}\hrule\hrule\vspace{3mm}
+            \parbox{\textwidth}
+            {
+                \centering
+                #3, #4\\
+                #5
+            }
+            \vspace{2mm}\hrule\hrule\vspace{1mm}\hrule\hrule
+        }
+        \author{\vspace{5mm}Blake Edward Schultze}
+        \date{\vspace{-7mm}\today}
+        \begin{figure}[b!]
+            \centering
+            \Cshadowbox{\includegraphics[width=0.8\textwidth]{C:/Users/Blake/Documents/School/Baylor/logos/EngineeringLOGOweb.jpg}}
+        \end{figure}
+    %\chead{\includegraphics[width=0.25\textwidth]{C:/Users/Blake/Documents/School/Baylor/Logos/Baylor_IM_horz.png}}
+}{\maketitle\thispagestyle{empty}\clearpage\setcounter{page}{1}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Custom programming language display settings %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Define how Java code is displayed when .java files are included in document
+\lstset{ %
+    language=Java,                      % the language of the code
+    basicstyle=\footnotesize,           % the size of the fonts that are used for the code
+    numbers=left,                       % where to put the line-numbers
+    numberstyle=\tiny\color{gray},      % the style that is used for the line-numbers
+    stepnumber=2,                       % the step between two line-numbers. If it's 1, each line will be numbered
+    numbersep=5pt,                      % how far the line-numbers are from the code
+    backgroundcolor=\color{white},      % choose the background color. You must add \usepackage{color}
+    showspaces=false,                   % show spaces adding particular underscores
+    showstringspaces=false,             % underline spaces within strings
+    showtabs=false,                     % show tabs within strings adding particular underscores
+    frame=single,                       % adds a frame around the code
+    rulecolor=\color{black},            % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. commens (green here))
+    tabsize=2,                          % sets default tabsize to 2 spaces
+    captionpos=top,                     % sets the caption-position to bottom
+    breaklines=true,                    % sets automatic line breaking
+    breakatwhitespace=false,            % sets if automatic breaks should only happen at whitespace
+%   title=\lstname,                     % show the filename of files included with \lstinputlisting; also try caption instead of title
+    caption=\lstname,                   % can be used instead of title
+    keywordstyle=\color{java_keyword},  % keyword style
+    commentstyle=\color{dkgreen},       % comment style
+    stringstyle=\color{blue},           % string literal style
+    escapeinside={\%*}{*)},             % if you want to add a comment within your code
+    morekeywords={*,...}                % if you want to add more keywords to the set
+}
+% Define how C++ code is displayed when .cpp/.h files are included in document
+\lstset{ %
+    language=C++,                         % the language of the code
+    basicstyle=\footnotesize,             % the size of the fonts that are used for the code
+    numbers=left,                         % where to put the line-numbers
+    numberstyle=\tiny\color{gray},        % the style that is used for the line-numbers
+    stepnumber=2,                         % the step between two line-numbers. If it's 1, each line will be numbered
+    numbersep=5pt,                        % how far the line-numbers are from the code
+    backgroundcolor=\color{white},        % choose the background color. You must add \usepackage{color}
+    showspaces=false,                     % show spaces adding particular underscores
+    showstringspaces=false,               % underline spaces within strings
+    showtabs=false,                       % show tabs within strings adding particular underscores
+    frame=single,                         % adds a frame around the code
+    rulecolor=\color{black},              % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. comments (green here))
+    tabsize=2,                            % sets default tabsize to 2 spaces
+    captionpos=b,                         % sets the caption-position to bottom
+    breaklines=true,                      % sets automatic line breaking
+    breakatwhitespace=false,              % sets if automatic breaks should only happen at whitespace
+    title=\lstname,                       % show the filename of files included with \lstinputlisting; also try caption instead of title
+    % caption=\lstname,                     % can be used instead of title
+    keywordstyle=\color{java_keyword},    % keyword style
+    commentstyle=\color{dkgreen},         % comment style
+    stringstyle=\color{blue},             % string literal style
+    escapeinside={\%*}{*)},               % if you want to add a comment within your code
+    morekeywords={*,...}                  % if you want to add more keywords to the set
+}
+% Define how Verilog code is displayed when .v files are included in document
+\lstset{ %
+    language=Verilog,                     % the language of the code
+    basicstyle=\footnotesize,             % the size of the fonts that are used for the code
+    numbers=left,                         % where to put the line-numbers
+    numberstyle=\tiny\color{gray},        % the style that is used for the line-numbers
+    stepnumber=2,                         % the step between two line-numbers. If it's 1, each line will be numbered
+    numbersep=5pt,                        % how far the line-numbers are from the code
+    backgroundcolor=\color{white},        % choose the background color. You must add \usepackage{color}
+    showspaces=false,                     % show spaces adding particular underscores
+    showstringspaces=false,               % underline spaces within strings
+    showtabs=false,                       % show tabs within strings adding particular underscores
+    frame=single,                         % adds a frame around the code
+    rulecolor=\color{black},              % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. commens (green here))
+    tabsize=2,                            % sets default tabsize to 2 spaces
+    captionpos=b,                         % sets the caption-position to bottom
+    breaklines=true,                      % sets automatic line breaking
+    breakatwhitespace=false,              % sets if automatic breaks should only happen at whitespace
+    title=\lstname,                       % show the filename of files included with \lstinputlisting; also try caption instead of title
+    % caption=\lstname,                     % can be used instead of title
+    keywordstyle=\color{java_keyword},    % keyword style
+    commentstyle=\color{dkgreen},         % comment style
+    stringstyle=\color{blue},             % string literal style
+    escapeinside={\%*}{*)},               % if you want to add a comment within your code
+    morekeywords={*,...}                  % if you want to add more keywords to the set
+}
+% Usage: \Matlab{number the first line as}{first line in file}{last line in file}{title}{caption}{label}{file}
+\newcommand{\Matlab}[6]{
+    \lstset
+    {
+        backgroundcolor=\color{listinggray},    % choose the background color. You must add \usepackage{color}
+        basicstyle=\footnotesize,               % the size of the fonts that are used for the code
+        breakatwhitespace=false,                % sets if automatic breaks should only happen at whitespace
+        breaklines=true,                        % sets automatic line breaking
+      % caption=\lstname,                       % can be used instead of title
+        captionpos=b,                           % sets the caption-position to bottom
+        commentstyle=\color{dkgreen}\textit,    % comment style
+        deletekeywords={...},                   % if you want to delete keywords from the given language
+        escapeinside={\%*}{*)},                 % if you want to add a comment within your code
+        extendedchars=true,              % lets you use non-ASCII characters; for 8-bits encodings only, does not work with UTF-8
+        fillcolor = \color{BaylorGold},
+        frame=shadowbox,                           % adds a frame around the code
+        frameround=tttt,
+        framerule=4mm ,
+        framesep=-5mm ,
+        %frameshape={RYRYNYYYY}{yny}{yny}{RYRYNYYYY},
+        framexleftmargin=0mm,
+        keepspaces=true,                        % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
+        keywordstyle= \bfseries\color{java_keyword},     % keyword style
+        language=Matlab,                        % the language of the code
+        linewidth=\textwidth,                   % define width of code listing on page
+        morekeywords=
+        {
+            plotspec, TF, feedback, step, double, solve, ss, ss2TF, pzmap, lsim, xlim, ylim, sgrid, stepinfo, stepplot, sym, damp, texlabel, rlocus, rlocusplot, linmod, TFdata, stepDataOptions, mtit, fir1, freqz, srrc, plotspec2, myeye, interpsinc, quantalph, letters2pam, pam2letters, simplify, expand, syms, bode, bodeplot
+        },                                      % if you want to add more keywords to the set
+        numbers=left,                           % where to put the line-numbers
+        numbersep=5pt,                          % how far the line-numbers are from the code
+        numberstyle=\tiny\bfseries\color{BaylorGreen},          % the style that is used for the line-numbers
+        rulecolor=\color{BaylorGreen},                 % if not set, the frame-color may be changed on line-breaks within not-black text (e.g. commens (green here))
+        rulesepcolor=\color{BaylorGreen},
+        rulesep = 0.5mm,
+        showspaces=false,                       % show spaces adding particular underscores
+        showstringspaces=false,                 % underline spaces within strings
+        showtabs=false,                         % show tabs within strings adding particular underscores
+        stepnumber=1,                           % the step between two line-numbers. If it's 1, each line will be numbered
+        stringstyle=\upshape\color{blue},       % string literal style
+        tabsize=2,                              % sets default tabsize to 2 spaces
+        title=\lstname                          % show the filename of files included with \lstinputlisting; also try caption instead of title
+    }
+    \lstinputlisting[firstnumber = {#1}, firstline= {#2}, lastline = {#3}, caption={#4}, label={#5}]{#6}
+}
+%\usetikzlibrary{shadows,arrows}
+%% Define the layers to draw the diagram
+%\pgfdeclarelayer{background}
+%\pgfdeclarelayer{foreground}
+%\pgfsetlayers{background,main,foreground}
+%
+%% Define block styles
+%\tikzstyle{materia}=[draw, fill=blue!20, text width=6.0em, text centered,
+%  minimum height=1.5em,drop shadow]
+%\tikzstyle{practica} = [materia, text width=8em, minimum width=10em,
+%  minimum height=3em, rounded corners, drop shadow]
+%\tikzstyle{texto} = [above, text width=6em, text centered]
+%\tikzstyle{linepart} = [draw, thick, color=black!50, -latex', dashed]
+%\tikzstyle{line} = [draw, thick, color=black!50, -latex']
+%\tikzstyle{ur}=[draw, text centered, minimum height=0.01em]
+%
+%% Define distances for bordering
+%\newcommand{\blockdist}{1.3}
+%\newcommand{\edgedist}{1.5}
+%
+%\newcommand{\practica}[2]{node (p#1) [practica]
+%  {Pr\'actica #1\\{\scriptsize\textit{#2}}}}
+%
+%% Draw background
+%\newcommand{\background}[5]{%
+%  \begin{pgfonlayer}{background}
+%    % Left-top corner of the background rectangle
+%    \path (#1.west |- #2.north)+(-0.5,0.5) node (a1) {};
+%    % Right-bottom corner of the background rectanle
+%    \path (#3.east |- #4.south)+(+0.5,-0.25) node (a2) {};
+%    % Draw the background
+%    \path[fill=yellow!20,rounded corners, draw=black!50, dashed]
+%      (a1) rectangle (a2);
+%    \path (a1.east |- a1.south)+(0.8,-0.3) node (u1)[texto]
+%      {\scriptsize\textit{Unidad #5}};
+%  \end{pgfonlayer}}
+%
+%\newcommand{\transreceptor}[3]{%
+%  \path [linepart] (#1.east) -- node [above]
+%    {\scriptsize Transreceptor #2} (#3);}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Document Body %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{document}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Create Title Page With Graphics %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{tikzpicture}[
+task/.style={
+% The shape:
+rectangle,
+% The size:
+minimum size=6mm,
+% The border:
+very thick,
+draw=red!50!black!50, % 50% red and 50% black,
+% and that mixed with 50% white
+% The filling:
+top color=white, % a shading that is white at the top...
+bottom color=red!50!black!20, % and something else at the bottom
+% Font
+font=\itshape
+},
+point/.style={circle,inner sep=0pt,minimum size=2pt,fill=red},
+skip loop/.style={to path={-- ++(0,#1) -| (\tikztotarget)}}]
+\matrix[row sep=5mm,column sep=1cm] 
+{
+                                        &\node (12) [point] {};                     &                                                                   &                                   &\\
+                                        &\node (22) [point] {};                     &                                                                   &                                   &\node (25) [point] {};\\
+                                        &\node (32) [task] {Read Data};             &                                                                   &                                   &\\
+                                        &\node (42) [task] {utv-xyz Conversion};    &                                                                   &                                   &\\
+\node (51) [point] {};                  &\node (52) [point] {};                     &\node (53) [point] {};                                             &                                   &\\
+\node (61) [task] {Data Rejection};     &                                           &\node[text width = 3cm, align = center] (63) [task] {Reconstruction Volume:\\ entry/exit + cuts};   &  &\\
+                                        &                                           &\node[text width = 3cm, align = center] (73) [task] {Binning};     &                                   &\\
+\node (81) [point] {};                  &\node (82) [point] {};                     &\node(83) [point] {};                                              &[-1cm]\node(84) [point] {};        &\\
+                                        &\node (92) [task] {Hull-Detection};        &                                                                   &                                   &\\
+                                        &\node (102) [point] {};                    &\node (103) [point] {};                                            &\node (104) [point] {};            &\\
+                                        &\node (112) [point] {};                    &\node (113) [point] {};                                            &                                   &\node (115) [point] {};\\
+\node (121) [point] {};                 &\node (122) [point] {};                    &\node (123) [point] {};                                            &                                   &\\
+\node (131) [task] {Edge Detection};    &                                           &                                                                   &                                   &\\
+\node (141) [point] {};                 &\node (142) [point] {};                    &\node (143) [point] {};                                            &                                   &\\
+\node (151) [point] {};                 &\node (152) [point] {};                    &\node (153) [point] {};                                            &                                   &\\
+                                        &                                           &\node (163) [task] {Stats + Cuts};                                 &                                   &\\
+\node (171) [point] {};                 &\node (172) [point] {};                    &\node (173) [point] {};                                            &                                   &\\
+\node (181) [point] {};                 &\node (182) [point] {};                    &\node (183) [point] {};                                            &                                   &\\
+                                        &                                           &\node (193) [task] {FBP};                                          &                                   &\\
+\node (201) [point] {};                 &\node (202) [point] {};                    &\node (203) [point] {};                                            &                                   &\\
+                                        &\node (212) [task] {MLP};                  &                                                                   &                                   &\\
+                                        &\node (222) [task] {Define $A, b, x_0$};   &                                                                   &                                   &\\
+};
+\graph [use existing nodes]
+{
+12 -- 22 -> 32 -> 42 -> 52 -- {51,53};
+51 -> 61 -- 81 -- 82;
+53 -> 63 -> 73 -> 83 -- {82,84};
+82 -> 92 -- 102 -- 103;
+84 -- 104 -- 103;
+103 -> 113 -- {112, 115};
+112 -> 122 -- {121,123};
+115 -- 25 -> 22;
+121 -> 131 -- 141 -- 142;
+123 -- 143 -- 142;
+142 -> 152 -- {151,153};
+151 -- 171 -- 172;
+153 -> 163 -- 173 -- 172;
+172 -> 182 -- {181, 183};
+181 -- 201 -- 202;
+183 -> 193 -- 203 -- 202 -> 212 -> 222;
+%p1 -> ui1 -- p2 -> dot -- p3 -> digit -- p4 -- p5 -- p6 -> e -- p7 -- p8 -> ui2 -- p9 -> p10;
+%p4 ->[skip loop=-5mm] p3;
+%p2 ->[skip loop=5mm] p5;
+%p6 ->[skip loop=-11mm] p9;
+%p7 ->[vh path] { plus, minus } -> [hv path] p8;
+};
+\end{tikzpicture}
+\newpage
+\begin{tikzpicture}[
+task/.style={
+% The shape:
+rectangle,
+% The size:
+minimum size=6mm,
+% The border:
+very thick,
+draw=red!50!black!50, % 50% red and 50% black,
+% and that mixed with 50% white
+% The filling:
+top color=white, % a shading that is white at the top...
+bottom color=red!50!black!20, % and something else at the bottom
+% Font
+font=\itshape
+},
+point/.style={circle,inner sep=0pt,minimum size=2pt,fill=red},
+skip loop/.style={to path={-- ++(0,#1) -| (\tikztotarget)}}]
+\matrix[row sep=5mm,column sep=1mm]
+{
+                                        &\node (12) [point] {};                     &[-0mm]                                 &                          &\\
+                                        &\node (22) [point] {};                     &[-0mm]                                 &                          &&&&&&&&&&&&\node (25) [point] {};\\
+                                        &\node (32) [task] {Read Data};             &[-0mm]                                 &                          &\\
+                                        &\node (42) [task] {utv-xyz Conversion};    &[-0mm]                                 &                          &\\
+\node (51) [point] {};                  &\node (52) [point] {};                     &\node (53) [point] {};                 &                          &\\
+\node (61) [task] {Data Rejection};     &                                           &\node[text width = 3cm, align = center] (63) [task] {Reconstruction Volume:\\ entry/exit + cuts};&&\\
+                                        &                                           &\node[text width = 3cm, align = center] (73) [task] {Binning};&   &\\
+\node (81) [point] {};                  &\node (82) [point] {};                     &\node (83) [point] {};                 &\node(84) [point] {};     &\\
+                                        &\node (92) [task] {Hull-Detection};        &                                       &                          &\\
+                                        &\node (102) [point] {};                    &\node (103) [point] {};                &\node (104) [point] {};   &\\
+\node (112) [point] {};                 &[-0mm]\node (1132) [point] {};             &\node (113) [point] {};                &                          &&&&&&&&&&&&\node (115) [point] {};\\
+\node (122) [point] {};                 &[-0mm]\node (1232)[point] {};              &\node (123) [point] {};                &                          &\\
+                                        &[-0mm]                                     &\node (133) [task] {Edge Detection};   &                          &\\
+\node (142) [point] {};                 &[-0mm]\node (1432)[point] {};              &\node (143) [point] {};                &                          &\\
+\node (152) [point] {};                 &[-0mm]\node (1532)[point] {};              &\node (153) [point] {};                &                          &\\
+                                        &[-0mm]                                     &\node (163) [task] {Stats + Cuts};     &                          &\\
+\node (172) [point] {};                 &[-0mm]\node (1732)[point] {};              &\node (173) [point] {};                &                          &\\
+\node (182) [point] {};                 &[-0mm]\node (1832)[point] {};              &\node (183) [point] {};                &                          &\\
+                                        &[-0mm]                                     &\node (193) [task] {FBP};              &                          &\\
+\node (202) [point] {};                 &[-0mm]\node (2032)[point] {};              &\node (203) [point] {};                &                          &\\
+                                        &[-0mm]\node (212) [task] {MLP};            &                                       &                          &\\
+                                        &[-0mm]\node (222) [task] {Define $A, b, x_0$};&                                    &                          &\\
+};
+\graph [use existing nodes]
+{
+12 -- 22 -> 32 -> 42 -> 52 -- {51,53};
+51 -> 61 -- 81 -- 82;
+53 -> 63 -> 73 -> 83 -- {82,84};
+82 -> 92 -- 102 -- 103;
+84 -- 104 -- 103;
+103 -> 113 -- 115;
+113 -- 1132 -- 1232 -- 123 -> 133 -- 143 --1432->1532--153->163--173--1732->1832--183->193--203--2032--212--222;
+1432 -- 1532;
+1732 -- 1832;
+1232 -- 122 -- 142 -- 1432 -- 1532 -- 152 -- 172 -- 1732 -- 1832 -- 182 -- 202 -- 2032 -> 212 -> 222;
+115 -- 25 -- 22;
+%p1 -> ui1 -- p2 -> dot -- p3 -> digit -- p4 -- p5 -- p6 -> e -- p7 -- p8 -> ui2 -- p9 -> p10;
+%p4 ->[skip loop=-5mm] p3;
+%p2 ->[skip loop=5mm] p5;
+%p6 ->[skip loop=-11mm] p9;
+%p7 ->[vh path] { plus, minus } -> [hv path] p8;
+};
+\end{tikzpicture}
+\newpage
+\begin{tikzpicture}[
+task/.style={
+% The shape:
+rectangle,
+% The size:
+minimum size=6mm,
+% The border:
+very thick,
+draw=red!50!black!50, % 50% red and 50% black,
+% and that mixed with 50% white
+% The filling:
+top color=white, % a shading that is white at the top...
+bottom color=red!50!black!20, % and something else at the bottom
+% Font
+font=\itshape
+},
+,>=stealth',thick,black!50,text=black,
+every new ->/.style={shorten >=0pt},
+graphs/every graph/.style={edges=rounded corners},
+point/.style={draw,inner sep=0pt,minimum size=0.3pt,fill=black!50},
+skip loop/.style={to path={-- ++(0,#1) -| (\tikztotarget)}}]
+\matrix[row sep=5mm,column sep=1mm]
+{
+                                        &\node (12) [point] {};                     &[-0mm]                                 &                           &\\
+                                        &\node (22) [point] {};                     &[-0mm]                                 &                           &&&&&&&&&&&&\node (25) [point] {};\\
+                                        &\node (32) [task] {Read Data};             &[-0mm]                                 &                           &\\
+                                        &\node (42) [task] {utv-xyz Conversion};    &[-0mm]                                 &                           &\\
+\node (51) [point] {};                  &\node (52) [point] {};                     &\node (53) [point] {};                 &                           &\\
+\node (61) [task] {Data Rejection};     &                                           &\node[text width = 3cm, align = center] (63) [task] {Reconstruction Volume:\\ entry/exit + cuts};&&\\
+                                        &                                           &\node[text width = 3cm, align = center] (73) [task] {Binning};&    &\\
+\node (81) [point] {};                  &\node (82) [point] {};                     &\node (83) [point] {};                 &\node(84) [point] {};      &\\
+                                        &\node (92) [task] {Hull-Detection};        &                                       &                           &\\
+\node (101) [point] {};                 &\node (102) [point] {};                    &                                       &                           &&\\
+\node (111) [task] {Edge Detection};    &\node (112) [point] {};                    &\node (113) [point] {};                &\node (114) [point] {};    &\\[-4mm]
+                                        &\node (122)[point] {};                     &\node (123) [point] {};                &                           &&&&&&&&&&&&\node (125) [point] {};\\
+\node (131) [point] {};                 &\node (132)[point] {};                     &                                       &                           &\\
+\node (1312) [point] {};                &\node (1322)[point] {};                    &                                       &                           &\\
+\node (141) [task] {Stats + Cuts};      &                                           &                                       &                           &\\
+\node (151) [point] {};                 &\node (152)[point] {};                     &                                      &                           &\\
+\node (161) [point] {};                 &\node (162)[point] {};                     &                                       &                           &\\
+\node (171) [task] {FBP};               &                                           &                                       &                           &\\
+\node (181) [point] {};                 &\node (182)[point] {};                     &                                       &                           &\\
+                                        &\node (192) [task] {MLP};                  &                                       &                           &\\
+                                        &\node (202) [task] {Define $A, b, x_0$};   &                                       &                           &\\
+};
+\graph [use existing nodes]
+{
+12 -- 22 -> 32 -> 42 -> 52 -- {51,53};
+51 -> 61 -- 81 -- 82;
+53 -> 63 -> 73 -> 83 -- {82,84};
+84--114--113;
+%84 -- 105 -- 103;
+123 -- 125 --[label={k}] 25 -> 22;
+1312--1322;
+92--102--101->111--131->132--1322--1312->141--151->152--162--161->171--181->182;
+82->92--102--112--113->123--122->192->202;
+
+%p1 -> ui1 -- p2 -> dot -- p3 -> digit -- p4 -- p5 -- p6 -> e -- p7 -- p8 -> ui2 -- p9 -> p10;
+%p4 ->[skip loop=-5mm] p3;
+%p2 ->[skip loop=5mm] p5;
+%p6 ->[skip loop=-11mm] p9;
+%p7 ->[vh path] { plus, minus } -> [hv path] p8;
+};
+\end{tikzpicture}
+\end{document}
+\begin{tikzpicture}[
+task/.style={
+% The shape:
+rectangle,
+% The size:
+minimum size=6mm,
+% The border:
+very thick,
+draw=red!50!black!50, % 50% red and 50% black,
+% and that mixed with 50% white
+% The filling:
+top color=white, % a shading that is white at the top...
+bottom color=red!50!black!20, % and something else at the bottom
+% Font
+font=\itshape
+},
+point/.style={circle,inner sep=0pt,minimum size=2pt,fill=red},
+skip loop/.style={to path={-- ++(0,#1) -| (\tikztotarget)}}]
+\matrix[row sep=5mm,column sep=1mm]
+{
+                                        &\node (12) [point] {};                     &[-0mm]                                 &                           &\\
+                                        &\node (22) [point] {};                     &[-0mm]                                 &                           &&&&&&&&&&&&\node (25) [point] {};\\
+                                        &\node (32) [task] {Read Data};             &[-0mm]                                 &                           &\\
+                                        &\node (42) [task] {utv-xyz Conversion};    &[-0mm]                                 &                           &\\
+\node (51) [point] {};                  &\node (52) [point] {};                     &\node (53) [point] {};                 &                           &\\
+\node (61) [task] {Data Rejection};     &                                           &\node[text width = 3cm, align = center] (63) [task] {Reconstruction Volume:\\ entry/exit + cuts};&&\\
+                                        &                                           &\node[text width = 3cm, align = center] (73) [task] {Binning};&    &\\
+\node (81) [point] {};                  &\node (82) [point] {};                     &\node (83) [point] {};                 &\node(84) [point] {};      &\\
+                                        &\node (92) [task] {Hull-Detection};        &                                       &                           &\\
+\node (101) [point] {};                 &\node (102) [point] {};                    &                                       &\node (104) [point] {};    &&\\
+\node (111) [task] {Edge Detection};    &\node (112) [point] {};                    &\node (113) [point] {};                &\node (114) [point] {};    &&&&&&&&&&&&\node (115) [point] {};\\
+\node (121) [point] {};                 &\node (122)[point] {};                     &                                       &                           &\\
+\node (131) [point] {};                 &\node (132)[point] {};                     &\node (133) [point] {};                &                           &\\
+                                        &\node (142) [task] {Stats + Cuts};         &                                       &                           &\\
+\node (151) [point] {};                 &\node (152)[point] {};                     &\node (153) [point] {};                &                           &\\
+\node (161) [point] {};                 &\node (162)[point] {};                     &\node (163) [point] {};                &                           &\\
+                                        &\node (172) [task] {FBP};                  &                                       &                           &\\
+\node (202) [point] {};                 &\node (182)[point] {};                     &\node (183) [point] {};                &                           &\\
+                                        &\node (192) [task] {MLP};                  &                                       &                           &\\
+                                        &\node (202) [task] {Define $A, b, x_0$};   &                                       &                           &\\
+};
+\graph [use existing nodes]
+{
+12 -- 22 -> 32 -> 42 -> 52 -- {51,53};
+51 -> 61 -- 81 -- 82;
+53 -> 63 -> 73 -> 83 -- {82,84};
+%84 -- 105 -- 103;
+113 -- 115 -- 25 -> 22;
+92--102--101->111--121--122;
+
+%p1 -> ui1 -- p2 -> dot -- p3 -> digit -- p4 -- p5 -- p6 -> e -- p7 -- p8 -> ui2 -- p9 -> p10;
+%p4 ->[skip loop=-5mm] p3;
+%p2 ->[skip loop=5mm] p5;
+%p6 ->[skip loop=-11mm] p9;
+%p7 ->[vh path] { plus, minus } -> [hv path] p8;
+};
+\end{tikzpicture}
+\begin{tikzpicture}[
+task/.style={
+% The shape:
+rectangle,
+% The size:
+minimum size=6mm,
+% The border:
+very thick,
+draw=red!50!black!50, % 50% red and 50% black,
+% and that mixed with 50% white
+% The filling:
+top color=white, % a shading that is white at the top...
+bottom color=red!50!black!20, % and something else at the bottom
+% Font
+font=\itshape
+},
+point/.style={circle,inner sep=0pt,minimum size=2pt,fill=red},
+skip loop/.style={to path={-- ++(0,#1) -| (\tikztotarget)}}]
+\matrix[row sep=5mm,column sep=1mm]
+{
+                                        &\node (12) [point] {};                     &[-0mm]                                                  &                               &&\\
+                                        &\node (22) [point] {};                     &[-0mm]                                                  &                               &&\node (25) [point] {};\\
+                                        &\node (32) [task] {Read Data};             &[-0mm]                                                  &                               &&\\
+                                        &\node (42) [task] {utv-xyz Conversion};    &[-0mm]                                                  &                               &&\\
+\node (51) [point] {};                  &\node (52) [point] {};                     &[-0mm]                                                  \node (53) [point] {};&         &&\\
+\node (61) [task] {Data Rejection};     &                                           &[-0mm]\node[text width = 3cm, align = center] (63) [task] {Reconstruction Volume:\\ entry/exit + cuts};&   &  &\\
+                                        &                                           &[-0mm]\node[text width = 3cm, align = center] (73) [task] {Binning};     &&             &\\
+\node (81) [point] {};                  &\node (82) [point] {};                     &[-0mm]                                                  \node (83) [point] {}; &         &[-1cm]\node(84) [point] {};    &\\
+                                        &\node (92) [task] {Hull-Detection};        &[-0mm]                                                  &                               &&\\
+                                        &\node (102) [point] {};                    &[-0mm]                                                  &\node (103) [point] {};        &\node (104) [point] {};        &\\
+                                        &\node (112) [point] {};                    &[-0mm]\node (1132) [point] {};                          &\node (113) [point] {};        &&\node (115) [point] {};\\
+                                        &\node (122) [point] {};                    &[-0mm]\node (1232)[point] {};                           &\node (123) [point] {};        &&\\
+                                        &                                           &[-0mm]                                                  &\node (133) [task] {Edge Detection};   &&\\
+                                        &\node (142) [point] {};                    &[-0mm]\node (1432)[point] {};                           &\node (143) [point] {};        &&\\
+                                        &\node (152) [point] {};                    &[-0mm]\node (1532)[point] {};                           &\node (153) [point] {};        &&\\
+                                        &                                           &[-0mm]                                                  &\node (163) [task] {Stats + Cuts}; &&\\
+                                        &\node (172) [point] {};                    &[-0mm]\node (1732)[point] {};                           &\node (173) [point] {};        &&\\
+                                        &\node (182) [point] {};                    &[-0mm]\node (1832)[point] {};                           &\node (183) [point] {};        &&\\
+                                        &                                           &[-0mm]                                                  &\node (193) [task] {FBP};      &&\\
+                                        &\node (202) [point] {};                    &[-0mm]\node (2032)[point] {};                           &\node (203) [point] {};        &&\\
+                                        &&[-0mm]\node (212) [task] {MLP};                                                                    &                               &&\\
+                                        &&[-0mm]\node (222) [task] {Define $A, b, x_0$};                                                     &                               &&\\
+};
+\graph [use existing nodes]
+{
+12 -- 22 -> 32 -> 42 -> 52 -- {51,53};
+51 -> 61 -- 81 -- 82;
+53 -> 63 -> 73 -> 83 -- {82,84};
+82 -> 92 -- 102 -- 103;
+84 -- 104 -- 103;
+103 -> 113 -- 115;
+113 -- 1132 -- 1232 -- 123 -- 133 -- 143 --1432--1532--153--163--173--1732--1832--183--193--203--2032--212--222;
+1432 -- 1532;
+1732 -- 1832;
+1232 -- 122 -- 142 -- 1432 -- 1532 -- 152 -- 172 -- 1732 -- 1832 -- 182 -- 202 -- 2032 ->
+%p1 -> ui1 -- p2 -> dot -- p3 -> digit -- p4 -- p5 -- p6 -> e -- p7 -- p8 -> ui2 -- p9 -> p10;
+%p4 ->[skip loop=-5mm] p3;
+%p2 ->[skip loop=5mm] p5;
+%p6 ->[skip loop=-11mm] p9;
+%p7 ->[vh path] { plus, minus } -> [hv path] p8;
+};
+\end{tikzpicture}
+
+
+
