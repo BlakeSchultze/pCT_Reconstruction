@@ -99,12 +99,13 @@ void test_func2( std::vector<int>&, std::vector<float>&);
 /****************************************************************************************************************************************************************/
 
 // Preprocessing routines
-__global__ void recon_volume_intersections_GPU( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void binning_GPU( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
+__device__ bool calculate_intercepts( double, double, double, double&, double& );
+__global__ void recon_volume_intersections_GPU( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
+__global__ void binning_GPU( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void calculate_means_GPU( int*, float*, float*, float* );
-__global__ void sum_squared_deviations_GPU( int, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*  );
+__global__ void sum_squared_deviations_GPU( int, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*  );
 __global__ void calculate_standard_deviations_GPU( int*, float*, float*, float* );
-__global__ void statistical_cuts_GPU( int, int*, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, bool*, float*, float* );
+__global__ void statistical_cuts_GPU( int, int*, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, bool* );
 __global__ void construct_sinogram_GPU( int*, float* );
 __global__ void filter_GPU( float*, float* );
 __global__ void backprojection_GPU( float*, float* );
@@ -975,8 +976,6 @@ void recon_volume_intersections( const int num_histories )
 	cudaMalloc((void**) &xz_entry_angle_d,		size_floats);
 	cudaMalloc((void**) &xy_exit_angle_d,		size_floats);
 	cudaMalloc((void**) &xz_exit_angle_d,		size_floats);
-	cudaMalloc((void**) &relative_ut_angle_d,	size_floats);
-	cudaMalloc((void**) &relative_uv_angle_d,	size_floats);
 	cudaMalloc((void**) &missed_recon_volume_d,	size_bool);	
 
 	cudaMemcpy(t_in_1_d,		t_in_1_h,		size_floats, cudaMemcpyHostToDevice) ;
@@ -1002,8 +1001,7 @@ void recon_volume_intersections( const int num_histories )
 		u_in_1_d, u_in_2_d, u_out_1_d, u_out_2_d,
 		v_in_1_d, v_in_2_d, v_out_1_d, v_out_2_d, 	
 		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d, 		
-		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d,
-		relative_ut_angle_d, relative_uv_angle_d
+		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d
 	);
 
 	free(t_in_1_h);
@@ -1035,258 +1033,99 @@ void recon_volume_intersections( const int num_histories )
 }
 __global__ void recon_volume_intersections_GPU
 (
-	int num_histories, int* gantry_angle, bool* missed_recon_volume,
-	float* t_in_1, float* t_in_2, float* t_out_1, float* t_out_2,
-	float* u_in_1, float* u_in_2, float* u_out_1, float* u_out_2,
-	float* v_in_1, float* v_in_2, float* v_out_1, float* v_out_2, 	
-	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit, 	
-	float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle,
-	float* relative_ut_angle, float* relative_uv_angle
+	int num_histories, int* gantry_angle, bool* missed_recon_volume, float* t_in_1, float* t_in_2, float* t_out_1, float* t_out_2, float* u_in_1, float* u_in_2, 
+	float* u_out_1, float* u_out_2, float* v_in_1, float* v_in_2, float* v_out_1, float* v_out_2, float* x_entry, float* y_entry, float* z_entry, float* x_exit, 
+	float* y_exit, float* z_exit, float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle
 )
 {
-	/*
-			Determine if the proton path passes through the reconstruction volume (i.e. intersects the reconstruction 
-		cylinder twice) and if it does, determine the x, y, and z positions in the global/object coordinate system where 
-		the proton enters and exits the reconstruction volume.  The origin of the object coordinate system is defined to 
-		be at the center of the reconstruction cylinder so that its volume is bounded by:
-
-			-RECON_CYL_RADIUS	<= x <= RECON_CYL_RADIUS
-			-RECON_CYL_RADIUS	<= y <= RECON_CYL_RADIUS 
-			-RECON_CYL_HEIGHT/2 <= z <= RECON_CYL_HEIGHT/2
-
-			First, the coordinates of the points where the proton path intersected the entry/exit detectors must be 
-		calculated.  Since the detectors records data in the detector coordinate system, data in the utv coordinate 
-		system must be converted into the global/object coordinate system.  The coordinate transformation can be 
-		accomplished using a rotation matrix with an angle of rotation determined by the angle between the two 
-		coordinate systems, which is the gantry_angle, in this case:
-
-		Rotate ut-coordinate system to xy-coordinate system
-				x = cos( gantry_angle ) * u - sin( gantry_angle ) * t
-				y = sin( gantry_angle ) * u + cos( gantry_angle ) * t
-		Rotate xy-coordinate system to ut-coordinate system
-				u = cos( gantry_angle ) * x + sin( gantry_angle ) * y
-				t = cos( gantry_angle ) * y - sin( gantry_angle ) * x
-
-			 If a proton passes through the reconstruction volume, then the line defining its path in the
-		xy-plane will intersect the circle defining the boundary of the reconstruction cylinder in the xy-plane twice.  
-		We can determine if the proton path passes through the reconstruction volume by equating the equations of the 
-		proton path and the circle.  This produces a second order polynomial which we must solve:
-
-										  f(x)_proton = f(x)_cylinder
-												 mx+b = sqrt(r^2 - x^2)
-								  m^2x^2 + 2mbx + b^2 = r^2 - x^2
-					(m^2 + 1)x^2 + 2mbx + (b^2 - r^2) = 0
-										ax^2 + bx + c = 0
-												=>	a = m^2 + 1
-													b = 2mb
-													c = b^2 - r^2
-
-			We can solve this using the quadratic formula ([-b +/- sqrt(b^2-4ac)]/2a).  If the proton passed through the 
-		reconstruction volume, then the determinant will be greater than zero ( b^2-4ac > 0 ) and the quadratic formula 
-		will return two unique points of intersection.  The intersection point closest to where the proton entry/exit 
-		path intersects the entry/exit
-		detector plane is calculated and The proton entry/exit path If the determinant <= 0, then the proton path does not go through the reconstruction 
-		volume and we need not determine intersection coordinates.  Two points are returned by the quadratic formula
-		for each reconstruction cylinder intersection, the coordinates closest to the point where the entry/exit path
-		intersected the detector plane are determined 
-
-			If the exit/entry path travels through the cone bounded by y=|x| && y=-|x| the x_coordinates will be small
-		and the difference between the entry and exit x-coordinates will approach zero, causing instabilities in trig
-		functions and slope calculations ( x difference in denominator).  To overcome these innaccurate calculations, 
-		coordinates for these proton paths will be rotated PI/2 radians(90 degrees) prior to calculations and rotated
-		back when they are completed using a rotation matrix transformation again:
-		
-		 Positive Rotation By 90 Degrees
-				x' = cos( 90 ) * x - sin( 90 ) * y = -y
-				y' = sin( 90 ) * x + cos( 90 ) * y = x
-		 Negative Rotation By 90 Degree
-				x' = cos( 90 ) * x + sin( 90 ) * y = y
-				y' = cos( 90 ) * y - sin( 90 ) * x = -x
-	*/
-	//missed_recon_volume[i] = true;
+	/************************************************************************************************************************************************************/
+	/*		Determine if the proton path passes through the reconstruction volume (i.e. intersects the reconstruction cylinder twice) and if it does, determine	*/ 
+	/*	the x, y, and z positions in the global/object coordinate system where the proton enters and exits the reconstruction volume.  The origin of the object */
+	/*	coordinate system is defined to be at the center of the reconstruction cylinder so that its volume is bounded by:										*/
+	/*																																							*/
+	/*													-RECON_CYL_RADIUS	<= x <= RECON_CYL_RADIUS															*/
+	/*													-RECON_CYL_RADIUS	<= y <= RECON_CYL_RADIUS															*/
+	/*													-RECON_CYL_HEIGHT/2 <= z <= RECON_CYL_HEIGHT/2															*/																									
+	/*																																							*/
+	/*		First, the coordinates of the points where the proton path intersected the entry/exit detectors must be calculated.  Since the detectors records	*/ 
+	/*	data in the detector coordinate system, data in the utv coordinate system must be converted into the global/object coordinate system.  The coordinate	*/
+	/*	transformation can be accomplished using a rotation matrix with an angle of rotation determined by the angle between the two coordinate systems, which  */ 
+	/*	is the gantry_angle, in this case:																														*/
+	/*																																							*/
+	/*	Rotate ut-coordinate system to xy-coordinate system							Rotate xy-coordinate system to ut-coordinate system							*/
+	/*		x = cos( gantry_angle ) * u - sin( gantry_angle ) * t						u = cos( gantry_angle ) * x + sin( gantry_angle ) * y					*/
+	/*		y = sin( gantry_angle ) * u + cos( gantry_angle ) * t						t = cos( gantry_angle ) * y - sin( gantry_angle ) * x					*/
+	/************************************************************************************************************************************************************/
+			
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
 	if( i < num_histories )
 	{
-		double a = 0, b = 0, c = 0;
-		double u_intercept_1, u_intercept_2, t_intercept_1, t_intercept_2;//, squared_distance_1, squared_distance_2;
-		double u_temp;
-		double x_intercept_1, x_intercept_2, y_intercept_1, y_intercept_2, squared_distance_1, squared_distance_2;
-		double x_temp;		
 		double rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
-		/***************************************************************************************************************/
-		/**************************************** Check entry information **********************************************/
-		/***************************************************************************************************************/
-		
-		// Determine if the proton path enters the reconstruction volume.  The proton path is defined using the exit angle and
-		// position where the proton intersected the exit SSD which is closest to the object.  If this line projected onto the 
-		// xy plane intersects the reconstruction cylinder, the line will intersect the circle in the xy plane which describes the
-		// boundary of the reconstruction cylinder twice and its exit elevation will be within the height of the cylinder.   
+		/********************************************************************************************************************************************************/
+		/************************************************************ Check entry information *******************************************************************/
+		/********************************************************************************************************************************************************/
 
-		// Relevant angles in radians: gantry angle, proton path entry angle in ut and xy planes.
-		double ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );	
+		/********************************************************************************************************************************************************/
+		/* Determine if the proton path enters the reconstruction volume.  The proton path is defined using the angle and position of the proton as it passed	*/
+		/* through the SSD closest to the object.  Since the reconstruction cylinder is symmetric about the rotation axis, we find a proton's intersection 		*/
+		/* points in the ut plane and then rotate these points into the xy plane.  Since a proton very likely has a small angle in ut plane, this allows us to 	*/
+		/* overcome numerical instabilities that occur at near vertical angles which would occur for gantry angles near 90/270 degrees.  However, if a path is 	*/
+		/* between [45,135] or [225,315], calculations are performed in a rotated coordinate system to avoid these numerical issues								*/
+		/********************************************************************************************************************************************************/
+		double ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );
 		double u_entry, t_entry;
-		double u_in, t_in;
-
-		// Determine if entry points should be rotated
-		bool entry_in_cone = 
-		( (ut_entry_angle > PI_OVER_4) && (ut_entry_angle < THREE_PI_OVER_4) ) 
-		|| 
-		( (ut_entry_angle > FIVE_PI_OVER_4) && (ut_entry_angle < SEVEN_PI_OVER_4) );
-
-		// Rotate u_in & t_in by 90 degrees, if necessary
-		if( entry_in_cone )
-		{
-			u_temp = u_in_2[i];	
-			u_in = -t_in_2[i];
-			t_in = u_temp;
-			ut_entry_angle += PI_OVER_2;
-		}
-
-		double m_in = tan( ut_entry_angle );	// proton entry path slope
-		double b_in = t_in_2[i] - m_in * u_in_2[i];				// proton entry path y-intercept
 		
-		// Quadratic formula coefficients
-		a = 1 + pow(m_in, 2);								// x^2 coefficient 
-		b = 2 * m_in * b_in;								// x coefficient
-		c = pow(b_in, 2) - pow(RECON_CYL_RADIUS, 2 );		// 1 coefficient
-		double entry_discriminant = pow(b, 2) - (4 * a * c);	// Quadratic formula discriminant		
-		bool entered = ( entry_discriminant > 0 );			// Proton path intersected twice
+		// Calculate if and where proton enters reconstruction volume; u_entry/t_entry passed by reference so they hold the entry point upon function returns
+		bool entered = calculate_intercepts( u_in_2[i], t_in_2[i], ut_entry_angle, u_entry, t_entry );
 		
-		// Find both intersection points of the circle; closest one to the entry SSDs is the entry position
-		// Notice that x_intercept_2 = ( -b - sqrt(...) ) / ( 2 * a ) has the negative sign pulled out and following calculations modified as necessary
-		// e.g. x_intercept_2 = -x_real_2
-		//		y_intercept_2 = -y_real_2
-		//		squared_distance_2 = sqd_real_2		since (x_intercept_2 + x_in)^2 = (-x_intercept_2 - x_in)^2 = (x_real_2 - x_in)^2 (same for y term)
-		// This negation is also considered when assigning x_entry/y_entry using -x_intercept_2/y_intercept_2 *(TRUE/FALSE = 1/0) 
-		if( entered )
-		{
-			u_intercept_1 = ( sqrt(entry_discriminant) - b ) / ( 2 * a );
-			u_intercept_2 = ( sqrt(entry_discriminant) + b ) / ( 2 * a );
-			t_intercept_1 = m_in * u_intercept_1 + b_in;
-			t_intercept_2 = m_in * u_intercept_2 - b_in;
-			squared_distance_1 = pow(u_intercept_1 - u_in_2[i], 2) + pow(t_intercept_1 - t_in_2[i], 2);
-			squared_distance_2 = pow(u_intercept_2 + u_in_2[i], 2) + pow(t_intercept_2 + t_in_2[i], 2);
-			u_entry = u_intercept_1 * (squared_distance_1 <= squared_distance_2) - u_intercept_2 * (squared_distance_1 > squared_distance_2);
-			t_entry = t_intercept_1 * (squared_distance_1 <= squared_distance_2) - t_intercept_2 * (squared_distance_1 > squared_distance_2);
-		}
-		// Unrotate by 90 degrees, if necessary
-		if( entry_in_cone )
-		{
-			u_temp = u_entry;
-			u_entry = t_entry;
-			t_entry = -u_temp;
-			ut_entry_angle -= PI_OVER_2;
-		}
 		xy_entry_angle[i] = ut_entry_angle + rotation_angle_radians;
-		if( xy_entry_angle[i] < 0 )
-			xy_entry_angle[i] += TWO_PI;
 
 		// Rotate exit detector positions
 		x_entry[i] = ( cos( rotation_angle_radians ) * u_entry ) - ( sin( rotation_angle_radians ) * t_entry );
 		y_entry[i] = ( sin( rotation_angle_radians ) * u_entry ) + ( cos( rotation_angle_radians ) * t_entry );
-		/***************************************************************************************************************/
-		/****************************************** Check exit information *********************************************/
-		/***************************************************************************************************************/
-		// Relevant angles in radians: gantry angle, proton path exit angle in ut and xy planes.
-		double ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );	
-
+		/********************************************************************************************************************************************************/
+		/************************************************************* Check exit information *******************************************************************/
+		/********************************************************************************************************************************************************/
+		double ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );
 		double u_exit, t_exit;
-		double u_out, t_out;
-
-		// Determine if exit points should be rotated
-		bool exit_in_cone = 
-		( (ut_exit_angle > PI_OVER_4) && (ut_exit_angle < THREE_PI_OVER_4) ) 
-		|| 
-		( (ut_exit_angle > FIVE_PI_OVER_4) && (ut_exit_angle < SEVEN_PI_OVER_4) );
-
-		// Rotate u_out & t_out by 90 degrees, if necessary
-		if( exit_in_cone )
-		{
-			u_temp = u_out_1[i];	
-			u_out = -t_out_1[i];
-			t_out = u_temp;
-			ut_exit_angle += PI_OVER_2;
-		}
-
-		double m_out = tan( ut_exit_angle );	// proton exit path slope
-		double b_out = t_out_1[i] - m_out * u_out_1[i];				// proton exit path y-intercept
 		
-		// Quadratic formula coefficients
-		a = 1 + pow(m_out, 2);								// x^2 coefficient 
-		b = 2 * m_out * b_out;								// x coefficient
-		c = pow(b_out, 2) - pow(RECON_CYL_RADIUS, 2 );		// 1 coefficient
-		double exit_discriminant = pow(b, 2) - (4 * a * c);	// Quadratic formula discriminant		
-		bool exited = ( exit_discriminant > 0 );			// Proton path intersected twice
-		
-		// Find both intersection points of the circle; closest one to the exit SSDs is the exit position
-		// Notice that x_intercept_2 = ( -b - sqrt(...) ) / ( 2 * a ) has the negative sign pulled out and following calculations modified as necessary
-		// e.g. x_intercept_2 = -x_real_2
-		//		y_intercept_2 = -y_real_2
-		//		squared_distance_2 = sqd_real_2		since (x_intercept_2 + x_in)^2 = (-x_intercept_2 - x_in)^2 = (x_real_2 - x_in)^2 (same for y term)
-		// This negation is also considered when assigning x_exit/y_exit using -x_intercept_2/y_intercept_2 *(TRUE/FALSE = 1/0) 
-		if( exited )
-		{
-			u_intercept_1 = ( sqrt(exit_discriminant) - b ) / ( 2 * a );
-			u_intercept_2 = ( sqrt(exit_discriminant) + b ) / ( 2 * a );
-			t_intercept_1 = m_out * u_intercept_1 + b_out;
-			t_intercept_2 = m_out * u_intercept_2 - b_out;
-			squared_distance_1 = pow(u_intercept_1 - u_out_1[i], 2) + pow(t_intercept_1 - t_out_1[i], 2);
-			squared_distance_2 = pow(u_intercept_2 + u_out_1[i], 2) + pow(t_intercept_2 + t_out_1[i], 2);
-			u_exit = u_intercept_1 * (squared_distance_1 <= squared_distance_2) - u_intercept_2 * (squared_distance_1 > squared_distance_2);
-			t_exit = t_intercept_1 * (squared_distance_1 <= squared_distance_2) - t_intercept_2 * (squared_distance_1 > squared_distance_2);
-		}
-		// Unrotate by 90 degrees, if necessary
-		if( exit_in_cone )
-		{
-			u_temp = u_exit;
-			u_exit = t_exit;
-			t_exit = -u_temp;
-			ut_exit_angle -= PI_OVER_2;
-		}
+		// Calculate if and where proton exits reconstruction volume; u_exit/t_exit passed by reference so they hold the exit point upon function returns
+		bool exited = calculate_intercepts( u_out_1[i], t_out_1[i], ut_exit_angle, u_exit, t_exit );
 
 		xy_exit_angle[i] = ut_exit_angle + rotation_angle_radians;
-		if( xy_exit_angle[i] < 0 )
-			xy_exit_angle[i] += TWO_PI;
 
 		// Rotate exit detector positions
 		x_exit[i] = ( cos( rotation_angle_radians ) * u_exit ) - ( sin( rotation_angle_radians ) * t_exit );
 		y_exit[i] = ( sin( rotation_angle_radians ) * u_exit ) + ( cos( rotation_angle_radians ) * t_exit );
-
-		/***************************************************************************************************************/
-		/***************************************** Check z(v) direction ************************************************/
-		/***************************************************************************************************************/		
-
+		/********************************************************************************************************************************************************/
+		/************************************************************* Check z(v) information *******************************************************************/
+		/********************************************************************************************************************************************************/
+		
 		// Relevant angles/slopes in radians for entry and exit in the uv plane
 		double uv_entry_slope = ( v_in_2[i] - v_in_1[i] ) / ( u_in_2[i] - u_in_1[i] );
 		double uv_exit_slope = ( v_out_2[i] - v_out_1[i] ) / ( u_out_2[i] - u_out_1[i] );
 		
-		double uv_entry_angle = atan2( v_in_2[i] - v_in_1[i], u_in_2[i] - u_in_1[i] );
-		double uv_exit_angle = atan2( v_out_2[i] - v_out_1[i],  u_out_2[i] - u_out_1[i] );
+		xz_entry_angle[i] = atan2( v_in_2[i] - v_in_1[i], u_in_2[i] - u_in_1[i] );
+		xz_exit_angle[i] = atan2( v_out_2[i] - v_out_1[i],  u_out_2[i] - u_out_1[i] );
 
-		xz_entry_angle[i] = uv_entry_angle;
-		xz_exit_angle[i] = uv_exit_angle;
-		if( xz_entry_angle[i] < 0 )
-			xz_entry_angle[i] += TWO_PI;
-		if( xz_exit_angle[i] < 0 )
-			xz_exit_angle[i] += TWO_PI;
-
-		// Calculate the u coordinate for the entry and exit points of the reconstruction volume and then use the uv slope calculated 
-		// from the detector entry and exit positions to determine the z position of the proton as it entered and exited the 
-		// reconstruction volume 
-		/*
-			u-coordinate of the entry and exit points of the reconsruction cylinder can be found using an inverse rotation 
-				u = cos( gantry_angle ) * x + sin( gantry_angle ) * y
-		*/
+		/********************************************************************************************************************************************************/
+		/* Calculate the u coordinate for the entry and exit points of the reconstruction volume and then use the uv slope calculated from the detector entry	*/
+		/* and exit positions to determine the z position of the proton as it entered and exited the reconstruction volume, respectively.  The u-coordinate of  */
+		/* the entry and exit points of the reconsruction cylinder can be found using the x/y entry/exit points just calculated and the inverse rotation		*/
+		/*																																						*/
+		/*											u = cos( gantry_angle ) * x + sin( gantry_angle ) * y														*/
+		/********************************************************************************************************************************************************/
 		u_entry = ( cos( rotation_angle_radians ) * x_entry[i] ) + ( sin( rotation_angle_radians ) * y_entry[i] );
 		u_exit = ( cos(rotation_angle_radians) * x_exit[i] ) + ( sin(rotation_angle_radians) * y_exit[i] );
 		z_entry[i] = v_in_2[i] + uv_entry_slope * ( u_entry - u_in_2[i] );
 		z_exit[i] = v_out_1[i] - uv_exit_slope * ( u_out_1[i] - u_exit );
 
-		// Even if the proton path intersected the circle describing the boundary of the cylinder twice, it may not have actually
-		// passed through the reconstruction volume or may have only passed through part way.  If |z_entry|> RECON_CYL_HEIGHT/2 ,
-		// then something off happened since the the source is around z=0 and we do not want to use this history.  If the 
-		// |z_entry| < RECON_CYL_HEIGHT/2 and |z_exit| > RECON_CYL_HEIGHT/2 then we want to use the history but the x_exit and
-		// y_exit positions need to be calculated again based on how far through the cylinder the proton passed before exiting it
+		/********************************************************************************************************************************************************/
+		/* Even if the proton path intersected the circle defining the boundary of the cylinder in xy plane twice, it may not have actually passed through the	*/
+		/* reconstruction volume or may have only passed through part way.  If |z_entry|> RECON_CYL_HEIGHT/2, then data is erroneous since the source			*/
+		/* is around z=0 and we do not want to use this history.  If |z_entry| < RECON_CYL_HEIGHT/2 and |z_exit| > RECON_CYL_HEIGHT/2 then we want to use the	*/ 
+		/* history but the x_exit and y_exit positions need to be calculated again based on how far through the cylinder the proton passed before exiting		*/
+		/********************************************************************************************************************************************************/
 		if( entered && exited )
 		{
 			if( ( abs(z_entry[i]) < RECON_CYL_HEIGHT * 0.5 ) && ( abs(z_exit[i]) > RECON_CYL_HEIGHT * 0.5 ) )
@@ -1301,22 +1140,107 @@ __global__ void recon_volume_intersections_GPU
 				entered = false;
 				exited = false;
 			}
-			/****************************************************************************************************************************/ 
-			/* Check the measurement locations. Do not allow more than 5 cm difference in entry and exit in t and v. This gets			*/
-			/* rid of spurious events.																									*/
-			/****************************************************************************************************************************/
+			/****************************************************************************************************************************************************/ 
+			/* Check the measurement locations. Do not allow more than 5 cm difference in entry and exit in t and v. This gets									*/
+			/* rid of spurious events.																															*/
+			/****************************************************************************************************************************************************/
 			if( ( abs(t_out_1[i] - t_in_2[i]) > 5 ) || ( abs(v_out_1[i] - v_in_2[i]) > 5 ) )
 			{
 				entered = false;
 				exited = false;
 			}
 		}
-		relative_ut_angle[i] = ut_exit_angle - ut_entry_angle;
-		relative_uv_angle[i] = uv_exit_angle - uv_entry_angle;
 
 		// Proton passed through the reconstruction volume only if it both entered and exited the reconstruction cylinder
 		missed_recon_volume[i] = !entered || !exited;
 	}	
+}
+__device__ bool calculate_intercepts( double u, double t, double ut_angle, double& u_intercept, double& t_intercept )
+{
+	/************************************************************************************************************************************************************/
+	/*	If a proton passes through the reconstruction volume, then the line defining its path in the xy-plane will intersect the circle defining the boundary	*/
+	/* of the reconstruction cylinder in the xy-plane twice.  We can determine if the proton path passes through the reconstruction volume by equating the		*/
+	/* equations of the proton path and the circle.  This produces a second order polynomial which we must solve:												*/
+	/*																																							*/
+	/* 															 f(x)_proton = f(x)_cylinder																	*/
+	/* 																	mx+b = sqrt(r^2 - x^2)																	*/
+	/* 													 m^2x^2 + 2mbx + b^2 = r^2 - x^2																		*/
+	/* 									   (m^2 + 1)x^2 + 2mbx + (b^2 - r^2) = 0																				*/
+	/* 														   ax^2 + bx + c = 0																				*/
+	/* 																   =>  a = m^2 + 1																			*/
+	/* 																	   b = 2mb																				*/
+	/* 																	   c = b^2 - r^2																		*/
+	/* 																																							*/
+	/* 		We can solve this using the quadratic formula ([-b +/- sqrt(b^2-4ac)]/2a).  If the proton passed through the reconstruction volume, then the		*/
+	/* 	determinant will be greater than zero ( b^2-4ac > 0 ) and the quadratic formula will return two unique points of intersection.  The intersection point	*/
+	/*	closest to where the proton entry/exit path intersects the entry/exit detector plane is then the entry/exit point.  If the determinant <= 0, then the	*/
+	/*	proton path does not go through the reconstruction volume and we need not determine intersection coordinates.											*/
+	/*																																							*/
+	/* 		If the exit/entry path travels through the cone bounded by y=|x| && y=-|x| the x_coordinates will be small and the difference between the entry and */
+	/*	exit x-coordinates will approach zero, causing instabilities in trig functions and slope calculations ( x difference in denominator). To overcome these */ 
+	/*	innaccurate calculations, coordinates for these proton paths will be rotated PI/2 radians (90 degrees) prior to calculations and rotated back when they	*/ 
+	/*	are completed using a rotation matrix transformation again:																								*/
+	/* 																																							*/
+	/* 					Positive Rotation By 90 Degrees											Negative Rotation By 90 Degree									*/
+	/* 						x' = cos( 90 ) * x - sin( 90 ) * y = -y									x' = cos( 90 ) * x + sin( 90 ) * y = y						*/
+	/* 						y' = sin( 90 ) * x + cos( 90 ) * y = x									y' = cos( 90 ) * y - sin( 90 ) * x = -x						*/
+	/************************************************************************************************************************************************************/
+	
+	// Determine if entry points should be rotated
+	bool entry_in_cone = ( (ut_angle > PI_OVER_4) && (ut_angle < THREE_PI_OVER_4) ) || ( (ut_angle > FIVE_PI_OVER_4) && (ut_angle < SEVEN_PI_OVER_4) );
+	
+	
+	// Rotate u and t by 90 degrees, if necessary
+	double u_temp;
+	if( entry_in_cone )
+	{
+		u_temp = u;	
+		u = -t;
+		t = u_temp;
+		ut_angle += PI_OVER_2;
+	}
+	double m = tan( ut_angle );											// proton entry path slope
+	double b_in = t - m * u;											// proton entry path y-intercept
+		
+	// Quadratic formula coefficients
+	double a = 1 + pow(m, 2);											// x^2 coefficient 
+	double b = 2 * m * b_in;											// x coefficient
+	double c = pow(b_in, 2) - pow(RECON_CYL_RADIUS, 2 );				// 1 coefficient
+	double entry_discriminant = pow(b, 2) - (4 * a * c);				// Quadratic formula discriminant		
+	bool intersected = ( entry_discriminant > 0 );						// Proton path intersected twice
+	
+	/************************************************************************************************************************************************************/
+	/* Find both intersection points of the circle; closest one to the SSDs is the desired intersection point.  Notice that x_intercept_2 = (-b - sqrt())/2a	*/
+	/* has the negative sign pulled out and the proceding equations are modified as necessary, e.g.:															*/
+	/*																																							*/
+	/*														x_intercept_2 = -x_real_2																			*/
+	/*														y_intercept_2 = -y_real_2																			*/
+	/*												   squared_distance_2 = sqd_real_2																			*/
+	/* since									 (x_intercept_2 + x_in)^2 = (-x_intercept_2 - x_in)^2 = (x_real_2 - x_in)^2 (same for y term)					*/
+	/*																																							*/
+	/* This negation is also considered when assigning x_entry/y_entry using -x_intercept_2/y_intercept_2 *(TRUE/FALSE = 1/0)									*/
+	/************************************************************************************************************************************************************/
+	if( intersected )
+	{
+		double u_intercept_1		= ( sqrt(entry_discriminant) - b ) / ( 2 * a );
+		double u_intercept_2		= ( sqrt(entry_discriminant) + b ) / ( 2 * a );
+		double t_intercept_1		= m * u_intercept_1 + b_in;
+		double t_intercept_2		= m * u_intercept_2 - b_in;
+		double squared_distance_1	= pow( u_intercept_1 - u, 2 ) + pow( t_intercept_1 - t, 2 );
+		double squared_distance_2	= pow( u_intercept_2 + u, 2 ) + pow( t_intercept_2 + t, 2 );
+		u_intercept					= u_intercept_1 * ( squared_distance_1 <= squared_distance_2 ) - u_intercept_2 * ( squared_distance_1 > squared_distance_2 );
+		t_intercept					= t_intercept_1 * ( squared_distance_1 <= squared_distance_2 ) - t_intercept_2 * ( squared_distance_1 > squared_distance_2 );
+	}
+	// Unrotate by 90 degrees, if necessary
+	if( entry_in_cone )
+	{
+		u_temp = u_intercept;
+		u_intercept = t_intercept;
+		t_intercept = -u_temp;
+		ut_angle -= PI_OVER_2;
+	}
+
+	return intersected;
 }
 void binning( const int num_histories )
 {
@@ -1337,8 +1261,6 @@ void binning( const int num_histories )
 	xz_entry_angle_h			= (float*) calloc( num_histories, sizeof(float) );
 	xy_exit_angle_h				= (float*) calloc( num_histories, sizeof(float) );
 	xz_exit_angle_h				= (float*) calloc( num_histories, sizeof(float) );
-	relative_ut_angle_h			= (float*) calloc( num_histories, sizeof(float) );
-	relative_uv_angle_h			= (float*) calloc( num_histories, sizeof(float) );
 
 	cudaMalloc((void**) &WEPL_d,				size_floats);
 	cudaMalloc((void**) &bin_num_d,	size_ints );
@@ -1353,8 +1275,7 @@ void binning( const int num_histories )
 		num_histories, bin_counts_d, bin_num_d, missed_recon_volume_d,
 		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d, 
 		mean_WEPL_d, mean_rel_ut_angle_d, mean_rel_uv_angle_d, WEPL_d, 
-		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d,
-		relative_ut_angle_d, relative_uv_angle_d
+		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d
 	);
 	cudaMemcpy( missed_recon_volume_h,		missed_recon_volume_d,		size_bool,		cudaMemcpyDeviceToHost );
 	cudaMemcpy( bin_num_h,					bin_num_d,					size_ints,		cudaMemcpyDeviceToHost );
@@ -1368,8 +1289,6 @@ void binning( const int num_histories )
 	cudaMemcpy( xz_entry_angle_h,			xz_entry_angle_d,			size_floats,	cudaMemcpyDeviceToHost );
 	cudaMemcpy( xy_exit_angle_h,			xy_exit_angle_d,			size_floats,	cudaMemcpyDeviceToHost );
 	cudaMemcpy( xz_exit_angle_h,			xz_exit_angle_d,			size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( relative_ut_angle_h,		relative_ut_angle_d,		size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( relative_uv_angle_h,		relative_uv_angle_d,		size_floats,	cudaMemcpyDeviceToHost );
 
 	char data_filename[128];
 	if( WRITE_BIN_WEPLS )
@@ -1394,10 +1313,8 @@ void binning( const int num_histories )
 			z_exit_vector.push_back( z_exit_h[i] );
 			xy_entry_angle_vector.push_back( xy_entry_angle_h[i] );
 			xz_entry_angle_vector.push_back( xz_entry_angle_h[i] );
-			//xy_exit_angle_vector.push_back( xy_exit_angle_h[i] );
-			//xz_exit_angle_vector.push_back( xz_exit_angle_h[i] );
-			relative_ut_angle_vector.push_back( relative_ut_angle_h[i] );
-			relative_uv_angle_vector.push_back( relative_uv_angle_h[i] );
+			xy_exit_angle_vector.push_back( xy_exit_angle_h[i] );
+			xz_exit_angle_vector.push_back( xz_exit_angle_h[i] );
 			//bin_num[recon_vol_histories]			= bin_num[i];			
 			//gantry_angle[recon_vol_histories]		= gantry_angle[i];	
 			//WEPL[recon_vol_histories]				= WEPL[i]; 		
@@ -1411,8 +1328,6 @@ void binning( const int num_histories )
 			//xz_entry_angle[recon_vol_histories]		= xz_entry_angle[i];	
 			//xy_exit_angle[recon_vol_histories]		= xy_exit_angle[i]; 	
 			//xz_exit_angle[recon_vol_histories]		= xz_exit_angle[i];	
-			//relative_ut_angle[recon_vol_histories]	= relative_ut_angle[i];	
-			//relative_uv_angle[recon_vol_histories]	= relative_uv_angle[i];
 			offset++;
 			recon_vol_histories++;
 		}
@@ -1431,24 +1346,19 @@ void binning( const int num_histories )
 	free( xz_entry_angle_h );
 	free( xy_exit_angle_h );
 	free( xz_exit_angle_h );
-	free( relative_ut_angle_h );
-	free( relative_uv_angle_h );
 
 	//cudaFree( bin_num_d );
 	cudaFree( xy_entry_angle_d );
 	cudaFree( xz_entry_angle_d );
 	cudaFree( xy_exit_angle_d );
 	cudaFree( xz_exit_angle_d );
-	cudaFree( relative_ut_angle_d );
-	cudaFree( relative_uv_angle_d );
 }
 __global__ void binning_GPU
 ( 
 	int num_histories, int* bin_counts, int* bin_num, bool* missed_recon_volume, 
 	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit, 
 	float* mean_WEPL, float* mean_rel_ut_angle, float* mean_rel_uv_angle, float* WEPL, 
-	float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle,
-	float* relative_ut_angle, float* relative_uv_angle
+	float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle
 )
 {
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
@@ -1462,6 +1372,7 @@ __global__ void binning_GPU
 			double x_midpath, y_midpath, z_midpath, path_angle;
 			int angle_bin, t_bin, v_bin;
 			double angle, t, v;
+			double rel_ut_angle, rel_uv_angle;
 
 			// Calculate midpoint of chord connecting entry and exit
 			x_midpath = ( x_entry[i] + x_exit[i] ) / 2;
@@ -1488,10 +1399,26 @@ __global__ void binning_GPU
 				bin_num[i] = t_bin + angle_bin * T_BINS + v_bin * T_BINS * ANGULAR_BINS;
 				if( !missed_recon_volume[i] )
 				{
+					//xy_entry_angle[i]
+					//xz_entry_angle[i]
+					//xy_exit_angle[i]
+					//xz_exit_angle[i]
+					rel_ut_angle = xy_exit_angle[i] - xy_entry_angle[i];
+					if( rel_ut_angle > PI )
+						rel_ut_angle -= 2 * PI;
+					if( rel_ut_angle < -PI )
+						rel_ut_angle += 2 * PI;
+					rel_uv_angle = xz_exit_angle[i] - xz_entry_angle[i];
+					if( rel_uv_angle > PI )
+						rel_uv_angle -= 2 * PI;
+					if( rel_uv_angle < -PI )
+						rel_uv_angle += 2 * PI;
 					atomicAdd( &bin_counts[bin_num[i]], 1 );
 					atomicAdd( &mean_WEPL[bin_num[i]], WEPL[i] );
-					atomicAdd( &mean_rel_ut_angle[bin_num[i]], relative_ut_angle[i] );
-					atomicAdd( &mean_rel_uv_angle[bin_num[i]], relative_uv_angle[i] );
+					atomicAdd( &mean_rel_ut_angle[bin_num[i]], rel_ut_angle );
+					atomicAdd( &mean_rel_ut_angle[bin_num[i]], rel_uv_angle );
+					//atomicAdd( &mean_rel_ut_angle[bin_num[i]], relative_ut_angle[i] );
+					//atomicAdd( &mean_rel_uv_angle[bin_num[i]], relative_uv_angle[i] );
 				}
 				else
 					bin_num[i] = -1;
@@ -1555,19 +1482,15 @@ void sum_squared_deviations( const int start_position, const int num_histories )
 	cudaMalloc((void**) &xz_entry_angle_d,		size_floats);
 	cudaMalloc((void**) &xy_exit_angle_d,		size_floats);
 	cudaMalloc((void**) &xz_exit_angle_d,		size_floats);
-	//cudaMalloc((void**) &xy_exit_angle_d,		size_floats);
-	//cudaMalloc((void**) &xz_exit_angle_d,		size_floats);
-	cudaMalloc((void**) &relative_ut_angle_d,	size_floats);
-	cudaMalloc((void**) &relative_uv_angle_d,	size_floats);
+	cudaMalloc((void**) &xy_exit_angle_d,		size_floats);
+	cudaMalloc((void**) &xz_exit_angle_d,		size_floats);
 
 	cudaMemcpy( bin_num_d,				&bin_num_vector[start_position],			size_ints, cudaMemcpyHostToDevice);
 	cudaMemcpy( WEPL_d,					&WEPL_vector[start_position],				size_floats, cudaMemcpyHostToDevice);
 	cudaMemcpy( xy_entry_angle_d,		&xy_entry_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
 	cudaMemcpy( xz_entry_angle_d,		&xz_entry_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
-	//cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
-	//cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( relative_ut_angle_d,	&relative_ut_angle_vector[start_position],	size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( relative_uv_angle_d,	&relative_uv_angle_vector[start_position],	size_floats, cudaMemcpyHostToDevice);
+	cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
+	cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
 
 	//cudaMemcpy( bin_num_d,				&bin_num[start_position],			size_ints, cudaMemcpyHostToDevice);
 	//cudaMemcpy( WEPL_d,					&WEPL[start_position],				size_floats, cudaMemcpyHostToDevice);
@@ -1575,61 +1498,46 @@ void sum_squared_deviations( const int start_position, const int num_histories )
 	//cudaMemcpy( xz_entry_angle_d,		&xz_entry_angle[start_position],		size_floats, cudaMemcpyHostToDevice);
 	////cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle[start_position],		size_floats, cudaMemcpyHostToDevice);
 	////cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle[start_position],		size_floats, cudaMemcpyHostToDevice);
-	//cudaMemcpy( relative_ut_angle_d,	&relative_ut_angle[start_position],	size_floats, cudaMemcpyHostToDevice);
-	//cudaMemcpy( relative_uv_angle_d,	&relative_uv_angle[start_position],	size_floats, cudaMemcpyHostToDevice);
 
 	dim3 dimBlock(THREADS_PER_BLOCK);
 	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
 	sum_squared_deviations_GPU<<<dimGrid, dimBlock>>>
 	( 
 		num_histories, bin_num_d, mean_WEPL_d, mean_rel_ut_angle_d, mean_rel_uv_angle_d, 
-		WEPL_d, xy_entry_angle_d, xz_entry_angle_d,  xy_entry_angle_d, xz_entry_angle_d,//xy_exit_angle_d, xz_exit_angle_d,
-		stddev_WEPL_d, stddev_rel_ut_angle_d, stddev_rel_uv_angle_d, relative_ut_angle_d, relative_uv_angle_d
+		WEPL_d, xy_entry_angle_d, xz_entry_angle_d,  xy_exit_angle_d, xz_exit_angle_d,
+		stddev_WEPL_d, stddev_rel_ut_angle_d, stddev_rel_uv_angle_d
 	);
 	cudaFree( bin_num_d );
 	cudaFree( WEPL_d );
 	cudaFree( xy_entry_angle_d );
 	cudaFree( xz_entry_angle_d );
-	//cudaFree( xy_exit_angle_d );
-	//cudaFree( xz_exit_angle_d );
-	cudaFree( relative_ut_angle_d );
-	cudaFree( relative_uv_angle_d );
+	cudaFree( xy_exit_angle_d );
+	cudaFree( xz_exit_angle_d );
 }
 __global__ void sum_squared_deviations_GPU
 ( 
 	int num_histories, int* bin_num, float* mean_WEPL, float* mean_rel_ut_angle, float* mean_rel_uv_angle,  
 	float* WEPL, float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle,
-	float* stddev_WEPL, float* stddev_rel_ut_angle, float* stddev_rel_uv_angle, float* relative_ut_angle, float* relative_uv_angle 
+	float* stddev_WEPL, float* stddev_rel_ut_angle, float* stddev_rel_uv_angle
 )
 {
 	double WEPL_difference, rel_ut_angle_difference, rel_uv_angle_difference;
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
 	if( i < num_histories )
 	{
-	/*	float ut_diff = xy_exit_angle[i] - xy_entry_angle[i];
-		if( abs(ut_diff) > PI )
-		{
-			printf("Hello\n");
-			if( xy_entry_angle[i] > PI )
-				xy_entry_angle[i] -= TWO_PI;
-			if( xy_exit_angle[i] > PI )
-				xy_exit_angle[i] -= TWO_PI;
-			ut_diff = xy_exit_angle[i] - xy_entry_angle[i];
-		}
-		float uv_diff = xz_exit_angle[i] - xz_entry_angle[i];
-		if( abs(uv_diff) > PI )
-		{
-			if( xz_entry_angle[i] > PI )
-				xz_entry_angle[i] -= TWO_PI;
-			if( xz_exit_angle[i] > PI )
-				xz_exit_angle[i] -= TWO_PI;
-			uv_diff = xz_exit_angle[i] - xz_entry_angle[i];
-		}*/
+		double rel_ut_angle = xy_exit_angle[i] - xy_entry_angle[i];
+		if( rel_ut_angle > PI )
+			rel_ut_angle -= 2 * PI;
+		if( rel_ut_angle < -PI )
+			rel_ut_angle += 2 * PI;
+		double rel_uv_angle = xz_exit_angle[i] - xz_entry_angle[i];
+		if( rel_uv_angle > PI )
+			rel_uv_angle -= 2 * PI;
+		if( rel_uv_angle < -PI )
+			rel_uv_angle += 2 * PI;
 		WEPL_difference = WEPL[i] - mean_WEPL[bin_num[i]];
-		rel_ut_angle_difference = relative_ut_angle[i] - mean_rel_ut_angle[bin_num[i]];
-		rel_uv_angle_difference = relative_uv_angle[i] - mean_rel_uv_angle[bin_num[i]];
-		//rel_ut_angle_difference = ut_diff - mean_rel_ut_angle[bin_num[i]];
-		//rel_uv_angle_difference = uv_diff - mean_rel_uv_angle[bin_num[i]];
+		rel_ut_angle_difference = rel_ut_angle - mean_rel_ut_angle[bin_num[i]];
+		rel_uv_angle_difference = rel_uv_angle - mean_rel_uv_angle[bin_num[i]];
 
 		atomicAdd( &stddev_WEPL[bin_num[i]], pow( WEPL_difference, 2 ) );
 		atomicAdd( &stddev_rel_ut_angle[bin_num[i]], pow( rel_ut_angle_difference, 2 ) );
@@ -1673,20 +1581,16 @@ void statistical_cuts( const int start_position, const int num_histories )
 	cudaMalloc( (void**) &WEPL_d,				size_floats );
 	cudaMalloc( (void**) &xy_entry_angle_d,		size_floats );
 	cudaMalloc( (void**) &xz_entry_angle_d,		size_floats );
-	//cudaMalloc( (void**) &xy_exit_angle_d,		size_floats );
-	//cudaMalloc( (void**) &xz_exit_angle_d,		size_floats );
-	cudaMalloc( (void**) &relative_ut_angle_d,	size_floats );
-	cudaMalloc( (void**) &relative_uv_angle_d,	size_floats );
+	cudaMalloc( (void**) &xy_exit_angle_d,		size_floats );
+	cudaMalloc( (void**) &xz_exit_angle_d,		size_floats );
 	cudaMalloc( (void**) &failed_cuts_d,		size_bools );
 
 	cudaMemcpy( bin_num_d,				&bin_num_vector[start_position],			size_ints,		cudaMemcpyHostToDevice );
 	cudaMemcpy( WEPL_d,					&WEPL_vector[start_position],				size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( xy_entry_angle_d,		&xy_entry_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( xz_entry_angle_d,		&xz_entry_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
-	//cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
-	//cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
-	cudaMemcpy( relative_ut_angle_d,	&relative_ut_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
-	cudaMemcpy( relative_uv_angle_d,	&relative_uv_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( failed_cuts_d,			failed_cuts_h,								size_bools,		cudaMemcpyHostToDevice );
 
 	//cudaMemcpy( bin_num_d,				&bin_num[start_position],			size_ints, cudaMemcpyHostToDevice);
@@ -1695,18 +1599,16 @@ void statistical_cuts( const int start_position, const int num_histories )
 	//cudaMemcpy( xz_entry_angle_d,		&xz_entry_angle[start_position],		size_floats, cudaMemcpyHostToDevice);
 	////cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle[start_position],		size_floats, cudaMemcpyHostToDevice);
 	////cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle[start_position],		size_floats, cudaMemcpyHostToDevice);
-	//cudaMemcpy( relative_ut_angle_d,	&relative_ut_angle[start_position],	size_floats, cudaMemcpyHostToDevice);
-	//cudaMemcpy( relative_uv_angle_d,	&relative_uv_angle[start_position],	size_floats, cudaMemcpyHostToDevice);
 
 	dim3 dimBlock(THREADS_PER_BLOCK);
 	dim3 dimGrid( int( num_histories / THREADS_PER_BLOCK ) + 1 );  
 	statistical_cuts_GPU<<< dimGrid, dimBlock >>>
 	( 
 		num_histories, bin_counts_d, bin_num_d, sinogram_d, WEPL_d, 
-		xy_entry_angle_d, xz_entry_angle_d, xy_entry_angle_d, xz_entry_angle_d,//xy_exit_angle_d, xz_exit_angle_d, 
+		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d, 
 		mean_WEPL_d, mean_rel_ut_angle_d, mean_rel_uv_angle_d, 
 		stddev_WEPL_d, stddev_rel_ut_angle_d, stddev_rel_uv_angle_d, 
-		failed_cuts_d, relative_ut_angle_d, relative_uv_angle_d
+		failed_cuts_d
 	);
 	cudaMemcpy( failed_cuts_h, failed_cuts_d, size_bools, cudaMemcpyDeviceToHost);
 
@@ -1725,10 +1627,8 @@ void statistical_cuts( const int start_position, const int num_histories )
 			z_exit_vector[post_cut_histories] = z_exit_vector[start_position + i];
 			xy_entry_angle_vector[post_cut_histories] = xy_entry_angle_vector[start_position + i];
 			xz_entry_angle_vector[post_cut_histories] = xz_entry_angle_vector[start_position + i];
-			//xy_exit_angle_vector[post_cut_histories] = xy_exit_angle_vector[start_position + i];
-			//xz_exit_angle_vector[post_cut_histories] = xz_exit_angle_vector[start_position + i];
-			relative_ut_angle_vector[post_cut_histories] = relative_ut_angle_vector[start_position + i];
-			relative_uv_angle_vector[post_cut_histories] = relative_uv_angle_vector[start_position + i];
+			xy_exit_angle_vector[post_cut_histories] = xy_exit_angle_vector[start_position + i];
+			xz_exit_angle_vector[post_cut_histories] = xz_exit_angle_vector[start_position + i];
 			//bin_num[post_cut_histories] = bin_num[start_position + i];
 			////gantry_angle[post_cut_histories] = gantry_angle[start_position + i];
 			//WEPL[post_cut_histories] = WEPL[start_position + i];
@@ -1742,8 +1642,6 @@ void statistical_cuts( const int start_position, const int num_histories )
 			//xz_entry_angle[post_cut_histories] = xz_entry_angle[start_position + i];
 			////xy_exit_angle[post_cut_histories] = xy_exit_angle[start_position + i];
 			////xz_exit_angle[post_cut_histories] = xz_exit_angle[start_position + i];
-			//relative_ut_angle[post_cut_histories] = relative_ut_angle[start_position + i];
-			//relative_uv_angle[post_cut_histories] = relative_uv_angle[start_position + i];
 			post_cut_histories++;
 		}
 	}
@@ -1756,34 +1654,24 @@ __global__ void statistical_cuts_GPU
 	float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle, 
 	float* mean_WEPL, float* mean_rel_ut_angle, float* mean_rel_uv_angle,
 	float* stddev_WEPL, float* stddev_rel_ut_angle, float* stddev_rel_uv_angle, 
-	bool* failed_cuts, float* relative_ut_angle, float* relative_uv_angle	
+	bool* failed_cuts
 )
 {
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
 	if( i < num_histories )
 	{
-		/*float ut_diff = xy_exit_angle[i] - xy_entry_angle[i];
-		if( ut_diff > PI )
-		{
-			if( xy_entry_angle[i] > PI )
-				xy_entry_angle[i] -= TWO_PI;
-			if( xy_exit_angle[i] > PI )
-				xy_exit_angle[i] -= TWO_PI;
-			ut_diff = xy_exit_angle[i] - xy_entry_angle[i];
-		}
-		float uv_diff = xz_exit_angle[i] - xz_entry_angle[i];
-		if( uv_diff > PI )
-		{
-			if( xz_entry_angle[i] > PI )
-				xz_entry_angle[i] -= TWO_PI;
-			if( xz_exit_angle[i] > PI )
-				xz_exit_angle[i] -= TWO_PI;
-			uv_diff = xz_exit_angle[i] - xz_entry_angle[i];
-		}*/
-		bool passed_ut_cut = ( abs( relative_ut_angle[i] - mean_rel_ut_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_ut_angle[bin_num[i]] ) );
-		bool passed_uv_cut = ( abs( relative_uv_angle[i] - mean_rel_uv_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_uv_angle[bin_num[i]] ) );
-		/*bool passed_ut_cut = ( abs( ut_diff - mean_rel_ut_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_ut_angle[bin_num[i]] ) );
-		bool passed_uv_cut = ( abs( uv_diff - mean_rel_uv_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_uv_angle[bin_num[i]] ) );*/
+		double rel_ut_angle = xy_exit_angle[i] - xy_entry_angle[i];
+		if( rel_ut_angle > PI )
+			rel_ut_angle -= 2 * PI;
+		if( rel_ut_angle < -PI )
+			rel_ut_angle += 2 * PI;
+		double rel_uv_angle = xz_exit_angle[i] - xz_entry_angle[i];
+		if( rel_uv_angle > PI )
+			rel_uv_angle -= 2 * PI;
+		if( rel_uv_angle < -PI )
+			rel_uv_angle += 2 * PI;
+		bool passed_ut_cut = ( abs( rel_ut_angle - mean_rel_ut_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_ut_angle[bin_num[i]] ) );
+		bool passed_uv_cut = ( abs( rel_uv_angle - mean_rel_uv_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_uv_angle[bin_num[i]] ) );
 		bool passed_WEPL_cut = ( abs( mean_WEPL[bin_num[i]] - WEPL[i] ) <= ( SIGMAS_TO_KEEP * stddev_WEPL[bin_num[i]] ) );
 		failed_cuts[i] = !passed_ut_cut || !passed_uv_cut || !passed_WEPL_cut;
 
@@ -4255,10 +4143,8 @@ void reserve_vector_capacity()
 	z_exit_vector.reserve( total_histories );
 	xy_entry_angle_vector.reserve( total_histories );
 	xz_entry_angle_vector.reserve( total_histories );
-	//xy_exit_angle_vector.reserve( total_histories );
-	//xz_exit_angle_vector.reserve( total_histories );
-	relative_ut_angle_vector.reserve( total_histories );
-	relative_uv_angle_vector.reserve( total_histories );
+	xy_exit_angle_vector.reserve( total_histories );
+	xz_exit_angle_vector.reserve( total_histories );
 }
 void initial_processing_memory_clean()
 {
@@ -4289,10 +4175,8 @@ void post_cut_memory_clean()
 	cudaFree( WEPL_d );
 	cudaFree( xy_entry_angle_d );
 	cudaFree( xz_entry_angle_d );
-	//cudaFree( xy_exit_angle_d );
-	//cudaFree( xz_exit_angle_d );
-	cudaFree( relative_ut_angle_d );
-	cudaFree( relative_uv_angle_d );
+	cudaFree( xy_exit_angle_d );
+	cudaFree( xz_exit_angle_d );
 
 	cudaFree( mean_rel_ut_angle_d );
 	cudaFree( mean_rel_uv_angle_d );
@@ -4314,10 +4198,8 @@ void resize_vectors( const int new_size )
 	z_exit_vector.resize( new_size );
 	xy_entry_angle_vector.resize( new_size );	
 	xz_entry_angle_vector.resize( new_size );	
-	//xy_exit_angle_vector.resize( new_size );
-	//xz_exit_angle_vector.resize( new_size );
-	relative_ut_angle_vector.resize( new_size );
-	relative_uv_angle_vector.resize( new_size );
+	xy_exit_angle_vector.resize( new_size );
+	xz_exit_angle_vector.resize( new_size );
 }
 void shrink_vectors( const int new_capacity )
 {
@@ -4332,10 +4214,8 @@ void shrink_vectors( const int new_capacity )
 	z_exit_vector.shrink_to_fit();	
 	xy_entry_angle_vector.shrink_to_fit();	
 	xz_entry_angle_vector.shrink_to_fit();	
-	//xy_exit_angle_vector.shrink_to_fit();	
-	//xz_exit_angle_vector.shrink_to_fit();	
-	relative_ut_angle_vector.shrink_to_fit();
-	relative_uv_angle_vector.shrink_to_fit();
+	xy_exit_angle_vector.shrink_to_fit();	
+	xz_exit_angle_vector.shrink_to_fit();	
 }
 void initialize_stddev()
 {	
@@ -4366,8 +4246,6 @@ void allocations( const int num_histories)
 	xz_entry_angle		= (float*) calloc( num_histories,	sizeof(float) );	
 	xy_exit_angle		= (float*) calloc( num_histories,	sizeof(float) );	
 	xz_exit_angle		= (float*) calloc( num_histories,	sizeof(float) );	
-	relative_ut_angle	= (float*) calloc( num_histories,	sizeof(float) );	
-	relative_uv_angle	= (float*) calloc( num_histories,	sizeof(float) );
 }
 void reallocations( const int new_size)
 {
@@ -4384,8 +4262,6 @@ void reallocations( const int new_size)
 	xz_entry_angle		= (float*) realloc( xz_entry_angle,		new_size * sizeof(float) );	
 	xy_exit_angle		= (float*) realloc( xy_exit_angle,		new_size * sizeof(float) );	
 	xz_exit_angle		= (float*) realloc( xz_exit_angle,		new_size * sizeof(float) );	
-	relative_ut_angle	= (float*) realloc( relative_ut_angle,	new_size * sizeof(float) );	
-	relative_uv_angle	= (float*) realloc( relative_uv_angle,	new_size * sizeof(float) );
 }
 /****************************************************************************************************************************************************************/
 /******************************************************* Routines for Writing Data Arrays/Vectors to Disk *******************************************************/

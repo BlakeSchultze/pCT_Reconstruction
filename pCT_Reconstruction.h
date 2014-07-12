@@ -22,6 +22,7 @@
 #include <sstream>
 #include <vector>
 
+using namespace std;
 using namespace std::placeholders; 
 /***************************************************************************************************************************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -44,8 +45,8 @@ const bool EXIT_AFTER_FBP	   = false;									// Exit program early after comple
 const bool DEBUG_TEXT_ON	   = true;									// Provide (T) or suppress (F) print statements to console during execution
 const bool SAMPLE_STD_DEV	   = true;									// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
 const bool FBP_ON			   = true;									// Turn FBP on (T) or off (F)
-const bool SC_ON			   = false;									// Turn Space Carving on (T) or off (F)
-const bool MSC_ON			   = false;									// Turn Modified Space Carving on (T) or off (F)
+const bool SC_ON			   = true;									// Turn Space Carving on (T) or off (F)
+const bool MSC_ON			   = true;									// Turn Modified Space Carving on (T) or off (F)
 const bool SM_ON			   = false;									// Turn Space Modeling on (T) or off (F)
 const bool HULL_FILTER_ON	   = false;									// Apply averaging filter to hull (T) or not (F)
 const bool COUNT_0_WEPLS	   = false;									// Count the number of histories with WEPL = 0 (T) or not (F)
@@ -62,14 +63,14 @@ const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 201
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
-//const char INPUT_FOLDER[]	   = "input_water_GeantNONUC";
-//const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
+const char INPUT_FOLDER[]	   = "input_water_GeantNONUC";
+const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
 //const char INPUT_FOLDER[]	   = "input_water_Geant500000";
 //const char OUTPUT_FOLDER[]   = "input_water_Geant500000";
 //const char INPUT_FOLDER[]	   = "waterPhantom";
 //const char OUTPUT_FOLDER[]   = "waterPhantom";
-const char INPUT_FOLDER[]	   = "catphan";
-const char OUTPUT_FOLDER[]     = "catphan";
+//const char INPUT_FOLDER[]	   = "catphan";
+//const char OUTPUT_FOLDER[]     = "catphan";
 //const char INPUT_FOLDER[]	   = "DetectData";
 //const char OUTPUT_FOLDER[]   = "DetectData";
 //const char INPUT_FOLDER[]	   = "Rat_Scan2";
@@ -146,13 +147,13 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 /************************************************************* Host/GPU computation and structure information **************************************************************/
 /***************************************************************************************************************************************************************************/
 #define BYTES_PER_HISTORY	   48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
-#define MAX_GPU_HISTORIES	   880000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_GPU_HISTORIES	   300000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
 #define THREADS_PER_BLOCK	   1024										// [#] Number of threads assigned to each block on the GPU
 /***************************************************************************************************************************************************************************/
 /**************************************** Scanning and detector system	(source distance, tracking plane dimensions) parameters ********************************************/
 /***************************************************************************************************************************************************************************/
 #define SOURCE_RADIUS		   265.7									// [cm] Distance  to source/scatterer 
-#define GANTRY_ANGLE_INTERVAL  4.0										// [degrees] Angle between successive projection angles 
+#define GANTRY_ANGLE_INTERVAL  6.0										// [degrees] Angle between successive projection angles 
 #define GANTRY_ANGLES		   int( 360 / GANTRY_ANGLE_INTERVAL )		// [#] Total number of projection angles
 #define NUM_SCANS			   1										// [#] Total number of scans
 #define NUM_FILES			   ( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
@@ -161,13 +162,15 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 /***************************************************************************************************************************************************************************/
 /************************************************* Binning (for statistical analysis) and sinogram (for FBP) parameters ****************************************************/
 /***************************************************************************************************************************************************************************/
-#define T_SHIFT				   2.05										// [cm] Amount by which to shift all t coordinates on input
-#define U_SHIFT				   -0.16									// [cm] Amount by which to shift all v coordinates on input
+#define T_SHIFT				   0.0										// [cm] Amount by which to shift all t coordinates on input
+#define U_SHIFT				   0.0									// [cm] Amount by which to shift all v coordinates on input
+//#define T_SHIFT				   2.05										// [cm] Amount by which to shift all t coordinates on input
+//#define U_SHIFT				   -0.16									// [cm] Amount by which to shift all v coordinates on input
 #define T_BIN_SIZE			   0.1										// [cm] Distance between adjacent bins in t (lateral) direction
 #define T_BINS				   int( SSD_T_SIZE / T_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
 #define V_BIN_SIZE			   0.25										// [cm] Distance between adjacent bins in v (vertical) direction
 #define V_BINS				   int( SSD_V_SIZE / V_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
-#define ANGULAR_BIN_SIZE	   4.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
+#define ANGULAR_BIN_SIZE	   6.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
 #define ANGULAR_BINS		   int( 360 / ANGULAR_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for path angle 
 #define NUM_BINS			   ( ANGULAR_BINS * T_BINS * V_BINS )		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
 #define SIGMAS_TO_KEEP		   3										// [#] Number of standard deviations from mean to allow before cutting the history 
@@ -180,10 +183,10 @@ const FILTER_TYPES FBP_FILTER  = SHEPP_LOGAN;			  				// Specifies which of the 
 /***************************************************************************************************************************************************************************/
 /******************************************************************* Reconstruction cylinder parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
-#define RECON_CYL_RADIUS	   10.0										// [cm] Radius of reconstruction cylinder
+#define RECON_CYL_RADIUS	   8.0										// [cm] Radius of reconstruction cylinder
 #define RECON_CYL_DIAMETER	   ( 2 * RECON_CYL_RADIUS )					// [cm] Diameter of reconstruction cylinder
-//#define RECON_CYL_HEIGHT	   (SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
-#define RECON_CYL_HEIGHT	   6.0										// [cm] Height of reconstruction cylinder
+#define RECON_CYL_HEIGHT	   (SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
+//#define RECON_CYL_HEIGHT	   6.0										// [cm] Height of reconstruction cylinder
 /***************************************************************************************************************************************************************************/
 /********************************************************************	Reconstruction image parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -203,7 +206,7 @@ const FILTER_TYPES FBP_FILTER  = SHEPP_LOGAN;			  				// Specifies which of the 
 /***************************************************************************************************************************************************************************/
 #define MSC_DIFF_THRESH		   50										// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
 #define SC_THRESHOLD		   0.0										// [cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
-#define MSC_THRESHOLD		   -0.5										// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
+#define MSC_THRESHOLD		   0.0										// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
 #define SM_LOWER_THRESHOLD	   6.0										// [cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
 #define SM_UPPER_THRESHOLD	   21.0										// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
 #define SM_SCALE_THRESHOLD	   1.0										// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
