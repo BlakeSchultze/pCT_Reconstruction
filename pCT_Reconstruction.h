@@ -23,7 +23,7 @@
 #include <cstdlib>		// rand, srand
 #include <ctime>		// clock(), time() 
 #include <fstream>
-#include <functional>	// std::multiplies, std::plus
+#include <functional>	// std::multiplies, std::plus, std::function, std::negate
 #include <initializer_list>
 #include <iostream>
 #include <new>			 
@@ -47,7 +47,7 @@ using std::endl;
 /***************************************************************************************************************************************************************************/
 /********************************************************************* Execution and early exit options ********************************************************************/
 /***************************************************************************************************************************************************************************/
-const bool RUN_ON			   = false;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
+const bool RUN_ON			   = true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
 const bool EXIT_AFTER_BINNING  = false;									// Exit program early after completing data read and initial processing
 const bool EXIT_AFTER_HULLS    = true;									// Exit program early after completing hull-detection
 const bool EXIT_AFTER_CUTS     = false;									// Exit program early after completing statistical cuts
@@ -249,32 +249,33 @@ const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the d
 /***************************************************************************************************************************************************************************/
 /******************************************************************* Reconstruction cylinder parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
-#define RECON_CYL_RADIUS		5.0										// [cm] Radius of reconstruction cylinder
-//#define RECON_CYL_RADIUS		8.0										// [cm] Radius of reconstruction cylinder
+#define RECON_CYL_RADIUS		8.0										// [cm] Radius of reconstruction cylinder
 #define RECON_CYL_DIAMETER		( 2 * RECON_CYL_RADIUS )					// [cm] Diameter of reconstruction cylinder
-//#define RECON_CYL_HEIGHT		(SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
-#define RECON_CYL_HEIGHT		5.0										// [cm] Height of reconstruction cylinder
+#define RECON_CYL_HEIGHT		(SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
 /***************************************************************************************************************************************************************************/
 /********************************************************************	Reconstruction image parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
 #define IMAGE_WIDTH				RECON_CYL_DIAMETER				// [cm] Distance between left and right edges of each slice in image
 #define IMAGE_HEIGHT			RECON_CYL_DIAMETER					// [cm] Distance between top and bottom edges of each slice in image
 #define IMAGE_THICKNESS			( SLICES * SLICE_THICKNESS )			// [cm] Distance between bottom of bottom slice and top of the top slice of image
-#define COLUMNS					100										// [#] Number of voxels in the x direction (i.e., number of columns) of image
-#define ROWS					100										// [#] Number of voxels in the y direction (i.e., number of rows) of image
-// #define COLUMNS					200										// [#] Number of voxels in the x direction (i.e., number of columns) of image
-//#define ROWS					200										// [#] Number of voxels in the y direction (i.e., number of rows) of image
-#define SLICES					5
-//#define SLICES					int( RECON_CYL_HEIGHT / SLICE_THICKNESS )// [#] Number of voxels in the z direction (i.e., number of slices) of image
+#define COLUMNS					200										// [#] Number of voxels in the x direction (i.e., number of columns) of image
+#define ROWS					200										// [#] Number of voxels in the y direction (i.e., number of rows) of image
+#define SLICES					int( RECON_CYL_HEIGHT / SLICE_THICKNESS )// [#] Number of voxels in the z direction (i.e., number of slices) of image
 #define NUM_VOXELS					( COLUMNS * ROWS * SLICES )				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
-//#define VOXEL_WIDTH				( RECON_CYL_DIAMETER / COLUMNS )	// [cm] Distance between left and right edges of each voxel in image
-//#define VOXEL_HEIGHT				( RECON_CYL_DIAMETER / ROWS )		// [cm] Distance between top and bottom edges of each voxel in image
-//#define VOXEL_THICKNESS			( IMAGE_THICKNESS / SLICES )		// [cm] Distance between top and bottom of each slice in image
-//#define SLICE_THICKNESS			0.25								// [cm] Distance between top and bottom of each slice in image
-#define VOXEL_WIDTH				0.1										// [cm] Distance between left and right edges of each voxel in image
-#define VOXEL_HEIGHT			0.1										// [cm] Distance between top and bottom edges of each voxel in image
-#define VOXEL_THICKNESS			1.0										// [cm] Distance between top and bottom of each slice in image
-#define SLICE_THICKNESS			1.0										// [cm] Distance between top and bottom of each slice in image
+#define VOXEL_WIDTH				( RECON_CYL_DIAMETER / COLUMNS )	// [cm] Distance between left and right edges of each voxel in image
+#define VOXEL_HEIGHT				( RECON_CYL_DIAMETER / ROWS )		// [cm] Distance between top and bottom edges of each voxel in image
+#define VOXEL_THICKNESS			( IMAGE_THICKNESS / SLICES )		// [cm] Distance between top and bottom of each slice in image
+#define SLICE_THICKNESS			0.25								// [cm] Distance between top and bottom of each slice in image
+
+//#define RECON_CYL_RADIUS		5.0										// [cm] Radius of reconstruction cylinder
+//#define RECON_CYL_HEIGHT		5.0										// [cm] Height of reconstruction cylinder
+//#define COLUMNS					100										// [#] Number of voxels in the x direction (i.e., number of columns) of image
+//#define ROWS					100										// [#] Number of voxels in the y direction (i.e., number of rows) of image
+//#define SLICES					5
+//#define VOXEL_WIDTH				0.1										// [cm] Distance between left and right edges of each voxel in image
+//#define VOXEL_HEIGHT			0.1										// [cm] Distance between top and bottom edges of each voxel in image
+//#define VOXEL_THICKNESS			1.0										// [cm] Distance between top and bottom of each slice in image
+//#define SLICE_THICKNESS			1.0										// [cm] Distance between top and bottom of each slice in image
 /***************************************************************************************************************************************************************************/
 /************************************************************************ Hull-Detection Parameters ************************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -472,7 +473,8 @@ float*	relative_uv_angle;
 /***************************************************************************************************************************************************************************/
 /*********************************************************************** Execution timer variables *************************************************************************/
 /***************************************************************************************************************************************************************************/
-clock_t start_time, end_time, execution_time;
+clock_t start_time, end_time, execution_clock_cycles;
+double execution_time;
 /***************************************************************************************************************************************************************************/
 /***************************************************************************************************************************************************************************/
 /************************************************************************* For Use In Development **************************************************************************/
