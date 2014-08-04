@@ -49,7 +49,7 @@ using std::endl;
 /***************************************************************************************************************************************************************************/
 const bool RUN_ON			   = true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
 const bool EXIT_AFTER_BINNING  = false;									// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_HULLS    = true;									// Exit program early after completing hull-detection
+const bool EXIT_AFTER_HULLS    = false;									// Exit program early after completing hull-detection
 const bool EXIT_AFTER_CUTS     = false;									// Exit program early after completing statistical cuts
 const bool EXIT_AFTER_SINOGRAM = false;									// Exit program early after completing the construction of the sinogram
 const bool EXIT_AFTER_FBP	   = false;									// Exit program early after completing FBP
@@ -60,7 +60,7 @@ const bool DEBUG_TEXT_ON	   = true;									// Provide (T) or suppress (F) print
 const bool SAMPLE_STD_DEV	   = true;									// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
 const bool FBP_ON			   = true;									// Turn FBP on (T) or off (F)
 const bool SC_ON			   = true;									// Turn Space Carving on (T) or off (F)
-const bool MSC_ON			   = false;									// Turn Modified Space Carving on (T) or off (F)
+const bool MSC_ON			   = true;									// Turn Modified Space Carving on (T) or off (F)
 const bool SM_ON			   = false;									// Turn Space Modeling on (T) or off (F)
 const bool HULL_FILTER_ON	   = false;									// Apply averaging filter to hull (T) or not (F)
 const bool COUNT_0_WEPLS	   = false;									// Count the number of histories with WEPL = 0 (T) or not (F)
@@ -77,6 +77,8 @@ const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 201
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
+//const char INPUT_FOLDER[]	   = "input_CTP404";
+//const char OUTPUT_FOLDER[]	   = "input_CTP404";
 const char INPUT_FOLDER[]	   = "input_water_GeantNONUC";
 const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
 //const char INPUT_FOLDER[]	   = "input_water_Geant500000";
@@ -84,27 +86,15 @@ const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
 //const char INPUT_FOLDER[]	   = "waterPhantom";
 //const char OUTPUT_FOLDER[]   = "waterPhantom";
 //const char INPUT_FOLDER[]	   = "catphan";
-//const char OUTPUT_FOLDER[]     = "catphan";
+//const char OUTPUT_FOLDER[]   = "catphan";
 //const char INPUT_FOLDER[]	   = "DetectData";
 //const char OUTPUT_FOLDER[]   = "DetectData";
 //const char INPUT_FOLDER[]	   = "Rat_Scan2";
 //const char OUTPUT_FOLDER[]   = "Rat_Scan2"; 
-//const char INPUT_FOLDER[]	   = "sim_noerror";
-//const char OUTPUT_FOLDER[]   = "sim_noerror";
-//const char INPUT_FOLDER[]	   = "sim_error1";
-//const char OUTPUT_FOLDER[]   = "sim_error1";
 //const char INPUT_FOLDER[]	   = "DetectDataWeplNoisy1";
 //const char OUTPUT_FOLDER[]   = "DetectDataWeplNoisy1";
-//const char INPUT_FOLDER[]	   = "NoisyUniform1";
-//const char OUTPUT_FOLDER[]   = "NoisyUniform1";
-//const char INPUT_FOLDER[]	   = "NoisyUniform2";
-//const char OUTPUT_FOLDER[]   = "NoisyUniform2";
-//const char INPUT_FOLDER[]	   = "NoisyUniform3";
-//const char OUTPUT_FOLDER[]   = "NoisyUniform3";
 //const char INPUT_FOLDER[]	   = "input_noisefloor40";
 //const char OUTPUT_FOLDER[]   = "input_noisefloor40";
-//const char INPUT_FOLDER[]    = "Simulated_Data\\9-21";
-//const char OUTPUT_FOLDER[]   = "Simulated_Data\\9-21";
 /***************************************************************************************************************************************************************************/
 /**************************************** Prefix of the input data set filename (_trans%d_%03d.txt (or .dat) will be added to this) ****************************************/
 /***************************************************************************************************************************************************************************/
@@ -129,6 +119,15 @@ const bool SSD_IN_MM		   = true;									// SSD distances from rotation axis giv
 const bool DATA_IN_MM		   = true;									// Input data given in mm (T) or cm (F)
 const bool MICAH_SIM		   = false;									// Specify whether the input data is from Micah's simulator (T) or not (F)
 /***************************************************************************************************************************************************************************/
+/**************************************************************************** Output filenames *****************************************************************************/
+/***************************************************************************************************************************************************************************/
+const char SC_HULL_FILENAME[]  = "x_SC";
+const char MSC_HULL_FILENAME[] = "x_MSC";
+const char SM_HULL_FILENAME[]  = "x_SM";
+const char FBP_HULL_FILENAME[] = "x_FBP";
+const char FBP_IMAGE_FILENAME[]= "FBP_image";
+const char MLP_PATH_FILENAME[] = "MLP_paths";
+/***************************************************************************************************************************************************************************/
 /************************************************************************ Output option parameters *************************************************************************/
 /***************************************************************************************************************************************************************************/
 const bool WRITE_SC_HULL	   = true;									// Write SC hull to disk (T) or not (F)
@@ -141,6 +140,7 @@ const bool WRITE_FBP_HULL	   = true;									// Write FBP hull to disk (T) or no
 const bool WRITE_FILTERED_HULL = true;									// Write average filtered hull to disk (T) or not (F)
 const bool WRITE_X_HULL		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
 const bool WRITE_X_K0		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_X			   = true;									// Write the reconstructed image to disk (T) or not (F)
 /***************************************************************************************************************************************************************************/
 /*************************************************************** Binned data analysis options and parameters ***************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -149,7 +149,7 @@ enum BIN_ANALYSIS_FOR { ALL_BINS, SPECIFIC_BINS };						// Choices for which bin
 enum BIN_ORGANIZATION { BY_BIN, BY_HISTORY };							// Binned data is either organized in order by bin or by history w/ bin # specified separately
 enum BIN_ANALYSIS_OF { WEPLS, ANGLES, POSITIONS, BIN_NUMS };			// Choices for which type of binned data is desired
 const bool WRITE_BIN_WEPLS	   = false;									// Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
-const bool WRITE_WEPL_DISTS	   = true;									// Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
+const bool WRITE_WEPL_DISTS	   = false;									// Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
 const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F) 
 /***************************************************************************************************************************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -173,58 +173,6 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 #define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
 #define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
 #define SSD_V_SIZE				9.0										// [cm] Length of SSD in v (vertical) direction
-/***************************************************************************************************************************************************************************/
-/********************************************************* tv conversions and energy/WEPL calibration parameters ***********************************************************/
-/***************************************************************************************************************************************************************************/
-// Vladimir
-double p0, p1, p2, p3, p4;												// t/v fit parameters
-static double Estage[5] = { 25.85, 29.04, 34.43, 47.8, 52.63 };			// Calibration coefficient = avg E deposited in stage N by 200MeV p+; used in ADC->E (MeV) conversion
-// Reco.C
-double ped[5] = {9.645, -20.484, -201.987, 62.966, -7.747};				// ADC Pedestals (Celeste data) Reco.C
-double ucal = 216.9 + 40;	
-
-//pctroot.cpp
- const unsigned char pattern_run_header_identifier[3] = {0xD2, 0x55, 0x4E};     // 1R U N
-
-// sensor.C/edisplay.C
-// approx position for the calorimeter entrance for runs >= 51
-Double_t ut[4] = {-211.80, -161.80, 161.80, 211.80};
-Double_t uv[4] = {-217.70, -167.6,  167.6,  217.70};
-
-//sensor.C/Sensor.C
-Double_t tPin[4] = {215.24, 211.25, -211.25, -215.24};   // T coordinate of alignment pin per layer
-      //Double_t tDir[4] = {-1.0, -1.0, 1.0, 1.0};               // T direction of increasing strip number per layer
-Double_t vPin[4] = {0.055,0.055,0.055,0.055};
-      //int vBoardLayer_[4] = {6,4,2,3};  	      // fpga to V-board translation; this will change if spares are swapped
-      Double_t firstStripV[7][2] = {		// Distance from the alignment pin to the first strip
-         {-43.7193, -43.716},             // Board V0 doesn't exist
-         {-43.7193, -43.716},
-         {-43.7193, -43.716},
-         {-43.7193, -43.716},
-         {-43.7193, -43.716},	            // These numbers are actually from V4
-         {-43.7193, -43.716},
-         {-43.5855, -43.5865}
-	  };
-// edisplay.C
-struct Geo {
-      Double_t halfsize;
-      Double_t tpin[2];
-      Double_t firstStrip[4];    // position of the first strip of the t-sensors relative the pin
-      Geo() {
-         halfsize = 43.662;
-         tpin[0] = 215.24;
-         tpin[1] = 211.25;
-         firstStrip[0] = 38.58;
-         firstStrip[1] = 126.85;
-         firstStrip[2] = 215.11;
-         firstStrip[3] = 303.37;
-      }
-   } geo;
-
-// StripHit.h
-Int_t vstrip[4][2*384];    // particle eye view: layer 0: left part 384..768, right part: 0..383
-   Int_t tstrip[4][4*384];
-   Int_t* stripFPGA[12];
 /***************************************************************************************************************************************************************************/
 /************************************************* Binning (for statistical analysis) and sinogram (for FBP) parameters ****************************************************/
 /***************************************************************************************************************************************************************************/
@@ -289,12 +237,13 @@ const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the d
 /****************************************************************************** MLP Parameters *****************************************************************************/
 /***************************************************************************************************************************************************************************/
 enum  HULL_TYPES {SC_HULL, MSC_HULL, SM_HULL, FBP_HULL };				// Define valid choices for which hull to use in MLP calculations
-const HULL_TYPES				MLP_HULL = FBP_HULL;					// Specify which of the HULL_TYPES to use in this run's MLP calculations
+const HULL_TYPES				MLP_HULL = MSC_HULL;					// Specify which of the HULL_TYPES to use in this run's MLP calculations
 #define E_0						13.6									// [MeV/c] empirical constant
 #define X_0						36.1									// [cm] radiation length
 #define RSP_AIR					0.00113									// [cm/cm] Approximate RSP of air
 #define VOXEL_STEP_SIZE			( VOXEL_WIDTH / 2 )						// [cm] Length of the step taken along the path, i.e. change in depth per step for
 #define MAX_INTERSECTIONS		1000									// Limit on the # of intersections expected for proton's MLP; = # voxels along image diagonal
+#define MLP_u_step (min(VOXEL_WIDTH, VOXEL_HEIGHT) / 2) 
 const int max_path_elements = int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2)));
 // 200 MeV coefficients
 double A_0 = (  7.457 * pow( 10, -6.0  ) );
@@ -306,9 +255,9 @@ double A_5 = (  2.687 * pow( 10, -11.0 ) );
 /***************************************************************************************************************************************************************************/
 /*************************************************************** Iterative Image Reconstruction Parameters *****************************************************************/
 /***************************************************************************************************************************************************************************/
-enum  INITIAL_ITERATE { X_HULL, FBP_IMAGE, HYBRID };					// Define valid choices for which hull to use in MLP calculations
+enum  INITIAL_ITERATE { X_HULL, FBP_IMAGE, HYBRID, ZEROS };					// Define valid choices for which hull to use in MLP calculations
 const INITIAL_ITERATE			X_K0 = HYBRID;							// Specify which of the HULL_TYPES to use in this run's MLP calculations
-#define LAMBDA					0.1										// Relaxation parameter to use in image iterative projection reconstruction algorithms
+#define LAMBDA					0.01										// Relaxation parameter to use in image iterative projection reconstruction algorithms
 enum PROJECTION_ALGORITHMS { ART, SART, DROP, BIP, SAP };				// Define valid choices for iterative projection algorithm to use
 const PROJECTION_ALGORITHMS		PROJECTION_ALGORITHM = ART;				// Specify which of the projection algorithms to use for image reconstruction
 #define BLOCK_SIZE				1										// # of paths to use for each update: ART = 1, 
@@ -448,8 +397,8 @@ std::vector<float>	xy_entry_angle_vector;
 std::vector<float>	xz_entry_angle_vector;	
 std::vector<float>	xy_exit_angle_vector;	
 std::vector<float>	xz_exit_angle_vector;	
-std::vector<float>	relative_ut_angle_vector;	
-std::vector<float>	relative_uv_angle_vector;
+//std::vector<float>	relative_ut_angle_vector;	
+//std::vector<float>	relative_uv_angle_vector;
 /***************************************************************************************************************************************************************************/
 /********************************** Declaration of arrays used to accumulate data from histories that have passed currently applied cuts ***********************************/
 /***************************************************************************************************************************************************************************/
@@ -486,7 +435,7 @@ double execution_time;
 /***************************************************************************************************************************************************************************/
 int* test_image_h, test_image_d;
 
-#define MLP_u_step (min(VOXEL_WIDTH, VOXEL_HEIGHT) / 2) 
+
 int MLP_IMAGE_COLUMNS = 100, MLP_IMAGE_ROWS = 100, MLP_IMAGE_SLICES = 5;
 int MLP_IMAGE_VOXELS = MLP_IMAGE_COLUMNS * MLP_IMAGE_ROWS * MLP_IMAGE_SLICES;
 int MLP_IMAGE_SIZE = MLP_IMAGE_VOXELS * sizeof(int);
@@ -513,3 +462,55 @@ double MLP_IMAGE_THICKNESS = MLP_IMAGE_SLICES * MLP_IMAGE_VOXEL_THICKNESS;
 /***************************************************************************************************************************************************************************/
 /***************************************************************************************************************************************************************************/
 //#endif // _PCT_RECONSTRUCTION_H_
+///***************************************************************************************************************************************************************************/
+///********************************************************* tv conversions and energy/WEPL calibration parameters ***********************************************************/
+///***************************************************************************************************************************************************************************/
+//// Vladimir
+//double p0, p1, p2, p3, p4;												// t/v fit parameters
+//static double Estage[5] = { 25.85, 29.04, 34.43, 47.8, 52.63 };			// Calibration coefficient = avg E deposited in stage N by 200MeV p+; used in ADC->E (MeV) conversion
+//// Reco.C
+//double ped[5] = {9.645, -20.484, -201.987, 62.966, -7.747};				// ADC Pedestals (Celeste data) Reco.C
+//double ucal = 216.9 + 40;	
+//
+////pctroot.cpp
+// const unsigned char pattern_run_header_identifier[3] = {0xD2, 0x55, 0x4E};     // 1R U N
+//
+//// sensor.C/edisplay.C
+//// approx position for the calorimeter entrance for runs >= 51
+//Double_t ut[4] = {-211.80, -161.80, 161.80, 211.80};
+//Double_t uv[4] = {-217.70, -167.6,  167.6,  217.70};
+//
+////sensor.C/Sensor.C
+//Double_t tPin[4] = {215.24, 211.25, -211.25, -215.24};   // T coordinate of alignment pin per layer
+//      //Double_t tDir[4] = {-1.0, -1.0, 1.0, 1.0};               // T direction of increasing strip number per layer
+//Double_t vPin[4] = {0.055,0.055,0.055,0.055};
+//      //int vBoardLayer_[4] = {6,4,2,3};  	      // fpga to V-board translation; this will change if spares are swapped
+//      Double_t firstStripV[7][2] = {		// Distance from the alignment pin to the first strip
+//         {-43.7193, -43.716},             // Board V0 doesn't exist
+//         {-43.7193, -43.716},
+//         {-43.7193, -43.716},
+//         {-43.7193, -43.716},
+//         {-43.7193, -43.716},	            // These numbers are actually from V4
+//         {-43.7193, -43.716},
+//         {-43.5855, -43.5865}
+//	  };
+//// edisplay.C
+//struct Geo {
+//      Double_t halfsize;
+//      Double_t tpin[2];
+//      Double_t firstStrip[4];    // position of the first strip of the t-sensors relative the pin
+//      Geo() {
+//         halfsize = 43.662;
+//         tpin[0] = 215.24;
+//         tpin[1] = 211.25;
+//         firstStrip[0] = 38.58;
+//         firstStrip[1] = 126.85;
+//         firstStrip[2] = 215.11;
+//         firstStrip[3] = 303.37;
+//      }
+//   } geo;
+//
+//// StripHit.h
+//Int_t vstrip[4][2*384];    // particle eye view: layer 0: left part 384..768, right part: 0..383
+//   Int_t tstrip[4][4*384];
+//   Int_t* stripFPGA[12];
