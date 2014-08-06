@@ -58,8 +58,8 @@ const bool EXIT_AFTER_FBP	   = false;									// Exit program early after comple
 /***************************************************************************************************************************************************************************/
 const bool DEBUG_TEXT_ON	   = true;									// Provide (T) or suppress (F) print statements to console during execution
 const bool SAMPLE_STD_DEV	   = true;									// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
-const bool FBP_ON			   = true;									// Turn FBP on (T) or off (F)
-const bool SC_ON			   = true;									// Turn Space Carving on (T) or off (F)
+const bool FBP_ON			   = false;									// Turn FBP on (T) or off (F)
+const bool SC_ON			   = false;									// Turn Space Carving on (T) or off (F)
 const bool MSC_ON			   = true;									// Turn Modified Space Carving on (T) or off (F)
 const bool SM_ON			   = false;									// Turn Space Modeling on (T) or off (F)
 const bool HULL_FILTER_ON	   = false;									// Apply averaging filter to hull (T) or not (F)
@@ -77,10 +77,10 @@ const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 201
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
-//const char INPUT_FOLDER[]	   = "input_CTP404";
-//const char OUTPUT_FOLDER[]	   = "input_CTP404";
-const char INPUT_FOLDER[]	   = "input_water_GeantNONUC";
-const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
+const char INPUT_FOLDER[]	   = "input_CTP404";
+const char OUTPUT_FOLDER[]	   = "input_CTP404";
+//const char INPUT_FOLDER[]	   = "input_water_GeantNONUC";
+//const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
 //const char INPUT_FOLDER[]	   = "input_water_Geant500000";
 //const char OUTPUT_FOLDER[]   = "input_water_Geant500000";
 //const char INPUT_FOLDER[]	   = "waterPhantom";
@@ -161,13 +161,13 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 /************************************************************* Host/GPU computation and structure information **************************************************************/
 /***************************************************************************************************************************************************************************/
 #define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
-#define MAX_GPU_HISTORIES		300000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_GPU_HISTORIES		1100000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
 #define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
 /***************************************************************************************************************************************************************************/
 /**************************************** Scanning and detector system	(source distance, tracking plane dimensions) parameters ********************************************/
 /***************************************************************************************************************************************************************************/
 #define SOURCE_RADIUS			260.7									// [cm] Distance  to source/scatterer 
-#define GANTRY_ANGLE_INTERVAL	6.0										// [degrees] Angle between successive projection angles 
+#define GANTRY_ANGLE_INTERVAL	4.0										// [degrees] Angle between successive projection angles 
 #define GANTRY_ANGLES			int( 360 / GANTRY_ANGLE_INTERVAL )		// [#] Total number of projection angles
 #define NUM_SCANS				1										// [#] Total number of scans
 #define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
@@ -184,7 +184,7 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 #define T_BINS					int( SSD_T_SIZE / T_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
 #define V_BIN_SIZE				0.25									// [cm] Distance between adjacent bins in v (vertical) direction
 #define V_BINS					int( SSD_V_SIZE / V_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
-#define ANGULAR_BIN_SIZE		6.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
+#define ANGULAR_BIN_SIZE		4.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
 #define ANGULAR_BINS			int( 360 / ANGULAR_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for path angle 
 #define NUM_BINS				( ANGULAR_BINS * T_BINS * V_BINS )		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
 #define SIGMAS_TO_KEEP			3										// [#] Number of standard deviations from mean to allow before cutting the history 
@@ -197,7 +197,7 @@ const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the d
 /***************************************************************************************************************************************************************************/
 /******************************************************************* Reconstruction cylinder parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
-#define RECON_CYL_RADIUS		8.0										// [cm] Radius of reconstruction cylinder
+#define RECON_CYL_RADIUS		10.0										// [cm] Radius of reconstruction cylinder
 #define RECON_CYL_DIAMETER		( 2 * RECON_CYL_RADIUS )					// [cm] Diameter of reconstruction cylinder
 #define RECON_CYL_HEIGHT		(SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
 /***************************************************************************************************************************************************************************/
@@ -256,8 +256,8 @@ double A_5 = (  2.687 * pow( 10, -11.0 ) );
 /*************************************************************** Iterative Image Reconstruction Parameters *****************************************************************/
 /***************************************************************************************************************************************************************************/
 enum  INITIAL_ITERATE { X_HULL, FBP_IMAGE, HYBRID, ZEROS };					// Define valid choices for which hull to use in MLP calculations
-const INITIAL_ITERATE			X_K0 = HYBRID;							// Specify which of the HULL_TYPES to use in this run's MLP calculations
-#define LAMBDA					0.01										// Relaxation parameter to use in image iterative projection reconstruction algorithms
+const INITIAL_ITERATE			X_K0 = X_HULL;							// Specify which of the HULL_TYPES to use in this run's MLP calculations
+#define LAMBDA					0.0001										// Relaxation parameter to use in image iterative projection reconstruction algorithms
 enum PROJECTION_ALGORITHMS { ART, SART, DROP, BIP, SAP };				// Define valid choices for iterative projection algorithm to use
 const PROJECTION_ALGORITHMS		PROJECTION_ALGORITHM = ART;				// Specify which of the projection algorithms to use for image reconstruction
 #define BLOCK_SIZE				1										// # of paths to use for each update: ART = 1, 
