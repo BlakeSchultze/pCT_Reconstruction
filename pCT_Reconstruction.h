@@ -140,6 +140,7 @@ const bool WRITE_FBP_HULL	   = true;									// Write FBP hull to disk (T) or no
 const bool WRITE_FILTERED_HULL = true;									// Write average filtered hull to disk (T) or not (F)
 const bool WRITE_X_HULL		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
 const bool WRITE_X_K0		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_X_KI		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
 const bool WRITE_X			   = true;									// Write the reconstructed image to disk (T) or not (F)
 /***************************************************************************************************************************************************************************/
 /*************************************************************** Binned data analysis options and parameters ***************************************************************/
@@ -246,12 +247,39 @@ const HULL_TYPES				MLP_HULL = MSC_HULL;					// Specify which of the HULL_TYPES 
 #define MLP_u_step (min(VOXEL_WIDTH, VOXEL_HEIGHT) / 2) 
 const int max_path_elements = int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2)));
 // 200 MeV coefficients
-double A_0 = (  7.457 * pow( 10, -6.0  ) );
-double A_1 = (  4.548 * pow( 10, -7.0  ) );
-double A_2 = ( -5.777 * pow( 10, -8.0  ) );
-double A_3 = (  1.301 * pow( 10, -8.0  ) );
-double A_4 = ( -9.228 * pow( 10, -10.0 ) );
-double A_5 = (  2.687 * pow( 10, -11.0 ) );
+#define A_0						7.457  * pow( 10, -6.0  ) 
+#define A_1						4.548  * pow( 10, -7.0  )
+#define A_2						-5.777 * pow( 10, -8.0  )
+#define A_3						1.301  * pow( 10, -8.0  )
+#define A_4						-9.228 * pow( 10, -10.0 )
+#define A_5						2.687  * pow( 10, -11.0 )
+#define A_0_OVER_2				A_0/2
+#define A_0_OVER_3				A_0/3
+#define A_1_OVER_2				A_1/2
+#define A_1_OVER_3				A_1/3
+#define A_1_OVER_4				A_1/4
+#define A_1_OVER_6				A_1/6
+#define A_1_OVER_12				A_1/12
+#define A_2_OVER_3				A_2/3
+#define A_2_OVER_4				A_2/4
+#define A_2_OVER_5				A_2/5
+#define A_2_OVER_12				A_2/12
+#define A_2_OVER_30				A_2/30
+#define A_3_OVER_4				A_3/4
+#define A_3_OVER_5				A_3/5
+#define A_3_OVER_6				A_3/6
+#define A_3_OVER_20				A_3/20
+#define A_3_OVER_60				A_3/60
+#define A_4_OVER_5				A_4/5
+#define A_4_OVER_6				A_4/6
+#define A_4_OVER_7				A_4/7
+#define A_4_OVER_30				A_4/30
+#define A_4_OVER_105			A_4/105
+#define A_5_OVER_6				A_5/6
+#define A_5_OVER_7				A_5/7
+#define A_5_OVER_8				A_5/8
+#define A_5_OVER_42				A_5/42
+#define A_5_OVER_168			A_5/168
 /***************************************************************************************************************************************************************************/
 /*************************************************************** Iterative Image Reconstruction Parameters *****************************************************************/
 /***************************************************************************************************************************************************************************/
