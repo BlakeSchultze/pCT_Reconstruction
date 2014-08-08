@@ -3851,7 +3851,7 @@ void MLP_test()
 		//u_2 terms
 		sigma_2_pre_1 =  pow(u_2, 3.0) * ( A_0_OVER_3 + u_2 * ( A_1_OVER_12 + u_2 * ( A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * ( A_4_OVER_105 + u_2 * A_5_OVER_168 )))));;	//u_2^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
 		sigma_2_pre_2 =  pow(u_2, 2.0) * ( A_0_OVER_2 + u_2 * (A_1_OVER_6 + u_2 * (A_2_OVER_12 + u_2 * ( A_3_OVER_20 + u_2 * (A_4_OVER_30 + u_2 * A_5_OVER_42)))));	//u_2^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42
-		sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
+		sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + u_2 * A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
 
 		j = 0;
 		//while( u_1 <= u_2 )
@@ -3865,9 +3865,9 @@ void MLP_test()
 
 			//double sigma_1_coefficient = 1.0;
 			sigma_1_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_1 - u_0)/X_0) ), 2.0 ) / X_0;
-			sigma_t1 =  sigma_1_coefficient * ( pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + A_5_OVER_168 ) )))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-			sigma_t1_theta1 =  sigma_1_coefficient * ( pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + A_5_OVER_42))))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
-			sigma_theta1 = sigma_1_coefficient * ( u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * (A_5_OVER_6)))))) );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6																	
+			sigma_t1 =  sigma_1_coefficient * ( pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + u_1 * A_5_OVER_168 ) )))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
+			sigma_t1_theta1 =  sigma_1_coefficient * ( pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + u_1 * A_5_OVER_42))))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
+			sigma_theta1 = sigma_1_coefficient * ( u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6))))) );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6																	
 			determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
 			
 			if( j == 1)
@@ -4116,7 +4116,7 @@ void MLP()
 				//u_2 terms
 				sigma_2_pre_1 =  pow(u_2, 3.0) * ( A_0_OVER_3 + u_2 * ( A_1_OVER_12 + u_2 * ( A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * ( A_4_OVER_105 + u_2 * A_5_OVER_168 )))));;	//u_2^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
 				sigma_2_pre_2 =  pow(u_2, 2.0) * ( A_0_OVER_2 + u_2 * (A_1_OVER_6 + u_2 * (A_2_OVER_12 + u_2 * ( A_3_OVER_20 + u_2 * (A_4_OVER_30 + u_2 * A_5_OVER_42)))));	//u_2^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42
-				sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
+				sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + u_2 * A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
 
 				while( u_1 < u_2 - MLP_u_step)
 				//while( u_1 < u_2 - 0.001)
@@ -4128,9 +4128,9 @@ void MLP()
 
 					//double sigma_1_coefficient = 1.0;
 					sigma_1_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_1 - u_0)/X_0) ), 2.0 ) / X_0;
-					sigma_t1 =  sigma_1_coefficient * ( pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + A_5_OVER_168 ) )))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-					sigma_t1_theta1 =  sigma_1_coefficient * ( pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + A_5_OVER_42))))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
-					sigma_theta1 = sigma_1_coefficient * ( u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * (A_5_OVER_6)))))) );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6																	
+					sigma_t1 =  sigma_1_coefficient * ( pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + u_1 * A_5_OVER_168 ) )))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
+					sigma_t1_theta1 =  sigma_1_coefficient * ( pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + u_1 * A_5_OVER_42))))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
+					sigma_theta1 = sigma_1_coefficient * ( u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6))))) );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6																	
 					determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
 			
 					Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
@@ -6222,7 +6222,7 @@ void test_func()
 	//	//cout << x[i] << endl; // -8.0
 	//	//cout << y[i] << endl;
 	//	//cout << z[i] << endl;
-	//}
+	//}a
 }
 void test_func2( std::vector<int>& bin_numbers, std::vector<double>& data )
 {
@@ -6287,6 +6287,37 @@ void test_func2( std::vector<int>& bin_numbers, std::vector<double>& data )
 	data.push_back(0.1);
 	data.push_back(0.1);
 	data.push_back(5.4);
+	//double sigma_t1 =  sigma_1_coefficient * ( (A_0_OVER_3 * u_1_power_3 + A_1_OVER_12 * u_1_power_4 + A_2_OVER_30 * u_1_power_5 + A_3_OVER_60 * u_1_power_6 + A_4_OVER_105 * u_1_power_7 + A_5_OVER_168 * u_1_power_8 ) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
+			//double sigma_t1_theta1 =  sigma_1_coefficient * ( A_0_OVER_2 * u_1_power_2 + A_1_OVER_6 * u_1_power_3 + A_2_OVER_12 * u_1_power_4 + A_3_OVER_20 * u_1_power_5 + A_4_OVER_30 * u_1_power_6 + A_5_OVER_42 * u_1_power_7 );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
+			//double sigma_theta1 = sigma_1_coefficient * ( A_0 * u_1 + A_1_OVER_2 * u_1_power_2+ A_2_OVER_3 * u_1_power_3 + A_3_OVER_4 * u_1_power_4 + A_4_OVER_5 * u_1_power_5 + A_5_OVER_6 * u_1_power_6 );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6														
+			//double determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
+//if( j == 1)
+//			{
+//				cout << "sigma_t1 = " << sigma_t1 << endl;
+//				cout << "sigma_t1_theta1 = " << sigma_t1_theta1 << endl;
+//				cout << "sigma_theta1 = " << sigma_theta1 << endl;
+//				cout << "determinant_Sigma_1 = " << determinant_Sigma_1 << endl;
+//			}			
+//			
+//			
+///*double sigma_t2 =  sigma_2_coefficient * ( sigma_2_pre_1
+//							- pow(u_2, 2.0) * ( A_0 * u_1 + A_1_OVER_2 * u_1_power_2 + A_2_OVER_3 * u_1_power_3 + A_3_OVER_4 * u_1_power_4 + A_4_OVER_5 * u_1_power_5 + A_5_OVER_6 * u_1_power_6 )	
+//							+ 2 * u_2 * ( A_0_OVER_2 * u_1_power_2 + A_1_OVER_3 * u_1_power_3 + A_2_OVER_4 * u_1_power_4 + A_3_OVER_5 * u_1_power_5 + A_4_OVER_6 * u_1_power_6 + A_5_OVER_7 * u_1_power_7 )
+//							- ( A_0_OVER_3 * u_1_power_3 + A_1_OVER_4 * u_1_power_4 + A_2_OVER_5 * u_1_power_5 + A_3_OVER_6 * u_1_power_6 + A_4_OVER_7 * u_1_power_7 + A_5_OVER_8 * u_1_power_8 ) );
+//			double sigma_t2_theta2 =  sigma_2_coefficient * ( sigma_2_pre_2
+//									- u_2 * ( A_0 * u_1 + A_1_OVER_2 * u_1_power_2 + A_2_OVER_3 * u_1_power_3 + A_3_OVER_4 * u_1_power_4 + A_4_OVER_5 * u_1_power_5 + A_5_OVER_6 * u_1_power_6 )
+//									+ ( A_0_OVER_2 * u_1_power_2 + A_1_OVER_3 * u_1_power_3 + A_2_OVER_4 * u_1_power_4 + A_3_OVER_5 * u_1_power_5 + A_4_OVER_6 * u_1_power_6 + A_5_OVER_7 * u_1_power_7 ) );
+//			double sigma_theta2 =  sigma_2_coefficient * ( sigma_2_pre_3 - ( A_0 * u_1 + A_1_OVER_2 * u_1_power_2 + A_2_OVER_3 * u_1_power_3 + A_3_OVER_4 * u_1_power_4 + A_4_OVER_5 * u_1_power_5 + A_5_OVER_6 * u_1_power_6 ) );*/	
+//			
+//			double determinant_Sigma_2 = sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 );//ad-bc
+//	
+//			if( j == 1)
+//			{
+//				cout << "sigma_t2 = " << sigma_t2 << endl;
+//				cout << "sigma_t2_theta2 = " << sigma_t2_theta2 << endl;
+//				cout << "sigma_theta2 = " << sigma_theta2 << endl;
+//				cout << "determinant_Sigma_2 = " << determinant_Sigma_2 << endl;
+//
 	//cout << smallest << endl;
 	//cout << min_n<double, int>(9, 1, 2, 3, 4, 5, 6, 7, 8, 100 ) << endl;
 	//cout << true << endl;
