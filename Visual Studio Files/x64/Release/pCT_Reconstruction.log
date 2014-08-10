@@ -1,157 +1,715 @@
-﻿Build started 7/12/2014 5:02:11 AM.
+﻿Build started 8/9/2014 3:06:56 AM.
      1>Project "C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\pCT_Reconstruction.vcxproj" on node 2 (build target(s)).
      1>InitializeBuildStatus:
          Creating "x64\Release\pCT_Reconstruction.unsuccessfulbuild" because "AlwaysCreate" was specified.
        AddCudaCompileDeps:
-         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /D_MBCS /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\bin" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include" /I. /FIcuda_runtime.h /c C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu 
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\cl.exe /E /nologo /showIncludes /TP /D__CUDACC__ /D_MBCS /IC:\root$/include /IC:\root\include /IC:\root\include /I"C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include" /I"C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\atlmfc\include" /I"C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\include" /I"C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\\include" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\bin" /I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include" /I. /FIcuda_runtime.h /c C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu 
        AddCudaCompilePropsDeps:
        Skipping target "AddCudaCompilePropsDeps" because all output files are up-to-date with respect to the input files.
        CudaBuild:
          Compiling CUDA source file ..\pCT_Reconstruction.cu...
-         cmd.exe /C "C:\Users\Blake\AppData\Local\Temp\tmp40c861b93f1443f68e4ed2a7f5ad14ec.cmd"
-         "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_21,compute_20\" --use-local-env --cl-version 2010 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include"     --keep-dir x64\Release -maxrregcount=0  --machine 64 --compile -cudart static     -D_MBCS -Xcompiler "/EHsc /W3 /nologo /O2 /Zi  /MD  " -o x64\Release\pCT_Reconstruction.cu.obj "C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu"
+         cmd.exe /C "C:\Users\Blake\AppData\Local\Temp\tmp788222fede7f4a98aad2e5ee2675af3a.cmd"
+         "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\bin\nvcc.exe" -gencode=arch=compute_30,code=\"sm_30,compute_30\" --use-local-env --cl-version 2010 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64"  -I"C:\root$/include" -IC:\root\include -IC:\root\include -I"C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include" -I"C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\atlmfc\include" -I"C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\include" -I"C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include"     --keep-dir x64\Release -maxrregcount=0  --machine 64 --compile -cudart static     -D_MBCS -Xcompiler "/EHsc /W3 /nologo /O2 /Zi  /MD  " -o x64\Release\pCT_Reconstruction.cu.obj "C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu"
          
-         C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\bin\nvcc.exe" -gencode=arch=compute_20,code=\"sm_21,compute_20\" --use-local-env --cl-version 2010 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include"     --keep-dir x64\Release -maxrregcount=0  --machine 64 --compile -cudart static     -D_MBCS -Xcompiler "/EHsc /W3 /nologo /O2 /Zi  /MD  " -o x64\Release\pCT_Reconstruction.cu.obj "C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu" 
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(688): warning : variable "scan_histories" was set but never used
+         C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\bin\nvcc.exe" -gencode=arch=compute_30,code=\"sm_30,compute_30\" --use-local-env --cl-version 2010 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64"  -I"C:\root$/include" -IC:\root\include -IC:\root\include -I"C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\include" -I"C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\atlmfc\include" -I"C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\include" -I"C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\include"     --keep-dir x64\Release -maxrregcount=0  --machine 64 --compile -cudart static     -D_MBCS -Xcompiler "/EHsc /W3 /nologo /O2 /Zi  /MD  " -o x64\Release\pCT_Reconstruction.cu.obj "C:\Users\Blake\Documents\GitHub\pct-reconstruction\pCT_Reconstruction.cu" 
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(398): warning : variable "gantry_angle" is used before its value is set
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3908): warning : variable "R_0T" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(383): warning : variable "magic_number" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3967): warning : variable "theta_1" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(384): warning : variable "version_id" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3979): warning : variable "phi_1" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(385): warning : variable "file_histories" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3894): warning : variable "t_1_previous" was set but never used
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(386): warning : variable "projection_angle" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3894): warning : variable "v_1_previous" was set but never used
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(386): warning : variable "beam_energy" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3899): warning : variable "voxel_previous" was set but never used
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(387): warning : variable "generation_date" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4051): warning : variable "eff_angle_t" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(387): warning : variable "preprocess_date" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4051): warning : variable "eff_angle_v" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(388): warning : variable "phantom_name_size" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4652): warning : variable "bin_num" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(388): warning : variable "data_source_size" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4663): warning : variable "filename" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(388): warning : variable "prepared_by_size" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4664): warning : variable "output_file" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(389): warning : variable "phantom_name" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(688): warning : variable "scan_histories" was set but never used
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(389): warning : variable "data_source" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3908): warning : variable "R_0T" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(389): warning : variable "prepared_by" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3967): warning : variable "theta_1" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(390): warning : variable "data_size" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3979): warning : variable "phi_1" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(392): warning : variable "gantry_position" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3894): warning : variable "t_1_previous" was set but never used
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(392): warning : variable "scan_number" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3894): warning : variable "v_1_previous" was set but never used
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(392): warning : variable "scan_histories" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3899): warning : variable "voxel_previous" was set but never used
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(394): warning : variable "input_file" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4051): warning : variable "eff_angle_t" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1036): warning : variable "scan_histories" was set but never used
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4051): warning : variable "eff_angle_v" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2441): warning : variable "user_response" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4652): warning : variable "bin_num" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2464): warning : variable "x_extension" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4663): warning : variable "filename" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2464): warning : variable "y_extension" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4664): warning : variable "output_file" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2467): warning : variable "debug_run" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2668): warning : variable "x_extension" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2668): warning : variable "y_extension" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2671): warning : variable "debug_run" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3723): warning : variable "chord_segment" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3723): warning : variable "chord_fraction" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3730): warning : variable "debug_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3730): warning : variable "MLP_image_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3744): warning : variable "R_0T" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3755): warning : variable "theta_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3755): warning : variable "phi_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3927): warning : variable "user_response" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3960): warning : variable "u_in_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3960): warning : variable "t_in_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3960): warning : variable "v_in_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3962): warning : variable "u_out_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3962): warning : variable "t_out_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3962): warning : variable "v_out_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3964): warning : variable "voxel" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3981): warning : variable "T_0" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3981): warning : variable "T_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3981): warning : variable "V_0" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3981): warning : variable "V_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3982): warning : variable "u_0" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3982): warning : variable "u_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3992): warning : variable "j" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3994): warning : variable "R_0" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3995): warning : variable "R_0T" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3996): warning : variable "R_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3997): warning : variable "R_1T" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4000): warning : variable "sigma_2_pre_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4000): warning : variable "sigma_2_pre_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4000): warning : variable "sigma_2_pre_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_4" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_5" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_6" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_7" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_8" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "sigma_1_coefficient" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "sigma_t1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "sigma_t1_theta1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "sigma_theta1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "determinant_Sigma_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "Sigma_1I" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4004): warning : variable "common_sigma_2_term_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4004): warning : variable "common_sigma_2_term_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4004): warning : variable "common_sigma_2_term_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "sigma_2_coefficient" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "sigma_t2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "sigma_t2_theta2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "sigma_theta2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "determinant_Sigma_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "Sigma_2I" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term_common_13_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term_common_13_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term_common_24_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term_common_24_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "determinant_first_term" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term_common_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term_common_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term_common_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term_common_4" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4008): warning : variable "t_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4008): warning : variable "v_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4010): warning : variable "x_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4010): warning : variable "y_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4010): warning : variable "z_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4031): warning : variable "user_response" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4099): warning : variable "R_0T" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_4" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_5" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_6" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_7" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_8" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4311): warning : variable "user_response" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4312): warning : variable "MLP_test_filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4314): warning : variable "updated_image_filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4315): warning : variable "filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4322): warning : variable "chord_segment" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4322): warning : variable "chord_fraction" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4325): warning : variable "voxel" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4328): warning : variable "debug_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4328): warning : variable "MLP_image_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4328): warning : variable "constant_chord_lengths" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4355): warning : variable "block_history" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4424): warning : variable "user_response" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4425): warning : variable "MLP_test_filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4427): warning : variable "updated_image_filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4428): warning : variable "filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4435): warning : variable "chord_segment" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4435): warning : variable "chord_fraction" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4441): warning : variable "debug_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4441): warning : variable "MLP_image_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4455): warning : variable "R_0T" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4466): warning : variable "theta_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4466): warning : variable "phi_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4468): warning : variable "block_history" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4696): warning : variable "l" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(6562): warning : variable "voxel_x2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(6563): warning : variable "voxel_y2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(6564): warning : variable "voxel_z2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(6589): warning : variable "dy_dz" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3428): warning : variable "debug_run" was declared but never referenced
+                   detected during instantiation of "__nv_bool find_MLP_endpoints(O *&, double, double, double, double, double, double &, double &, double &, int &, int &, int &, __nv_bool) [with O=int]" 
+         (3967): here
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3429): warning : variable "MLP_image_output" was declared but never referenced
+                   detected during instantiation of "__nv_bool find_MLP_endpoints(O *&, double, double, double, double, double, double &, double &, double &, int &, int &, int &, __nv_bool) [with O=int]" 
+         (3967): here
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3428): warning : variable "debug_run" was declared but never referenced
+                   detected during instantiation of "__nv_bool find_MLP_endpoints(O *&, double, double, double, double, double, double &, double &, double &, int &, int &, int &, __nv_bool) [with O=__nv_bool]" 
+         (4388): here
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3429): warning : variable "MLP_image_output" was declared but never referenced
+                   detected during instantiation of "__nv_bool find_MLP_endpoints(O *&, double, double, double, double, double, double &, double &, double &, int &, int &, int &, __nv_bool) [with O=__nv_bool]" 
+         (4388): here
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(398): warning : variable "gantry_angle" is used before its value is set
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(383): warning : variable "magic_number" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(384): warning : variable "version_id" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(385): warning : variable "file_histories" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(386): warning : variable "projection_angle" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(386): warning : variable "beam_energy" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(387): warning : variable "generation_date" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(387): warning : variable "preprocess_date" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(388): warning : variable "phantom_name_size" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(388): warning : variable "data_source_size" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(388): warning : variable "prepared_by_size" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(389): warning : variable "phantom_name" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(389): warning : variable "data_source" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(389): warning : variable "prepared_by" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(390): warning : variable "data_size" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(392): warning : variable "gantry_position" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(392): warning : variable "scan_number" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(392): warning : variable "scan_histories" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(394): warning : variable "input_file" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1036): warning : variable "scan_histories" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2441): warning : variable "user_response" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2464): warning : variable "x_extension" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2464): warning : variable "y_extension" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2467): warning : variable "debug_run" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2668): warning : variable "x_extension" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2668): warning : variable "y_extension" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2671): warning : variable "debug_run" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3428): warning : variable "debug_run" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3429): warning : variable "MLP_image_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3723): warning : variable "chord_segment" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3723): warning : variable "chord_fraction" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3730): warning : variable "debug_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3730): warning : variable "MLP_image_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3744): warning : variable "R_0T" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3755): warning : variable "theta_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3755): warning : variable "phi_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3927): warning : variable "user_response" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3960): warning : variable "u_in_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3960): warning : variable "t_in_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3960): warning : variable "v_in_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3962): warning : variable "u_out_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3962): warning : variable "t_out_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3962): warning : variable "v_out_object" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3964): warning : variable "voxel" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3981): warning : variable "T_0" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3981): warning : variable "T_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3981): warning : variable "V_0" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3981): warning : variable "V_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3982): warning : variable "u_0" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3982): warning : variable "u_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3992): warning : variable "j" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3994): warning : variable "R_0" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3995): warning : variable "R_0T" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3996): warning : variable "R_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3997): warning : variable "R_1T" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4000): warning : variable "sigma_2_pre_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4000): warning : variable "sigma_2_pre_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4000): warning : variable "sigma_2_pre_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_4" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_5" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_6" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_7" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning : variable "u_1_power_8" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "sigma_1_coefficient" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "sigma_t1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "sigma_t1_theta1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "sigma_theta1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "determinant_Sigma_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning : variable "Sigma_1I" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4004): warning : variable "common_sigma_2_term_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4004): warning : variable "common_sigma_2_term_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4004): warning : variable "common_sigma_2_term_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "sigma_2_coefficient" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "sigma_t2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "sigma_t2_theta2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "sigma_theta2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "determinant_Sigma_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning : variable "Sigma_2I" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term_common_13_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term_common_13_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term_common_24_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term_common_24_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "first_term" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning : variable "determinant_first_term" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term_common_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term_common_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term_common_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term_common_4" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning : variable "second_term" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4008): warning : variable "t_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4008): warning : variable "v_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4010): warning : variable "x_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4010): warning : variable "y_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4010): warning : variable "z_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4031): warning : variable "user_response" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4099): warning : variable "R_0T" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_3" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_4" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_5" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_6" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_7" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning : variable "u_1_power_8" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4311): warning : variable "user_response" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4312): warning : variable "MLP_test_filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4314): warning : variable "updated_image_filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4315): warning : variable "filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4322): warning : variable "chord_segment" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4322): warning : variable "chord_fraction" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4325): warning : variable "voxel" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4328): warning : variable "debug_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4328): warning : variable "MLP_image_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4328): warning : variable "constant_chord_lengths" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4355): warning : variable "block_history" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4424): warning : variable "user_response" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4425): warning : variable "MLP_test_filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4427): warning : variable "updated_image_filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4428): warning : variable "filename" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4435): warning : variable "chord_segment" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4435): warning : variable "chord_fraction" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4441): warning : variable "debug_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4441): warning : variable "MLP_image_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4455): warning : variable "R_0T" was set but never used
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4466): warning : variable "theta_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4466): warning : variable "phi_1" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4468): warning : variable "block_history" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4696): warning : variable "l" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4773): warning : variable "debug_run" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4774): warning : variable "MLP_image_output" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(6562): warning : variable "voxel_x2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(6563): warning : variable "voxel_y2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(6564): warning : variable "voxel_z2" was declared but never referenced
+         
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(6589): warning : variable "dy_dz" was declared but never referenced
          
          pCT_Reconstruction.cu
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(594): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(595): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(596): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(597): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(598): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(599): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(600): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(601): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(602): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(633): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(634): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(635): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(636): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(757): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(758): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(759): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(760): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(761): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(762): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(763): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(764): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(769): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(772): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(773): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(774): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(775): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(925): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(926): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(927): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(928): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(929): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(930): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(931): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(932): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(933): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(936): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(937): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(938): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(939): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1850): warning C4305: '=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1884): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1894): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1900): warning C4244: '*=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3896): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3897): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3898): warning C4244: 'initializing' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4043): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4044): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4045): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4051): warning C4101: 'eff_angle_t' : unreferenced local variable
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4051): warning C4101: 'eff_angle_v' : unreferenced local variable
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4370): warning C4267: '=' : conversion from 'size_t' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4412): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4413): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4426): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4456): warning C4267: '=' : conversion from 'size_t' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4499): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4500): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4513): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4583): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4584): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4585): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4664): warning C4101: 'output_file' : unreferenced local variable
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4663): warning C4101: 'filename' : unreferenced local variable
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4727): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4728): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4729): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4730): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4731): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4732): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4742): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4743): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4744): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4745): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4746): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4747): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4758): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4759): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4760): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4761): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4762): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4763): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4773): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4774): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4775): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4776): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4777): warning C4305: 'argument' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4778): warning C4305: 'argument' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(388): warning C4101: 'data_source_size' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(387): warning C4101: 'generation_date' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(389): warning C4101: 'phantom_name' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(386): warning C4101: 'beam_energy' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(389): warning C4101: 'data_source' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(386): warning C4101: 'projection_angle' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(385): warning C4101: 'file_histories' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(384): warning C4101: 'version_id' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(390): warning C4101: 'data_size' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(389): warning C4101: 'prepared_by' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(388): warning C4101: 'phantom_name_size' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(392): warning C4101: 'gantry_position' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(392): warning C4101: 'scan_histories' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(383): warning C4101: 'magic_number' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(392): warning C4101: 'scan_number' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(388): warning C4101: 'prepared_by_size' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(387): warning C4101: 'preprocess_date' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(394): warning C4101: 'input_file' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(942): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(943): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(944): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(945): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(946): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(947): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(948): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(949): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(950): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(981): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(982): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(983): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(984): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1105): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1106): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1107): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1108): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1109): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1110): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1111): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1112): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1117): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1120): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1121): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1122): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1123): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1273): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1274): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1275): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1276): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1277): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1278): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1279): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1280): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1281): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1284): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1285): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1286): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(1287): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2204): warning C4305: '=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2238): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2248): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2254): warning C4244: '*=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(2441): warning C4101: 'user_response' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3723): warning C4101: 'chord_segment' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3723): warning C4101: 'chord_fraction' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3755): warning C4101: 'phi_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3755): warning C4101: 'theta_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning C4101: 'u_1_power_2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4000): warning C4101: 'sigma_2_pre_3' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4010): warning C4101: 'y_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning C4101: 'Sigma_2I' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning C4101: 'sigma_theta2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning C4101: 'determinant_Sigma_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3960): warning C4101: 'u_in_object' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3927): warning C4101: 'user_response' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning C4101: 'u_1_power_3' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning C4101: 'second_term' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning C4101: 'second_term_common_4' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning C4101: 'first_term_common_13_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning C4101: 'sigma_t2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4004): warning C4101: 'common_sigma_2_term_3' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4004): warning C4101: 'common_sigma_2_term_2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning C4101: 'Sigma_1I' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning C4101: 'u_1_power_4' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning C4101: 'determinant_Sigma_2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning C4101: 'sigma_theta1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning C4101: 'sigma_t1_theta1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning C4101: 'u_1_power_7' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4000): warning C4101: 'sigma_2_pre_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3964): warning C4101: 'voxel' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3962): warning C4101: 't_out_object' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning C4101: 'second_term_common_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning C4101: 'determinant_first_term' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning C4101: 'sigma_t2_theta2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning C4101: 'sigma_1_coefficient' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning C4101: 'first_term' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4000): warning C4101: 'sigma_2_pre_2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3962): warning C4101: 'u_out_object' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning C4101: 'first_term_common_24_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning C4101: 'u_1_power_8' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning C4101: 'u_1_power_5' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3960): warning C4101: 't_in_object' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4010): warning C4101: 'x_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4008): warning C4101: 'v_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning C4101: 'second_term_common_2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4005): warning C4101: 'sigma_2_coefficient' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4008): warning C4101: 't_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4004): warning C4101: 'common_sigma_2_term_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4002): warning C4101: 'u_1_power_6' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3962): warning C4101: 'v_out_object' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4010): warning C4101: 'z_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning C4101: 'first_term_common_13_2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4006): warning C4101: 'first_term_common_24_2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4007): warning C4101: 'second_term_common_3' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4003): warning C4101: 'sigma_t1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(3960): warning C4101: 'v_in_object' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning C4101: 'u_1_power_2' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4031): warning C4101: 'user_response' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning C4101: 'u_1_power_3' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning C4101: 'u_1_power_4' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning C4101: 'u_1_power_7' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning C4101: 'u_1_power_8' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning C4101: 'u_1_power_5' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4106): warning C4101: 'u_1_power_6' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4360): warning C4267: 'initializing' : conversion from 'size_t' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4311): warning C4101: 'user_response' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4322): warning C4101: 'chord_segment' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4314): warning C4101: 'updated_image_filename' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4325): warning C4101: 'voxel' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4322): warning C4101: 'chord_fraction' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4312): warning C4101: 'MLP_test_filename' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4315): warning C4101: 'filename' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4424): warning C4101: 'user_response' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4435): warning C4101: 'chord_segment' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4427): warning C4101: 'updated_image_filename' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4435): warning C4101: 'chord_fraction' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4466): warning C4101: 'phi_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4466): warning C4101: 'theta_1' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4425): warning C4101: 'MLP_test_filename' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4428): warning C4101: 'filename' : unreferenced local variable
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(5606): warning C4244: 'return' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(5182): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
+                 C:/Users/Blake/Documents/GitHub/pct-reconstruction/pCT_Reconstruction.cu(4400) : see reference to function template instantiation 'void update_iterate2<float>(double,double,X *&,int *,int)' being compiled
+                 with
+                 [
+                     X=float
+                 ]
+     1>c:\users\blake\documents\github\pct-reconstruction\pct_reconstruction.cu(398): warning C4700: uninitialized local variable 'gantry_angle' used
        Link:
-         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\x64\Release\pCT_Reconstruction.exe" /NOLOGO /LIBPATH:"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\lib\x64" cudart.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"x64\Release\pCT_Reconstruction.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\x64\Release\pCT_Reconstruction.pdb" /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\x64\Release\pCT_Reconstruction.lib" /MACHINE:X64 x64\Release\pCT_Reconstruction.cu.obj
+         C:\Program Files (x86)\Microsoft Visual Studio 10.0\VC\bin\x86_amd64\link.exe /ERRORREPORT:PROMPT /OUT:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\x64\Release\pCT_Reconstruction.exe" /NOLOGO /LIBPATH:"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.0\lib\x64" cudart.lib C:\root\lib\libASImage.lib C:\root\lib\libASImageGui.lib C:\root\lib\libCint.lib C:\root\lib\libCore.lib C:\root\lib\libMathCore.lib C:\root\lib\libEG.lib C:\root\lib\libEGPythia6.lib C:\root\lib\libGed.lib C:\root\lib\libGeom.lib C:\root\lib\libGeomPainter.lib C:\root\lib\libGpad.lib C:\root\lib\libGraf.lib C:\root\lib\libGraf3d.lib C:\root\lib\libGui.lib C:\root\lib\libHist.lib C:\root\lib\libHistPainter.lib C:\root\lib\libHtml.lib C:\root\lib\libPhysics.lib C:\root\lib\libPostscript.lib C:\root\lib\libRGL.lib C:\root\lib\libRint.lib C:\root\lib\libTree.lib C:\root\lib\libTreePlayer.lib C:\root\lib\libTreeViewer.lib kernel32.lib user32.lib gdi32.lib winspool.lib comdlg32.lib advapi32.lib shell32.lib ole32.lib oleaut32.lib uuid.lib odbc32.lib odbccp32.lib /MANIFEST /ManifestFile:"x64\Release\pCT_Reconstruction.exe.intermediate.manifest" /MANIFESTUAC:"level='asInvoker' uiAccess='false'" /DEBUG /PDB:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\x64\Release\pCT_Reconstruction.pdb" /OPT:REF /OPT:ICF /TLBID:1 /DYNAMICBASE /NXCOMPAT /IMPLIB:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\x64\Release\pCT_Reconstruction.lib" /MACHINE:X64 x64\Release\pCT_Reconstruction.cu.obj
          pCT_Reconstruction.vcxproj -> C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\x64\Release\pCT_Reconstruction.exe
        Manifest:
          C:\Program Files (x86)\Microsoft SDKs\Windows\v7.0A\bin\mt.exe /nologo /verbose /outputresource:"C:\Users\Blake\Documents\GitHub\pct-reconstruction\Visual Studio Files\x64\Release\pCT_Reconstruction.exe;#1" /manifest x64\Release\pCT_Reconstruction.exe.intermediate.manifest
@@ -162,4 +720,4 @@
 
 Build succeeded.
 
-Time Elapsed 00:00:09.12
+Time Elapsed 00:00:15.19

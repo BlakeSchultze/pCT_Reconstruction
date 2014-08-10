@@ -545,7 +545,7 @@
 Variables with uppercase names correspond to constants (both defined and precalculated), parameters, or options, all of which are defined in the header file.  The intention is to make it clear which variables refer to immutable runtime data which can only be modified in the header file before program execution; none of these variables are defined, set, or modified outside the header file.  Defining them here makes these global variables which can be accessed anywhere on the host/GPU without having to pass them to function/kernel calls.
 
 
-Since these constants, parameters, and options are not intended to be modified, they are either defined as preprocessor macros (``\#define'' [name] [value]) or constant value variables (``const'' [name] = value).  Most of the options that control conditional program execution correspond to a true of false condition and can easily and clearly be implemented using boolean variables (``const bool [name] = [true/false]'') and if/else statements.  However, variables corresponding to options that can take on 3 or more values are defined as an instance of an enumerated type, where the enumerated type and its member correspond to the option and its possible values, respectively (``enum [type_name] {\emph{option1}, \emph{option2},...}'').  A ``const'' variable of this enumerated type is then defined and assigned one of these optional values (``const [type_name] [option_name] = \emph{option}'') to specify the choice of option.  There are several advantages to using enumerated types for controlling conditional program flow.
+Since these constants, parameters, and options are not intended to be modified, they are either defined as preprocessor macros (``\#define'' [name] [value]) or constant value variables (``const'' [name] = value).  Most of the options that control conditional program execution correspond to a true of false condition and can easily and clearly be implemented using boolean variables (``const bool [name] = [true/false]'') and if/else statements.  However, variables corresponding to options that can take on 3 or more values are defined as an instance of an enumerated type, where the enumerated type and its member correspond to the option and its possible values, respectively (``enum [type\_name] {\emph{option1}, \emph{option2},...}'').  A ``const'' variable of this enumerated type is then defined and assigned one of these optional values (``const [type\_name] [option\_name] = \emph{option}'') to specify the choice of option.  There are several advantages to using enumerated types for controlling conditional program flow.
 
 
 However, for options with 3 or more values, it is convenient, easier to read, and generally more efficient to use a switch statement instead of a series of if/else if/else statements.  However, unlike if/else if/else statements, switch statements can only accept constant integral (``int'', ``char'',``bool'') or enumerated types, which does not include strings.  Booleans can only take on two values and using an integer or character to specify an option makes the function of the switch statement and its various cases opaque, thus requiring additional documentation to describe to which option each integer/variable case corresponds.  On the other hand, members of an enumerated type can be given names that correspond directly with the option and the resulting switch statement is easy to read and understand.  In addition, an integer/character can have numerous values, almost certainly exceeding the number of optional values required.  Thus, the switch statement must include a ``default'' case which executes if the value of the option does not correspond with any given case. On the other hand, an instance (i.e. variable) of an enumerated type can only be assigned a value corresponding to one of its members, otherwise a compilation error will occur.  Hence, as long as the switch statement has a case defined for each member of the enumerated type, no ``default'' case need be included since the variable cannot take on any other value.
@@ -555,6 +555,35 @@ Variables are named with the intention of making it clear what data they refer t
 
 Although explicitly defining a parameter as constant within the scope of a function has no explicit effect, it does make it clear what data is or is not modified by a function and prevents accidental data modifications.  Recall that a variable refers to a portion of memory where data is stored and its name is simply an identifier used to refer to its memory address.  When an input parameter is declared ``const'', it prevents this identifier from being used to modify the data it refers to.  If a function attempts to use the identifier to modify the data, compilation will fail and the user will be notified (typically something like ``expression must be a modifiable lvalue'').  However, since the ``const'' qualifier only restricts the usage of the identifier and does not protect the actual, if there is another identifier addressing the same data (i.e. an alias) that is not marked ``const'', this identifier can still be used to modify the data.  Thus, aliasing is avoided throughout the program even if modifications to a variable's data over the course of preprocessing means it could be more aptly named.  Instead, variable names are assigned which appropriately reflect the data throughout their lifetime.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*******%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\begin{enumerate}[label = (\arabic*), leftmargin = 0.0cm, resume = section]
+\bfseries
+\item Run settings
+\end{enumerate}
+\begin{enumerate}
+    \item Count histories in each file and total
+    \item Iterate through all data, one file at a time, and:
+    \begin{enumerate}
+        \item Read data from file
+        \item Identify and remove protons missing reconstruction volume
+        \item Bin protons traversing reconstruction volume according to $[\theta, t, v]$
+        \item Perform SC/MSC/SM with traversing protons with low/low/high WEPL, respectively (\emph{optional})
+    \end{enumerate}
+    \item Perform statistics on MSC/SM data and determine hull (\emph{optional})
+    \item Calculate mean $\mu = \sum x_i$ WEPL and relative ut/uv angle angle for each bin
+    \item Iterate through all remaining data, one chunk at a time, and:
+    \begin{enumerate}
+        \item Calculate total squared discrepancy for each bin, i.e. $\sum\limits_i  \left(\mu - x_i\right)^2$ for WEPL and relative ut/uv angle measurements $x_i$
+    \end{enumerate}
+    \item Calculate standard deviation $\sigma = \sqrt{\dfrac{1}{N-1}\mathlarger{\sum\limits_i} \left(\mu - x_i\right)^2}$ for WEPL and relative ut/uv angle
+    \item Iterate through all remaining data, one chunk at a time, and:
+    \begin{enumerate}
+        \item Identify and remove histories if $\mu - x_i > N\sigma$ ($N=3$ now) for WEPL or relative ut/uv angle measurement $x_i$
+    \end{enumerate}
+    \item Recalculate mean WEPL $\mu$ for each bin to produce sinogram
+    \item Perform FBP (\emph{optional})
+\end{enumerate}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%*******%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 \begin{enumerate}[label = (\arabic*), leftmargin = 0.0cm, resume = section]
 \bfseries
 \item Specifying location of input data and where output is to be written.
