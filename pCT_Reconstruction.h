@@ -408,6 +408,7 @@ int* MSC_counts_h, * MSC_counts_d;
 int* SM_counts_h, * SM_counts_d;
 int* MLP_test_image_h, * MLP_test_image_d;
 float* FBP_image_h, * FBP_image_d;
+double* x_update_h, *x_update_d;
 float* x_h, * x_d;
 /***************************************************************************************************************************************************************************/
 /********************************** Declaration of vectors used to accumulate data from histories that have passed currently applied cuts **********************************/
