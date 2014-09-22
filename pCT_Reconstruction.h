@@ -4,10 +4,10 @@
 /***************************************************************************************************************************************************************************/
 /********************************************************************* Header for pCT reconstruction program ***************************************************************/
 /***************************************************************************************************************************************************************************/
-#include <Windows4Root.h>
+//#include <Windows4Root.h>
 //#include "w32pragma.h"
 //#include <TROOT.h>
-#include <TMath.h>
+//#include <TMath.h>
 
 #include "cuda.h"
 #include "cuda_runtime.h"
@@ -52,13 +52,13 @@ const bool EXIT_AFTER_BINNING  = false;									// Exit program early after comp
 const bool EXIT_AFTER_HULLS    = false;									// Exit program early after completing hull-detection
 const bool EXIT_AFTER_CUTS     = false;									// Exit program early after completing statistical cuts
 const bool EXIT_AFTER_SINOGRAM = false;									// Exit program early after completing the construction of the sinogram
-const bool EXIT_AFTER_FBP	   = false;									// Exit program early after completing FBP
+const bool EXIT_AFTER_FBP	   = true;									// Exit program early after completing FBP
 /***************************************************************************************************************************************************************************/
 /********************************************************************** Preprocessing option parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
 const bool DEBUG_TEXT_ON	   = true;									// Provide (T) or suppress (F) print statements to console during execution
 const bool SAMPLE_STD_DEV	   = true;									// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
-const bool FBP_ON			   = false;									// Turn FBP on (T) or off (F)
+const bool FBP_ON			   = true;									// Turn FBP on (T) or off (F)
 const bool SC_ON			   = false;									// Turn Space Carving on (T) or off (F)
 const bool MSC_ON			   = true;									// Turn Modified Space Carving on (T) or off (F)
 const bool SM_ON			   = false;									// Turn Space Modeling on (T) or off (F)
@@ -77,8 +77,14 @@ const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 201
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
-const char INPUT_FOLDER[]	   = "input_CTP404";
-const char OUTPUT_FOLDER[]	   = "input_CTP404";
+const char INPUT_FOLDER[]	   = "output_HeadPhantom";
+const char OUTPUT_FOLDER[]	   = "output_HeadPhantom";
+//const char INPUT_FOLDER[]	   = "PedHead-july";
+//const char OUTPUT_FOLDER[]	   = "PedHead-july";
+//const char INPUT_FOLDER[]	   = "output_ESFPhant";
+//const char OUTPUT_FOLDER[]	   = "output_ESFPhant";
+//const char INPUT_FOLDER[]	   = "input_CTP404";
+//const char OUTPUT_FOLDER[]	   = "input_CTP404";
 //const char INPUT_FOLDER[]	   = "input_water_GeantNONUC";
 //const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
 //const char INPUT_FOLDER[]	   = "input_water_Geant500000";
@@ -113,6 +119,13 @@ const char FILE_EXTENSION[]	   = ".bin";								// Binary file extension
 /***************************************************************************************************************************************************************************/
 enum DATA_FORMATS { OLD_FORMAT, VERSION_0, VERSION_1 };					// Define the data formats that are supported
 const DATA_FORMATS				DATA_FORMAT = VERSION_0;				// Specify which data format to use for this run
+unsigned int PHANTOM_NAME_SIZE;
+unsigned int DATA_SOURCE_SIZE;
+unsigned int PREPARED_BY_SIZE;
+unsigned int MAGIC_NUMBER_CHECK = int('DTCP');
+unsigned int SKIP_2_DATA_SIZE;
+unsigned int VERSION_ID;
+unsigned int PROJECTION_INTERVAL;
 const bool BINARY_ENCODING	   = true;									// Input data provided in binary (T) encoded files or ASCI text files (F)
 const bool SINGLE_DATA_FILE    = false;									// Individual file for each gantry angle (T) or single data file for all data (F)
 const bool SSD_IN_MM		   = true;									// SSD distances from rotation axis given in mm (T) or cm (F)
@@ -162,7 +175,7 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 /************************************************************* Host/GPU computation and structure information **************************************************************/
 /***************************************************************************************************************************************************************************/
 #define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
-#define MAX_GPU_HISTORIES		1100000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_GPU_HISTORIES		340000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
 #define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
 /***************************************************************************************************************************************************************************/
 /**************************************** Scanning and detector system	(source distance, tracking plane dimensions) parameters ********************************************/
@@ -198,33 +211,38 @@ const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the d
 /***************************************************************************************************************************************************************************/
 /******************************************************************* Reconstruction cylinder parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
-#define RECON_CYL_RADIUS		10.0										// [cm] Radius of reconstruction cylinder
-#define RECON_CYL_DIAMETER		( 2 * RECON_CYL_RADIUS )					// [cm] Diameter of reconstruction cylinder
+#define RECON_CYL_RADIUS		10.0									// [cm] Radius of reconstruction cylinder
+#define RECON_CYL_DIAMETER		( 2 * RECON_CYL_RADIUS )				// [cm] Diameter of reconstruction cylinder
 #define RECON_CYL_HEIGHT		(SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
 /***************************************************************************************************************************************************************************/
 /********************************************************************	Reconstruction image parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
-#define IMAGE_WIDTH				RECON_CYL_DIAMETER				// [cm] Distance between left and right edges of each slice in image
-#define IMAGE_HEIGHT			RECON_CYL_DIAMETER					// [cm] Distance between top and bottom edges of each slice in image
+#define IMAGE_WIDTH				RECON_CYL_DIAMETER						// [cm] Distance between left and right edges of each slice in image
+#define IMAGE_HEIGHT			RECON_CYL_DIAMETER						// [cm] Distance between top and bottom edges of each slice in image
 #define IMAGE_THICKNESS			( SLICES * SLICE_THICKNESS )			// [cm] Distance between bottom of bottom slice and top of the top slice of image
 #define COLUMNS					200										// [#] Number of voxels in the x direction (i.e., number of columns) of image
 #define ROWS					200										// [#] Number of voxels in the y direction (i.e., number of rows) of image
-#define SLICES					int( RECON_CYL_HEIGHT / SLICE_THICKNESS )// [#] Number of voxels in the z direction (i.e., number of slices) of image
-#define NUM_VOXELS					( COLUMNS * ROWS * SLICES )				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
-#define VOXEL_WIDTH				( RECON_CYL_DIAMETER / COLUMNS )	// [cm] Distance between left and right edges of each voxel in image
-#define VOXEL_HEIGHT				( RECON_CYL_DIAMETER / ROWS )		// [cm] Distance between top and bottom edges of each voxel in image
-#define VOXEL_THICKNESS			( IMAGE_THICKNESS / SLICES )		// [cm] Distance between top and bottom of each slice in image
-#define SLICE_THICKNESS			0.25								// [cm] Distance between top and bottom of each slice in image
-
+#define SLICES					int( RECON_CYL_HEIGHT / SLICE_THICKNESS)// [#] Number of voxels in the z direction (i.e., number of slices) of image
+#define NUM_VOXELS				( COLUMNS * ROWS * SLICES )				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
+#define VOXEL_WIDTH				( RECON_CYL_DIAMETER / COLUMNS )		// [cm] Distance between left and right edges of each voxel in image
+#define VOXEL_HEIGHT			( RECON_CYL_DIAMETER / ROWS )			// [cm] Distance between top and bottom edges of each voxel in image
+#define VOXEL_THICKNESS			( IMAGE_THICKNESS / SLICES )			// [cm] Distance between top and bottom of each slice in image
+#define SLICE_THICKNESS			0.25									// [cm] Distance between top and bottom of each slice in image
+#define X_ZERO_COORDINATE		-RECON_CYL_RADIUS						// [cm] x-coordinate corresponding to front edge of 1st voxel (i.e. column) in image space
+#define Y_ZERO_COORDINATE		RECON_CYL_RADIUS						// [cm] y-coordinate corresponding to front edge of 1st voxel (i.e. row) in image space
+#define Z_ZERO_COORDINATE		RECON_CYL_HEIGHT/2						// [cm] z-coordinate corresponding to front edge of 1st voxel (i.e. slice) in image space
+#define X_INCREASING_DIRECTION	RIGHT									// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
+#define Y_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
+#define Z_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
 //#define RECON_CYL_RADIUS		5.0										// [cm] Radius of reconstruction cylinder
 //#define RECON_CYL_HEIGHT		5.0										// [cm] Height of reconstruction cylinder
-//#define COLUMNS					100										// [#] Number of voxels in the x direction (i.e., number of columns) of image
+//#define COLUMNS					100									// [#] Number of voxels in the x direction (i.e., number of columns) of image
 //#define ROWS					100										// [#] Number of voxels in the y direction (i.e., number of rows) of image
 //#define SLICES					5
-//#define VOXEL_WIDTH				0.1										// [cm] Distance between left and right edges of each voxel in image
+//#define VOXEL_WIDTH				0.1									// [cm] Distance between left and right edges of each voxel in image
 //#define VOXEL_HEIGHT			0.1										// [cm] Distance between top and bottom edges of each voxel in image
-//#define VOXEL_THICKNESS			1.0										// [cm] Distance between top and bottom of each slice in image
-//#define SLICE_THICKNESS			1.0										// [cm] Distance between top and bottom of each slice in image
+//#define VOXEL_THICKNESS			1.0									// [cm] Distance between top and bottom of each slice in image
+//#define SLICE_THICKNESS			1.0									// [cm] Distance between top and bottom of each slice in image
 /***************************************************************************************************************************************************************************/
 /************************************************************************ Hull-Detection Parameters ************************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -232,7 +250,7 @@ const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the d
 #define SC_THRESHOLD			0.0										// [cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
 #define MSC_THRESHOLD			0.0										// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
 #define SM_LOWER_THRESHOLD		6.0										// [cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
-#define SM_UPPER_THRESHOLD		21.0										// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
+#define SM_UPPER_THRESHOLD		21.0									// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
 #define SM_SCALE_THRESHOLD		1.0										// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
 /***************************************************************************************************************************************************************************/
 /****************************************************************************** MLP Parameters *****************************************************************************/
@@ -240,20 +258,32 @@ const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the d
 enum  HULL_TYPES {SC_HULL, MSC_HULL, SM_HULL, FBP_HULL };				// Define valid choices for which hull to use in MLP calculations
 const HULL_TYPES				MLP_HULL = MSC_HULL;					// Specify which of the HULL_TYPES to use in this run's MLP calculations
 #define E_0						13.6									// [MeV/c] empirical constant
-#define X_0						36.1									// [cm] radiation length
+#define X_0						36.08									// [cm] radiation length
 #define RSP_AIR					0.00113									// [cm/cm] Approximate RSP of air
 #define VOXEL_STEP_SIZE			( VOXEL_WIDTH / 2 )						// [cm] Length of the step taken along the path, i.e. change in depth per step for
 #define MAX_INTERSECTIONS		1000									// Limit on the # of intersections expected for proton's MLP; = # voxels along image diagonal
-#define MLP_u_step (min(VOXEL_WIDTH, VOXEL_HEIGHT) / 2) 
+#define MLP_U_STEP (min(VOXEL_WIDTH, VOXEL_HEIGHT) / 2)					// Size of the step taken along u direction during MLP; depth difference between successive MLP points
 const int max_path_elements = int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2)));
-// 200 MeV coefficients
-#define A_0						7.457  * pow( 10, -6.0  ) 
+// Coefficients of 5th order polynomial fit to the term [1 / ( beta^2(u)*p^2(u) )] present in scattering covariance matrices Sigma 1/2 for:
+#define BEAM_ENERGY				200
+// 200 MeV protons
+#define A_0						7.457  * pow( 10, -6.0  )
 #define A_1						4.548  * pow( 10, -7.0  )
 #define A_2						-5.777 * pow( 10, -8.0  )
 #define A_3						1.301  * pow( 10, -8.0  )
 #define A_4						-9.228 * pow( 10, -10.0 )
 #define A_5						2.687  * pow( 10, -11.0 )
-#define A_0_OVER_2				A_0/2
+
+//// 200 MeV protons
+//#define A_0						202.20574
+//#define A_1						-7.6174839
+//#define A_2						0.9413194
+//#define A_3						-0.1141406
+//#define A_4						0.0055340
+//#define A_5						-0.0000972
+
+// Common fractional values of A_i coefficients appearing in polynomial expansions of MLP calculations, precalculating saves time
+#define A_0_OVER_2				A_0/2 
 #define A_0_OVER_3				A_0/3
 #define A_1_OVER_2				A_1/2
 #define A_1_OVER_3				A_1/3
@@ -283,11 +313,17 @@ const int max_path_elements = int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2)));
 /***************************************************************************************************************************************************************************/
 /*************************************************************** Iterative Image Reconstruction Parameters *****************************************************************/
 /***************************************************************************************************************************************************************************/
-enum  INITIAL_ITERATE { X_HULL, FBP_IMAGE, HYBRID, ZEROS };					// Define valid choices for which hull to use in MLP calculations
+enum  INITIAL_ITERATE { X_HULL, FBP_IMAGE, HYBRID, ZEROS };				// Define valid choices for which hull to use in MLP calculations
 const INITIAL_ITERATE			X_K0 = X_HULL;							// Specify which of the HULL_TYPES to use in this run's MLP calculations
-#define LAMBDA					0.0001										// Relaxation parameter to use in image iterative projection reconstruction algorithms
+#define LAMBDA					0.0001									// Relaxation parameter to use in image iterative projection reconstruction algorithms
+#define DECAY_FACTOR			0.99 / pow(RECON_CYL_RADIUS, 2.0 )		// Defines "a" in the lambda scaling factor 1 - a*r(i)^2 used to generate a radially dependent lambda
+#define EXPONENTIAL_DECAY		5/RECON_CYL_RADIUS						// Defines "a" in the lambda scaling factor exp(-a*r) used to generate a radially dependent lambda
+#define EXPONENTIAL_SQD_DECAY	0.5/RECON_CYL_RADIUS					// Defines "a" in the lambda scaling factor exp(-a*r^2) used to generate a radially dependent lambda
+//#define EXPONENTIAL_TERM	exp(-0.5/RECON_CYL_RADIUS)					// Defines "a" in the lambda scaling factor exp(-a*r^2) used to generate a radially dependent lambda
+#define AFFECT_RADIUS_SQD		pow(6.0, 2.0)
 enum PROJECTION_ALGORITHMS { ART, SART, DROP, BIP, SAP };				// Define valid choices for iterative projection algorithm to use
 const PROJECTION_ALGORITHMS		PROJECTION_ALGORITHM = ART;				// Specify which of the projection algorithms to use for image reconstruction
+#define ITERATIONS				20										// # of iterations through the entire set of histories to perform in iterative image reconstruction
 #define BLOCK_SIZE				1										// # of paths to use for each update: ART = 1, 
 /***************************************************************************************************************************************************************************/
 /*********************************************************** Memory allocation size for arrays (binning, image) ************************************************************/
@@ -344,6 +380,7 @@ int post_cut_histories = 0;
 /***************************************************************************************************************************************************************************/
 /********************************************** Declaration of array used to store tracking plane distances from rotation axis *********************************************/
 /***************************************************************************************************************************************************************************/
+std::vector<double> projection_angles;
 float SSD_u_Positions[8];
 float* ut_entry_angle, * uv_entry_angle, * ut_exit_angle, * uv_exit_angle; 
 int zero_WEPL = 0;
