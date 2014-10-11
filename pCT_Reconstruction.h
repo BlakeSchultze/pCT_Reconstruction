@@ -26,18 +26,24 @@
 #include <functional>	// std::multiplies, std::plus, std::function, std::negate
 #include <initializer_list>
 #include <iostream>
+#include <map>
 #include <new>			 
 #include <numeric>		// inner_product, partial_sum, adjacent_difference, accumulate
 #include <omp.h>		// OpenMP
 #include <sstream>
+#include <string>
+#include <tuple>
 #include <typeinfo>		//operator typeid
 #include <type_traits>	// is_pod
 #include <vector>
+
 
 using namespace std::placeholders; 
 //using namespace std;
 using std::cout;
 using std::endl;
+typedef unsigned long long ULL;
+
 /***************************************************************************************************************************************************************************/
 /***************************************************************************************************************************************************************************/
 /************************************************************************ Preprocessing usage options **********************************************************************/
@@ -47,7 +53,7 @@ using std::endl;
 /***************************************************************************************************************************************************************************/
 /********************************************************************* Execution and early exit options ********************************************************************/
 /***************************************************************************************************************************************************************************/
-const bool RUN_ON			   = true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
+const bool RUN_ON			   = false;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
 const bool EXIT_AFTER_BINNING  = false;									// Exit program early after completing data read and initial processing
 const bool EXIT_AFTER_HULLS    = false;									// Exit program early after completing hull-detection
 const bool EXIT_AFTER_CUTS     = false;									// Exit program early after completing statistical cuts
@@ -70,15 +76,95 @@ const bool REALLOCATE		   = false;
 /***************************************************************************************************************************************************************************/
 
 /***************************************************************************************************************************************************************************/
+/********************************************************************** Global config file variables ***********************************************************************/
+/***************************************************************************************************************************************************************************/
+double xrr;
+unsigned int num_run_arguments;
+char** run_arguments;
+//std::vector<std::string> parameters;
+//char* INPUT_DIRECTORY;
+//char* OUTPUT_DIRECTORY;
+//char* INPUT_FOLDER;
+//char* OUTPUT_FOLDER;
+//char* INPUT_BASE_NAME;
+//char* FILE_EXTENSION;
+//unsigned int GANTRY_ANGLES;
+//long double SSD_T_SIZE;
+//long double SSD_V_SIZE;
+//long double T_SHIFT;
+//long double U_SHIFT;
+struct generic_input_container
+{
+	char* key;
+	unsigned int input_type_ID;
+	int integer_input;		// type_ID = 1
+	double double_input;	// type_ID = 2
+	//char* string_parameter;
+	char string_input[512];	// type_ID = 3
+	
+};
+struct parameters
+{
+	double lambda;
+};
+
+parameters parameter_container;
+parameters *parameters_h = &parameter_container, *parameters_d;
+
+
+std::map<std::string,int> switchmap;
+
+struct classcomp {
+  bool operator() (char* lhs, const char* rhs) const
+  {return std::strcmp(rhs,lhs) == 0;}
+};
+bool comp(char* a, char* b){return std::strcmp(a,b) == 0;};
+bool(*fn_pt)(char*,char*) = comp;
+std::map<char*,int, classcomp> switchmap2;
+
+ULL N = 80000000;
+ULL PhiN = 50000017;
+ULL* history_sequence = (ULL*)calloc(N,sizeof(ULL));
+
+char* input_directory;
+double lambda;
+int parameter;
+char INPUT_DIRECTORY[]   = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\";
+char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
+char INPUT_FOLDER[]	   = "output_HeadPhantom";
+char OUTPUT_FOLDER[]	   = "output_HeadPhantom";
+char INPUT_BASE_NAME[]   = "projection";
+char FILE_EXTENSION[]	   = ".bin";
+//const long double GANTRY_ANGLE_INTERVAL = 4.0;
+#define GANTRY_ANGLE_INTERVAL	4.0
+int GANTRY_ANGLES = int( 360 / GANTRY_ANGLE_INTERVAL );		// [#] Total number of projection angles
+#define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
+#define SSD_V_SIZE				9.0	
+#define T_SHIFT					0.0										// [cm] Amount by which to shift all t coordinates on input
+#define U_SHIFT					0.0	
+#define T_BIN_SIZE				0.1										// [cm] Distance between adjacent bins in t (lateral) direction
+#define T_BINS					(int)ceil( SSD_T_SIZE / T_BIN_SIZE )	// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
+#define V_BIN_SIZE				0.25									// [cm] Distance between adjacent bins in v (vertical) direction
+#define V_BINS					(int)ceil( SSD_V_SIZE / V_BIN_SIZE )	// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
+#define ANGULAR_BIN_SIZE		4.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
+#define ANGULAR_BINS			(int)ceil( 360.0 / ANGULAR_BIN_SIZE )					// [#] Number of bins (i.e. quantization levels) for path angle 
+#define NUM_BINS				( ANGULAR_BINS * T_BINS * V_BINS )		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
+#define SIGMAS_TO_KEEP			3										// [#] Number of standard deviations from mean to allow before cutting the history 
+#define NUM_SCANS				1										// [#] Total number of scans
+#define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
+#define LAMBDA					0.0001									// Relaxation parameter to use in image iterative projection reconstruction algorithms
+/***************************************************************************************************************************************************************************/
 /******************************************************************* Path to the input/output directories ******************************************************************/
 /***************************************************************************************************************************************************************************/
-const char INPUT_DIRECTORY[]   = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\";
-const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
+//const char INPUT_DIRECTORY[]   = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\";
+//const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
+//char INPUT_DIRECTORY[];
+//char OUTPUT_DIRECTORY[];
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
-const char INPUT_FOLDER[]	   = "output_HeadPhantom";
-const char OUTPUT_FOLDER[]	   = "output_HeadPhantom";
+//const char INPUT_FOLDER[]	   = "output_HeadPhantom";
+//const char OUTPUT_FOLDER[]	   = "output_HeadPhantom";
 //const char INPUT_FOLDER[]	   = "PedHead-july";
 //const char OUTPUT_FOLDER[]	   = "PedHead-july";
 //const char INPUT_FOLDER[]	   = "output_ESFPhant";
@@ -104,14 +190,15 @@ const char OUTPUT_FOLDER[]	   = "output_HeadPhantom";
 /***************************************************************************************************************************************************************************/
 /**************************************** Prefix of the input data set filename (_trans%d_%03d.txt (or .dat) will be added to this) ****************************************/
 /***************************************************************************************************************************************************************************/
-const char INPUT_BASE_NAME[]   = "projection";							// waterPhantom, catphan, input_water_Geant500000
+//const char INPUT_BASE_NAME[]   = "projection";							// waterPhantom, catphan, input_water_Geant500000
 //const char INPUT_BASE_NAME[] = "simdata";								// Simulated data sets generated by Micah: DetectData, DetectDataWeplNoisy1, NoisyUniform1,...
 //const char INPUT_BASE_NAME[] = "rat_scan2_shift";						// Anesthetized rat held in restraints
 //const char INPUT_BASE_NAME[] = "ped_scan1";							// Anthropomorphic pediatric head phantom (Model 715-HN, CIRS1)
 /***************************************************************************************************************************************************************************/
 /******************************************************************** File extension for the input data ********************************************************************/
 /***************************************************************************************************************************************************************************/
-const char FILE_EXTENSION[]	   = ".bin";								// Binary file extension
+
+//const char FILE_EXTENSION[]	   = ".bin";								// Binary file extension
 //const char FILE_EXTENSION[]  = ".dat";								// Generic data file extension, independent of encoding (various encodings can be used)
 //const char FILE_EXTENSION[]  = ".txt";								// ASCII text file extension
 /***************************************************************************************************************************************************************************/
@@ -180,31 +267,31 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 /***************************************************************************************************************************************************************************/
 /**************************************** Scanning and detector system	(source distance, tracking plane dimensions) parameters ********************************************/
 /***************************************************************************************************************************************************************************/
-#define SOURCE_RADIUS			260.7									// [cm] Distance  to source/scatterer 
-#define GANTRY_ANGLE_INTERVAL	4.0										// [degrees] Angle between successive projection angles 
-#define GANTRY_ANGLES			int( 360 / GANTRY_ANGLE_INTERVAL )		// [#] Total number of projection angles
-#define NUM_SCANS				1										// [#] Total number of scans
-#define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
-#define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
-#define SSD_V_SIZE				9.0										// [cm] Length of SSD in v (vertical) direction
+#define SOURCE_RADIUS			265.7									// [cm] Distance  to source/scatterer 
+//#define GANTRY_ANGLE_INTERVAL	4.0										// [degrees] Angle between successive projection angles 
+//#define GANTRY_ANGLES			int( 360 / GANTRY_ANGLE_INTERVAL )		// [#] Total number of projection angles
+//#define NUM_SCANS				1										// [#] Total number of scans
+//#define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
+//#define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
+//#define SSD_V_SIZE				9.0										// [cm] Length of SSD in v (vertical) direction
 /***************************************************************************************************************************************************************************/
 /************************************************* Binning (for statistical analysis) and sinogram (for FBP) parameters ****************************************************/
 /***************************************************************************************************************************************************************************/
-#define T_SHIFT					0.0										// [cm] Amount by which to shift all t coordinates on input
-#define U_SHIFT					0.0										// [cm] Amount by which to shift all v coordinates on input
+//#define T_SHIFT					0.0										// [cm] Amount by which to shift all t coordinates on input
+//#define U_SHIFT					0.0										// [cm] Amount by which to shift all v coordinates on input
 //#define T_SHIFT				   2.05									// [cm] Amount by which to shift all t coordinates on input
 //#define U_SHIFT				   -0.16								// [cm] Amount by which to shift all v coordinates on input
-#define T_BIN_SIZE				0.1										// [cm] Distance between adjacent bins in t (lateral) direction
-#define T_BINS					int( SSD_T_SIZE / T_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
-#define V_BIN_SIZE				0.25									// [cm] Distance between adjacent bins in v (vertical) direction
-#define V_BINS					int( SSD_V_SIZE / V_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
-#define ANGULAR_BIN_SIZE		4.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
-#define ANGULAR_BINS			int( 360 / ANGULAR_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for path angle 
-#define NUM_BINS				( ANGULAR_BINS * T_BINS * V_BINS )		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
-#define SIGMAS_TO_KEEP			3										// [#] Number of standard deviations from mean to allow before cutting the history 
+//#define T_BIN_SIZE				0.1										// [cm] Distance between adjacent bins in t (lateral) direction
+//#define T_BINS					int( SSD_T_SIZE / T_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
+//#define V_BIN_SIZE				0.25									// [cm] Distance between adjacent bins in v (vertical) direction
+//#define V_BINS					int( SSD_V_SIZE / V_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
+//#define ANGULAR_BIN_SIZE		4.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
+//#define ANGULAR_BINS			int( 360 / ANGULAR_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for path angle 
+//#define NUM_BINS				( ANGULAR_BINS * T_BINS * V_BINS )		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
+//#define SIGMAS_TO_KEEP			3									// [#] Number of standard deviations from mean to allow before cutting the history 
 enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE};							// Define the types of filters that are available for use in FBP
 const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the defined filters will be used in FBP
-#define RAM_LAK_TAU				2/ROOT_TWO * T_BIN_SIZE					// Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
+#define RAM_LAK_TAU				2 / ROOT_TWO * T_BIN_SIZE				// Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
 #define AVG_FILTER_THRESHOLD	0.1										// [#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the hull
 #define AVG_FILTER_RADIUS		2										// [#] Averaging filter neighborhood radius in: [voxel - AVG_FILTER_SIZE, voxel + AVG_FILTER_RADIUS]
 #define FBP_THRESHOLD			0.6										// [cm] RSP threshold used to generate FBP_hull from FBP_image
@@ -217,16 +304,51 @@ const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the d
 /***************************************************************************************************************************************************************************/
 /********************************************************************	Reconstruction image parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
-#define IMAGE_WIDTH				RECON_CYL_DIAMETER						// [cm] Distance between left and right edges of each slice in image
-#define IMAGE_HEIGHT			RECON_CYL_DIAMETER						// [cm] Distance between top and bottom edges of each slice in image
-#define IMAGE_THICKNESS			( SLICES * SLICE_THICKNESS )			// [cm] Distance between bottom of bottom slice and top of the top slice of image
-#define COLUMNS					200										// [#] Number of voxels in the x direction (i.e., number of columns) of image
-#define ROWS					200										// [#] Number of voxels in the y direction (i.e., number of rows) of image
-#define SLICES					int( RECON_CYL_HEIGHT / SLICE_THICKNESS)// [#] Number of voxels in the z direction (i.e., number of slices) of image
+enum CALCULATE_DIMENSIONS{IMAGE, MATRIX, VOXEL, OTHER};						// Specify which of the 3 image dimensions will be calculated from other 2
+CALCULATE_DIMENSIONS OF_IMAGE = OTHER;
+#if OF_IMAGE == IMAGE
+	#define COLUMNS				200										// [#] Number of voxels in the x direction (i.e., number of columns) of image
+	#define ROWS				200										// [#] Number of voxels in the y direction (i.e., number of rows) of image
+	#define SLICES				32										// [#] Number of voxels in the z direction (i.e., number of slices) of image
+	#define VOXEL_WIDTH			0.08									// [cm] Distance between left and right edges of each voxel in image
+	#define VOXEL_HEIGHT		0.08									// [cm] Distance between top and bottom edges of each voxel in image
+	#define VOXEL_THICKNESS		0.25									// [cm] Distance between top and bottom of each slice in image
+	#define IMAGE_WIDTH			COLUMNS * VOXEL_WIDTH					// [cm] Distance between left and right edges of each slice in image
+	#define IMAGE_HEIGHT		ROWS * VOXEL_HEIGHT						// [cm] Distance between top and bottom edges of each slice in image
+	#define IMAGE_THICKNESS		SLICES * VOXEL_THICKNESS 				// [cm] Distance between bottom of bottom slice and top of the top slice of image
+#elif OF_IMAGE == MATRIX
+	#define IMAGE_WIDTH			RECON_CYL_DIAMETER						// [cm] Distance between left and right edges of each slice in image
+	#define IMAGE_HEIGHT		RECON_CYL_DIAMETER						// [cm] Distance between top and bottom edges of each slice in image
+	#define IMAGE_THICKNESS		RECON_CYL_HEIGHT + 2					// [cm] Distance between bottom of bottom slice and top of the top slice of image
+	#define VOXEL_WIDTH			0.08									// [cm] Distance between left and right edges of each voxel in image
+	#define VOXEL_HEIGHT		0.08									// [cm] Distance between top and bottom edges of each voxel in image
+	#define VOXEL_THICKNESS		0.25									// [cm] Distance between top and bottom of each slice in image
+	#define COLUMNS				IMAGE_WIDTH / VOXEL_WIDTH				// [#] Number of voxels in the x direction (i.e., number of columns) of image
+	#define ROWS				IMAGE_HEIGHT / VOXEL_HEIGHT				// [#] Number of voxels in the y direction (i.e., number of rows) of image
+	#define SLICES				IMAGE_THICKNESS / VOXEL_THICKNESS		// [#] Number of voxels in the z direction (i.e., number of slices) of image
+#elif OF_IMAGE == VOXEL	
+	#define IMAGE_WIDTH			RECON_CYL_DIAMETER						// [cm] Distance between left and right edges of each slice in image
+	#define IMAGE_HEIGHT		RECON_CYL_DIAMETER						// [cm] Distance between top and bottom edges of each slice in image
+	#define IMAGE_THICKNESS		RECON_CYL_HEIGHT + 2					// [cm] Distance between bottom of bottom slice and top of the top slice of image
+	#define COLUMNS				200										// [#] Number of voxels in the x direction (i.e., number of columns) of image
+	#define ROWS				200										// [#] Number of voxels in the y direction (i.e., number of rows) of image
+	#define SLICES				32										// [#] Number of voxels in the z direction (i.e., number of slices) of image
+	#define VOXEL_WIDTH			( RECON_CYL_DIAMETER / COLUMNS )		// [cm] Distance between left and right edges of each voxel in image
+	#define VOXEL_HEIGHT		( RECON_CYL_DIAMETER / ROWS )			// [cm] Distance between top and bottom edges of each voxel in image
+	#define VOXEL_THICKNESS		( IMAGE_THICKNESS / SLICES )			// [cm] Distance between top and bottom of each slice in image
+	#define SLICE_THICKNESS		0.25									// [cm] Distance between top and bottom of each slice in image
+#else
+	#define IMAGE_WIDTH			RECON_CYL_DIAMETER						// [cm] Distance between left and right edges of each slice in image
+	#define IMAGE_HEIGHT		RECON_CYL_DIAMETER						// [cm] Distance between top and bottom edges of each slice in image
+	#define IMAGE_THICKNESS		( SLICES * SLICE_THICKNESS )			// [cm] Distance between bottom of bottom slice and top of the top slice of image
+	#define COLUMNS				200										// [#] Number of voxels in the x direction (i.e., number of columns) of image
+	#define ROWS				200										// [#] Number of voxels in the y direction (i.e., number of rows) of image
+	#define SLICES				int( RECON_CYL_HEIGHT / SLICE_THICKNESS)// [#] Number of voxels in the z direction (i.e., number of slices) of image
+	#define VOXEL_WIDTH			( RECON_CYL_DIAMETER / COLUMNS )		// [cm] Distance between left and right edges of each voxel in image
+	#define VOXEL_HEIGHT		( RECON_CYL_DIAMETER / ROWS )			// [cm] Distance between top and bottom edges of each voxel in image
+	#define VOXEL_THICKNESS		( IMAGE_THICKNESS / SLICES )			// [cm] Distance between top and bottom of each slice in image
+#endif
 #define NUM_VOXELS				( COLUMNS * ROWS * SLICES )				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
-#define VOXEL_WIDTH				( RECON_CYL_DIAMETER / COLUMNS )		// [cm] Distance between left and right edges of each voxel in image
-#define VOXEL_HEIGHT			( RECON_CYL_DIAMETER / ROWS )			// [cm] Distance between top and bottom edges of each voxel in image
-#define VOXEL_THICKNESS			( IMAGE_THICKNESS / SLICES )			// [cm] Distance between top and bottom of each slice in image
 #define SLICE_THICKNESS			0.25									// [cm] Distance between top and bottom of each slice in image
 #define X_ZERO_COORDINATE		-RECON_CYL_RADIUS						// [cm] x-coordinate corresponding to front edge of 1st voxel (i.e. column) in image space
 #define Y_ZERO_COORDINATE		RECON_CYL_RADIUS						// [cm] y-coordinate corresponding to front edge of 1st voxel (i.e. row) in image space
@@ -234,15 +356,6 @@ const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the d
 #define X_INCREASING_DIRECTION	RIGHT									// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
 #define Y_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
 #define Z_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
-//#define RECON_CYL_RADIUS		5.0										// [cm] Radius of reconstruction cylinder
-//#define RECON_CYL_HEIGHT		5.0										// [cm] Height of reconstruction cylinder
-//#define COLUMNS					100									// [#] Number of voxels in the x direction (i.e., number of columns) of image
-//#define ROWS					100										// [#] Number of voxels in the y direction (i.e., number of rows) of image
-//#define SLICES					5
-//#define VOXEL_WIDTH				0.1									// [cm] Distance between left and right edges of each voxel in image
-//#define VOXEL_HEIGHT			0.1										// [cm] Distance between top and bottom edges of each voxel in image
-//#define VOXEL_THICKNESS			1.0									// [cm] Distance between top and bottom of each slice in image
-//#define SLICE_THICKNESS			1.0									// [cm] Distance between top and bottom of each slice in image
 /***************************************************************************************************************************************************************************/
 /************************************************************************ Hull-Detection Parameters ************************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -339,6 +452,7 @@ const PROJECTION_ALGORITHMS		PROJECTION_ALGORITHM = ART;				// Specify which of 
 /***************************************************************************************************************************************************************************/
 /************************************************************************* Precalculated Constants *************************************************************************/
 /***************************************************************************************************************************************************************************/
+#define PHI						( 1 + sqrt(5.0) ) / 2						// Golden ratio
 #define PI_OVER_4				( atan( 1.0 ) )							// 1*pi/4 radians =   pi/4 radians = 45 degrees
 #define PI_OVER_2				( 2 * atan( 1.0 ) )						// 2*pi/4 radians =   pi/2 radians = 90 degrees
 #define THREE_PI_OVER_4			( 3 * atan( 1.0 ) )						// 3*pi/4 radians = 3*pi/4 radians = 135 degrees
@@ -349,7 +463,7 @@ const PROJECTION_ALGORITHMS		PROJECTION_ALGORITHM = ART;				// Specify which of 
 #define TWO_PI					( 8 * atan( 1.0 ) )						// 8*pi/4 radians = 2*pi   radians = 360 degrees = 0 degrees
 #define ANGLE_TO_RADIANS		( PI/180.0 )							// Convertion from angle to radians
 #define RADIANS_TO_ANGLE		( 180.0/PI )							// Convertion from radians to angle
-#define ROOT_TWO				sqrtf(2.0)								// 2^(1/2) = Square root of 2 
+#define ROOT_TWO				sqrt(2.0)								// 2^(1/2) = Square root of 2 
 #define MM_TO_CM				0.1										// 10 [mm] = 1 [cm] => 1 [mm] = 0.1 [cm]
 #define VOXEL_ALLOWANCE			1.0e-7
 #define START					true									// Used as an alias for true for starting timer

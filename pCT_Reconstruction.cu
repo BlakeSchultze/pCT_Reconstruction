@@ -21,7 +21,16 @@ void timer( bool );
 void pause_execution();
 void exit_program_if( bool );
 
+// Read/set run settings, parameters, and configurations
+void define_switchmap();
+void command_line_settings( unsigned int, char** );
+void read_configurations();
+void set_parameters( struct generic_input_container );
+void read_parameters();
+struct generic_input_container read_parameter( FILE* );
+
 // Memory transfers and allocations/deallocations
+void parameters_2_GPU();
 void initial_processing_memory_clean();
 void resize_vectors( const int );
 void shrink_vectors( const int );
@@ -34,10 +43,9 @@ template<typename T> void initialize_host_image( T*& );
 template<typename T> void add_ellipse( T*&, int, double, double, double, double, T );
 template<typename T> void add_circle( T*&, int, double, double, double, T );
 
-// Preprocessing setup and initializations 
-void write_run_settings();
+// Preprocessing setup and initializations
 void assign_SSD_positions();
-void initializations();
+void statistics_allocations();
 void count_histories();	
 void count_histories_old();
 void count_histories_v0();
@@ -45,15 +53,14 @@ void count_histories_v1();
 void reserve_vector_capacity(); 
 
 // Preprocessing functions
-void read_energy_responses( const int, const int, const int );
-void read_data_chunk( const int, const int, const int );
-void read_data_chunk_old( const int, const int, const int );
-void read_data_chunk_v0( const int, const int, const int );
-void read_data_chunk_v1( const int, const int, const int );
+void read_data_chunk( const unsigned int, const unsigned int, const unsigned int );
+void read_data_chunk_old( const unsigned int, const unsigned int, const unsigned int );
+void read_data_chunk_v0( const unsigned int, const unsigned int, const unsigned int );
+void read_data_chunk_v1( const unsigned int, const unsigned int, const unsigned int );
 void apply_tu_shifts( unsigned int );
 void convert_mm_2_cm( unsigned int );
-void recon_volume_intersections( const int );
-void binning( const int );
+void recon_volume_intersections( const unsigned int );
+void binning( const unsigned int );
 void calculate_means();
 void initialize_stddev();
 void sum_squared_deviations( const int, const int );
@@ -109,12 +116,13 @@ template<typename X, typename U> void calculate_update( double, double, X*&, U*&
 template<typename X, typename U> void update_iterate3( X*&, U*& );
 
 // Write arrays/vectors to file(s)
+void write_run_settings();
 void binary_2_ASCII();
 template<typename T> void array_2_disk( char*, const char*, const char*, T*, const int, const int, const int, const int, const bool );
 template<typename T> void vector_2_disk( char*, const char*, const char*, std::vector<T>, const int, const int, const int, const bool );
 template<typename T> void t_bins_2_disk( FILE*, const std::vector<int>&, const std::vector<T>&, const BIN_ANALYSIS_TYPE, const int );
 template<typename T> void bins_2_disk( const char*, const std::vector<int>&, const std::vector<T>&, const BIN_ANALYSIS_TYPE, const BIN_ANALYSIS_FOR, const BIN_ORGANIZATION, ... );
-template<typename T> void t_bins_2_disk( FILE*, int*&, T*&, const int, const BIN_ANALYSIS_TYPE, const BIN_ORGANIZATION, int );
+template<typename T> void t_bins_2_disk( FILE*, int*&, T*&, const unsigned int, const BIN_ANALYSIS_TYPE, const BIN_ORGANIZATION, int );
 template<typename T> void bins_2_disk( const char*, int*&, T*&, const int, const BIN_ANALYSIS_TYPE, const BIN_ANALYSIS_FOR, const BIN_ORGANIZATION, ... );
 FILE* create_MLP_path_file( char* );
 //template<typename T> void path_data_2_disk(char*, FILE*, int, T(&)[MAX_INTERSECTIONS], bool );
@@ -209,14 +217,16 @@ __device__ void take_3D_step_GPU( const int, const int, const int, const double,
 // Device helper functions
 
 // New routine test functions
-__global__ void test_func_GPU( int* );
+__global__ void test_func_GPU( parameters*, double*);
 __global__ void test_func_device( double*, double*, double* );
-
+__global__ void test_func_device2(double* );
 /***********************************************************************************************************************************************************************************************************************/
 /***************************************************************************************************** Program Main ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-int main(int argc, char** argv)
+int main( unsigned int num_arguments, char** arguments)
 {
+	command_line_settings( num_arguments, arguments );
+
 	if( RUN_ON )
 	{
 		/********************************************************************************************************************************************************/
@@ -236,13 +246,13 @@ int main(int argc, char** argv)
 		/********************************************************************************************************************************************************/		
 		if( DATA_FORMAT == OLD_FORMAT )
 			assign_SSD_positions();		// Read the detector plane u-coordinates from config file
-		initializations();				// allocate and initialize host and GPU memory for statistical
+		statistics_allocations();				// allocate and initialize host and GPU memory for statistical
 		count_histories();				// count the number of histories per file, per scan, total, etc.
 		reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
 		/********************************************************************************************************************************************************/
 		/* Reading the 16 energy detector responses for each of the 5 stages and generate single energy response for each history								*/
 		/********************************************************************************************************************************************************/
-		int start_file_num = 0, end_file_num = 0, histories_to_process = 0;
+		unsigned int start_file_num = 0, end_file_num = 0, histories_to_process = 0;
 		//while( start_file_num != NUM_FILES )
 		//{
 		//	while( end_file_num < NUM_FILES )
@@ -314,8 +324,8 @@ int main(int argc, char** argv)
 		/* of these differences for each bin and dividing it by the number of histories in the bin 																*/
 		/********************************************************************************************************************************************************/
 		puts("Calculating the cumulative sum of the squared deviation in WEPL and relative ut/uv angles over all histories for each bin...");
-		int remaining_histories = recon_vol_histories;
-		int start_position = 0;
+		unsigned int remaining_histories = recon_vol_histories;
+		unsigned int start_position = 0;
 		while( remaining_histories > 0 )
 		{
 			if( remaining_histories > MAX_GPU_HISTORIES )
@@ -387,27 +397,7 @@ int main(int argc, char** argv)
 /***********************************************************************************************************************************************************************************************************************/
 /**************************************************************************************** t/v conversions and energy calibrations **************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void read_energy_responses( const int num_histories, const int start_file_num, const int end_file_num )
-{
-	
-	char data_filename[128];
-	char magic_number[5];
-	int version_id;
-	int file_histories;
-	float projection_angle, beam_energy;
-	int generation_date, preprocess_date;
-	int phantom_name_size, data_source_size, prepared_by_size;
-	char *phantom_name, *data_source, *prepared_by;
-	int data_size;
-	//int gantry_position, gantry_angle, scan_histories;
-	int gantry_position, gantry_angle, scan_number, scan_histories;
-	//int array_index = 0;
-	FILE* input_file;
 
-	puts("Reading energy detector responses and performing energy response calibration...");
-	//printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
-	sprintf(data_filename, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION );
-}
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************** Execution Control Functions ********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -446,9 +436,69 @@ void exit_program_if( bool early_exit)
 	}
 }
 /***********************************************************************************************************************************************************************************************************************/
+/******************************************************************************* Reading/Setting Run Settings, Parameters, and Configurations **************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
+void command_line_settings( unsigned int num_arguments, char** arguments )
+{
+	num_run_arguments = num_arguments;
+	run_arguments = arguments; 
+	printf("chars = %s\n", run_arguments[2]);
+	
+	printf("atof = %3f\n", atof(run_arguments[2]));
+	parameter_container.lambda = atof(run_arguments[2]); 
+
+	printf("lambda = %3f\n", LAMBDA);
+}
+void read_configurations()
+{
+	//cout << "num_run_arguments = " << num_run_arguments << endl;
+	//for( int i = 0; i < num_run_arguments; i++)
+	//	cout << run_arguments[i] << endl;
+
+	std::ifstream input_stream( run_arguments[1] );
+	if( input_stream == NULL )
+	{
+		fputs("ERROR: Configuration file not found.\n", stderr ); 
+		exit_program_if(true);
+	}
+
+	std::string str;	
+
+	//std::string::iterator first, last;
+	std::string::size_type equal_sign, start, end;
+	while( !input_stream.eof() )
+	{
+		getline(input_stream, str);
+		start = str.find_first_of('"') + 1;
+		end = str.find_last_of('"') - start;
+		str = str.substr( start, end );
+		//parameters.push_back(str);
+		cout << str << endl;
+	}		
+	//set_parameters();
+}
+/***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Memory Transfers, Maintenance, and Cleaning ************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void initializations()
+void parameters_2_GPU()
+{
+	double* x = (double*) calloc(1, sizeof(double) );
+	double* x_d;
+	cudaMalloc((void**) &x_d, sizeof(double));
+	cudaMemcpy( x_d, x, sizeof(double), cudaMemcpyHostToDevice);
+	printf("parameters_h = %3f\n", (*parameters_h).lambda);
+
+	cudaMalloc((void**) &parameters_d,			sizeof(parameters) );
+	cudaMemcpy( parameters_d,			parameters_h,			sizeof(parameters),		cudaMemcpyHostToDevice );
+
+	dim3 dimBlock( 1 );
+	dim3 dimGrid( 1 );   	
+	test_func_GPU<<< dimGrid, dimBlock >>>( parameters_d, x_d );
+
+	cudaMemcpy( x, x_d, sizeof(double), cudaMemcpyDeviceToHost);
+	printf("xs[0] = %3f\n", x[0]);
+}
+void statistics_allocations()
 {
 	puts("Allocating statistical analysis arrays on host/GPU...");
 
@@ -641,7 +691,7 @@ void write_run_settings()
 	run_settings_file << "RECON_CYL_HEIGHT = " << RECON_CYL_HEIGHT << std::endl;
 	run_settings_file << "COLUMNS = " << COLUMNS << std::endl;
 	run_settings_file << "ROWS = " << ROWS << std::endl;
-	run_settings_file << "SLICE_THICKNESS" << SLICE_THICKNESS << std::endl;
+	run_settings_file << "VOXEL_THICKNESS" << VOXEL_THICKNESS << std::endl;
 	//run_settings_file << "RECON_CYL_RADIUS = " << RECON_CYL_RADIUS << std::endl;
 	//run_settings_file << "RECON_CYL_HEIGHT = " << RECON_CYL_HEIGHT << std::endl;
 	//run_settings_file << "COLUMNS = " << COLUMNS << std::endl;
@@ -1047,7 +1097,7 @@ void apply_tu_shifts( unsigned int num_histories)
 		array_2_disk( "ut_entry_angle", OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 	}
 }
-void read_data_chunk( const int num_histories, const int start_file_num, const int end_file_num )
+void read_data_chunk( const unsigned int num_histories, const unsigned int start_file_num, const unsigned int end_file_num )
 {
 	// The GPU cannot process all the histories at once, so they are broken up into chunks that can fit on the GPU.  As we iterate 
 	// through the data one chunk at a time, we determine which histories enter the reconstruction volume and if they belong to a 
@@ -1086,18 +1136,18 @@ void read_data_chunk( const int num_histories, const int start_file_num, const i
 		case VERSION_1  : read_data_chunk_v1(  num_histories, start_file_num, end_file_num - 1 );
 	}
 }
-void read_data_chunk_old( const int num_histories, const int start_file_num, const int end_file_num )
+void read_data_chunk_old( const unsigned int num_histories, const unsigned int start_file_num, const unsigned int end_file_num )
 {
-	int array_index = 0, gantry_position, gantry_angle, scan_number, scan_histories;
+	unsigned int array_index = 0, gantry_position, gantry_angle, scan_number, scan_histories;
 	float v_data[4], t_data[4], WEPL_data, gantry_angle_data, dummy_data;
 	char tracker_plane[4];
 	char data_filename[128];
 	FILE* data_file;
 
-	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
+	for( unsigned int file_num = start_file_num; file_num <= end_file_num; file_num++ )
 	{
 		gantry_position = file_num / NUM_SCANS;
-		gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
+		gantry_angle = (unsigned int)(gantry_position * GANTRY_ANGLE_INTERVAL);
 		scan_number = file_num % NUM_SCANS + 1;
 		scan_histories = histories_per_file[file_num];
 
@@ -1105,7 +1155,7 @@ void read_data_chunk_old( const int num_histories, const int start_file_num, con
 		sprintf( data_filename, "%s%s/%s_trans%d_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER, INPUT_BASE_NAME, scan_number, gantry_angle, FILE_EXTENSION );
 		data_file = fopen( data_filename, "rb" );	
 
-		for( int history = 0; history < scan_histories; history++, array_index++ ) 
+		for( unsigned int history = 0; history < scan_histories; history++, array_index++ ) 
 		{
 			fread(&v_data,				sizeof(float),	4, data_file);
 			fread(&t_data,				sizeof(float),	4, data_file);
@@ -1165,7 +1215,7 @@ void read_data_chunk_old( const int num_histories, const int start_file_num, con
 		fclose(data_file);		
 	}
 }
-void read_data_chunk_v0( const int num_histories, const int start_file_num, const int end_file_num )
+void read_data_chunk_v0( const unsigned int num_histories, const unsigned int start_file_num, const unsigned int end_file_num )
 {	
 	/*
 	Event data:
@@ -1264,7 +1314,7 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 	if( T_SHIFT != 0.0	||  U_SHIFT != 0.0 )
 		apply_tu_shifts( num_histories );
 }
-void read_data_chunk_v02( const int num_histories, const int start_file_num, const int end_file_num )
+void read_data_chunk_v02( const unsigned int num_histories, const unsigned int start_file_num, const unsigned int end_file_num )
 {
 	/*
 	Contains the following headers:
@@ -1299,12 +1349,12 @@ void read_data_chunk_v02( const int num_histories, const int start_file_num, con
 	*/
 	//char user_response[20];
 	char data_filename[128];
-	int array_index = 0, histories_read = 0;
-	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
+	unsigned int array_index = 0, histories_read = 0;
+	for( unsigned int file_num = start_file_num; file_num <= end_file_num; file_num++ )
 	{
-		int gantry_position = file_num / NUM_SCANS;
-		int gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
-		int scan_number = file_num % NUM_SCANS + 1;
+		unsigned int gantry_position = file_num / NUM_SCANS;
+		unsigned int gantry_angle = (unsigned int)(gantry_position * GANTRY_ANGLE_INTERVAL);
+		unsigned int scan_number = file_num % NUM_SCANS + 1;
 		//int scan_histories = histories_per_file[file_num];
 
 		printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
@@ -1322,11 +1372,11 @@ void read_data_chunk_v02( const int num_histories, const int start_file_num, con
 			puts("Error: unknown file type (should be PCTD)!\n");
 			exit_program_if(true);
 		}
-		int version_id;
+		unsigned int version_id;
 		data_file.read((char*)&version_id, sizeof(int));
 		if( version_id == 0 )
 		{
-			int file_histories;
+			unsigned int file_histories;
 			data_file.read((char*)&file_histories, sizeof(int));
 	
 			puts("Reading headers from file...\n");
@@ -1352,7 +1402,7 @@ void read_data_chunk_v02( const int num_histories, const int start_file_num, con
 	
 			printf("Loading %d histories from file\n", file_histories);
 	
-			int data_size = file_histories * sizeof(float);
+			unsigned int data_size = file_histories * sizeof(float);
 	
 			data_file.read((char*)&t_in_1_h[histories_read], data_size);
 			data_file.read((char*)&t_in_2_h[histories_read], data_size);
@@ -1397,7 +1447,7 @@ void read_data_chunk_v02( const int num_histories, const int start_file_num, con
 		}
 	}
 }
-void read_data_chunk_v1( const int num_histories, const int start_file_num, const int end_file_num )
+void read_data_chunk_v1( const unsigned int num_histories, const unsigned int start_file_num, const unsigned int end_file_num )
 {
 	/*
 	Contains the following headers:
@@ -1433,11 +1483,11 @@ void read_data_chunk_v1( const int num_histories, const int start_file_num, cons
 	//char user_response[20];
 	char data_filename[128];
 	//int array_index = 0;
-	for( int file_num = start_file_num; file_num <= end_file_num; file_num++ )
+	for( unsigned int file_num = start_file_num; file_num <= end_file_num; file_num++ )
 	{
-		int gantry_position = file_num / NUM_SCANS;
-		int gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
-		int scan_number = file_num % NUM_SCANS + 1;
+		unsigned int gantry_position = file_num / NUM_SCANS;
+		unsigned int gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
+		unsigned int scan_number = file_num % NUM_SCANS + 1;
 		//int scan_histories = histories_per_file[file_num];
 
 		printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
@@ -1455,11 +1505,11 @@ void read_data_chunk_v1( const int num_histories, const int start_file_num, cons
 			puts("Error: unknown file type (should be PCTD)!\n");
 			exit_program_if(true);
 		}
-		int version_id;
+		unsigned int version_id;
 		data_file.read((char*)&version_id, sizeof(int));
 		if( version_id == 1 )
 		{
-			int num_histories;
+			unsigned int num_histories;
 			data_file.read((char*)&num_histories, sizeof(int));
 	
 			puts("Reading headers from file...\n");
@@ -1529,7 +1579,7 @@ void read_data_chunk_v1( const int num_histories, const int start_file_num, cons
 		}
 	}
 }
-void recon_volume_intersections( const int num_histories )
+void recon_volume_intersections( const unsigned int num_histories )
 {
 	//printf("There are %d histories in this projection\n", num_histories );
 	unsigned int size_floats = sizeof(float) * num_histories;
@@ -1850,10 +1900,10 @@ __device__ bool calculate_intercepts( double u, double t, double ut_angle, doubl
 
 	return intersected;
 }
-void binning( const int num_histories )
+void binning( const unsigned int num_histories )
 {
 	unsigned int size_floats	= sizeof(float) * num_histories;
-	unsigned int size_ints		= sizeof(int) * num_histories;
+	unsigned int size_ints		= sizeof(unsigned int) * num_histories;
 	unsigned int size_bool		= sizeof(bool) * num_histories;
 
 	missed_recon_volume_h		= (bool*)  calloc( num_histories, sizeof(bool)	);	
@@ -1876,7 +1926,7 @@ void binning( const int num_histories )
 	//cudaMemcpy( bin_num_d,	bin_num_h,	size_ints,		cudaMemcpyHostToDevice );
 
 	dim3 dimBlock( THREADS_PER_BLOCK );
-	dim3 dimGrid( (int)( num_histories/THREADS_PER_BLOCK ) + 1 );
+	dim3 dimGrid( (unsigned int)( num_histories/THREADS_PER_BLOCK ) + 1 );
 	binning_GPU<<<dimGrid, dimBlock>>>
 	( 
 		num_histories, bin_counts_d, bin_num_d, missed_recon_volume_d,
@@ -1905,7 +1955,7 @@ void binning( const int num_histories )
 	}
 
 	// Push data from valid histories  (i.e. missed_recon_volume = FALSE) onto the end of each vector
-	int offset = 0;
+	unsigned int offset = 0;
 	for( unsigned int i = 0; i < num_histories; i++ )
 	{
 		if( !missed_recon_volume_h[i] && ( bin_num_h[i] >= 0 ) )
@@ -2087,7 +2137,7 @@ __global__ void calculate_means_GPU( int* bin_counts, float* mean_WEPL, float* m
 		mean_rel_uv_angle[bin] /= bin_counts[bin];
 	}
 }
-void sum_squared_deviations( const int start_position, const int num_histories )
+void sum_squared_deviations( const unsigned int start_position, const unsigned int num_histories )
 {
 	unsigned int size_floats = sizeof(float) * num_histories;
 	unsigned int size_ints = sizeof(int) * num_histories;
@@ -2184,10 +2234,10 @@ __global__ void calculate_standard_deviations_GPU( int* bin_counts, float* stdde
 	syncthreads();
 	bin_counts[bin] = 0;
 }
-void statistical_cuts( const int start_position, const int num_histories )
+void statistical_cuts( const unsigned int start_position, const unsigned int num_histories )
 {
 	unsigned int size_floats = sizeof(float) * num_histories;
-	unsigned int size_ints = sizeof(int) * num_histories;
+	unsigned int size_ints = sizeof(unsigned int) * num_histories;
 	unsigned int size_bools = sizeof(bool) * num_histories;
 
 	failed_cuts_h = (bool*) calloc ( num_histories, sizeof(bool) );
@@ -2216,7 +2266,7 @@ void statistical_cuts( const int start_position, const int num_histories )
 	//cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle[start_position],		size_floats, cudaMemcpyHostToDevice);
 
 	dim3 dimBlock(THREADS_PER_BLOCK);
-	dim3 dimGrid( int( num_histories / THREADS_PER_BLOCK ) + 1 );  
+	dim3 dimGrid( unsigned int( num_histories / THREADS_PER_BLOCK ) + 1 );  
 	statistical_cuts_GPU<<< dimGrid, dimBlock >>>
 	( 
 		num_histories, bin_counts_d, bin_num_d, sinogram_d, WEPL_d, 
@@ -2405,12 +2455,12 @@ __global__ void filter_GPU( float* sinogram, float* sinogram_filtered )
 	int v_bin = blockIdx.x, angle_bin = blockIdx.y, t_bin = threadIdx.x;
 	int t_bin_ref, t_bin_sep, strip_index; 
 	double filtered, t, scale_factor;
-	double v = ( v_bin - V_BINS/2 ) * V_BIN_SIZE + V_BIN_SIZE/2.0;
+	double v = ( v_bin - V_BINS/2 + 0.5 ) * V_BIN_SIZE;
 	
 	// Loop over strips for this strip
 	for( t_bin_ref = 0; t_bin_ref < T_BINS; t_bin_ref++ )
 	{
-		t = ( t_bin_ref - T_BINS/2 ) * T_BIN_SIZE + T_BIN_SIZE/2.0;
+		t = ( t_bin_ref - T_BINS/2 + 0.5 ) * T_BIN_SIZE;
 		t_bin_sep = t_bin - t_bin_ref;
 		// scale_factor = r . path = cos(theta_{r,path})
 		scale_factor = SOURCE_RADIUS / sqrt( SOURCE_RADIUS * SOURCE_RADIUS + t * t + v * v );
@@ -2459,7 +2509,7 @@ void backprojection()
 				voxel = column +  ( row * COLUMNS ) + ( slice * COLUMNS * ROWS);
 				x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
 				y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
-				z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
+				z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * VOXEL_THICKNESS;
 				// If the voxel is outside the cylinder defining the reconstruction volume, set RSP to air
 				if( ( x * x + y * y ) > ( RECON_CYL_RADIUS * RECON_CYL_RADIUS ) )
 					FBP_image_h[voxel] = RSP_AIR;							
@@ -2532,7 +2582,7 @@ __global__ void backprojection_GPU( float* sinogram_filtered, float* FBP_image )
 		int t_bin, v_bin, bin;
 		double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
 		double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
-		double z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
+		double z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * VOXEL_THICKNESS;
 
 		//// If the voxel is outside a cylinder contained in the reconstruction volume, set to air
 		if( ( x * x + y * y ) > ( RECON_CYL_RADIUS * RECON_CYL_RADIUS ) )
@@ -3418,8 +3468,6 @@ template<typename O> bool find_MLP_endpoints
 	double& x_object, double& y_object, double& z_object, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
 )
 {	
-		//char user_response[20];
-
 		/********************************************************************************************/
 		/********************************* Voxel Walk Parameters ************************************/
 		/********************************************************************************************/
@@ -3431,37 +3479,19 @@ template<typename O> bool find_MLP_endpoints
 		double x = x_start, y = y_start, z = z_start;
 		double x_to_go, y_to_go, z_to_go;		
 		double x_extension, y_extension;	
-		//int voxel_x, voxel_y, voxel_z;
-		//int voxel_x_out, voxel_y_out, voxel_z_out; 
 		int voxel; 
 		bool hit_hull = false, end_walk, outside_image;
-		// true false
-		//bool debug_run = false;
-		//bool MLP_image_output = false;
 		/********************************************************************************************/
 		/******************** Initial Conditions and Movement Characteristics ***********************/
 		/********************************************************************************************/	
 		if( !entering )
-		{
 			xy_angle += PI;
-		}
+
 		x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
 		y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
 		z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
 		if( x_move_direction < 0 )
-		{
-			//if( debug_run )
-				//puts("z switched");
 			z_move_direction *= -1;
-		}
-		/*if( debug_run )
-		{
-			cout << "x_move_direction = " << x_move_direction << endl;
-			cout << "y_move_direction = " << y_move_direction << endl;
-			cout << "z_move_direction = " << z_move_direction << endl;
-		}*/
-		
-
 
 		voxel_x = calculate_voxel( X_ZERO_COORDINATE, x, VOXEL_WIDTH );
 		voxel_y = calculate_voxel( Y_ZERO_COORDINATE, y, VOXEL_HEIGHT );
@@ -3487,53 +3517,24 @@ template<typename O> bool find_MLP_endpoints
 		double dx_dy = pow( tan(xy_angle), -1.0 );
 		double dx_dz = pow( tan(xz_angle), -1.0 );
 		double dy_dz = tan(xy_angle)/tan(xz_angle);
-
-		//if( debug_run )
-		//{
-		//	cout << "delta_yx = " << delta_yx << "delta_zx = " << delta_zx << "delta_zy = " << delta_zy << endl;
-		//	cout << "dy_dx = " << dy_dx << "dz_dx = " << dz_dx << "dz_dy = " << dz_dy << endl;
-		//	cout << "dx_dy = " << dx_dy << "dx_dz = " << dx_dz << "dy_dz = " << dy_dz << endl;
-		//}
-
 		/********************************************************************************************/
 		/************************* Initialize and Check Exit Conditions *****************************/
 		/********************************************************************************************/
 		outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
 		if( !outside_image )
-		{
 			hit_hull = (image[voxel] == 1);		
-			//image[voxel] = 4;
-		}
 		end_walk = outside_image || hit_hull;
-		//int j = 0;
-		//int j_low_limit = 0;
-		//int j_high_limit = 250;
-		/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
-		{
-			printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-			printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-			printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-		}*/
-		//if( debug_run )
-			//fgets(user_response, sizeof(user_response), stdin);
+
 		/********************************************************************************************/
 		/*********************************** Voxel Walk Routine *************************************/
 		/********************************************************************************************/
 		if( z_move_direction != 0 )
 		{
-			//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				//printf("z_end != z_start\n");
 			while( !end_walk )
 			{
 				// Change in z for Move to Voxel Edge in x and y
 				x_extension = delta_zx * x_to_go;
 				y_extension = delta_zy * y_to_go;
-				//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				//{
-				//	printf(" x_extension = %3f y_extension = %3f\n", x_extension, y_extension );
-				//	//printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-				//	//printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-				//}
 				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
 				{
 					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");					
@@ -3542,13 +3543,6 @@ template<typename O> bool find_MLP_endpoints
 					z = edge_coordinate( Z_ZERO_COORDINATE, voxel_z, VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
 					x = corresponding_coordinate( dx_dz, z, z_start, x_start );
 					y = corresponding_coordinate( dy_dz, z, z_start, y_start );
-
-					/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
-					{
-						printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-						printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-						printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-					}*/
 
 					x_to_go = distance_remaining( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
 					y_to_go = distance_remaining( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
@@ -3601,31 +3595,15 @@ template<typename O> bool find_MLP_endpoints
 				
 				voxel_z = max(voxel_z, 0 );
 				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-				//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				//{
-				//	printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-				//	printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-				//	printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-				//}
 				outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
 				if( !outside_image )
-				{
 					hit_hull = (image[voxel] == 1);	
-					//if( MLP_image_output )
-					//{
-						//image[voxel] = 4;
-					//}
-				}
-				end_walk = outside_image || hit_hull;
-				//j++;
-				//if( debug_run )
-					//fgets(user_response, sizeof(user_response), stdin);		
+				end_walk = outside_image || hit_hull;	
 			}// end !end_walk 
 		}
 		else
 		{
-			//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				//printf("z_end == z_start\n");
+			//printf("z_end == z_start\n");
 			while( !end_walk )
 			{
 				// Change in x for Move to Voxel Edge in y
@@ -3666,27 +3644,11 @@ template<typename O> bool find_MLP_endpoints
 					voxel_y -= y_move_direction;
 				}
 				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
-				/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				{
-					printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-					printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-					printf("voxel_x_in = %d voxel_y_in = %d voxel_z_in = %d\n", voxel_x, voxel_y, voxel_z);
-				}*/
 				outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
 				if( !outside_image )
-				{
 					hit_hull = (image[voxel] == 1);		
-					//if( MLP_image_output )
-					//{
-						//image[voxel] = 4;
-					//}
-				}
-				end_walk = outside_image || hit_hull;
-				//j++;
-				//if( debug_run )
-					//fgets(user_response, sizeof(user_response), stdin);		
+				end_walk = outside_image || hit_hull;	
 			}// end: while( !end_walk )
-			//printf("i = %d", i );
 		}//end: else: z_start != z_end => z_start == z_end
 		if( hit_hull )
 		{
@@ -3733,7 +3695,6 @@ int find_MLP_path
 	if(!constant_chord_lengths)
 		chord_lengths[num_intersections] = VOXEL_WIDTH;
 	num_intersections++;
-	//MLP_test_image_h[voxel] = 0;
 
 	double u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
 	double u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
@@ -3744,8 +3705,6 @@ int find_MLP_path
 
 	if( u_in_object > u_out_object )
 	{
-		//if( debug_output )
-			//cout << "Switched directions" << endl;
 		xy_entry_angle += PI;
 		xy_exit_angle += PI;
 		u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
@@ -3764,10 +3723,7 @@ int find_MLP_path
 		
 	u_0 = 0;
 	u_1 = MLP_U_STEP;
-	u_2 = abs(u_out_object - u_in_object);		
-	//fgets(user_response, sizeof(user_response), stdin);
-
-	//output_file.open(filename);						
+	u_2 = abs(u_out_object - u_in_object);							
 				      
 	//precalculated u_2 dependent terms (since u_2 does not change inside while loop)
 	//u_2 terms
@@ -3872,13 +3828,10 @@ int find_MLP_path
 		voxel_z = calculate_voxel( Z_ZERO_COORDINATE, z_1, VOXEL_THICKNESS);
 				
 		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-		//cout << "voxel_x = " << voxel_x << "voxel_y = " << voxel_y << "voxel_z = " << voxel_z << "voxel = " << voxel <<endl;
-		//fgets(user_response, sizeof(user_response), stdin);
 
 		if( voxel != path[num_intersections - 1] )
 		{
 			path[num_intersections] = voxel;
-			//MLP_test_image_h[voxel] = 0;
 			if(!constant_chord_lengths)
 				chord_lengths[num_intersections] = effective_chord_length;						
 			num_intersections++;
@@ -3887,406 +3840,53 @@ int find_MLP_path
 	}
 	return num_intersections;
 }
-void MLP_test()
-{
-	//char user_response[20];
-	//double x_entry = -3.0;
-	//double y_entry = -sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_entry,2) );
-	//double z_entry = 0.0;
-	//double x_exit = 2.5;
-	//double y_exit = sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_exit,2) );
-	//double z_exit = 0.0;
-	//double xy_entry_angle = 25 * PI/180, xz_entry_angle = 0.0;
-	//double xy_exit_angle = 45* PI/180, xz_exit_angle = 0.0;
-	double x_entry = 2.5;
-	double y_entry = sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_entry,2) );
-	double z_entry = 0.0;
-	double x_exit = -3.0;
-	double y_exit = -sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_exit,2) );
-	double z_exit = 1.0;
-	double xy_entry_angle = (45) * PI/180+PI, xz_entry_angle = 0.0;
-	double xy_exit_angle = (25)* PI/180+PI, xz_exit_angle = 0.0;
-	//double xy_entry_angle = (45+180) * PI/180, xz_entry_angle = 0.0;
-	//double xy_exit_angle = (25+180)* PI/180, xz_exit_angle = 0.0;
-	/********************************************************************************************/
-	/**************************** Status Tracking Information ***********************************/
-	/********************************************************************************************/
-	double x_in_object, y_in_object, z_in_object;
-	double x_out_object, y_out_object, z_out_object;
-	bool entered_object = false, exited_object = false;
-	int voxel_x, voxel_y, voxel_z;
-	int voxel_x_int, voxel_y_int, voxel_z_int;
-
-	entered_object = find_MLP_endpoints( MLP_test_image_h, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
-	exited_object = find_MLP_endpoints( MLP_test_image_h, x_exit, y_exit, z_exit, xy_exit_angle, xz_exit_angle, x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-
-	printf("entered object = %d\n", entered_object );
-	printf("exited object = %d\n", exited_object );
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	char data_filename[256];
-	sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	FILE* pFile = create_MLP_path_file( data_filename );
-
-	int* path = (int*)calloc( MAX_INTERSECTIONS, sizeof(int));
-	double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
-	int num_intersections = 0;
-
-	//fgets(user_response, sizeof(user_response), stdin);
-
-	//char filename[256];
-	//std::ofstream output_file;
-	//sprintf( filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, "path_test");
-	//output_file.open(filename);						
-
-	int j = 0;
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	if( entered_object && exited_object )
-	{
-		//char data_filename[256];	
-
-		num_intersections = find_MLP_path( path, chord_lengths, x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object, xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle, voxel_x, voxel_y, voxel_z);
-		cout << "num_intersections = " << num_intersections << endl;
-		//output_file << endl;
-		//output_file.close();
-		path_data_2_disk(data_filename, pFile, num_intersections, path, path, true);
-	}
-}
-void MLP_test2()
-{
-	//char user_response[20];
-	//double x_entry = -3.0;
-	//double y_entry = -sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_entry,2) );
-	//double z_entry = 0.0;
-	//double x_exit = 2.5;
-	//double y_exit = sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_exit,2) );
-	//double z_exit = 0.0;
-	//double xy_entry_angle = 25 * PI/180, xz_entry_angle = 0.0;
-	//double xy_exit_angle = 45* PI/180, xz_exit_angle = 0.0;
-	double x_entry = 2.5;
-	double y_entry = sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_entry,2) );
-	double z_entry = 0.0;
-	double x_exit = -3.0;
-	double y_exit = -sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_exit,2) );
-	double z_exit = 1.0;
-	double xy_entry_angle = (45) * PI/180+PI, xz_entry_angle = 0.0;
-	double xy_exit_angle = (25)* PI/180+PI, xz_exit_angle = 0.0;
-	//double xy_entry_angle = (45+180) * PI/180, xz_entry_angle = 0.0;
-	//double xy_exit_angle = (25+180)* PI/180, xz_exit_angle = 0.0;
-	
-
-	
-	//pFile = fopen (data_filename,"w+");
-	//path_data_2_disk(data_filename, pFile, num_elements, intersections, voxel_numbers, false);
-
-	/********************************************************************************************/
-	/**************************** Status Tracking Information ***********************************/
-	/********************************************************************************************/
-	//int x_move_direction, y_move_direction, z_move_direction;
-	//double x, y, z;
-	//double x_inside, y_inside, z_inside;
-	//double x_to_go, y_to_go, z_to_go;
-	double x_in_object, y_in_object, z_in_object;
-	double u_in_object, t_in_object, v_in_object;
-	double x_out_object, y_out_object, z_out_object;
-	double u_out_object, t_out_object, v_out_object;
-	bool entered_object = false, exited_object = false;
-	int voxel_x, voxel_y, voxel_z, voxel;
-	int voxel_x_int, voxel_y_int, voxel_z_int;
-
-	entered_object = find_MLP_endpoints( MLP_test_image_h, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
-	exited_object = find_MLP_endpoints( MLP_test_image_h, x_exit, y_exit, z_exit, xy_exit_angle, xz_exit_angle, x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-
-	printf("entered object = %d\n", entered_object );
-	printf("exited object = %d\n", exited_object );
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	char data_filename[256];
-	//sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	//FILE* pFile = create_MLP_path_file( data_filename );
-
-	int* path = (int*)calloc( MAX_INTERSECTIONS, sizeof(int));
-	double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
-	int path_index = 0;
-
-	double T_0[2] = {0, 0}, T_2[2] = {0, 0}, V_0[2] = {0, 0}, V_2[2] = {0, 0};
-	double u_0 = 0, u_1 = MLP_U_STEP,  u_2 = 0;
-	//fgets(user_response, sizeof(user_response), stdin);
-
-	char filename[256];
-	std::ofstream output_file;
-	sprintf( filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, "path_test");
-	//output_file.open(filename);						
-
-	
-
-	int j = 0;
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	double R_0[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
-	//double R_0T[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,c,b,d
-	double R_1[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
-	double R_1T[4] = { 1.0, 0.0, 0.0 , 1.0};  //a,c,b,d
-
-	//double sigma_1_pre_1, sigma_1_pre_2, sigma_1_pre_3;
-	double sigma_2_pre_1, sigma_2_pre_2, sigma_2_pre_3;
-
-	double sigma_1_coefficient, sigma_t1, sigma_t1_theta1, sigma_theta1, determinant_Sigma_1, Sigma_1I[4];
-	double common_sigma_2_term_1, common_sigma_2_term_2, common_sigma_2_term_3;
-	double sigma_2_coefficient, sigma_t2, sigma_t2_theta2, sigma_theta2, determinant_Sigma_2, Sigma_2I[4]; 
-	double first_term_common_13_1, first_term_common_13_2, first_term_common_24_1, first_term_common_24_2, first_term[4], determinant_first_term;
-	double second_term_common_1, second_term_common_2, second_term_common_3, second_term_common_4, second_term[2];
-	double t_1, v_1;
-	//double theta_1, phi_1;
-	double x_1, y_1, z_1;
-
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-	if( entered_object && exited_object )
-	{
-		//char data_filename[256];
-		sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-		FILE* pFile = create_MLP_path_file( data_filename );
-
-		voxel = int(voxel_x + voxel_y * MLP_IMAGE_COLUMNS + voxel_z * MLP_IMAGE_COLUMNS * MLP_IMAGE_ROWS);
-		//int path[MAX_INTERSECTIONS];
-		//double chord_lengths[MAX_INTERSECTIONS];
-		//int* path = (int*)calloc( MAX_INTERSECTIONS, sizeof(int));
-		//double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
-		path_index = 0;
-		MLP_test_image_h[voxel] = 0;
-		path[path_index] = voxel;
-		chord_lengths[path_index] = 1.0;
-		path_index++;
-
-		u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
-		u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
-		t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
-		t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
-		v_in_object = z_in_object;
-		v_out_object = z_out_object;
-
-		if( u_in_object > u_out_object )
-		{
-			xy_entry_angle += PI;
-			xy_exit_angle += PI;
-			u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
-			u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
-			t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
-			t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
-			v_in_object = z_in_object;
-			v_out_object = z_out_object;
-		}
-		T_0[0] = t_in_object;
-		T_2[0] = t_out_object;
-		T_2[1] = xy_exit_angle - xy_entry_angle;
-		V_0[0] = v_in_object;
-		V_2[0] = v_out_object;
-		V_2[1] = xz_exit_angle - xz_entry_angle;
-		
-		u_0 = 0;
-		u_1 = MLP_U_STEP;
-		u_2 = abs(u_out_object - u_in_object);		
-		//fgets(user_response, sizeof(user_response), stdin);
-
-		//output_file.open(filename);						
-
-		//precalculated u_0/u_2 terms
-		//u_0 terms
-		//double sigma_1_pre_1 =  A_0 * u_0 + A_1_OVER_2 * pow(u_0, 2.0) + A_2_OVER_3 * pow(u_0, 3.0) + A_3_OVER_4 * pow(u_0, 4.0) + A_4_OVER_5 * pow(u_0, 5.0) + A_5_OVER_6 * pow(u_0, 6.0);						//1, 1/2, 1/3, 1/4, 1/5, 1/6
-		//double sigma_1_pre_2 =  A_0_OVER_2 * pow(u_0, 2.0) + A_1_OVER_3 * pow(u_0, 3.0) + A_2_OVER_4 * pow(u_0, 4.0) + A_3_OVER_5 * pow(u_0, 5.0) + A_4_OVER_6 * pow(u_0, 6.0) + A_5_OVER_7 * pow(u_0, 7.0);	//1/2, 1/3, 1/4, 1/5, 1/6, 1/7
-		//double sigma_1_pre_3 =  A_0_OVER_3 * pow(u_0, 3.0) + A_1_OVER_4 * pow(u_0, 4.0) + A_2_OVER_5 * pow(u_0, 5.0) + A_3_OVER_6 * pow(u_0, 6.0) + A_4_OVER_7 * pow(u_0, 7.0) + A_5_OVER_8 * pow(u_0, 8.0);	//1/3, 1/4, 1/5, 1/6, 1/7, 1/8
-		//u_2 terms
-		sigma_2_pre_1 =  pow(u_2, 3.0) * ( A_0_OVER_3 + u_2 * ( A_1_OVER_12 + u_2 * ( A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * ( A_4_OVER_105 + u_2 * A_5_OVER_168 )))));;	//u_2^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-		sigma_2_pre_2 =  pow(u_2, 2.0) * ( A_0_OVER_2 + u_2 * (A_1_OVER_6 + u_2 * (A_2_OVER_12 + u_2 * ( A_3_OVER_20 + u_2 * (A_4_OVER_30 + u_2 * A_5_OVER_42)))));	//u_2^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42
-		sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + u_2 * A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
-
-		j = 0;
-		//while( u_1 <= u_2 )
-		while( u_1 <= u_2 - MLP_U_STEP )
-		{
-			j++;
-			R_0[1] = u_1 - u_0;
-			//R_0T[2] = u_1 - u_0;
-			R_1[1] = u_2 - u_1;
-			R_1T[2] = u_2 - u_1;
-
-			//double sigma_1_coefficient = 1.0;
-			sigma_1_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_1 - u_0)/X_0) ), 2.0 ) / X_0;
-			sigma_t1 =  sigma_1_coefficient * ( pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + u_1 * A_5_OVER_168 ) )))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-			sigma_t1_theta1 =  sigma_1_coefficient * ( pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + u_1 * A_5_OVER_42))))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
-			sigma_theta1 = sigma_1_coefficient * ( u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6))))) );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6																	
-			determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
-			
-			if( j == 1)
-			{
-				cout << "sigma_t1 = " << sigma_t1 << "sigma_t1 = " << sigma_t1/sigma_1_coefficient << endl;
-				cout << "sigma_t1_theta1 = " << sigma_t1_theta1 << "sigma_t1_theta1 = " << sigma_t1_theta1/sigma_1_coefficient<< endl;
-				cout << "sigma_theta1 = " << sigma_theta1 << "sigma_theta1 = " << sigma_theta1/sigma_1_coefficient<< endl;
-				cout << "determinant_Sigma_1 = " << determinant_Sigma_1 << "determinant_Sigma_1 = " << determinant_Sigma_1/sigma_1_coefficient<< endl;
-			}
-			Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
-			Sigma_1I[1] = -sigma_t1_theta1 / determinant_Sigma_1;
-			Sigma_1I[2] = -sigma_t1_theta1 / determinant_Sigma_1;
-			Sigma_1I[3] = sigma_t1 / determinant_Sigma_1;
-			//sigma 2 terms
-			//double sigma_2_coefficient = 1.0;
-			sigma_2_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_2 - u_1)/X_0) ), 2.0 ) / X_0;
-			common_sigma_2_term_1 = u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6 )))));
-			common_sigma_2_term_2 = pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_3 + u_1 * (A_2_OVER_4 + u_1 * (A_3_OVER_5 + u_1 * (A_4_OVER_6 + u_1 * A_5_OVER_7 )))));
-			common_sigma_2_term_3 = pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_4 + u_1 * (A_2_OVER_5 + u_1 * (A_3_OVER_6 + u_1 * (A_4_OVER_7 + u_1 * A_5_OVER_8 )))));
-			sigma_t2 =  sigma_2_coefficient * ( sigma_2_pre_1 - pow(u_2, 2.0) * common_sigma_2_term_1 + 2 * u_2 * common_sigma_2_term_2 - common_sigma_2_term_3 );
-			sigma_t2_theta2 =  sigma_2_coefficient * ( sigma_2_pre_2 - u_2 * common_sigma_2_term_1 + common_sigma_2_term_2 );
-			sigma_theta2 =  sigma_2_coefficient * ( sigma_2_pre_3 - common_sigma_2_term_1 );				
-			determinant_Sigma_2 = sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 );//ad-bc
-	
-			if( j == 1)
-			{
-				cout << "sigma_t2 = " << sigma_t2 << "sigma_t2 = " << sigma_t2/sigma_2_coefficient << endl;
-				cout << "sigma_t2_theta2 = " << sigma_t2_theta2 << "sigma_t2_theta2 = " << sigma_t2_theta2/sigma_2_coefficient<< endl;
-				cout << "sigma_theta2 = " << sigma_theta2 << "sigma_theta2 = " << sigma_theta2/sigma_2_coefficient<< endl;
-				cout << "determinant_Sigma_2 = " << determinant_Sigma_2 << "determinant_Sigma_2 = " << determinant_Sigma_2/sigma_2_coefficient<< endl;
-			}
-			Sigma_2I[0] = sigma_theta2 / determinant_Sigma_2;
-			Sigma_2I[1] = -sigma_t2_theta2 / determinant_Sigma_2;
-			Sigma_2I[2] = -sigma_t2_theta2 / determinant_Sigma_2;
-			Sigma_2I[3] = sigma_t2 / determinant_Sigma_2;
-
-			// first_term_common_ij_k: i,j = rows common to, k = 1st/2nd of last 2 terms of 3 term summation in first_term calculation below
-			first_term_common_13_1 = Sigma_2I[0] * R_1[0] + Sigma_2I[1] * R_1[2];
-			first_term_common_13_2 = Sigma_2I[2] * R_1[0] + Sigma_2I[3] * R_1[2];
-			first_term_common_24_1 = Sigma_2I[0] * R_1[1] + Sigma_2I[1] * R_1[3];
-			first_term_common_24_2 = Sigma_2I[2] * R_1[1] + Sigma_2I[3] * R_1[3];
-
-			first_term[0] = Sigma_1I[0] + R_1T[0] * first_term_common_13_1 + R_1T[1] * first_term_common_13_2;
-			first_term[1] = Sigma_1I[1] + R_1T[0] * first_term_common_24_1 + R_1T[1] * first_term_common_24_2;
-			first_term[2] = Sigma_1I[2] + R_1T[2] * first_term_common_13_1 + R_1T[3] * first_term_common_13_2;
-			first_term[3] = Sigma_1I[3] + R_1T[2] * first_term_common_24_1 + R_1T[3] * first_term_common_24_2;
-
-
-			determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
-			first_term[0] = first_term[3] / determinant_first_term;
-			first_term[1] = -first_term[1] / determinant_first_term;
-			first_term[2] = -first_term[2] / determinant_first_term;
-			first_term[3] = first_term[0] / determinant_first_term;
-
-			// second_term_common_i: i = # of term of 4 term summation it is common to in second_term calculation below
-			second_term_common_1 = R_0[0] * T_0[0] + R_0[1] * T_0[1];
-			second_term_common_2 = R_0[2] * T_0[0] + R_0[3] * T_0[1];
-			second_term_common_3 = Sigma_2I[0] * T_2[0] + Sigma_2I[1] * T_2[1];
-			second_term_common_4 = Sigma_2I[2] * T_2[0] + Sigma_2I[3] * T_2[1];
-
-			second_term[0] = Sigma_1I[0] * second_term_common_1 
-							+ Sigma_1I[1] * second_term_common_2 
-							+ R_1T[0] * second_term_common_3 
-							+ R_1T[1] * second_term_common_4;
-			second_term[1] = Sigma_1I[2] * second_term_common_1 
-							+ Sigma_1I[3] * second_term_common_2 
-							+ R_1T[2] * second_term_common_3 
-							+ R_1T[3] * second_term_common_4;
-
-			t_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
-			//cout << "t_1 = " << t_1 << endl;
-			//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
-
-			// Do v MLP Now
-			second_term_common_1 = R_0[0] * V_0[0] + R_0[1] * V_0[1];
-			second_term_common_2 = R_0[2] * V_0[0] + R_0[3] * V_0[1];
-			second_term_common_3 = Sigma_2I[0] * V_2[0] + Sigma_2I[1] * V_2[1];
-			second_term_common_4 = Sigma_2I[2] * V_2[0] + Sigma_2I[3] * V_2[1];
-
-			second_term[0]	= Sigma_1I[0] * second_term_common_1
-							+ Sigma_1I[1] * second_term_common_2
-							+ R_1T[0] * second_term_common_3
-							+ R_1T[1] * second_term_common_4;
-			second_term[1]	= Sigma_1I[2] * second_term_common_1
-							+ Sigma_1I[3] * second_term_common_2
-							+ R_1T[2] * second_term_common_3
-							+ R_1T[3] * second_term_common_4;
-			v_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
-			//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
-
-			// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
-			x_1 = ( cos( xy_entry_angle ) * (u_in_object + u_1) ) - ( sin( xy_entry_angle ) * t_1 );
-			y_1 = ( sin( xy_entry_angle ) * (u_in_object + u_1) ) + ( cos( xy_entry_angle ) * t_1 );
-			z_1 = v_in_object + v_1;
-
-			voxel_x = calculate_voxel( X_ZERO_COORDINATE, x_1, VOXEL_WIDTH );
-			voxel_y = calculate_voxel( Y_ZERO_COORDINATE, y_1, VOXEL_HEIGHT );
-			voxel_z = calculate_voxel( Z_ZERO_COORDINATE, z_1, VOXEL_THICKNESS);
-			voxel = voxel_x + voxel_y * MLP_IMAGE_COLUMNS + voxel_z * MLP_IMAGE_COLUMNS * MLP_IMAGE_ROWS;
-
-			if( voxel != path[path_index - 1] )
-			{
-				path[path_index] = voxel;
-				chord_lengths[path_index] = 1.0;
-				MLP_test_image_h[voxel] = 0;
-				output_file << path[path_index] << " ";
-				path_index++;
-			}
-			u_1 += MLP_U_STEP;
-		}
-		output_file << endl;
-		output_file.close();
-		path_data_2_disk(data_filename, pFile, path_index, path, path, true);
-	}
-}
 void MLP()
 {
-	//char user_response[20];
-	//char MLP_test_filename[128];
-	char data_filename[256];
-	//char updated_image_filename[128];
-	//char filename[256];
-	char iterate_filename[256];
+	/*************************************************************************************************************************************************************************/
+	/***************************************************************** Variable Declarations and Instantiations **************************************************************/
+	/*************************************************************************************************************************************************************************/
+	char data_filename[256], iterate_filename[256];
 	double x_entry, y_entry, z_entry, x_exit, y_exit, z_exit;
 	double xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle;
 	double x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object;
 	double effective_chord_length; 	
 	int voxel_x, voxel_y, voxel_z, voxel_x_int, voxel_y_int, voxel_z_int;
-	unsigned int num_intersections;
+	unsigned int block_history = 1, start_history = 0, end_history = (unsigned int)x_entry_vector.size(), num_intersections;
 	bool entered_object = false, exited_object = false, debug_output = false, MLP_image_output = false, constant_chord_lengths = true;
-
+	/*************************************************************************************************************************************************************************/
+	/****************************************************************** Array Allocations and Initializationa ****************************************************************/
+	/*************************************************************************************************************************************************************************/
 	int* path = (int*)calloc( MAX_INTERSECTIONS, sizeof(int));
 	double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));
-	//if(!constant_chord_lengths)
-		//chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
 	double* x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
 
 	sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	FILE* pFile = create_MLP_path_file( data_filename );
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	unsigned int block_history = 1;
-	//int start_history = 3*x_entry_vector.size()/4;
-	unsigned int start_history = 0;
-	//int start_history = 10;
-	//int end_history = start_history + 12;
-	unsigned int end_history = x_entry_vector.size();
-	//unsigned int iterations = 20;
-	//int end_history = x_entry_vector.size();
-	//array_2_disk( "MLP_image_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	//cout << "#histories = " << x_entry_vector.size() << " " << post_cut_histories << endl; 
-	//cout << "start i = " << start_history << endl;
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	FILE* pFile = create_MLP_path_file( data_filename );	
+	/*************************************************************************************************************************************************************************/
+	/************************************************************************ Perform image reconstruction *******************************************************************/
+	/*************************************************************************************************************************************************************************/
 	for( unsigned int iteration = 1; iteration <= ITERATIONS; iteration++ )
 	{
+		/*********************************************************************************************************************************************************************/
+		/********************************************************************** Perform MLP calculations *********************************************************************/
+		/*********************************************************************************************************************************************************************/
 		for( unsigned int i = start_history; i < end_history; i++ )
 		{		
+			/******************************************************************************************************************************************************************/
+			/******************************************************** Load history's entry/exit coordinates and angles ********************************************************/
+			/******************************************************************************************************************************************************************/
 			x_entry = x_entry_vector[i], y_entry = y_entry_vector[i], z_entry = z_entry_vector[i];
 			x_exit = x_exit_vector[i], y_exit = y_exit_vector[i], z_exit = z_exit_vector[i];
 			xy_entry_angle = xy_entry_angle_vector[i], xz_entry_angle = xz_entry_angle_vector[i];
 			xy_exit_angle = xy_exit_angle_vector[i], xz_exit_angle = xz_exit_angle_vector[i];
-
-			/********************************************************************************************/
-			/**************************** Status Tracking Information ***********************************/
-			/********************************************************************************************/
-			entered_object = false;
-			exited_object = false;
-
+			/********************************************************************************************************************************************************************/
+			/***************************************** Determine if proton entered and exited object and if so, where these occurred ********************************************/
+			/********************************************************************************************************************************************************************/
 			entered_object = find_MLP_endpoints( x_hull_h, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
 			exited_object = find_MLP_endpoints( x_hull_h, x_exit, y_exit, z_exit, xy_exit_angle, xz_exit_angle, x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-
-			num_intersections = 0;
-
+			/********************************************************************************************************************************************************************/
+			/****************************************************** Perform MLP if proton entered and exited object *************************************************************/
+			/********************************************************************************************************************************************************************/		
 			if( entered_object && exited_object )
 			{
 				//effective_chord_length = mean_chord_length( u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object );
@@ -4296,102 +3896,6 @@ void MLP()
 				//if(constant_chord_lengths)
 				update_iterate22( WEPL_vector[i], effective_chord_length, x_h, path, num_intersections );
 				//update_iterate2( WEPL_vector[i], effective_chord_length, x_h, path, num_intersections );
-				//else
-					//update_iterate( WEPL_vector[i], chord_lengths, x_h, path, num_intersections );
-				//if( ( i + 1 ) % BLOCK_SIZE == 0 )
-				//path_data_2_disk(char* data_filename, FILE* pFile, int voxel_intersections, int* voxel_numbers, T*& data, bool write_sparse)
-				//path_data_2_disk(data_filename, pFile, num_intersections, path, path, true);
-				//calculate_update( WEPL_vector[i], effective_chord_length, x_update_h, path, num_intersections );
-				//if( block_history == BLOCK_SIZE )
-				//{					
-				//	sprintf(updated_image_filename, "%s_%d_%d", "update_image", i, block_history );
-				//	array_2_disk(updated_image_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-				//	update_iterate3( x_h, x_update_h );
-				//	block_history = 0;
-				//}
-				//block_history++;
-			}	
-		}
-		sprintf(iterate_filename, "%s%d", "x_", iteration );		
-		if( WRITE_X_KI )
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	}
-}
-void MLP2()
-{
-	//char user_response[20];
-	//char MLP_test_filename[128];
-	char data_filename[256];
-	//char updated_image_filename[128];
-	//char filename[256];
-	char iterate_filename[256];
-
-	double x_entry, y_entry, z_entry, x_exit, y_exit, z_exit;
-	double xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle;
-	double x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object;
-	double effective_chord_length; 
-
-	
-	int voxel_x, voxel_y, voxel_z, voxel_x_int, voxel_y_int, voxel_z_int;
-	int num_intersections;
-
-	bool entered_object = false, exited_object = false, debug_output = false, MLP_image_output = false, constant_chord_lengths = true;
-
-	int* path = (int*)calloc( MAX_INTERSECTIONS, sizeof(int));
-	double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));
-	//if(!constant_chord_lengths)
-		//chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
-	double* x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
-
-	sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	FILE* pFile = create_MLP_path_file( data_filename );
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	int block_history = 1;
-	//int start_history = 3*x_entry_vector.size()/4;
-	int start_history = 0;
-	//int start_history = 10;
-	//int end_history = start_history + 12;
-	int end_history = x_entry_vector.size();
-	int iterations = 20;
-	//int end_history = x_entry_vector.size();
-	//array_2_disk( "MLP_image_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	//cout << "#histories = " << x_entry_vector.size() << " " << post_cut_histories << endl; 
-	//cout << "start i = " << start_history << endl;
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	for( int iteration = 1; iteration <= iterations; iteration++ )
-	{
-		for( int i = start_history; i < end_history; i++ )
-		{		
-			x_entry = x_entry_vector[i];
-			y_entry = y_entry_vector[i];
-			z_entry = z_entry_vector[i];
-			x_exit = x_exit_vector[i];
-			y_exit = y_exit_vector[i];
-			z_exit = z_exit_vector[i];
-			xy_entry_angle = xy_entry_angle_vector[i];
-			xz_entry_angle = xz_entry_angle_vector[i];
-			xy_exit_angle = xy_exit_angle_vector[i];;
-			xz_exit_angle = xz_exit_angle_vector[i];
-
-			/********************************************************************************************/
-			/**************************** Status Tracking Information ***********************************/
-			/********************************************************************************************/
-			entered_object = false;
-			exited_object = false;
-
-			entered_object = find_MLP_endpoints( x_hull_h, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
-			exited_object = find_MLP_endpoints( x_hull_h, x_exit, y_exit, z_exit, xy_exit_angle, xz_exit_angle, x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-
-			num_intersections = 0;
-
-			if( entered_object && exited_object )
-			{
-				//effective_chord_length = mean_chord_length( u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object );
-				effective_chord_length = VOXEL_WIDTH;
-
-				num_intersections = find_MLP_path( path, chord_lengths, x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object, xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle, voxel_x, voxel_y, voxel_z);
-				//if(constant_chord_lengths)
-				update_iterate2( WEPL_vector[i], effective_chord_length, x_h, path, num_intersections );
 				//else
 					//update_iterate( WEPL_vector[i], chord_lengths, x_h, path, num_intersections );
 				//if( ( i + 1 ) % BLOCK_SIZE == 0 )
@@ -4446,7 +3950,7 @@ double mean_chord_length( double x_entry, double y_entry, double z_entry, double
 	//
 	//// Multiply this by the effective chord in the v-u plane
 	//double mean_pixel_width = average_pixel_size / sum_ut_angles;
-	//double height_fraction = SLICE_THICKNESS / mean_pixel_width;
+	//double height_fraction = VOXEL_THICKNESS / mean_pixel_width;
 	//s = MLP_U_STEP;
 	//l = mean_pixel_width;
 	//double chord_length_v = ( l / (6.0 * height_fraction * sum_uv_angles) ) * ( pow(s/l, 3.0) * pow( sin(2 * effective_angle_uv), 2.0 ) - 12 * height_fraction * sum_uv_angles ) / ( (s/l) * sin(2 * effective_angle_uv) - 2 * height_fraction * sum_uv_angles );
@@ -4469,7 +3973,7 @@ double mean_chord_length( double x_entry, double y_entry, double z_entry, double
 	
 	// Multiply this by the effective chord in the v-u plane
 	double mean_pixel_width=VOXEL_WIDTH/(cos(eff_angle_t)+sin(eff_angle_t));
-	double height_fraction=SLICE_THICKNESS/mean_pixel_width;
+	double height_fraction=VOXEL_THICKNESS/mean_pixel_width;
 	step_fraction=MLP_U_STEP/mean_pixel_width;
 	double chord_length_3D=(1/3.0)*((step_fraction*step_fraction*sin(2*eff_angle_v)-6*height_fraction)/(step_fraction*sin(2*eff_angle_v)-2*(height_fraction*cos(eff_angle_v)+sin(eff_angle_v))) + step_fraction*step_fraction*sin(2*eff_angle_v)/(2*(height_fraction*cos(eff_angle_v)+sin(eff_angle_v))));
 	
@@ -4479,486 +3983,405 @@ double mean_chord_length( double x_entry, double y_entry, double z_entry, double
 /***********************************************************************************************************************************************************************************************************************/
 /******************************************************************************************************* MLP (GPU) *****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-//template<typename O> __device__ bool find_MLP_endpoints_GPU
-//( 
-//	O*& image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
-//	double& x_object, double& y_object, double& z_object, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
-//)
-//{	
-//		//char user_response[20];
-//
-//		/********************************************************************************************/
-//		/********************************* Voxel Walk Parameters ************************************/
-//		/********************************************************************************************/
-//		int x_move_direction, y_move_direction, z_move_direction;
-//		double delta_yx, delta_zx, delta_zy;
-//		/********************************************************************************************/
-//		/**************************** Status Tracking Information ***********************************/
-//		/********************************************************************************************/
-//		double x = x_start, y = y_start, z = z_start;
-//		double x_to_go, y_to_go, z_to_go;		
-//		double x_extension, y_extension;	
-//		//int voxel_x, voxel_y, voxel_z;
-//		//int voxel_x_out, voxel_y_out, voxel_z_out; 
-//		int voxel; 
-//		bool hit_hull = false, end_walk, outside_image;
-//		// true false
-//		bool debug_run = false;
-//		bool MLP_image_output = false;
-//		/********************************************************************************************/
-//		/******************** Initial Conditions and Movement Characteristics ***********************/
-//		/********************************************************************************************/	
-//		if( !entering )
-//		{
-//			xy_angle += PI;
-//		}
-//		x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
-//		y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
-//		z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
-//		if( x_move_direction < 0 )
-//		{
-//			//if( debug_run )
-//				//puts("z switched");
-//			z_move_direction *= -1;
-//		}
-//		/*if( debug_run )
-//		{
-//			cout << "x_move_direction = " << x_move_direction << endl;
-//			cout << "y_move_direction = " << y_move_direction << endl;
-//			cout << "z_move_direction = " << z_move_direction << endl;
-//		}*/
-//		
-//
-//
-//		voxel_x = calculate_voxel( X_ZERO_COORDINATE, x, VOXEL_WIDTH );
-//		voxel_y = calculate_voxel( Y_ZERO_COORDINATE, y, VOXEL_HEIGHT );
-//		voxel_z = calculate_voxel( Z_ZERO_COORDINATE, z, VOXEL_THICKNESS );
-//
-//		x_to_go = distance_remaining( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//		y_to_go = distance_remaining( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
-//		z_to_go = distance_remaining( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
-//
-//		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-//		/********************************************************************************************/
-//		/***************************** Path and Walk Information ************************************/
-//		/********************************************************************************************/
-//		// Lengths/Distances as x is Incremented One Voxel tan( xy_hit_hull_angle )
-//		delta_yx = fabs(tan(xy_angle));
-//		delta_zx = fabs(tan(xz_angle));
-//		delta_zy = fabs( tan(xz_angle)/tan(xy_angle));
-//
-//		double dy_dx = tan(xy_angle);
-//		double dz_dx = tan(xz_angle);
-//		double dz_dy = tan(xz_angle)/tan(xy_angle);
-//
-//		double dx_dy = pow( tan(xy_angle), -1.0 );
-//		double dx_dz = pow( tan(xz_angle), -1.0 );
-//		double dy_dz = tan(xy_angle)/tan(xz_angle);
-//
-//		//if( debug_run )
-//		//{
-//		//	cout << "delta_yx = " << delta_yx << "delta_zx = " << delta_zx << "delta_zy = " << delta_zy << endl;
-//		//	cout << "dy_dx = " << dy_dx << "dz_dx = " << dz_dx << "dz_dy = " << dz_dy << endl;
-//		//	cout << "dx_dy = " << dx_dy << "dx_dz = " << dx_dz << "dy_dz = " << dy_dz << endl;
-//		//}
-//		/********************************************************************************************/
-//		/************************* Initialize and Check Exit Conditions *****************************/
-//		/********************************************************************************************/
-//		outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
-//		if( !outside_image )
-//		{
-//			hit_hull = (image[voxel] == 1);		
-//			//image[voxel] = 4;
-//		}
-//		end_walk = outside_image || hit_hull;
-//		//int j = 0;
-//		//int j_low_limit = 0;
-//		//int j_high_limit = 250;
-//		/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
-//		{
-//			printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-//			printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-//			printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-//		}*/
-//		//if( debug_run )
-//			//fgets(user_response, sizeof(user_response), stdin);
-//		/********************************************************************************************/
-//		/*********************************** Voxel Walk Routine *************************************/
-//		/********************************************************************************************/
-//		if( z_move_direction != 0 )
-//		{
-//			//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-//				//printf("z_end != z_start\n");
-//			while( !end_walk )
-//			{
-//				// Change in z for Move to Voxel Edge in x and y
-//				x_extension = delta_zx * x_to_go;
-//				y_extension = delta_zy * y_to_go;
-//				//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-//				//{
-//				//	printf(" x_extension = %3f y_extension = %3f\n", x_extension, y_extension );
-//				//	//printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-//				//	//printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-//				//}
-//				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
-//				{
-//					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");					
-//					voxel_z -= z_move_direction;
-//					
-//					z = edge_coordinate( Z_ZERO_COORDINATE, voxel_z, VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
-//					x = corresponding_coordinate( dx_dz, z, z_start, x_start );
-//					y = corresponding_coordinate( dy_dz, z, z_start, y_start );
-//
-//					/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
-//					{
-//						printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-//						printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-//						printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-//					}*/
-//
-//					x_to_go = distance_remaining( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//					y_to_go = distance_remaining( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
-//					z_to_go = VOXEL_THICKNESS;
-//				}
-//				//If Next Voxel Edge is in x or xy Diagonal
-//				else if( x_extension <= y_extension )
-//				{
-//					//printf(" x_extension <= y_extension \n");			
-//					voxel_x += x_move_direction;
-//
-//					x = edge_coordinate( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
-//					y = corresponding_coordinate( dy_dx, x, x_start, y_start );
-//					z = corresponding_coordinate( dz_dx, x, x_start, z_start );
-//
-//					x_to_go = VOXEL_WIDTH;
-//					y_to_go = distance_remaining( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
-//					z_to_go = distance_remaining( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
-//				}
-//				// Else Next Voxel Edge is in y
-//				else
-//				{
-//					//printf(" y_extension < x_extension \n");
-//					voxel_y -= y_move_direction;
-//					
-//					y = edge_coordinate( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
-//					x = corresponding_coordinate( dx_dy, y, y_start, x_start );
-//					z = corresponding_coordinate( dz_dy, y, y_start, z_start );
-//
-//					x_to_go = distance_remaining( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//					y_to_go = VOXEL_HEIGHT;					
-//					z_to_go = distance_remaining( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
-//				}
-//				// <= VOXEL_ALLOWANCE
-//				if( x_to_go == 0 )
-//				{
-//					x_to_go = VOXEL_WIDTH;
-//					voxel_x += x_move_direction;
-//				}
-//				if( y_to_go == 0 )
-//				{
-//					y_to_go = VOXEL_HEIGHT;
-//					voxel_y -= y_move_direction;
-//				}
-//				if( z_to_go == 0 )
-//				{
-//					z_to_go = VOXEL_THICKNESS;
-//					voxel_z -= z_move_direction;
-//				}
-//				
-//				voxel_z = max(voxel_z, 0 );
-//				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-//				//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-//				//{
-//				//	printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-//				//	printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-//				//	printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-//				//}
-//				outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
-//				if( !outside_image )
-//				{
-//					hit_hull = (image[voxel] == 1);	
-//					//if( MLP_image_output )
-//					//{
-//					//	image[voxel] = 4;
-//					//}
-//				}
-//				end_walk = outside_image || hit_hull;
-//				//j++;
-//				//if( debug_run )
-//					//fgets(user_response, sizeof(user_response), stdin);		
-//			}// end !end_walk 
-//		}
-//		else
-//		{
-//			//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-//				//printf("z_end == z_start\n");
-//			while( !end_walk )
-//			{
-//				// Change in x for Move to Voxel Edge in y
-//				y_extension = y_to_go / delta_yx;
-//				//If Next Voxel Edge is in x or xy Diagonal
-//				if( x_to_go <= y_extension )
-//				{
-//					//printf(" x_to_go <= y_extension \n");
-//					voxel_x += x_move_direction;
-//					
-//					x = edge_coordinate( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
-//					y = corresponding_coordinate( dy_dx, x, x_start, y_start );
-//
-//					x_to_go = VOXEL_WIDTH;
-//					y_to_go = distance_remaining( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
-//				}
-//				// Else Next Voxel Edge is in y
-//				else
-//				{
-//					//printf(" y_extension < x_extension \n");				
-//					voxel_y -= y_move_direction;
-//
-//					y = edge_coordinate( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
-//					x = corresponding_coordinate( dx_dy, y, y_start, x_start );
-//
-//					x_to_go = distance_remaining( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//					y_to_go = VOXEL_HEIGHT;
-//				}
-//				// <= VOXEL_ALLOWANCE
-//				if( x_to_go == 0 )
-//				{
-//					x_to_go = VOXEL_WIDTH;
-//					voxel_x += x_move_direction;
-//				}
-//				if( y_to_go == 0 )
-//				{
-//					y_to_go = VOXEL_HEIGHT;
-//					voxel_y -= y_move_direction;
-//				}
-//				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
-//				/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
-//				{
-//					printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-//					printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-//					printf("voxel_x_in = %d voxel_y_in = %d voxel_z_in = %d\n", voxel_x, voxel_y, voxel_z);
-//				}*/
-//				outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
-//				if( !outside_image )
-//				{
-//					hit_hull = (image[voxel] == 1);		
-//					//if( MLP_image_output )
-//					//{
-//					//	image[voxel] = 4;
-//					//}
-//				}
-//				end_walk = outside_image || hit_hull;
-//				//j++;
-//				//if( debug_run )
-//					//fgets(user_response, sizeof(user_response), stdin);		
-//			}// end: while( !end_walk )
-//			//printf("i = %d", i );
-//		}//end: else: z_start != z_end => z_start == z_end
-//		if( hit_hull )
-//		{
-//			x_object = x;
-//			y_object = y;
-//			z_object = z;
-//		}
-//		return hit_hull;
-//}
-//__device__ int find_MLP_path_GPU
-//( 
-//	int*& path, double*& chord_lengths, 
-//	double x_in_object, double y_in_object, double z_in_object, double x_out_object, double y_out_object, double z_out_object, 
-//	double xy_entry_angle, double xz_entry_angle, double xy_exit_angle, double xz_exit_angle,
-//	int voxel_x, int voxel_y, int voxel_z
-//)
-//{
-//	double u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object;
-//	double effective_chord_length; 
-//	int num_intersections = 0;
-//
-//	bool debug_output = false, MLP_image_output = false, constant_chord_lengths = true;
-//	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	double u_0 = 0, u_1 = MLP_U_STEP,  u_2 = 0;
-//	double T_0[2] = {0, 0}, T_2[2] = {0, 0}, V_0[2] = {0, 0}, V_2[2] = {0, 0};
-//	double R_0[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
-//	//double R_0T[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,c,b,d
-//	double R_1[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
-//	double R_1T[4] = { 1.0, 0.0, 0.0 , 1.0};  //a,c,b,d
-//
-//	//double sigma_1_pre_1, sigma_1_pre_2, sigma_1_pre_3;
-//	double sigma_2_pre_1, sigma_2_pre_2, sigma_2_pre_3;
-//	double sigma_1_coefficient, sigma_t1, sigma_t1_theta1, sigma_theta1, determinant_Sigma_1, Sigma_1I[4];
-//	double common_sigma_2_term_1, common_sigma_2_term_2, common_sigma_2_term_3;
-//	double sigma_2_coefficient, sigma_t2, sigma_t2_theta2, sigma_theta2, determinant_Sigma_2, Sigma_2I[4]; 
-//	double first_term_common_13_1, first_term_common_13_2, first_term_common_24_1, first_term_common_24_2, first_term[4], determinant_first_term;
-//	double second_term_common_1, second_term_common_2, second_term_common_3, second_term_common_4, second_term[2];
-//	double t_1, v_1, theta_1, phi_1, x_1, y_1, z_1;
-//	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-//	//effective_chord_length = mean_chord_length( u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object );
-//	effective_chord_length = VOXEL_WIDTH;
-//
-//	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-//	path[num_intersections] = voxel;
-//	if(!constant_chord_lengths)
-//		chord_lengths[num_intersections] = VOXEL_WIDTH;
-//	num_intersections++;
-//	//MLP_test_image_h[voxel] = 0;
-//
-//	u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
-//	u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
-//	t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
-//	t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
-//	v_in_object = z_in_object;
-//	v_out_object = z_out_object;
-//
-//	if( u_in_object > u_out_object )
-//	{
-//		//if( debug_output )
-//			//cout << "Switched directions" << endl;
-//		xy_entry_angle += PI;
-//		xy_exit_angle += PI;
-//		u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
-//		u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
-//		t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
-//		t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
-//		v_in_object = z_in_object;
-//		v_out_object = z_out_object;
-//	}
-//	T_0[0] = t_in_object;
-//	T_2[0] = t_out_object;
-//	T_2[1] = xy_exit_angle - xy_entry_angle;
-//	V_0[0] = v_in_object;
-//	V_2[0] = v_out_object;
-//	V_2[1] = xz_exit_angle - xz_entry_angle;
-//		
-//	u_0 = 0;
-//	u_1 = MLP_U_STEP;
-//	u_2 = abs(u_out_object - u_in_object);		
-//	//fgets(user_response, sizeof(user_response), stdin);
-//
-//	//output_file.open(filename);						
-//				      
-//	//precalculated u_0/u_2 terms
-//	//u_0 terms
-//	//double sigma_1_pre_1 =  A_0 * u_0 + A_1_OVER_2 * pow(u_0, 2.0) + A_2_OVER_3 * pow(u_0, 3.0) + A_3_OVER_4 * pow(u_0, 4.0) + A_4_OVER_5 * pow(u_0, 5.0) + A_5_OVER_6 * pow(u_0, 6.0);						//1, 1/2, 1/3, 1/4, 1/5, 1/6
-//	//double sigma_1_pre_2 =  As_0_OVER_2 * pow(u_0, 2.0) + A_1_OVER_3 * pow(u_0, 3.0) + A_2_OVER_4 * pow(u_0, 4.0) + A_3_OVER_5 * pow(u_0, 5.0) + A_4_OVER_6 * pow(u_0, 6.0) + A_5_OVER_7 * pow(u_0, 7.0);	//1/2, 1/3, 1/4, 1/5, 1/6, 1/7
-//	//double sigma_1_pre_3 =  A_0_OVER_3 * pow(u_0, 3.0) + A_1_OVER_4 * pow(u_0, 4.0) + A_2_OVER_5 * pow(u_0, 5.0) + A_3_OVER_6 * pow(u_0, 6.0) + A_4_OVER_7 * pow(u_0, 7.0) + A_5_OVER_8 * pow(u_0, 8.0);	//1/3, 1/4, 1/5, 1/6, 1/7, 1/8
-//	//u_2 terms
-//	sigma_2_pre_1 =  pow(u_2, 3.0) * ( A_0_OVER_3 + u_2 * ( A_1_OVER_12 + u_2 * ( A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * ( A_4_OVER_105 + u_2 * A_5_OVER_168 )))));;	//u_2^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-//	sigma_2_pre_2 =  pow(u_2, 2.0) * ( A_0_OVER_2 + u_2 * (A_1_OVER_6 + u_2 * (A_2_OVER_12 + u_2 * ( A_3_OVER_20 + u_2 * (A_4_OVER_30 + u_2 * A_5_OVER_42)))));	//u_2^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42
-//	sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + u_2 * A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
-//
-//	while( u_1 < u_2 - MLP_U_STEP)
-//	//while( u_1 < u_2 - 0.001)
-//	{
-//		R_0[1] = u_1 - u_0;
-//		//R_0T[2] = u_1 - u_0;
-//		R_1[1] = u_2 - u_1;
-//		R_1T[2] = u_2 - u_1;
-//
-//		sigma_1_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_1 - u_0)/X_0) ), 2.0 ) / X_0;
-//		sigma_t1 =  sigma_1_coefficient * ( pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + u_1 * A_5_OVER_168 ) )))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-//		sigma_t1_theta1 =  sigma_1_coefficient * ( pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + u_1 * A_5_OVER_42))))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
-//		sigma_theta1 = sigma_1_coefficient * ( u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6))))) );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6																	
-//		determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
-//			
-//		Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
-//		Sigma_1I[1] = -sigma_t1_theta1 / determinant_Sigma_1;
-//		Sigma_1I[2] = -sigma_t1_theta1 / determinant_Sigma_1;
-//		Sigma_1I[3] = sigma_t1 / determinant_Sigma_1;
-//
-//		//sigma 2 terms
-//		sigma_2_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_2 - u_1)/X_0) ), 2.0 ) / X_0;
-//		common_sigma_2_term_1 = u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6 )))));
-//		common_sigma_2_term_2 = pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_3 + u_1 * (A_2_OVER_4 + u_1 * (A_3_OVER_5 + u_1 * (A_4_OVER_6 + u_1 * A_5_OVER_7 )))));
-//		common_sigma_2_term_3 = pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_4 + u_1 * (A_2_OVER_5 + u_1 * (A_3_OVER_6 + u_1 * (A_4_OVER_7 + u_1 * A_5_OVER_8 )))));
-//		sigma_t2 =  sigma_2_coefficient * ( sigma_2_pre_1 - pow(u_2, 2.0) * common_sigma_2_term_1 + 2 * u_2 * common_sigma_2_term_2 - common_sigma_2_term_3 );
-//		sigma_t2_theta2 =  sigma_2_coefficient * ( sigma_2_pre_2 - u_2 * common_sigma_2_term_1 + common_sigma_2_term_2 );
-//		sigma_theta2 =  sigma_2_coefficient * ( sigma_2_pre_3 - common_sigma_2_term_1 );				
-//		determinant_Sigma_2 = sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 );//ad-bc
-//
-//		Sigma_2I[0] = sigma_theta2 / determinant_Sigma_2;
-//		Sigma_2I[1] = -sigma_t2_theta2 / determinant_Sigma_2;
-//		Sigma_2I[2] = -sigma_t2_theta2 / determinant_Sigma_2;
-//		Sigma_2I[3] = sigma_t2 / determinant_Sigma_2;
-//
-//		// first_term_common_ij_k: i,j = rows common to, k = 1st/2nd of last 2 terms of 3 term summation in first_term calculation below
-//		first_term_common_13_1 = Sigma_2I[0] * R_1[0] + Sigma_2I[1] * R_1[2];
-//		first_term_common_13_2 = Sigma_2I[2] * R_1[0] + Sigma_2I[3] * R_1[2];
-//		first_term_common_24_1 = Sigma_2I[0] * R_1[1] + Sigma_2I[1] * R_1[3];
-//		first_term_common_24_2 = Sigma_2I[2] * R_1[1] + Sigma_2I[3] * R_1[3];
-//
-//		first_term[0] = Sigma_1I[0] + R_1T[0] * first_term_common_13_1 + R_1T[1] * first_term_common_13_2;
-//		first_term[1] = Sigma_1I[1] + R_1T[0] * first_term_common_24_1 + R_1T[1] * first_term_common_24_2;
-//		first_term[2] = Sigma_1I[2] + R_1T[2] * first_term_common_13_1 + R_1T[3] * first_term_common_13_2;
-//		first_term[3] = Sigma_1I[3] + R_1T[2] * first_term_common_24_1 + R_1T[3] * first_term_common_24_2;
-//
-//
-//		determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
-//		first_term[0] = first_term[3] / determinant_first_term;
-//		first_term[1] = -first_term[1] / determinant_first_term;
-//		first_term[2] = -first_term[2] / determinant_first_term;
-//		first_term[3] = first_term[0] / determinant_first_term;
-//
-//		// second_term_common_i: i = # of term of 4 term summation it is common to in second_term calculation below
-//		second_term_common_1 = R_0[0] * T_0[0] + R_0[1] * T_0[1];
-//		second_term_common_2 = R_0[2] * T_0[0] + R_0[3] * T_0[1];
-//		second_term_common_3 = Sigma_2I[0] * T_2[0] + Sigma_2I[1] * T_2[1];
-//		second_term_common_4 = Sigma_2I[2] * T_2[0] + Sigma_2I[3] * T_2[1];
-//
-//		second_term[0] = Sigma_1I[0] * second_term_common_1 
-//						+ Sigma_1I[1] * second_term_common_2 
-//						+ R_1T[0] * second_term_common_3 
-//						+ R_1T[1] * second_term_common_4;
-//		second_term[1] = Sigma_1I[2] * second_term_common_1 
-//						+ Sigma_1I[3] * second_term_common_2 
-//						+ R_1T[2] * second_term_common_3 
-//						+ R_1T[3] * second_term_common_4;
-//
-//		t_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
-//		//cout << "t_1 = " << t_1 << endl;
-//		//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
-//
-//		// Do v MLP Now
-//		second_term_common_1 = R_0[0] * V_0[0] + R_0[1] * V_0[1];
-//		second_term_common_2 = R_0[2] * V_0[0] + R_0[3] * V_0[1];
-//		second_term_common_3 = Sigma_2I[0] * V_2[0] + Sigma_2I[1] * V_2[1];
-//		second_term_common_4 = Sigma_2I[2] * V_2[0] + Sigma_2I[3] * V_2[1];
-//
-//		second_term[0]	= Sigma_1I[0] * second_term_common_1
-//						+ Sigma_1I[1] * second_term_common_2
-//						+ R_1T[0] * second_term_common_3
-//						+ R_1T[1] * second_term_common_4;
-//		second_term[1]	= Sigma_1I[2] * second_term_common_1
-//						+ Sigma_1I[3] * second_term_common_2
-//						+ R_1T[2] * second_term_common_3
-//						+ R_1T[3] * second_term_common_4;
-//		v_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
-//		//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
-//
-//		// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
-//		x_1 = ( cos( xy_entry_angle ) * (u_in_object + u_1) ) - ( sin( xy_entry_angle ) * t_1 );
-//		y_1 = ( sin( xy_entry_angle ) * (u_in_object + u_1) ) + ( cos( xy_entry_angle ) * t_1 );
-//		z_1 = v_1;
-//
-//		voxel_x = calculate_voxel_GPU( X_ZERO_COORDINATE, x_1, VOXEL_WIDTH );
-//		voxel_y = calculate_voxel_GPU( Y_ZERO_COORDINATE, y_1, VOXEL_HEIGHT );
-//		voxel_z = calculate_voxel_GPU( Z_ZERO_COORDINATE, z_1, VOXEL_THICKNESS);
-//				
-//		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-//		//cout << "voxel_x = " << voxel_x << "voxel_y = " << voxel_y << "voxel_z = " << voxel_z << "voxel = " << voxel <<endl;
-//		//fgets(user_response, sizeof(user_response), stdin);
-//
-//		if( voxel != path[num_intersections - 1] )
-//		{
-//			path[num_intersections] = voxel;
-//			//MLP_test_image_h[voxel] = 0;
-//			if(!constant_chord_lengths)
-//				chord_lengths[num_intersections] = effective_chord_length;						
-//			num_intersections++;
-//		}
-//		u_1 += MLP_U_STEP;
-//	}
-//	return num_intersections;
-//}
+
+template<typename O> __device__ bool find_MLP_endpoints_GPU
+( 
+	O*& image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
+	double& x_object, double& y_object, double& z_object, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
+)
+{	
+	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
+	if( i < num_histories )	
+	{
+		/********************************************************************************************/
+		/********************************* Voxel Walk Parameters ************************************/
+		/********************************************************************************************/
+		int x_move_direction, y_move_direction, z_move_direction;
+		double delta_yx, delta_zx, delta_zy;
+		/********************************************************************************************/
+		/**************************** Status Tracking Information ***********************************/
+		/********************************************************************************************/
+		double x = x_start, y = y_start, z = z_start;
+		double x_to_go, y_to_go, z_to_go;		
+		double x_extension, y_extension;	
+		int voxel; 
+		bool hit_hull = false, end_walk, outside_image;
+		/********************************************************************************************/
+		/******************** Initial Conditions and Movement Characteristics ***********************/
+		/********************************************************************************************/	
+		if( !entering )
+			xy_angle += PI;
+
+		x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
+		y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
+		z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
+		if( x_move_direction < 0 )
+			z_move_direction *= -1;
+
+		voxel_x = calculate_voxel( X_ZERO_COORDINATE, x, VOXEL_WIDTH );
+		voxel_y = calculate_voxel( Y_ZERO_COORDINATE, y, VOXEL_HEIGHT );
+		voxel_z = calculate_voxel( Z_ZERO_COORDINATE, z, VOXEL_THICKNESS );
+
+		x_to_go = distance_remaining( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
+		y_to_go = distance_remaining( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
+		z_to_go = distance_remaining( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
+
+		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+		/********************************************************************************************/
+		/***************************** Path and Walk Information ************************************/
+		/********************************************************************************************/
+		// Lengths/Distances as x is Incremented One Voxel tan( xy_hit_hull_angle )
+		delta_yx = fabs(tan(xy_angle));
+		delta_zx = fabs(tan(xz_angle));
+		delta_zy = fabs( tan(xz_angle)/tan(xy_angle));
+
+		double dy_dx = tan(xy_angle);
+		double dz_dx = tan(xz_angle);
+		double dz_dy = tan(xz_angle)/tan(xy_angle);
+
+		double dx_dy = pow( tan(xy_angle), -1.0 );
+		double dx_dz = pow( tan(xz_angle), -1.0 );
+		double dy_dz = tan(xy_angle)/tan(xz_angle);
+		/********************************************************************************************/
+		/************************* Initialize and Check Exit Conditions *****************************/
+		/********************************************************************************************/
+		outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
+		if( !outside_image )
+			hit_hull = (image[voxel] == 1);		
+		end_walk = outside_image || hit_hull;
+
+		/********************************************************************************************/
+		/*********************************** Voxel Walk Routine *************************************/
+		/********************************************************************************************/
+		if( z_move_direction != 0 )
+		{
+			while( !end_walk )
+			{
+				// Change in z for Move to Voxel Edge in x and y
+				x_extension = delta_zx * x_to_go;
+				y_extension = delta_zy * y_to_go;
+				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
+				{
+					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");					
+					voxel_z -= z_move_direction;
+					
+					z = edge_coordinate( Z_ZERO_COORDINATE, voxel_z, VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
+					x = corresponding_coordinate( dx_dz, z, z_start, x_start );
+					y = corresponding_coordinate( dy_dz, z, z_start, y_start );
+
+					x_to_go = distance_remaining( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
+					y_to_go = distance_remaining( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
+					z_to_go = VOXEL_THICKNESS;
+				}
+				//If Next Voxel Edge is in x or xy Diagonal
+				else if( x_extension <= y_extension )
+				{
+					//printf(" x_extension <= y_extension \n");			
+					voxel_x += x_move_direction;
+
+					x = edge_coordinate( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+					y = corresponding_coordinate( dy_dx, x, x_start, y_start );
+					z = corresponding_coordinate( dz_dx, x, x_start, z_start );
+
+					x_to_go = VOXEL_WIDTH;
+					y_to_go = distance_remaining( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
+					z_to_go = distance_remaining( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");
+					voxel_y -= y_move_direction;
+					
+					y = edge_coordinate( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
+					x = corresponding_coordinate( dx_dy, y, y_start, x_start );
+					z = corresponding_coordinate( dz_dy, y, y_start, z_start );
+
+					x_to_go = distance_remaining( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
+					y_to_go = VOXEL_HEIGHT;					
+					z_to_go = distance_remaining( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
+				}
+				// <= VOXEL_ALLOWANCE
+				if( x_to_go == 0 )
+				{
+					x_to_go = VOXEL_WIDTH;
+					voxel_x += x_move_direction;
+				}
+				if( y_to_go == 0 )
+				{
+					y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				if( z_to_go == 0 )
+				{
+					z_to_go = VOXEL_THICKNESS;
+					voxel_z -= z_move_direction;
+				}
+				
+				voxel_z = max(voxel_z, 0 );
+				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+				outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
+				if( !outside_image )
+					hit_hull = (image[voxel] == 1);	
+				end_walk = outside_image || hit_hull;	
+			}// end !end_walk 
+		}
+		else
+		{
+			//printf("z_end == z_start\n");
+			while( !end_walk )
+			{
+				// Change in x for Move to Voxel Edge in y
+				y_extension = y_to_go / delta_yx;
+				//If Next Voxel Edge is in x or xy Diagonal
+				if( x_to_go <= y_extension )
+				{
+					//printf(" x_to_go <= y_extension \n");
+					voxel_x += x_move_direction;
+					
+					x = edge_coordinate( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+					y = corresponding_coordinate( dy_dx, x, x_start, y_start );
+
+					x_to_go = VOXEL_WIDTH;
+					y_to_go = distance_remaining( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");				
+					voxel_y -= y_move_direction;
+
+					y = edge_coordinate( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Z_INCREASING_DIRECTION, y_move_direction );
+					x = corresponding_coordinate( dx_dy, y, y_start, x_start );
+
+					x_to_go = distance_remaining( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
+					y_to_go = VOXEL_HEIGHT;
+				}
+				// <= VOXEL_ALLOWANCE
+				if( x_to_go == 0 )
+				{
+					x_to_go = VOXEL_WIDTH;
+					voxel_x += x_move_direction;
+				}
+				if( y_to_go == 0 )
+				{
+					y_to_go = VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
+				outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
+				if( !outside_image )
+					hit_hull = (image[voxel] == 1);		
+				end_walk = outside_image || hit_hull;	
+			}// end: while( !end_walk )
+		}//end: else: z_start != z_end => z_start == z_end
+		if( hit_hull )
+		{
+			x_object = x;
+			y_object = y;
+			z_object = z;
+		}
+	}
+	return hit_hull;
+}
+
+__device__ int find_MLP_path_GPU
+( 
+	int*& path, double*& chord_lengths, 
+	double x_in_object, double y_in_object, double z_in_object, double x_out_object, double y_out_object, double z_out_object, 
+	double xy_entry_angle, double xz_entry_angle, double xy_exit_angle, double xz_exit_angle,
+	int voxel_x, int voxel_y, int voxel_z
+)
+{
+	double u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object;
+	double effective_chord_length; 
+	int num_intersections = 0;
+
+	bool debug_output = false, MLP_image_output = false, constant_chord_lengths = true;
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	double u_0 = 0, u_1 = MLP_U_STEP,  u_2 = 0;
+	double T_0[2] = {0, 0}, T_2[2] = {0, 0}, V_0[2] = {0, 0}, V_2[2] = {0, 0};
+	double R_0[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
+	//double R_0T[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,c,b,d
+	double R_1[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
+	double R_1T[4] = { 1.0, 0.0, 0.0 , 1.0};  //a,c,b,d
+
+	//double sigma_1_pre_1, sigma_1_pre_2, sigma_1_pre_3;
+	double sigma_2_pre_1, sigma_2_pre_2, sigma_2_pre_3;
+	double sigma_1_coefficient, sigma_t1, sigma_t1_theta1, sigma_theta1, determinant_Sigma_1, Sigma_1I[4];
+	double common_sigma_2_term_1, common_sigma_2_term_2, common_sigma_2_term_3;
+	double sigma_2_coefficient, sigma_t2, sigma_t2_theta2, sigma_theta2, determinant_Sigma_2, Sigma_2I[4]; 
+	double first_term_common_13_1, first_term_common_13_2, first_term_common_24_1, first_term_common_24_2, first_term[4], determinant_first_term;
+	double second_term_common_1, second_term_common_2, second_term_common_3, second_term_common_4, second_term[2];
+	double t_1, v_1, theta_1, phi_1, x_1, y_1, z_1;
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//effective_chord_length = mean_chord_length( u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object );
+	effective_chord_length = VOXEL_WIDTH;
+
+	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+	path[num_intersections] = voxel;
+	if(!constant_chord_lengths)
+		chord_lengths[num_intersections] = VOXEL_WIDTH;
+	num_intersections++;
+	//MLP_test_image_h[voxel] = 0;
+
+	u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
+	u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
+	t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
+	t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
+	v_in_object = z_in_object;
+	v_out_object = z_out_object;
+
+	if( u_in_object > u_out_object )
+	{
+		//if( debug_output )
+			//cout << "Switched directions" << endl;
+		xy_entry_angle += PI;
+		xy_exit_angle += PI;
+		u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
+		u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
+		t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
+		t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
+		v_in_object = z_in_object;
+		v_out_object = z_out_object;
+	}
+	T_0[0] = t_in_object;
+	T_2[0] = t_out_object;
+	T_2[1] = xy_exit_angle - xy_entry_angle;
+	V_0[0] = v_in_object;
+	V_2[0] = v_out_object;
+	V_2[1] = xz_exit_angle - xz_entry_angle;
+		
+	u_0 = 0;
+	u_1 = MLP_U_STEP;
+	u_2 = abs(u_out_object - u_in_object);		
+	//fgets(user_response, sizeof(user_response), stdin);
+
+	//output_file.open(filename);						
+				      
+	//precalculated u_0/u_2 terms
+	//u_0 terms
+	//double sigma_1_pre_1 =  A_0 * u_0 + A_1_OVER_2 * pow(u_0, 2.0) + A_2_OVER_3 * pow(u_0, 3.0) + A_3_OVER_4 * pow(u_0, 4.0) + A_4_OVER_5 * pow(u_0, 5.0) + A_5_OVER_6 * pow(u_0, 6.0);						//1, 1/2, 1/3, 1/4, 1/5, 1/6
+	//double sigma_1_pre_2 =  As_0_OVER_2 * pow(u_0, 2.0) + A_1_OVER_3 * pow(u_0, 3.0) + A_2_OVER_4 * pow(u_0, 4.0) + A_3_OVER_5 * pow(u_0, 5.0) + A_4_OVER_6 * pow(u_0, 6.0) + A_5_OVER_7 * pow(u_0, 7.0);	//1/2, 1/3, 1/4, 1/5, 1/6, 1/7
+	//double sigma_1_pre_3 =  A_0_OVER_3 * pow(u_0, 3.0) + A_1_OVER_4 * pow(u_0, 4.0) + A_2_OVER_5 * pow(u_0, 5.0) + A_3_OVER_6 * pow(u_0, 6.0) + A_4_OVER_7 * pow(u_0, 7.0) + A_5_OVER_8 * pow(u_0, 8.0);	//1/3, 1/4, 1/5, 1/6, 1/7, 1/8
+	//u_2 terms
+	sigma_2_pre_1 =  pow(u_2, 3.0) * ( A_0_OVER_3 + u_2 * ( A_1_OVER_12 + u_2 * ( A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * ( A_4_OVER_105 + u_2 * A_5_OVER_168 )))));;	//u_2^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
+	sigma_2_pre_2 =  pow(u_2, 2.0) * ( A_0_OVER_2 + u_2 * (A_1_OVER_6 + u_2 * (A_2_OVER_12 + u_2 * ( A_3_OVER_20 + u_2 * (A_4_OVER_30 + u_2 * A_5_OVER_42)))));	//u_2^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42
+	sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + u_2 * A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
+
+	while( u_1 < u_2 - MLP_U_STEP)
+	//while( u_1 < u_2 - 0.001)
+	{
+		R_0[1] = u_1 - u_0;
+		//R_0T[2] = u_1 - u_0;
+		R_1[1] = u_2 - u_1;
+		R_1T[2] = u_2 - u_1;
+
+		sigma_1_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_1 - u_0)/X_0) ), 2.0 ) / X_0;
+		sigma_t1 =  sigma_1_coefficient * ( pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + u_1 * A_5_OVER_168 ) )))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
+		sigma_t1_theta1 =  sigma_1_coefficient * ( pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + u_1 * A_5_OVER_42))))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
+		sigma_theta1 = sigma_1_coefficient * ( u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6))))) );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6																	
+		determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
+			
+		Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
+		Sigma_1I[1] = -sigma_t1_theta1 / determinant_Sigma_1;
+		Sigma_1I[2] = -sigma_t1_theta1 / determinant_Sigma_1;
+		Sigma_1I[3] = sigma_t1 / determinant_Sigma_1;
+
+		//sigma 2 terms
+		sigma_2_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_2 - u_1)/X_0) ), 2.0 ) / X_0;
+		common_sigma_2_term_1 = u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6 )))));
+		common_sigma_2_term_2 = pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_3 + u_1 * (A_2_OVER_4 + u_1 * (A_3_OVER_5 + u_1 * (A_4_OVER_6 + u_1 * A_5_OVER_7 )))));
+		common_sigma_2_term_3 = pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_4 + u_1 * (A_2_OVER_5 + u_1 * (A_3_OVER_6 + u_1 * (A_4_OVER_7 + u_1 * A_5_OVER_8 )))));
+		sigma_t2 =  sigma_2_coefficient * ( sigma_2_pre_1 - pow(u_2, 2.0) * common_sigma_2_term_1 + 2 * u_2 * common_sigma_2_term_2 - common_sigma_2_term_3 );
+		sigma_t2_theta2 =  sigma_2_coefficient * ( sigma_2_pre_2 - u_2 * common_sigma_2_term_1 + common_sigma_2_term_2 );
+		sigma_theta2 =  sigma_2_coefficient * ( sigma_2_pre_3 - common_sigma_2_term_1 );				
+		determinant_Sigma_2 = sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 );//ad-bc
+
+		Sigma_2I[0] = sigma_theta2 / determinant_Sigma_2;
+		Sigma_2I[1] = -sigma_t2_theta2 / determinant_Sigma_2;
+		Sigma_2I[2] = -sigma_t2_theta2 / determinant_Sigma_2;
+		Sigma_2I[3] = sigma_t2 / determinant_Sigma_2;
+
+		// first_term_common_ij_k: i,j = rows common to, k = 1st/2nd of last 2 terms of 3 term summation in first_term calculation below
+		first_term_common_13_1 = Sigma_2I[0] * R_1[0] + Sigma_2I[1] * R_1[2];
+		first_term_common_13_2 = Sigma_2I[2] * R_1[0] + Sigma_2I[3] * R_1[2];
+		first_term_common_24_1 = Sigma_2I[0] * R_1[1] + Sigma_2I[1] * R_1[3];
+		first_term_common_24_2 = Sigma_2I[2] * R_1[1] + Sigma_2I[3] * R_1[3];
+
+		first_term[0] = Sigma_1I[0] + R_1T[0] * first_term_common_13_1 + R_1T[1] * first_term_common_13_2;
+		first_term[1] = Sigma_1I[1] + R_1T[0] * first_term_common_24_1 + R_1T[1] * first_term_common_24_2;
+		first_term[2] = Sigma_1I[2] + R_1T[2] * first_term_common_13_1 + R_1T[3] * first_term_common_13_2;
+		first_term[3] = Sigma_1I[3] + R_1T[2] * first_term_common_24_1 + R_1T[3] * first_term_common_24_2;
+
+
+		determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
+		first_term[0] = first_term[3] / determinant_first_term;
+		first_term[1] = -first_term[1] / determinant_first_term;
+		first_term[2] = -first_term[2] / determinant_first_term;
+		first_term[3] = first_term[0] / determinant_first_term;
+
+		// second_term_common_i: i = # of term of 4 term summation it is common to in second_term calculation below
+		second_term_common_1 = R_0[0] * T_0[0] + R_0[1] * T_0[1];
+		second_term_common_2 = R_0[2] * T_0[0] + R_0[3] * T_0[1];
+		second_term_common_3 = Sigma_2I[0] * T_2[0] + Sigma_2I[1] * T_2[1];
+		second_term_common_4 = Sigma_2I[2] * T_2[0] + Sigma_2I[3] * T_2[1];
+
+		second_term[0] = Sigma_1I[0] * second_term_common_1 
+						+ Sigma_1I[1] * second_term_common_2 
+						+ R_1T[0] * second_term_common_3 
+						+ R_1T[1] * second_term_common_4;
+		second_term[1] = Sigma_1I[2] * second_term_common_1 
+						+ Sigma_1I[3] * second_term_common_2 
+						+ R_1T[2] * second_term_common_3 
+						+ R_1T[3] * second_term_common_4;
+
+		t_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
+		//cout << "t_1 = " << t_1 << endl;
+		//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
+
+		// Do v MLP Now
+		second_term_common_1 = R_0[0] * V_0[0] + R_0[1] * V_0[1];
+		second_term_common_2 = R_0[2] * V_0[0] + R_0[3] * V_0[1];
+		second_term_common_3 = Sigma_2I[0] * V_2[0] + Sigma_2I[1] * V_2[1];
+		second_term_common_4 = Sigma_2I[2] * V_2[0] + Sigma_2I[3] * V_2[1];
+
+		second_term[0]	= Sigma_1I[0] * second_term_common_1
+						+ Sigma_1I[1] * second_term_common_2
+						+ R_1T[0] * second_term_common_3
+						+ R_1T[1] * second_term_common_4;
+		second_term[1]	= Sigma_1I[2] * second_term_common_1
+						+ Sigma_1I[3] * second_term_common_2
+						+ R_1T[2] * second_term_common_3
+						+ R_1T[3] * second_term_common_4;
+		v_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
+		//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
+
+		// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
+		x_1 = ( cos( xy_entry_angle ) * (u_in_object + u_1) ) - ( sin( xy_entry_angle ) * t_1 );
+		y_1 = ( sin( xy_entry_angle ) * (u_in_object + u_1) ) + ( cos( xy_entry_angle ) * t_1 );
+		z_1 = v_1;
+
+		voxel_x = calculate_voxel_GPU( X_ZERO_COORDINATE, x_1, VOXEL_WIDTH );
+		voxel_y = calculate_voxel_GPU( Y_ZERO_COORDINATE, y_1, VOXEL_HEIGHT );
+		voxel_z = calculate_voxel_GPU( Z_ZERO_COORDINATE, z_1, VOXEL_THICKNESS);
+				
+		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+		//cout << "voxel_x = " << voxel_x << "voxel_y = " << voxel_y << "voxel_z = " << voxel_z << "voxel = " << voxel <<endl;
+		//fgets(user_response, sizeof(user_response), stdin);
+
+		if( voxel != path[num_intersections - 1] )
+		{
+			path[num_intersections] = voxel;
+			//MLP_test_image_h[voxel] = 0;
+			if(!constant_chord_lengths)
+				chord_lengths[num_intersections] = effective_chord_length;						
+			num_intersections++;
+		}
+		u_1 += MLP_U_STEP;
+	}
+	return num_intersections;
+}
 //__device__ void MLP_GPU()
 //{
 //	//char user_response[20];
@@ -4975,14 +4398,14 @@ double mean_chord_length( double x_entry, double y_entry, double z_entry, double
 //	int num_intersections;
 //	bool entered_object = false, exited_object = false, debug_output = false, MLP_image_output = false, constant_chord_lengths = true;
 //
-//	int* path = (int*)calloc( MAX_INTERSECTIONS, sizeof(int));
-//	double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));
+//	int* path[MAX_INTERSECTIONS];// = (int*)calloc( MAX_INTERSECTIONS, sizeof(int));
+//	double* chord_lengths[MAX_INTERSECTIONS];// = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));
 //	//if(!constant_chord_lengths)
 //		//chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
-//	double* x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
+//	double* x_update_h[NUM_VOXELS];// = (double*)calloc( NUM_VOXELS, sizeof(double));
 //
-//	sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-//	FILE* pFile = create_MLP_path_file( data_filename );
+//	//sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
+//	//FILE* pFile = create_MLP_path_file( data_filename );
 //	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //	int block_history = 1;
 //	//int start_history = 3*x_entry_vector.size()/4;
@@ -5046,6 +4469,8 @@ double mean_chord_length( double x_entry, double y_entry, double z_entry, double
 //			//array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 //	}
 //}
+
+
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************* Image Reconstruction (host) *********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -5221,7 +4646,7 @@ void update_iterate22( double bi, double mean_chord_length, float*& x_k, int* vo
 	double ai_multiplier = update_vector_multiplier22( bi, mean_chord_length, x_k, voxels_intersected, num_intersections );
 	//cout << "ai_multiplier = " << ai_multiplier << endl;
 	//int middle_intersection = num_intersections / 2;
-	int voxel;
+	unsigned int voxel;
 	double radius_squared, update;
 	double scale_factor = LAMBDA * ai_multiplier * mean_chord_length;
 	//double scaled_lambda;
@@ -5323,7 +4748,7 @@ void binary_2_ASCII()
 	count_histories();
 	char filename[256];
 	FILE* output_file;
-	int start_file_num = 0, end_file_num = 0, histories_to_process = 0;
+	unsigned int start_file_num = 0, end_file_num = 0, histories_to_process = 0;
 	while( start_file_num != NUM_FILES )
 	{
 		while( end_file_num < NUM_FILES )
@@ -5443,8 +4868,8 @@ template<typename T> void t_bins_2_disk( FILE* output_file, const std::vector<in
 	if( typeid(T) == typeid(bool))
 		data_format = BOOL_FORMAT;
 	std::vector<T> bin_histories;
-	int num_bin_members;
-	for( int t_bin = 0; t_bin < T_BINS; t_bin++, bin++ )
+	unsigned int num_bin_members;
+	for( unsigned int t_bin = 0; t_bin < T_BINS; t_bin++, bin++ )
 	{
 		if( bin_order == BY_HISTORY )
 		{
@@ -5454,7 +4879,7 @@ template<typename T> void t_bins_2_disk( FILE* output_file, const std::vector<in
 		}
 		else
 			bin_histories.push_back(data[bin]);
-		num_bin_members = bin_histories.size();
+		num_bin_members = (unsigned int)bin_histories.size();
 		switch( type )
 		{
 			case COUNTS:	
@@ -5539,7 +4964,7 @@ template<typename T> void bins_2_disk( const char* filename_base, const std::vec
 		fclose (output_file);
 	}
 }
-template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T*& data, const int data_elements, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
+template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T*& data, const unsigned int data_elements, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
 {
 	char* data_format = FLOAT_FORMAT;
 	if( typeid(T) == typeid(int) )
@@ -5549,7 +4974,7 @@ template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T
 
 	std::vector<T> bin_histories;
 	//int data_elements = sizeof(data)/sizeof(float);
-	int num_bin_members;
+	unsigned int num_bin_members;
 	for( int t_bin = 0; t_bin < T_BINS; t_bin++, bin++ )
 	{
 		if( bin_order == BY_HISTORY )
@@ -5560,7 +4985,7 @@ template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T
 		}
 		else
 			bin_histories.push_back(data[bin]);
-		num_bin_members = (int) bin_histories.size();
+		num_bin_members = (unsigned int) bin_histories.size();
 		switch( type )
 		{
 			case COUNTS:	
@@ -6195,7 +5620,6 @@ double radial_lambda( double radius_squared )
 	return LAMBDA * ( 1 - DECAY_FACTOR * radius_squared );
 	return LAMBDA * exp( -EXPONENTIAL_DECAY * sqrt( radius_squared ) );
 	return LAMBDA * exp( -EXPONENTIAL_SQD_DECAY * radius_squared );
-
 }
 double my_divide( int x, int y ) { return x*y; }
 double my_divide2( double x, double y ) { return x*y; }
@@ -6203,23 +5627,23 @@ template<typename T> double func_pass_test( T x, T y, std::function<double(T, T)
 {
 	return func(x,y);
 }
-void test_va_arg( const std::vector<int>& data, const BIN_ORGANIZATION bin_order, ... )
+void test_va_arg( const std::vector<unsigned int>& data, const BIN_ORGANIZATION bin_order, ... )
 {
 	//bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
 	//bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, sinogram_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
-	std::vector<int> angles;
-	std::vector<int> angular_bins;
-	std::vector<int> v_bins;
+	std::vector<unsigned int> angles;
+	std::vector<unsigned int> angular_bins;
+	std::vector<unsigned int> v_bins;
 
 		va_list specific_bins;
 		va_start( specific_bins, bin_order );
-		int num_angles = va_arg(specific_bins, int );
-		int* angle_array = va_arg(specific_bins, int* );	
+		unsigned int num_angles = va_arg(specific_bins, unsigned int );
+		unsigned int* angle_array = va_arg(specific_bins, unsigned int* );	
 		angles.resize(num_angles);
 		std::copy(angle_array, angle_array + num_angles, angles.begin() );
 
-		int num_v_bins = va_arg(specific_bins, int );
-		int* v_bins_array = va_arg(specific_bins, int* );	
+		unsigned int num_v_bins = va_arg(specific_bins, unsigned int );
+		unsigned int* v_bins_array = va_arg(specific_bins, unsigned int* );	
 		v_bins.resize(num_v_bins);
 		std::copy(v_bins_array, v_bins_array + num_v_bins, v_bins.begin() );
 
@@ -6227,127 +5651,310 @@ void test_va_arg( const std::vector<int>& data, const BIN_ORGANIZATION bin_order
 		angular_bins.resize(angles.size());
 		std::transform(angles.begin(), angles.end(), angular_bins.begin(), std::bind2nd(std::divides<int>(), GANTRY_ANGLE_INTERVAL ) );
 	
-	int num_angles2 = (int) angular_bins.size();
-	int num_v_bins2 = (int) v_bins.size();
+	unsigned int num_angles2 = (unsigned int) angular_bins.size();
+	unsigned int num_v_bins2 = (unsigned int) v_bins.size();
 
 	for( unsigned int i = 0; i < num_angles2; i++ )
 		cout << angular_bins[i] << endl;
 	for( unsigned int i = 0; i < num_v_bins2; i++ )
 		cout << v_bins[i] << endl;
 }
-void test_func()
+
+
+void generate_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
 {
+    history_sequence[0] = 1;
+    for( ULL i = 1; i < N; i++ )
+        history_sequence[i] = ( history_sequence[i-1] + offset_prime ) % N;
+}
+void verify_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
+{
+	for( ULL i = 1; i < N; i++ )
+    {
+        if(history_sequence[i] == 1)
+        {
+            printf("repeats at i = %llu\n", i);
+            printf("sequence[i] = %llu\n", history_sequence[i]);
+            break;
+        }
+        if(history_sequence[i] > N)
+        {
+            printf("exceeds at i = %llu\n", i);
+            printf("sequence[i] = %llu\n", history_sequence[i]);
+            break;
+        }
+    }
+}
+void define_switchmap()
+{
+	switchmap.insert( std::pair<std::string,int>(std::string("INPUT_DIRECTORY"), 1));
+	switchmap.insert( std::pair<std::string,int>(std::string("OUTPUT_DIRECTORY"), 2));
+	switchmap.insert( std::pair<std::string,int>(std::string("INPUT_FOLDER"), 3));
+	switchmap.insert( std::pair<std::string,int>(std::string("OUTPUT_FOLDER"), 4));
+	switchmap.insert( std::pair<std::string,int>(std::string("INPUT_BASE_NAME"), 5));
+	switchmap.insert( std::pair<std::string,int>(std::string("FILE_EXTENSION"), 6));
+	switchmap.insert( std::pair<std::string,int>(std::string("GANTRY_ANGLES"), 7));
+	switchmap.insert( std::pair<std::string,int>(std::string("NUM_SCANS"), 8));
+	switchmap.insert( std::pair<std::string,int>(std::string("SSD_T_SIZE"), 9));
+	switchmap.insert( std::pair<std::string,int>(std::string("SSD_V_SIZE"), 10));
+	switchmap.insert( std::pair<std::string,int>(std::string("T_SHIFT"), 11));
+	switchmap.insert( std::pair<std::string,int>(std::string("U_SHIFT"), 12));
+	switchmap.insert( std::pair<std::string,int>(std::string("T_BIN_SIZE"), 13));
+	switchmap.insert( std::pair<std::string,int>(std::string("T_BINS"), 14));
+	switchmap.insert( std::pair<std::string,int>(std::string("V_BIN_SIZE"), 15));
+	switchmap.insert( std::pair<std::string,int>(std::string("V_BINS"), 16));
+	switchmap.insert( std::pair<std::string,int>(std::string("ANGULAR_BIN_SIZE"), 17));
+	switchmap.insert( std::pair<std::string,int>(std::string("SIGMAS_TO_KEEP"), 18));
+	switchmap.insert( std::pair<std::string,int>(std::string("RECON_CYL_RADIUS"), 19));
+	switchmap.insert( std::pair<std::string,int>(std::string("RECON_CYL_HEIGHT"), 20));
+	switchmap.insert( std::pair<std::string,int>(std::string("IMAGE_WIDTH"), 21));
+	switchmap.insert( std::pair<std::string,int>(std::string("IMAGE_HEIGHT"), 22));
+	switchmap.insert( std::pair<std::string,int>(std::string("IMAGE_THICKNESS"), 23));
+	switchmap.insert( std::pair<std::string,int>(std::string("COLUMNS"), 24));
+	switchmap.insert( std::pair<std::string,int>(std::string("ROWS"), 25));
+	switchmap.insert( std::pair<std::string,int>(std::string("SLICES"), 26));
+	switchmap.insert( std::pair<std::string,int>(std::string("VOXEL_WIDTH"), 27));
+	switchmap.insert( std::pair<std::string,int>(std::string("VOXEL_HEIGHT"), 28));
+	switchmap.insert( std::pair<std::string,int>(std::string("VOXEL_THICKNESS"), 29));
+	switchmap.insert( std::pair<std::string,int>(std::string("LAMBDA"), 30));
+	switchmap.insert( std::pair<std::string,int>(std::string("parameter"), 31));
 
+}
+void set_parameters( struct generic_input_container value )
+{
+	std::map<std::string,int>::iterator map_iterator = switchmap.find(std::string(value.key));
 
-	int voxel_x = 3;
-	int voxel_y = 4;
-	int voxel_z = 2;
-
-
-	//int xtu[voxel_x];
-	
-	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * ROWS * COLUMNS;
-
-	voxel_x = 0;
-	voxel_y = 0;
-	voxel_z = 0;
-
-	voxel_2_3D_voxels( voxel, voxel_x, voxel_y, voxel_z );
-	cout << "voxel_x = " << voxel_x << endl;
-	cout << "voxel_y = " << voxel_y << endl;
-	cout << "voxel_z = " << voxel_z << endl;
-
-	double x = voxel_2_position( voxel_x, VOXEL_WIDTH, COLUMNS, 1 );
-	double y = voxel_2_position( voxel_y, VOXEL_HEIGHT, ROWS, -1 );
-	double z = voxel_2_position( voxel_z, VOXEL_THICKNESS, SLICES, -1 );
-
-	printf("x = %3f\n", x );
-	printf("y = %3f\n", y );
-	printf("z = %3f\n", z );
-
-	x = y = z = 0;
-
-	printf("x = %3f\n", x );
-	printf("y = %3f\n", y );
-	printf("z = %3f\n", z );
-
-	voxel_2_positions( voxel, x, y, z );
-
-	printf("x = %3f\n", x );
-	printf("y = %3f\n", y );
-	printf("z = %3f\n", z );
-
-	bool t = false;
-	bool t2 = false;
-
-	double radius_squared = pow( x, 2.0 ) + pow( y, 2.0 );
-	printf("radius_squared = %3f\n",radius_squared );
-	//timer( true);
-	radius_squared = 0;
-	double ai_multiplier = 0.01;
-	double mean_chord_length = 0.08;
-	unsigned int iterations = 100000000;
-	cout << iterations << endl;
-	double zz = ai_multiplier * mean_chord_length * LAMBDA;
-	double factor = exp( -EXPONENTIAL_SQD_DECAY ) ;
-	float* xx = (float*)calloc( NUM_VOXELS, sizeof(float));
-	int* voxels_hit = (int*)calloc( 200, sizeof(int));
-	voxels_hit[100] = 600000;
-	for( unsigned int i = 0; i < iterations; i++ )
+	unsigned int ID;
+	if(  map_iterator != switchmap.end() )
+		ID = map_iterator->second;
+	else
+		ID = -1;
+	cout << "ID= " << ID << endl;
+	switch( ID )
 	{
-		//voxel = voxels_hit[100];
-		//voxel = rand() % NUM_VOXELS;
-		//radius_squared = voxel_2_radius_squared( voxel );
-		//xx[voxel] += pow(EXPONENTIAL_TERM, radius_squared) * zz;
-		//xx[voxel] += LAMBDA * exp( -EXPONENTIAL_SQD_DECAY * radius_squared ) * ai_multiplier * mean_chord_length;
-		//xx[voxel] += exp( -EXPONENTIAL_SQD_DECAY * sqrt(radius_squared) ) * zz;
-		//xx[voxel] += exp( -EXPONENTIAL_SQD_DECAY * radius_squared ) * zz;
-		zz = mean_chord_length*mean_chord_length;
-		//zz = pow(mean_chord_length, 2.0 );
+		case 1:
+			input_directory = value.string_input;
+			printf("it set to %s\n", input_directory );
+			puts("1");
+			break;
+		case 30:
+			lambda = value.double_input;
+			puts("30");
+			break;
+		case 31:
+			parameter = value.integer_input;
+			puts("31");
+			break;
+		default:
+			puts("nada");
+	};
+
+	//INPUT_DIRECTORY = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\";
+	//OUTPUT_DIRECTORY = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
+	//INPUT_FOLDER = "output_HeadPhantom";
+	//OUTPUT_FOLDER = "output_HeadPhantom";
+	//INPUT_BASE_NAME = "projection";
+	//FILE_EXTENSION = ".bin";
+	//GANTRY_ANGLES = 90;
+	//SSD_T_SIZE = 35.0;
+	//SSD_V_SIZE = 9.0;
+	//T_SHIFT = 0.0;
+	//U_SHIFT = 1.0;
+}
+void read_parameters()
+{
+	FILE* input_file;
+	input_file = fopen("C:\\Users\\Blake\\Documents\\GitHub\\pct-reconstruction\\reconstruction_parameters.txt", "r" );
+	
+	char key[100], equal_sign[10], temp[512], string_value[512];
+	double double_value;
+	int integer_value;
+	bool is_string, is_integer, is_double;	
+	char* start, * end;
+	int length;
+	while ( !feof(input_file) )
+	{
+		fscanf(input_file, "%s %s %s", &key, &equal_sign, &temp);
+		start = std::strchr(temp, '"' );
+		if( start == NULL)
+		{
+			start = std::strchr(temp, '.' );
+			if( start == NULL )
+			{
+				sscanf( temp, "%d", &integer_value );
+				cout << integer_value << endl;
+			}
+			else
+			{
+				sscanf( temp, "%lf", &double_value );
+				cout << double_value << endl;
+			}
+		}
+		else
+		{
+			puts("found quote");
+			end = std::strrchr(temp, '"' );
+			length = (int)(end - start) - 1; //(end -1 ) - ( start + 1 ) + 1
+			memcpy( string_value, start + 1, length );
+			printf("%s\n", string_value);  
+		}
 	}
-	//timer( false);
-	printf("radius_squared after = %3f\n",radius_squared );
-	int val = t ? 1 : (t2 ? 2:3 );
-	cout << val << endl;
-	// old working *********************************************
+	fclose(input_file);
+}
+struct generic_input_container read_parameter( FILE* input_file )
+{
+	char key[512], equal_sign[10], temp[512];	
+	char* start, * end;
+	int length;
+	struct generic_input_container input_value;	
+	fscanf (input_file, "%s %s %s", &key, &equal_sign, &temp);
+	input_value.key = key;
+	start = std::strchr(temp, '"' );
+	if( start == NULL)
+	{
+		start = std::strchr(temp, '.' );
+		if( start == NULL )
+		{
+			puts("found integer");
+			sscanf( temp, "%d", &input_value.integer_input );
+			//cout << integer_value << endl;
+			input_value.input_type_ID = 1;
+		}
+		else
+		{
+			puts("found double");
+			sscanf( temp, "%lf", &input_value.double_input );
+			//cout << double_value << endl;
+			input_value.input_type_ID = 2;
+		}
+	}
+	else
+	{
+		puts("found quote");
+		end = std::strrchr(temp, '"' );
+		length = (int)(end - start) - 1; //(end -1 ) - ( start + 1 ) + 1
+		memcpy( input_value.string_input, start + 1, length );
+		//printf("%s\n", string_value); 
+		input_value.input_type_ID = 3;
+	}
+	return input_value;
+}
+void test_func( )
+{
+	//read_configurations();
+	//read_reconstruction_parameters();
+	define_switchmap();
+	FILE* input_file;
+	input_file = fopen("C:\\Users\\Blake\\Documents\\GitHub\\pct-reconstruction\\reconstruction_parameters.txt", "r" );
+	while( !feof(input_file) )
+	{
+		struct generic_input_container input_values = read_parameter(input_file);
+		printf("key = %s\n", input_values.key );
+		set_parameters( input_values );
+		//cout << input_values.specifier << endl;
+		if( input_values.input_type_ID == 1 )
+			cout << input_values.integer_input << endl;
+		else if( input_values.input_type_ID == 2 )
+			cout << input_values.double_input << endl;
+		else if( input_values.input_type_ID == 3 )
+			cout << input_values.string_input << endl;
+		else
+			puts("something wrong");
+		
+		pause_execution();
+	}
+	fclose(input_file);
 
-	//double sigma_t1_u_0_term = A_0_OVER_3*pow(u_0, 3.0) + A_1_OVER_12*pow(u_0, 4.0) + A_2_OVER_30*pow(u_0, 5.0) + A_3_OVER_60*pow(u_0, 6.0) + A_4_OVER_105*pow(u_0, 7.0) + A_5_OVER_168*pow(u_0, 8.0);								
-	//double sigma_t1_theta1_u_0_term	= pow(u_0, 2.0 )*( A_0_OVER_2 + A_1_OVER_6*u_0 + A_2_OVER_12*pow(u_0, 2.0) + A_3_OVER_20*pow(u_0, 3.0) + A_4_OVER_30*pow(u_0, 4.0) + A_5_OVER_42*pow(u_0, 5.0) );
-	//double sigma_theta1_u_0_term = A_0 * u_0 + A_1_OVER_2 * pow(u_0, 2.0) + A_2_OVER_3 * pow(u_0, 3.0) + A_3_OVER_4 * pow(u_0, 4.0) + A_4_OVER_5 * pow(u_0, 5.0) + A_5_OVER_6 * pow(u_0, 6.0);
 
-	//double sigma_t2_u_2_term = A_0_OVER_3*pow(u_2, 3.0) + A_1_OVER_12*pow(u_2, 4.0) + A_2_OVER_30*pow(u_2, 5.0) + A_3_OVER_60*pow(u_2, 6.0) + A_4_OVER_105*pow(u_2, 7.0) + A_5_OVER_168*pow(u_2, 8.0);								
-	//double sigma_t2_theta2_u_2_term	= pow(u_2, 2.0 )*( A_0_OVER_2 + A_1_OVER_6*u_2 + A_2_OVER_12*pow(u_2, 2.0) + A_3_OVER_20*pow(u_2, 3.0) + A_4_OVER_30*pow(u_2, 4.0) + A_5_OVER_42*pow(u_2, 5.0) );
-	//double sigma_theta2_u_2_term = A_0 * u_2 + A_1_OVER_2 * pow(u_2, 2.0) + A_2_OVER_3 * pow(u_2, 3.0) + A_3_OVER_4 * pow(u_2, 4.0) + A_4_OVER_5 * pow(u_2, 5.0) + A_5_OVER_6 * pow(u_2, 6.0);
+	//parameters_2_GPU();
+	   // double xrr = 10.0;
+		//double *trt = (double*)calloc(1,sizeof(double));;
+		//double *trt_d;
+ //   printf("phi = %4.10Lf\n", PHI);
+ //   //unsigned long long N = 100000007;
+ //   ULL N = 80000000;
+ //   ULL PhiN = 50000017;
+ //   //is_prime( N );
 
-	//double sigma_1_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_1 - u_0)/X_0) ), 2.0 ) / X_0;		
-	//double sigma_t1 = A_0_OVER_3*pow(u_1, 3.0) + A_1_OVER_12*pow(u_1, 4.0) + A_2_OVER_30*pow(u_1, 5.0) + A_3_OVER_60*pow(u_1, 6.0) + A_4_OVER_105*pow(u_1, 7.0) + A_5_OVER_168*pow(u_1, 8.0) - sigma_t1_u_0_term;
-	//double sigma_t1_theta1 = pow(u_1, 2.0 )*( A_0_OVER_2 + A_1_OVER_6*u_1 + A_2_OVER_12*pow(u_1, 2.0) + A_3_OVER_20*pow(u_1, 3.0) + A_4_OVER_30*pow(u_1, 4.0) + A_5_OVER_42*pow(u_1, 5.0) ) - sigma_t1_theta1_u_0_term;
-	//double sigma_theta1 = A_0*u_1 + A_1_OVER_2*pow(u_1, 2.0) + A_2_OVER_3*pow(u_1, 3.0) + A_3_OVER_4*pow(u_1, 4.0) + A_4_OVER_5*pow(u_1, 5.0) + A_5_OVER_6*pow(u_1, 6.0) - sigma_theta1_u_0_term;
-	//double determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
-	//
-	//double sigma_2_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_2 - u_1)/X_0 ) ), 2.0 ) / X_0;
-	//double sigma_t2 = sigma_t2_u_2_term - A_0_OVER_3*pow(u_1, 3.0) - A_1_OVER_4*pow(u_1, 4.0) - A_2_OVER_5*pow(u_1, 5.0) - A_3_OVER_6*pow(u_1, 6.0) - A_4_OVER_7*pow(u_1, 7.0) - A_5_OVER_8*pow(u_1, 8.0) 
-	//						+ 2*u_2*( A_0_OVER_2*pow(u_1, 2.0) + A_1_OVER_3*pow(u_1, 3.0) + A_2_OVER_4*pow(u_1, 4.0) + A_3_OVER_5*pow(u_1, 5.0) + A_4_OVER_6*pow(u_1, 6.0) + A_5_OVER_7*pow(u_1, 7.0) ) 
-	//						- pow(u_2, 2.0) * ( A_0*u_1 + A_1_OVER_2*pow(u_1, 2.0) + A_2_OVER_3*pow(u_1, 3.0) + A_3_OVER_4*pow(u_1, 4.0) + A_4_OVER_5*pow(u_1, 5.0) + A_5_OVER_6*pow(u_1, 6.0) );
-	//double sigma_t2_theta2 = sigma_t2_theta2_u_2_term - u_2*u_1*( A_0 +A_1_OVER_2*u_1 + A_2_OVER_3*pow(u_1, 2.0) + A_3_OVER_4*pow(u_1, 3.0) + A_4_OVER_5*pow(u_1, 4.0) + A_5_OVER_6*pow(u_1, 5.0) ) 
-	//							+ pow(u_1, 2.0 )*( A_0_OVER_2 + A_1_OVER_3*u_1 + A_2_OVER_4*pow(u_1, 2.0) + A_3_OVER_5*pow(u_1, 3.0) + A_4_OVER_6*pow(u_1, 4.0) + A_5_OVER_7*pow(u_1, 5.0) );
-	//double sigma_theta2 = sigma_theta2_u_2_term - ( A_0 * u_1 + A_1_OVER_2 * pow(u_1, 2.0) + A_2_OVER_3 * pow(u_1, 3.0) + A_3_OVER_4 * pow(u_1, 4.0) + A_4_OVER_5 * pow(u_1, 5.0) + A_5_OVER_6 * pow(u_1, 6.0) );				
-	//double determinant_Sigma_2 = sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 );//ad-bc
-	// end old working ****************************************************
-	// begin newer working ****************************************************
-	//sigma_t1 =  sigma_1_coefficient * ( (A_0_OVER_3 * u_1_power_3 + A_1_OVER_12 * u_1_power_4 + A_2_OVER_30 * u_1_power_5 + A_3_OVER_60 * u_1_power_6 + A_4_OVER_105 * u_1_power_7 + A_5_OVER_168 * u_1_power_8 ) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-	//sigma_t1_theta1 =  sigma_1_coefficient * ( A_0_OVER_2 * u_1_power_2 + A_1_OVER_6 * u_1_power_3 + A_2_OVER_12 * u_1_power_4 + A_3_OVER_20 * u_1_power_5 + A_4_OVER_30 * u_1_power_6 + A_5_OVER_42 * u_1_power_7 );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
-	//sigma_theta1 = sigma_1_coefficient * ( A_0 * u_1 + A_1_OVER_2 * u_1_power_2+ A_2_OVER_3 * u_1_power_3 + A_3_OVER_4 * u_1_power_4 + A_4_OVER_5 * u_1_power_5 + A_5_OVER_6 * u_1_power_6 );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6														
-	//determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
-	/*sigma_t2 =  sigma_2_coefficient * ( sigma_2_pre_1
-					- pow(u_2, 2.0) * ( A_0 * u_1 + A_1_OVER_2 * u_1_power_2 + A_2_OVER_3 * u_1_power_3 + A_3_OVER_4 * u_1_power_4 + A_4_OVER_5 * u_1_power_5 + A_5_OVER_6 * u_1_power_6 )	
-					+ 2 * u_2 * ( A_0_OVER_2 * u_1_power_2 + A_1_OVER_3 * u_1_power_3 + A_2_OVER_4 * u_1_power_4 + A_3_OVER_5 * u_1_power_5 + A_4_OVER_6 * u_1_power_6 + A_5_OVER_7 * u_1_power_7 )
-					- ( A_0_OVER_3 * u_1_power_3 + A_1_OVER_4 * u_1_power_4 + A_2_OVER_5 * u_1_power_5 + A_3_OVER_6 * u_1_power_6 + A_4_OVER_7 * u_1_power_7 + A_5_OVER_8 * u_1_power_8 ) );
-	sigma_t2_theta2 =  sigma_2_coefficient * ( sigma_2_pre_2
-							- u_2 * ( A_0 * u_1 + A_1_OVER_2 * u_1_power_2 + A_2_OVER_3 * u_1_power_3 + A_3_OVER_4 * u_1_power_4 + A_4_OVER_5 * u_1_power_5 + A_5_OVER_6 * u_1_power_6 )
-							+ ( A_0_OVER_2 * u_1_power_2 + A_1_OVER_3 * u_1_power_3 + A_2_OVER_4 * u_1_power_4 + A_3_OVER_5 * u_1_power_5 + A_4_OVER_6 * u_1_power_6 + A_5_OVER_7 * u_1_power_7 ) );
-	sigma_theta2 =  sigma_2_coefficient * ( sigma_2_pre_3 - ( A_0 * u_1 + A_1_OVER_2 * u_1_power_2 + A_2_OVER_3 * u_1_power_3 + A_3_OVER_4 * u_1_power_4 + A_4_OVER_5 * u_1_power_5 + A_5_OVER_6 * u_1_power_6 ) );*/
-	// end newer working ****************************************************
+ //   //printf(" a mod(n) = %llu\n", modulo( 18, 3));
+ //   //printf(" a^k mod(n) = %llu\n", power_modulo( 2, 5, 3));
+
+ //   ULL* history_sequence = (ULL*)calloc(N,sizeof(ULL));
+ //   history_sequence[0] = 1;
+ //   ULL* history_sequence2 = (ULL*)calloc(N,sizeof(ULL));
+ //   history_sequence2[0] = 1;
+ //   double temp;
+ //   double pre_mod;
+
+ //   generate_history_sequence(N, PhiN, history_sequence );
+	//verify_history_sequence(N, PhiN, history_sequence );
+//    for( unsigned int i = 1; i < N; i++ )
+//    {
+//        //history_sequence[i] = (unsigned long long)(history_sequence[i-1] + (long double)(N*N*phi)/(N) )%N;
+//        history_sequence[i] = (unsigned long long)(history_sequence[i-1] + PhiN )%N;
+//        //history_sequence2[i] = modf((history_sequence2[i-1] + (long double)(N*N/(N*phi)))/N, &temp)*N;
+//        //history_sequence2[i] = (unsigned long long)(history_sequence2[i-1] + (long double)(N*N*N/(N*N*phi)))%N;
+//        //printf("(long double)(N*N*N/(N*N*phi)) = %3Lf \n phi/N = %3f\n", (long double)(N*N/(N*phi)), phi/N);
+//    }
+
+////    for( unsigned long long i = 0; i < std::min(N, (unsigned long long)20); i++ )
+////    {
+////        printf("history_sequence[i] = %llu\n", history_sequence[i]);
+////    }
+////    for( unsigned long long i = 0; i < std::min(N, (unsigned long long)20); i++ )
+////    {
+////        printf("history_sequence2[i] = %llu\n", history_sequence2[i]);
+////    }
+    //for( int i = 0; i < 30; i++)
+    //{
+    //     printf("history_sequence[i] = %llu\n", history_sequence[i]);
+    //}
+ //   for( ULL i = 1; i < N; i++ )
+ //   {
+ //       if(history_sequence[i] == 1)
+ //       {
+ //           printf("repeats at i = %llu\n", i);
+ //           printf("history_sequence[i] = %llu\n", history_sequence[i]);
+ //           break;
+ //       }
+ //       if(history_sequence[i] > N)
+ //       {
+ //           printf("exceeds at i = %llu\n", i);
+ //           printf("history_sequence[i] = %llu\n", history_sequence[i]);
+ //           break;
+ //       }
+ //   }
+
+
+	//cout << read_reconstruction_parameter() << endl;
+	//double radius_squared = pow( x, 2.0 ) + pow( y, 2.0 );
+	//printf("radius_squared = %3f\n",radius_squared );
+	////timer( true);
+	//radius_squared = 0;
+	//double ai_multiplier = 0.01;
+	//double mean_chord_length = 0.08;
+	//unsigned int iterations = 100000000;
+	//cout << iterations << endl;
+	//double zz = ai_multiplier * mean_chord_length * LAMBDA;
+	//double factor = exp( -EXPONENTIAL_SQD_DECAY ) ;
+	//float* xx = (float*)calloc( NUM_VOXELS, sizeof(float));
+	//int* voxels_hit = (int*)calloc( 200, sizeof(int));
+	//voxels_hit[100] = 600000;
+	//for( unsigned int i = 0; i < iterations; i++ )
+	//{
+	//	//voxel = voxels_hit[100];
+	//	//voxel = rand() % NUM_VOXELS;
+	//	//radius_squared = voxel_2_radius_squared( voxel );
+	//	//xx[voxel] += pow(EXPONENTIAL_TERM, radius_squared) * zz;
+	//	//xx[voxel] += LAMBDA * exp( -EXPONENTIAL_SQD_DECAY * radius_squared ) * ai_multiplier * mean_chord_length;
+	//	//xx[voxel] += exp( -EXPONENTIAL_SQD_DECAY * sqrt(radius_squared) ) * zz;
+	//	//xx[voxel] += exp( -EXPONENTIAL_SQD_DECAY * radius_squared ) * zz;
+	//	zz = mean_chord_length*mean_chord_length;
+	//	//zz = pow(mean_chord_length, 2.0 );
+	//}
+	////timer( false);
+	//printf("radius_squared after = %3f\n",radius_squared );
+	
 	//double voxels[4] = {1,2,3,4};
 	//std::copy( x_hull_h, x_hull_h + NUM_VOXELS, x_h );
 	//std::function<double(int, int)> fn1 = my_divide;                    // function
@@ -6362,11 +5969,7 @@ void test_func()
 	//std::function<int(int)> fn3 = third_t();               // function object
 	//std::function<int(int)> fn4 = [](int x){return x/4;};  // lambda expression
 	//std::function<int(int)> fn5 = std::negate<int>();      // standard function object
-	//create_MLP_test_image();
-	//array_2_disk( "MLP_image_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_test_image_h, MLP_IMAGE_COLUMNS, MLP_IMAGE_ROWS, MLP_IMAGE_SLICES, MLP_IMAGE_VOXELS, true );
-	//MLP_test();
-	//array_2_disk( "MLP_image", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_test_image_h, MLP_IMAGE_COLUMNS, MLP_IMAGE_ROWS, MLP_IMAGE_SLICES, MLP_IMAGE_VOXELS, true );
-	//double* x = (double*) calloc(4, sizeof(double) );
+	
 	//double* y = (double*) calloc(4, sizeof(double) );
 	//double* z = (double*) calloc(4, sizeof(double) );
 
@@ -6686,56 +6289,64 @@ void test_func2( std::vector<int>& bin_numbers, std::vector<double>& data )
 }
 __global__ void test_func_device( double* x, double* y, double* z )
 {
+
 	//x = 2;
 	//y = 3;
 	//z = 4;
 }
-__global__ void test_func_GPU( int* a)
+__global__ void test_func_device2(double ytt)
 {
+	//ytt = xrr * 2.0;
+}
+__global__ void test_func_GPU( parameters* pars, double* xs)
+{
+	double y = pars[0].lambda;
+	printf("lambda GPU = %3f\n", y ); 
+	xs[0] = y;
 	//int i = threadIdx.x;
 	//std::string str;
-	double delta_yx = 1.0/1.0;
-	double x_to_go = 0.024;
-	double y_to_go = 0.015;
-	double y_to_go2 = y_to_go;
-	double y_move = delta_yx * x_to_go;
-	if( -1 )
-		printf("-1");
-	if( 1 )
-		printf("1");
-	if( 0 )
-		printf("0");
-	y_to_go -= !sin(delta_yx)*y_move;
+	//double delta_yx = 1.0/1.0;
+	//double x_to_go = 0.024;
+	//double y_to_go = 0.015;
+	//double y_to_go2 = y_to_go;
+	//double y_move = delta_yx * x_to_go;
+	//if( -1 )
+	//	printf("-1");
+	//if( 1 )
+	//	printf("1");
+	//if( 0 )
+	//	printf("0");
+	//y_to_go -= !sin(delta_yx)*y_move;
 
-	y_to_go2 -= !sin(delta_yx)*delta_yx * x_to_go;
+	//y_to_go2 -= !sin(delta_yx)*delta_yx * x_to_go;
 
-	printf(" delta_yx = %8f y_move = %8f y_to_go = %8f y_to_go2 = %8f\n", delta_yx, y_move, y_to_go, y_to_go2 );
-	double y = 1.36;
-	////int voxel_x_out = int( ( x_exit[i] + RECON_CYL_RADIUS ) / VOXEL_WIDTH );
-	//int voxel_y_out = int( ( RECON_CYL_RADIUS - y ) / VOXEL_HEIGHT );
-	////int voxel_z_out = int( ( RECON_CYL_HEIGHT/2 - z_exit[i] ) /VOXEL_THICKNESS );
-	//double voxel_y_float;
-	//double y_inside2 = ((( RECON_CYL_RADIUS - y ) / VOXEL_HEIGHT) - voxel_y_out) * VOXEL_HEIGHT;
-	//double y_inside = modf( ( RECON_CYL_RADIUS - y) /VOXEL_HEIGHT, &voxel_y_float)*VOXEL_HEIGHT;
-	//printf(" voxel_y_float = %8f voxel_y_out = %d\n", voxel_y_float, voxel_y_out );
-	//printf(" y_inside = %8f y_inside2 = %8f\n", y_inside, y_inside2 );
-	//printf("Hello %d", i);
-	float x = 1.0;
-	y = 1.0;
-	float z = abs(2.0) / abs( x - y );
-	float z2 = abs(-2.0) / abs( x - y );
-	float z3 = z*x;
-	bool less = z < z2;
-	bool less2 = x < z;
-	bool less3 = x < z2;
-	if( less )
-		a[0] = 1;
-	if( less2 )
-		a[1] = 1;
-	if( less3 )
-		a[2] = 1;
+	//printf(" delta_yx = %8f y_move = %8f y_to_go = %8f y_to_go2 = %8f\n", delta_yx, y_move, y_to_go, y_to_go2 );
+	//double y = 1.36;
+	//////int voxel_x_out = int( ( x_exit[i] + RECON_CYL_RADIUS ) / VOXEL_WIDTH );
+	////int voxel_y_out = int( ( RECON_CYL_RADIUS - y ) / VOXEL_HEIGHT );
+	//////int voxel_z_out = int( ( RECON_CYL_HEIGHT/2 - z_exit[i] ) /VOXEL_THICKNESS );
+	////double voxel_y_float;
+	////double y_inside2 = ((( RECON_CYL_RADIUS - y ) / VOXEL_HEIGHT) - voxel_y_out) * VOXEL_HEIGHT;
+	////double y_inside = modf( ( RECON_CYL_RADIUS - y) /VOXEL_HEIGHT, &voxel_y_float)*VOXEL_HEIGHT;
+	////printf(" voxel_y_float = %8f voxel_y_out = %d\n", voxel_y_float, voxel_y_out );
+	////printf(" y_inside = %8f y_inside2 = %8f\n", y_inside, y_inside2 );
+	////printf("Hello %d", i);
+	//float x = 1.0;
+	//y = 1.0;
+	//float z = abs(2.0) / abs( x - y );
+	//float z2 = abs(-2.0) / abs( x - y );
+	//float z3 = z*x;
+	//bool less = z < z2;
+	//bool less2 = x < z;
+	//bool less3 = x < z2;
+	//if( less )
+	//	a[0] = 1;
+	//if( less2 )
+	//	a[1] = 1;
+	//if( less3 )
+	//	a[2] = 1;
 
-	printf("%3f %3f %3f %d %d %d\n", z, z2, z3, less, less2, less3);
+	//printf("%3f %3f %3f %d %d %d\n", z, z2, z3, less, less2, less3);
 	//int voxel_x = blockIdx.x;
 	//int voxel_y = blockIdx.y;	
 	//int voxel_z = threadIdx.x;
