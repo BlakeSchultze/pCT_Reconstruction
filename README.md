@@ -2,15 +2,11 @@ pCT Image Reconstruction Program
 =========================================================================
 This program accepts information about the proton tracks and energy measurements acquired from various gantry angles and:
 
-(1) Extracts execution configuration, settings, options, and parameters from config file "config.cfg" and ART parameters are extracted from command line execution tags
-
-(2) Removes irrelevant and statistical outliers from data set
-
-(3) Performs hull-detection
-
-(4) Performs MLP
-
-(5) Reconstructs a pCT image via iterative projection methods
+(1) Extracts execution configuration, settings, options, and parameters from config file "config.cfg" and ART parameters are extracted from command line execution tags\n
+(2) Removes irrelevant and statistical outliers from data set\n
+(3) Performs hull-detection\n
+(4) Performs MLP\n
+(5) Reconstructs a pCT image via iterative projection methods\n
 
 
 
