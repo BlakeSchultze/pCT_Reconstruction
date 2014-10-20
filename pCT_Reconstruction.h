@@ -48,8 +48,7 @@ typedef unsigned long long ULL;
 /************************************************************************ Preprocessing usage options **********************************************************************/
 /***************************************************************************************************************************************************************************/
 /***************************************************************************************************************************************************************************/
-unsigned int num_run_arguments;
-char** run_arguments;
+
 //std::vector<std::string> parameters;
 //char* INPUT_DIRECTORY;
 //char* OUTPUT_DIRECTORY;
@@ -79,6 +78,44 @@ struct parameters
 	double lambda;
 };
 
+// 8 UI, 18D, 6 C*
+//struct parameters
+//{
+//	char INPUT_DIRECTORY_D[256];
+//	char OUTPUT_DIRECTORY_D[256];
+//	char INPUT_FOLDER_D[256];
+//	char OUTPUT_FOLDER_D[256];
+//	char INPUT_BASE_NAME_D[32];
+//	char FILE_EXTENSION_D[4];
+//	unsigned int GANTRY_ANGLES_D;
+//	unsigned int NUM_SCANS_D;
+//	unsigned int T_BINS_D;
+//	unsigned int V_BINS_D;
+//	unsigned int COLUMNS_D;
+//	unsigned int ROWS_D;
+//	unsigned int SLICES_D;
+//	unsigned int SIGMAS_TO_KEEP_D;
+//	double SSD_T_SIZE_D;
+//	double SSD_V_SIZE_D;
+//	double T_SHIFT_D;
+//	double U_SHIFT_D;
+//	double T_BIN_SIZE_D;	
+//	double V_BIN_SIZE_D;	
+//	double ANGULAR_BIN_SIZE_D;	
+//	double RECON_CYL_RADIUS_D;
+//	double RECON_CYL_HEIGHT_D;
+//	double IMAGE_WIDTH_D;
+//	double IMAGE_HEIGHT_D;
+//	double IMAGE_THICKNESS_D;
+//	double VOXEL_WIDTH_D;
+//	double VOXEL_HEIGHT_D;
+//	double VOXEL_THICKNESS_D;
+//	double lambda_D;
+//	double LAMBDA_D;
+//	double parameter_D;
+//};
+	
+
 parameters parameter_container;
 parameters *parameters_h = &parameter_container;
 parameters *parameters_d;
@@ -87,16 +124,36 @@ parameters *parameters_d;
 std::map<std::string,unsigned int> switchmap;
 
 
-ULL NUM_RECON_HISTORIES = 20367499;
-///ULL PRIME_OFFSET = 32955301;
-ULL PRIME_OFFSET = 32955313;
+// 20648257 :33409582 -> 33409577
+// 20367505: 32955315 -> 32955313
+// 20367499: 32955306 ->32955301
 
+//ULL NUM_RECON_HISTORIES = 20367505;
+//ULL PRIME_OFFSET = 32955313;
+//ULL NUM_RECON_HISTORIES = 20367499;
+///ULL PRIME_OFFSET = 32955301;
+ULL NUM_RECON_HISTORIES = 20648257;
+//ULL NUM_RECON_HISTORIES = 20648251;//33409572->33409567
+ULL PRIME_OFFSET = 33409577;
 ULL* history_sequence;
 
-char* input_directory;
-double lambda;
-int parameter;
+const bool AVG_FILTER_HULL		= true;									// Apply averaging filter to hull (T) or not (F)
+const bool AVG_FILTER_ITERATE	= true;									// Apply averaging filter to initial iterate (T) or not (F)
+const bool AVG_FILTER_FBP	= true;									// Apply averaging filter to initial iterate (T) or not (F)
 
+const unsigned int ITERATE_FILTER_RADIUS = 3;
+const double ITERATE_FILTER_THRESHOLD = 0.1;
+
+const unsigned int FBP_FILTER_RADIUS = 3;
+const double FBP_FILTER_THRESHOLD = 0.1;
+
+const bool IMPORT_MLP_PATHS = false;
+const bool WRITE_MLP_PATHS = true;
+const char* MLP_PATHS_FILENAME = "MLP_paths.bin";
+unsigned int num_run_arguments;
+char** run_arguments;
+
+char* CONFIG_DIRECTORY;
 //double first_voxel_scale = 0.2, second_voxel_scale = 0.7;
 int num_voxel_scales;
 double* voxel_scales;
@@ -104,43 +161,38 @@ double* voxel_scales;
 double LAMBDA = 0.0001;
 //#define LAMBDA					0.0001									// Relaxation parameter to use in image iterative projection reconstruction algorithms
 
-bool* entered_hull;
+char* input_directory;
+double lambda;
+int parameter;
+
 unsigned int reconstruction_histories = 0;
-std::vector<double> x_in_hull;
-std::vector<double> y_in_hull;
-std::vector<double> z_in_hull;
-std::vector<double> x_out_hull;
-std::vector<double> y_out_hull;
-std::vector<double> z_out_hull;
+
 
 std::vector<int> voxel_x_vector;
 std::vector<int> voxel_y_vector;
 std::vector<int> voxel_z_vector;
-
-std::vector<double> MLP_exit_coordinates;
-std::vector<double> MLP_WEPL;
-
 /***************************************************************************************************************************************************************************/
 /********************************************************************* Execution and early exit options ********************************************************************/
 /***************************************************************************************************************************************************************************/
-const bool RUN_ON			   = true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
-const bool EXIT_AFTER_BINNING  = false;									// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_HULLS    = false;									// Exit program early after completing hull-detection
-const bool EXIT_AFTER_CUTS     = false;									// Exit program early after completing statistical cuts
-const bool EXIT_AFTER_SINOGRAM = false;									// Exit program early after completing the construction of the sinogram
-const bool EXIT_AFTER_FBP	   = false;									// Exit program early after completing FBP
+const bool RUN_ON				= true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
+const bool EXIT_AFTER_BINNING	= false;									// Exit program early after completing data read and initial processing
+const bool EXIT_AFTER_HULLS		= false;									// Exit program early after completing hull-detection
+const bool EXIT_AFTER_CUTS		= false;									// Exit program early after completing statistical cuts
+const bool EXIT_AFTER_SINOGRAM	= false;									// Exit program early after completing the construction of the sinogram
+const bool EXIT_AFTER_FBP		= true;									// Exit program early after completing FBP
 /***************************************************************************************************************************************************************************/
 /********************************************************************** Preprocessing option parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
-const bool DEBUG_TEXT_ON	   = true;									// Provide (T) or suppress (F) print statements to console during execution
-const bool SAMPLE_STD_DEV	   = true;									// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
-const bool FBP_ON			   = true;									// Turn FBP on (T) or off (F)
-const bool SC_ON			   = false;									// Turn Space Carving on (T) or off (F)
-const bool MSC_ON			   = true;									// Turn Modified Space Carving on (T) or off (F)
-const bool SM_ON			   = false;									// Turn Space Modeling on (T) or off (F)
-const bool HULL_FILTER_ON	   = false;									// Apply averaging filter to hull (T) or not (F)
-const bool COUNT_0_WEPLS	   = false;									// Count the number of histories with WEPL = 0 (T) or not (F)
-const bool REALLOCATE		   = false;
+const bool DEBUG_TEXT_ON		= true;									// Provide (T) or suppress (F) print statements to console during execution
+const bool SAMPLE_STD_DEV		= true;									// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
+const bool FBP_ON				= true;									// Turn FBP on (T) or off (F)
+const bool SC_ON				= false;								// Turn Space Carving on (T) or off (F)
+const bool MSC_ON				= true;									// Turn Modified Space Carving on (T) or off (F)
+const bool SM_ON				= false;								// Turn Space Modeling on (T) or off (F)
+//const bool AVG_FILTER_HULL		= true;									// Apply averaging filter to hull (T) or not (F)
+//const bool AVG_FILTER_ITERATE	= true;									// Apply averaging filter to initial iterate (T) or not (F)
+const bool COUNT_0_WEPLS		= false;								// Count the number of histories with WEPL = 0 (T) or not (F)
+const bool REALLOCATE			= false;
 /***************************************************************************************************************************************************************************/
 /***************************************************************** Input/output specifications and options *****************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -153,6 +205,8 @@ const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 201
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
+//const char INPUT_FOLDER[]	   = "CTP404_4M";
+//const char OUTPUT_FOLDER[]	   = "CTP404_4M";
 //const char INPUT_FOLDER[]	   = "output_HeadPhantom";
 //const char OUTPUT_FOLDER[]	   = "output_HeadPhantom";
 //const char INPUT_FOLDER[]	   = "PedHead-july";
@@ -219,18 +273,19 @@ const char MLP_PATH_FILENAME[] = "MLP_paths";
 /***************************************************************************************************************************************************************************/
 /************************************************************************ Output option parameters *************************************************************************/
 /***************************************************************************************************************************************************************************/
-const bool WRITE_SC_HULL	   = true;									// Write SC hull to disk (T) or not (F)
-const bool WRITE_MSC_COUNTS    = true;									// Write MSC counts array to disk (T) or not (F) before performing edge detection 
-const bool WRITE_MSC_HULL	   = true;									// Write MSC hull to disk (T) or not (F)
-const bool WRITE_SM_COUNTS	   = true;									// Write SM counts array to disk (T) or not (F) before performing edge detection 
-const bool WRITE_SM_HULL	   = true;									// Write SM hull to disk (T) or not (F)
-const bool WRITE_FBP_IMAGE	   = true;									// Write FBP image before thresholding to disk (T) or not (F)
-const bool WRITE_FBP_HULL	   = true;									// Write FBP hull to disk (T) or not (F)
-const bool WRITE_FILTERED_HULL = true;									// Write average filtered hull to disk (T) or not (F)
-const bool WRITE_X_HULL		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
-const bool WRITE_X_K0		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
-const bool WRITE_X_KI		   = true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
-const bool WRITE_X			   = true;									// Write the reconstructed image to disk (T) or not (F)
+const bool WRITE_SC_HULL		= true;									// Write SC hull to disk (T) or not (F)
+const bool WRITE_MSC_COUNTS		= true;									// Write MSC counts array to disk (T) or not (F) before performing edge detection 
+const bool WRITE_MSC_HULL		= true;									// Write MSC hull to disk (T) or not (F)
+const bool WRITE_SM_COUNTS		= true;									// Write SM counts array to disk (T) or not (F) before performing edge detection 
+const bool WRITE_SM_HULL		= true;									// Write SM hull to disk (T) or not (F)
+const bool WRITE_FBP_IMAGE		= true;									// Write FBP image before thresholding to disk (T) or not (F)
+const bool WRITE_FILTERED_FBP	= true;									// Write average filtered FBP image before thresholding to disk (T) or not (F)
+const bool WRITE_FBP_HULL		= true;									// Write FBP hull to disk (T) or not (F)
+const bool WRITE_FILTERED_HULL	= true;									// Write average filtered hull to disk (T) or not (F)
+const bool WRITE_X_HULL			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_X_K0			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_X_KI			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_X				= true;									// Write the reconstructed image to disk (T) or not (F)
 /***************************************************************************************************************************************************************************/
 /*************************************************************** Binned data analysis options and parameters ***************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -281,8 +336,8 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE};							// Define the types of filters that are available for use in FBP
 const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the defined filters will be used in FBP
 #define RAM_LAK_TAU				2/ROOT_TWO * T_BIN_SIZE					// Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
-#define AVG_FILTER_THRESHOLD	0.1										// [#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the hull
-#define AVG_FILTER_RADIUS		2										// [#] Averaging filter neighborhood radius in: [voxel - AVG_FILTER_SIZE, voxel + AVG_FILTER_RADIUS]
+#define HULL_FILTER_THRESHOLD	0.1										// [#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the hull
+#define HULL_FILTER_RADIUS		3										// [#] Averaging filter neighborhood radius in: [voxel - AVG_FILTER_SIZE, voxel + AVG_FILTER_RADIUS]
 #define FBP_THRESHOLD			0.6										// [cm] RSP threshold used to generate FBP_hull from FBP_image
 /***************************************************************************************************************************************************************************/
 /******************************************************************* Reconstruction cylinder parameters ********************************************************************/
@@ -400,20 +455,24 @@ const INITIAL_ITERATE			X_K0 = X_HULL;							// Specify which of the HULL_TYPES 
 enum PROJECTION_ALGORITHMS { ART, SART, DROP, BIP, SAP };				// Define valid choices for iterative projection algorithm to use
 const PROJECTION_ALGORITHMS		PROJECTION_ALGORITHM = ART;				// Specify which of the projection algorithms to use for image reconstruction
 #define ITERATIONS				12										// # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define BLOCK_SIZE				1										// # of paths to use for each update: ART = 1, 
+#define BLOCK_SIZE				60										// # of paths to use for each update: ART = 1, 
 #define CONSTANT_CHORD_NORM		pow(VOXEL_WIDTH, 2.0)
-#define CONSTANT_LAMBDA_SCALE	VOXEL_WIDTH * LAMBDA
+double CONSTANT_LAMBDA_SCALE =	VOXEL_WIDTH * LAMBDA;
+//#define CONSTANT_LAMBDA_SCALE	VOXEL_WIDTH * LAMBDA
 /***************************************************************************************************************************************************************************/
 /*********************************************************** Memory allocation size for arrays (binning, image) ************************************************************/
 /***************************************************************************************************************************************************************************/
 #define SIZE_BINS_CHAR			( NUM_BINS   * sizeof(char)	 )			// Amount of memory required for a character array used for binning
 #define SIZE_BINS_BOOL			( NUM_BINS   * sizeof(bool)	 )			// Amount of memory required for a boolean array used for binning
 #define SIZE_BINS_INT			( NUM_BINS   * sizeof(int)	 )			// Amount of memory required for a integer array used for binning
+#define SIZE_BINS_UINT			( NUM_BINS   * sizeof(unsigned int)	 )			// Amount of memory required for a integer array used for binning
 #define SIZE_BINS_FLOAT			( NUM_BINS	 * sizeof(float) )			// Amount of memory required for a floating point array used for binning
 #define SIZE_IMAGE_CHAR			( NUM_VOXELS * sizeof(char)	 )			// Amount of memory required for a character array used for binning
 #define SIZE_IMAGE_BOOL			( NUM_VOXELS * sizeof(bool)	 )			// Amount of memory required for a boolean array used for binning
 #define SIZE_IMAGE_INT			( NUM_VOXELS * sizeof(int)	 )			// Amount of memory required for a integer array used for binning
+#define SIZE_IMAGE_UINT			( NUM_VOXELS * sizeof(unsigned int)	 )			// Amount of memory required for a integer array used for binning
 #define SIZE_IMAGE_FLOAT		( NUM_VOXELS * sizeof(float) )			// Amount of memory required for a floating point array used for binning
+#define SIZE_IMAGE_DOUBLE		( NUM_VOXELS * sizeof(double) )			// Amount of memory required for a floating point array used for binning
 /***************************************************************************************************************************************************************************/
 /************************************************************************* Precalculated Constants *************************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -530,7 +589,11 @@ int* MSC_counts_h, * MSC_counts_d;
 int* SM_counts_h, * SM_counts_d;
 int* MLP_test_image_h, * MLP_test_image_d;
 float* FBP_image_h, * FBP_image_d;
-double* x_update_h, *x_update_d;
+double* x_update_h, * x_update_d;
+unsigned int* num_voxel_intersections_h, * num_voxel_intersections_d;
+unsigned int* intersection_counts_h, * intersection_counts_d;
+unsigned int* block_voxels_h, *block_voxels_d;
+unsigned int* block_counts_h, * block_counts_d;
 float* x_h, * x_d;
 /***************************************************************************************************************************************************************************/
 /********************************** Declaration of vectors used to accumulate data from histories that have passed currently applied cuts **********************************/
@@ -612,55 +675,3 @@ double MLP_IMAGE_THICKNESS = MLP_IMAGE_SLICES * MLP_IMAGE_VOXEL_THICKNESS;
 /***************************************************************************************************************************************************************************/
 /***************************************************************************************************************************************************************************/
 //#endif // _PCT_RECONSTRUCTION_H_
-///***************************************************************************************************************************************************************************/
-///********************************************************* tv conversions and energy/WEPL calibration parameters ***********************************************************/
-///***************************************************************************************************************************************************************************/
-//// Vladimir
-//double p0, p1, p2, p3, p4;												// t/v fit parameters
-//static double Estage[5] = { 25.85, 29.04, 34.43, 47.8, 52.63 };			// Calibration coefficient = avg E deposited in stage N by 200MeV p+; used in ADC->E (MeV) conversion
-//// Reco.C
-//double ped[5] = {9.645, -20.484, -201.987, 62.966, -7.747};				// ADC Pedestals (Celeste data) Reco.C
-//double ucal = 216.9 + 40;	
-//
-////pctroot.cpp
-// const unsigned char pattern_run_header_identifier[3] = {0xD2, 0x55, 0x4E};     // 1R U N
-//
-//// sensor.C/edisplay.C
-//// approx position for the calorimeter entrance for runs >= 51
-//Double_t ut[4] = {-211.80, -161.80, 161.80, 211.80};
-//Double_t uv[4] = {-217.70, -167.6,  167.6,  217.70};
-//
-////sensor.C/Sensor.C
-//Double_t tPin[4] = {215.24, 211.25, -211.25, -215.24};   // T coordinate of alignment pin per layer
-//      //Double_t tDir[4] = {-1.0, -1.0, 1.0, 1.0};               // T direction of increasing strip number per layer
-//Double_t vPin[4] = {0.055,0.055,0.055,0.055};
-//      //int vBoardLayer_[4] = {6,4,2,3};  	      // fpga to V-board translation; this will change if spares are swapped
-//      Double_t firstStripV[7][2] = {		// Distance from the alignment pin to the first strip
-//         {-43.7193, -43.716},             // Board V0 doesn't exist
-//         {-43.7193, -43.716},
-//         {-43.7193, -43.716},
-//         {-43.7193, -43.716},
-//         {-43.7193, -43.716},	            // These numbers are actually from V4
-//         {-43.7193, -43.716},
-//         {-43.5855, -43.5865}
-//	  };
-//// edisplay.C
-//struct Geo {
-//      Double_t halfsize;
-//      Double_t tpin[2];
-//      Double_t firstStrip[4];    // position of the first strip of the t-sensors relative the pin
-//      Geo() {
-//         halfsize = 43.662;
-//         tpin[0] = 215.24;
-//         tpin[1] = 211.25;
-//         firstStrip[0] = 38.58;
-//         firstStrip[1] = 126.85;
-//         firstStrip[2] = 215.11;
-//         firstStrip[3] = 303.37;
-//      }
-//   } geo;
-//
-//// StripHit.h
-//Int_t vstrip[4][2*384];    // particle eye view: layer 0: left part 384..768, right part: 0..383
-//   Int_t tstrip[4][4*384];
-//   Int_t* stripFPGA[12];
