@@ -78,7 +78,7 @@ void SM( const int );
 void SM_edge_detection();
 void SM_edge_detection_2();
 void hull_selection();
-template<typename T, typename T2> void averaging_filter( T*&, T2*&, unsigned int, bool, double );
+template<typename T, typename T2> void averaging_filter( T*&, T2*&, int, bool, double );
 
 // MLP: IN DEVELOPMENT
 void create_MLP_test_image();	
@@ -188,7 +188,7 @@ __global__ void MSC_edge_detection_GPU( int* );
 __global__ void SM_edge_detection_GPU( int*, int* );
 __global__ void SM_edge_detection_GPU_2( int*, int* );
 __global__ void carve_differences( int*, int* );
-template<typename H, typename D> __global__ void averaging_filter_GPU( H*, D*, unsigned int, bool, double );
+template<typename H, typename D> __global__ void averaging_filter_GPU( H*, D*, int, bool, double );
 template<typename D> __global__ void apply_averaging_filter_GPU( D*, D* );
 
 // MLP: IN DEVELOPMENT
@@ -237,7 +237,7 @@ int main(unsigned int argc, char** argv)
 	if( RUN_ON )
 	{
 		command_line_settings( argc, argv );
-		pause_execution();
+		//pause_execution();
 		/********************************************************************************************************************************************************/
 		/* Start the execution timing clock																														*/
 		/********************************************************************************************************************************************************/
@@ -478,10 +478,10 @@ void command_line_settings( unsigned int num_arguments, char** arguments )
 {
 	num_run_arguments = num_arguments;
 	run_arguments = arguments; 
-	printf("num_arguments = %d\n", num_arguments);
-	printf("num_run_arguments = %d\n", num_run_arguments);
-	printf("chars = %s\n", run_arguments[2]);
-	printf("atof = %3f\n", atof(run_arguments[2]));
+	//printf("num_arguments = %d\n", num_arguments);
+	//printf("num_run_arguments = %d\n", num_run_arguments);
+	//printf("chars = %s\n", run_arguments[2]);
+	//printf("atof = %3f\n", atof(run_arguments[2]));
 	if( num_arguments > 1 )
 		CONFIG_DIRECTORY = arguments[1];
 	if( num_run_arguments > 2 )
@@ -2458,14 +2458,25 @@ void FBP()
 	if( AVG_FILTER_FBP )
 	{
 		puts("Applying average filter to FBP image...");
-		averaging_filter( FBP_image_h, FBP_image_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
+		//cout << FBP_image_d << endl;
+		//float* FBP_image_filtered_d;
+		FBP_image_filtered_h = FBP_image_h;
+		cudaMalloc((void**) &FBP_image_filtered_d, SIZE_IMAGE_FLOAT );
+		cudaMemcpy( FBP_image_filtered_d, FBP_image_filtered_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
+
+		//averaging_filter( FBP_image_h, FBP_image_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
+		averaging_filter( FBP_image_filtered_h, FBP_image_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
 		puts("FBP Filtering complete");
 		if( WRITE_FILTERED_FBP )
 		{
 			puts("Writing filtered hull to disk...");
-			cudaMemcpy(FBP_image_d, FBP_image_h, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
-			array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			//cudaMemcpy(FBP_image_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
+			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			cudaMemcpy(FBP_image_filtered_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
+			//cout << FBP_image_d << endl;
+			array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
+		cudaFree(FBP_image_filtered_d);
 	}
 
 	// Generate FBP hull by thresholding FBP image
@@ -3405,7 +3416,7 @@ void hull_detection_finish()
 	}
 }
 /***********************************************************************************************************************************************************************************************************************/
-template<typename H, typename D> void averaging_filter( H*& image_h, D*& image_d, unsigned int radius, bool perform_threshold, double threshold_value )
+template<typename H, typename D> void averaging_filter( H*& image_h, D*& image_d, int radius, bool perform_threshold, double threshold_value )
 {
 	//bool is_hull = ( typeid(bool) == typeid(D) );
 	D* new_value_d;
@@ -3420,19 +3431,19 @@ template<typename H, typename D> void averaging_filter( H*& image_h, D*& image_d
 	cudaFree(image_d);
 	image_d = new_value_d;
 }
-template<typename D> __global__ void averaging_filter_GPU( D* image, D* new_value, unsigned int radius, bool perform_threshold, double threshold_value )
+template<typename D> __global__ void averaging_filter_GPU( D* image, D* new_value, int radius, bool perform_threshold, double threshold_value )
 {
 	int voxel_x = blockIdx.x;
 	int voxel_y = blockIdx.y;	
 	int voxel_z = threadIdx.x;
 	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-	int left_edge = max( voxel_x - radius, 0 );
-	int right_edge = min( voxel_x + radius, COLUMNS - 1);
-	int top_edge = max( voxel_y - radius, 0 );
-	int bottom_edge = min( voxel_y + radius, ROWS - 1);	
+	unsigned int left_edge = max( voxel_x - radius, 0 );
+	unsigned int right_edge = min( voxel_x + radius, COLUMNS - 1);
+	unsigned int top_edge = max( voxel_y - radius, 0 );
+	unsigned int bottom_edge = min( voxel_y + radius, ROWS - 1);	
 	int neighborhood_voxels = ( right_edge - left_edge + 1 ) * ( bottom_edge - top_edge + 1 );
 	double sum_threshold = neighborhood_voxels * threshold_value;
-	double sum = 0;
+	double sum = 0.0;
 	// Determine neighborhood sum for voxels whose neighborhood is completely enclosed in image
 	// Strip of size floor(AVG_FILTER_SIZE/2) around image perimeter must be ignored
 	for( int column = left_edge; column <= right_edge; column++ )
@@ -3981,349 +3992,6 @@ unsigned int find_MLP_path
 	}
 	return num_intersections;
 }
-void MLP_test()
-{
-	//char user_response[20];
-	//double x_entry = -3.0;
-	//double y_entry = -sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_entry,2) );
-	//double z_entry = 0.0;
-	//double x_exit = 2.5;
-	//double y_exit = sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_exit,2) );
-	//double z_exit = 0.0;
-	//double xy_entry_angle = 25 * PI/180, xz_entry_angle = 0.0;
-	//double xy_exit_angle = 45* PI/180, xz_exit_angle = 0.0;
-	double x_entry = 2.5;
-	double y_entry = sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_entry,2) );
-	double z_entry = 0.0;
-	double x_exit = -3.0;
-	double y_exit = -sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_exit,2) );
-	double z_exit = 1.0;
-	double xy_entry_angle = (45) * PI/180+PI, xz_entry_angle = 0.0;
-	double xy_exit_angle = (25)* PI/180+PI, xz_exit_angle = 0.0;
-	//double xy_entry_angle = (45+180) * PI/180, xz_entry_angle = 0.0;
-	//double xy_exit_angle = (25+180)* PI/180, xz_exit_angle = 0.0;
-	/********************************************************************************************/
-	/**************************** Status Tracking Information ***********************************/
-	/********************************************************************************************/
-	double x_in_object, y_in_object, z_in_object;
-	double x_out_object, y_out_object, z_out_object;
-	bool entered_object = false, exited_object = false;
-	int voxel_x, voxel_y, voxel_z;
-	int voxel_x_int, voxel_y_int, voxel_z_int;
-
-	entered_object = find_MLP_endpoints( MLP_test_image_h, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
-	exited_object = find_MLP_endpoints( MLP_test_image_h, x_exit, y_exit, z_exit, xy_exit_angle, xz_exit_angle, x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-
-	printf("entered object = %d\n", entered_object );
-	printf("exited object = %d\n", exited_object );
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	char data_filename[256];
-	sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	FILE* pFile = create_MLP_path_file( data_filename );
-
-	unsigned int* path = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
-	double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
-	unsigned int num_intersections = 0;
-
-	//fgets(user_response, sizeof(user_response), stdin);
-
-	//char filename[256];
-	//std::ofstream output_file;
-	//sprintf( filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, "path_test");
-	//output_file.open(filename);						
-
-	//int j = 0;
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	if( entered_object && exited_object )
-	{
-		//char data_filename[256];	
-
-		num_intersections = find_MLP_path( path, chord_lengths, x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object, xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle, voxel_x, voxel_y, voxel_z);
-		cout << "num_intersections = " << num_intersections << endl;
-		//output_file << endl;
-		//output_file.close();
-		path_data_2_disk(data_filename, pFile, num_intersections, path, path, true);
-	}
-}
-void MLP_test2()
-{
-	//char user_response[20];
-	//double x_entry = -3.0;
-	//double y_entry = -sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_entry,2) );
-	//double z_entry = 0.0;
-	//double x_exit = 2.5;
-	//double y_exit = sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_exit,2) );
-	//double z_exit = 0.0;
-	//double xy_entry_angle = 25 * PI/180, xz_entry_angle = 0.0;
-	//double xy_exit_angle = 45* PI/180, xz_exit_angle = 0.0;
-	double x_entry = 2.5;
-	double y_entry = sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_entry,2) );
-	double z_entry = 0.0;
-	double x_exit = -3.0;
-	double y_exit = -sqrt( pow(MLP_IMAGE_RECON_CYL_RADIUS, 2) - pow(x_exit,2) );
-	double z_exit = 1.0;
-	double xy_entry_angle = (45) * PI/180+PI, xz_entry_angle = 0.0;
-	double xy_exit_angle = (25)* PI/180+PI, xz_exit_angle = 0.0;
-	//double xy_entry_angle = (45+180) * PI/180, xz_entry_angle = 0.0;
-	//double xy_exit_angle = (25+180)* PI/180, xz_exit_angle = 0.0;
-	
-
-	
-	//pFile = fopen (data_filename,"w+");
-	//path_data_2_disk(data_filename, pFile, num_elements, intersections, voxel_numbers, false);
-
-	/********************************************************************************************/
-	/**************************** Status Tracking Information ***********************************/
-	/********************************************************************************************/
-	//int x_move_direction, y_move_direction, z_move_direction;
-	//double x, y, z;
-	//double x_inside, y_inside, z_inside;
-	//double x_to_go, y_to_go, z_to_go;
-	double x_in_object, y_in_object, z_in_object;
-	double u_in_object, t_in_object, v_in_object;
-	double x_out_object, y_out_object, z_out_object;
-	double u_out_object, t_out_object, v_out_object;
-	bool entered_object = false, exited_object = false;
-	int voxel_x, voxel_y, voxel_z, voxel;
-	int voxel_x_int, voxel_y_int, voxel_z_int;
-
-	entered_object = find_MLP_endpoints( MLP_test_image_h, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
-	exited_object = find_MLP_endpoints( MLP_test_image_h, x_exit, y_exit, z_exit, xy_exit_angle, xz_exit_angle, x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-
-	printf("entered object = %d\n", entered_object );
-	printf("exited object = %d\n", exited_object );
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	char data_filename[256];
-	//sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	//FILE* pFile = create_MLP_path_file( data_filename );
-
-	unsigned int* path = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
-	double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
-	int path_index = 0;
-
-	double T_0[2] = {0, 0}, T_2[2] = {0, 0}, V_0[2] = {0, 0}, V_2[2] = {0, 0};
-	double u_0 = 0, u_1 = MLP_U_STEP,  u_2 = 0;
-	//fgets(user_response, sizeof(user_response), stdin);
-
-	char filename[256];
-	std::ofstream output_file;
-	sprintf( filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, "path_test");
-	//output_file.open(filename);						
-
-	
-
-	int j = 0;
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	double R_0[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
-	//double R_0T[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,c,b,d
-	double R_1[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
-	double R_1T[4] = { 1.0, 0.0, 0.0 , 1.0};  //a,c,b,d
-
-	//double sigma_1_pre_1, sigma_1_pre_2, sigma_1_pre_3;
-	double sigma_2_pre_1, sigma_2_pre_2, sigma_2_pre_3;
-
-	double sigma_1_coefficient, sigma_t1, sigma_t1_theta1, sigma_theta1, determinant_Sigma_1, Sigma_1I[4];
-	double common_sigma_2_term_1, common_sigma_2_term_2, common_sigma_2_term_3;
-	double sigma_2_coefficient, sigma_t2, sigma_t2_theta2, sigma_theta2, determinant_Sigma_2, Sigma_2I[4]; 
-	double first_term_common_13_1, first_term_common_13_2, first_term_common_24_1, first_term_common_24_2, first_term[4], determinant_first_term;
-	double second_term_common_1, second_term_common_2, second_term_common_3, second_term_common_4, second_term[2];
-	double t_1, v_1;
-	//double theta_1, phi_1;
-	double x_1, y_1, z_1;
-
-
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-
-	if( entered_object && exited_object )
-	{
-		//char data_filename[256];
-		sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-		FILE* pFile = create_MLP_path_file( data_filename );
-
-		voxel = int(voxel_x + voxel_y * MLP_IMAGE_COLUMNS + voxel_z * MLP_IMAGE_COLUMNS * MLP_IMAGE_ROWS);
-		//int path[MAX_INTERSECTIONS];
-		//double chord_lengths[MAX_INTERSECTIONS];
-		//int* path = (int*)calloc( MAX_INTERSECTIONS, sizeof(int));
-		//double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
-		path_index = 0;
-		MLP_test_image_h[voxel] = 0;
-		path[path_index] = voxel;
-		chord_lengths[path_index] = 1.0;
-		path_index++;
-
-		u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
-		u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
-		t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
-		t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
-		v_in_object = z_in_object;
-		v_out_object = z_out_object;
-
-		if( u_in_object > u_out_object )
-		{
-			xy_entry_angle += PI;
-			xy_exit_angle += PI;
-			u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
-			u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
-			t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
-			t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
-			v_in_object = z_in_object;
-			v_out_object = z_out_object;
-		}
-		T_0[0] = t_in_object;
-		T_2[0] = t_out_object;
-		T_2[1] = xy_exit_angle - xy_entry_angle;
-		V_0[0] = v_in_object;
-		V_2[0] = v_out_object;
-		V_2[1] = xz_exit_angle - xz_entry_angle;
-		
-		u_0 = 0;
-		u_1 = MLP_U_STEP;
-		u_2 = abs(u_out_object - u_in_object);		
-		//fgets(user_response, sizeof(user_response), stdin);
-
-		//output_file.open(filename);						
-
-		//precalculated u_0/u_2 terms
-		//u_0 terms
-		//double sigma_1_pre_1 =  A_0 * u_0 + A_1_OVER_2 * pow(u_0, 2.0) + A_2_OVER_3 * pow(u_0, 3.0) + A_3_OVER_4 * pow(u_0, 4.0) + A_4_OVER_5 * pow(u_0, 5.0) + A_5_OVER_6 * pow(u_0, 6.0);						//1, 1/2, 1/3, 1/4, 1/5, 1/6
-		//double sigma_1_pre_2 =  A_0_OVER_2 * pow(u_0, 2.0) + A_1_OVER_3 * pow(u_0, 3.0) + A_2_OVER_4 * pow(u_0, 4.0) + A_3_OVER_5 * pow(u_0, 5.0) + A_4_OVER_6 * pow(u_0, 6.0) + A_5_OVER_7 * pow(u_0, 7.0);	//1/2, 1/3, 1/4, 1/5, 1/6, 1/7
-		//double sigma_1_pre_3 =  A_0_OVER_3 * pow(u_0, 3.0) + A_1_OVER_4 * pow(u_0, 4.0) + A_2_OVER_5 * pow(u_0, 5.0) + A_3_OVER_6 * pow(u_0, 6.0) + A_4_OVER_7 * pow(u_0, 7.0) + A_5_OVER_8 * pow(u_0, 8.0);	//1/3, 1/4, 1/5, 1/6, 1/7, 1/8
-		//u_2 terms
-		sigma_2_pre_1 =  pow(u_2, 3.0) * ( A_0_OVER_3 + u_2 * ( A_1_OVER_12 + u_2 * ( A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * ( A_4_OVER_105 + u_2 * A_5_OVER_168 )))));;	//u_2^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-		sigma_2_pre_2 =  pow(u_2, 2.0) * ( A_0_OVER_2 + u_2 * (A_1_OVER_6 + u_2 * (A_2_OVER_12 + u_2 * ( A_3_OVER_20 + u_2 * (A_4_OVER_30 + u_2 * A_5_OVER_42)))));	//u_2^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42
-		sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + u_2 * A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
-
-		j = 0;
-		//while( u_1 <= u_2 )
-		while( u_1 <= u_2 - MLP_U_STEP )
-		{
-			j++;
-			R_0[1] = u_1 - u_0;
-			//R_0T[2] = u_1 - u_0;
-			R_1[1] = u_2 - u_1;
-			R_1T[2] = u_2 - u_1;
-
-			//double sigma_1_coefficient = 1.0;
-			sigma_1_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_1 - u_0)/X_0) ), 2.0 ) / X_0;
-			sigma_t1 =  sigma_1_coefficient * ( pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + u_1 * A_5_OVER_168 ) )))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-			sigma_t1_theta1 =  sigma_1_coefficient * ( pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + u_1 * A_5_OVER_42))))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
-			sigma_theta1 = sigma_1_coefficient * ( u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6))))) );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6																	
-			determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
-			
-			if( j == 1)
-			{
-				cout << "sigma_t1 = " << sigma_t1 << "sigma_t1 = " << sigma_t1/sigma_1_coefficient << endl;
-				cout << "sigma_t1_theta1 = " << sigma_t1_theta1 << "sigma_t1_theta1 = " << sigma_t1_theta1/sigma_1_coefficient<< endl;
-				cout << "sigma_theta1 = " << sigma_theta1 << "sigma_theta1 = " << sigma_theta1/sigma_1_coefficient<< endl;
-				cout << "determinant_Sigma_1 = " << determinant_Sigma_1 << "determinant_Sigma_1 = " << determinant_Sigma_1/sigma_1_coefficient<< endl;
-			}
-			Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
-			Sigma_1I[1] = -sigma_t1_theta1 / determinant_Sigma_1;
-			Sigma_1I[2] = -sigma_t1_theta1 / determinant_Sigma_1;
-			Sigma_1I[3] = sigma_t1 / determinant_Sigma_1;
-			//sigma 2 terms
-			//double sigma_2_coefficient = 1.0;
-			sigma_2_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_2 - u_1)/X_0) ), 2.0 ) / X_0;
-			common_sigma_2_term_1 = u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6 )))));
-			common_sigma_2_term_2 = pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_3 + u_1 * (A_2_OVER_4 + u_1 * (A_3_OVER_5 + u_1 * (A_4_OVER_6 + u_1 * A_5_OVER_7 )))));
-			common_sigma_2_term_3 = pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_4 + u_1 * (A_2_OVER_5 + u_1 * (A_3_OVER_6 + u_1 * (A_4_OVER_7 + u_1 * A_5_OVER_8 )))));
-			sigma_t2 =  sigma_2_coefficient * ( sigma_2_pre_1 - pow(u_2, 2.0) * common_sigma_2_term_1 + 2 * u_2 * common_sigma_2_term_2 - common_sigma_2_term_3 );
-			sigma_t2_theta2 =  sigma_2_coefficient * ( sigma_2_pre_2 - u_2 * common_sigma_2_term_1 + common_sigma_2_term_2 );
-			sigma_theta2 =  sigma_2_coefficient * ( sigma_2_pre_3 - common_sigma_2_term_1 );				
-			determinant_Sigma_2 = sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 );//ad-bc
-	
-			if( j == 1)
-			{
-				cout << "sigma_t2 = " << sigma_t2 << "sigma_t2 = " << sigma_t2/sigma_2_coefficient << endl;
-				cout << "sigma_t2_theta2 = " << sigma_t2_theta2 << "sigma_t2_theta2 = " << sigma_t2_theta2/sigma_2_coefficient<< endl;
-				cout << "sigma_theta2 = " << sigma_theta2 << "sigma_theta2 = " << sigma_theta2/sigma_2_coefficient<< endl;
-				cout << "determinant_Sigma_2 = " << determinant_Sigma_2 << "determinant_Sigma_2 = " << determinant_Sigma_2/sigma_2_coefficient<< endl;
-			}
-			Sigma_2I[0] = sigma_theta2 / determinant_Sigma_2;
-			Sigma_2I[1] = -sigma_t2_theta2 / determinant_Sigma_2;
-			Sigma_2I[2] = -sigma_t2_theta2 / determinant_Sigma_2;
-			Sigma_2I[3] = sigma_t2 / determinant_Sigma_2;
-
-			// first_term_common_ij_k: i,j = rows common to, k = 1st/2nd of last 2 terms of 3 term summation in first_term calculation below
-			first_term_common_13_1 = Sigma_2I[0] * R_1[0] + Sigma_2I[1] * R_1[2];
-			first_term_common_13_2 = Sigma_2I[2] * R_1[0] + Sigma_2I[3] * R_1[2];
-			first_term_common_24_1 = Sigma_2I[0] * R_1[1] + Sigma_2I[1] * R_1[3];
-			first_term_common_24_2 = Sigma_2I[2] * R_1[1] + Sigma_2I[3] * R_1[3];
-
-			first_term[0] = Sigma_1I[0] + R_1T[0] * first_term_common_13_1 + R_1T[1] * first_term_common_13_2;
-			first_term[1] = Sigma_1I[1] + R_1T[0] * first_term_common_24_1 + R_1T[1] * first_term_common_24_2;
-			first_term[2] = Sigma_1I[2] + R_1T[2] * first_term_common_13_1 + R_1T[3] * first_term_common_13_2;
-			first_term[3] = Sigma_1I[3] + R_1T[2] * first_term_common_24_1 + R_1T[3] * first_term_common_24_2;
-
-
-			determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
-			first_term[0] = first_term[3] / determinant_first_term;
-			first_term[1] = -first_term[1] / determinant_first_term;
-			first_term[2] = -first_term[2] / determinant_first_term;
-			first_term[3] = first_term[0] / determinant_first_term;
-
-			// second_term_common_i: i = # of term of 4 term summation it is common to in second_term calculation below
-			second_term_common_1 = R_0[0] * T_0[0] + R_0[1] * T_0[1];
-			second_term_common_2 = R_0[2] * T_0[0] + R_0[3] * T_0[1];
-			second_term_common_3 = Sigma_2I[0] * T_2[0] + Sigma_2I[1] * T_2[1];
-			second_term_common_4 = Sigma_2I[2] * T_2[0] + Sigma_2I[3] * T_2[1];
-
-			second_term[0] = Sigma_1I[0] * second_term_common_1 
-							+ Sigma_1I[1] * second_term_common_2 
-							+ R_1T[0] * second_term_common_3 
-							+ R_1T[1] * second_term_common_4;
-			second_term[1] = Sigma_1I[2] * second_term_common_1 
-							+ Sigma_1I[3] * second_term_common_2 
-							+ R_1T[2] * second_term_common_3 
-							+ R_1T[3] * second_term_common_4;
-
-			t_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
-			//cout << "t_1 = " << t_1 << endl;
-			//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
-
-			// Do v MLP Now
-			second_term_common_1 = R_0[0] * V_0[0] + R_0[1] * V_0[1];
-			second_term_common_2 = R_0[2] * V_0[0] + R_0[3] * V_0[1];
-			second_term_common_3 = Sigma_2I[0] * V_2[0] + Sigma_2I[1] * V_2[1];
-			second_term_common_4 = Sigma_2I[2] * V_2[0] + Sigma_2I[3] * V_2[1];
-
-			second_term[0]	= Sigma_1I[0] * second_term_common_1
-							+ Sigma_1I[1] * second_term_common_2
-							+ R_1T[0] * second_term_common_3
-							+ R_1T[1] * second_term_common_4;
-			second_term[1]	= Sigma_1I[2] * second_term_common_1
-							+ Sigma_1I[3] * second_term_common_2
-							+ R_1T[2] * second_term_common_3
-							+ R_1T[3] * second_term_common_4;
-			v_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
-			//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
-
-			// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
-			x_1 = ( cos( xy_entry_angle ) * (u_in_object + u_1) ) - ( sin( xy_entry_angle ) * t_1 );
-			y_1 = ( sin( xy_entry_angle ) * (u_in_object + u_1) ) + ( cos( xy_entry_angle ) * t_1 );
-			z_1 = v_in_object + v_1;
-
-			voxel_x = calculate_voxel( X_ZERO_COORDINATE, x_1, VOXEL_WIDTH );
-			voxel_y = calculate_voxel( Y_ZERO_COORDINATE, y_1, VOXEL_HEIGHT );
-			voxel_z = calculate_voxel( Z_ZERO_COORDINATE, z_1, VOXEL_THICKNESS);
-			voxel = voxel_x + voxel_y * MLP_IMAGE_COLUMNS + voxel_z * MLP_IMAGE_COLUMNS * MLP_IMAGE_ROWS;
-
-			if( voxel != path[path_index - 1] )
-			{
-				path[path_index] = voxel;
-				chord_lengths[path_index] = 1.0;
-				MLP_test_image_h[voxel] = 0;
-				output_file << path[path_index] << " ";
-				path_index++;
-			}
-			u_1 += MLP_U_STEP;
-		}
-		output_file << endl;
-		output_file.close();
-		path_data_2_disk(data_filename, pFile, path_index, path, path, true);
-	}
-}
 void collect_MLP_endpoints()
 {
 	/*************************************************************************************************************************************************************************/
@@ -4392,40 +4060,23 @@ void collect_MLP_endpoints()
 void MLP()
 {
 	/*************************************************************************************************************************************************************************/
-	/***************************************************************** Variable declarations and instantiations **************************************************************/
-	/*************************************************************************************************************************************************************************/
-	char data_filename[256], iterate_filename[256];
-	double effective_chord_length; 
-	effective_chord_length = VOXEL_WIDTH;	
-	/*************************************************************************************************************************************************************************/
 	/************************************************************************* Determine MLP endpoints ***********************************************************************/
 	/*************************************************************************************************************************************************************************/
 	puts("Determining entry and exit coordinates of hull...");
 	collect_MLP_endpoints();
 	puts("Entry and exit coordinate calculations complete.");
-	printf("%d of %d protons passed through hull", reconstruction_histories, post_cut_histories);
-	//cout << "recon histories = " << reconstruction_histories << endl;
-	//cout << "vector histories = " << (unsigned int)x_entry_vector.size() << endl;
-	//cout << "voxel vector histories = " << (unsigned int)voxel_x_vector.size() << endl;
-		/*************************************************************************************************************************************************************************/
-	/**************************************************************** Create and open output file for MLP paths **************************************************************/
-	/*************************************************************************************************************************************************************************/
-	sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	FILE* path_file = fopen("file_path.bin", "wb");
-	fprintf(path_file, "%d\n", reconstruction_histories);
+	printf("%d of %d protons passed through hull\n", reconstruction_histories, post_cut_histories);
 	/*************************************************************************************************************************************************************************/
 	/****************************************************************** Array allocations and initializations ****************************************************************/
 	/*************************************************************************************************************************************************************************/
 	unsigned int* path_voxels = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
-	block_voxels_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));
-	block_counts_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));
-
 	double* chord_lengths = (double*)calloc( 1, sizeof(double));
-	x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
-	//intersection_counts_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));
+	//block_voxels_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));
+	//block_counts_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));	
+	//x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
 	
-	if( (path_voxels == NULL) || (block_voxels_h == NULL) || (block_counts_h == NULL) || (x_update_h == NULL) )
-		exit_program_if(true);
+	//if( (path_voxels == NULL) || (block_voxels_h == NULL) || (block_counts_h == NULL) || (x_update_h == NULL) )
+		//exit_program_if(true);
 
 	unsigned int block_intersections = 0;
 	unsigned int path_intersections = 0;
@@ -4440,179 +4091,64 @@ void MLP()
 	puts("Generating cyclic and exhaustive ordering of histories...");
 	history_sequence = (ULL*)calloc( reconstruction_histories, sizeof(ULL));
 	generate_history_sequence(reconstruction_histories, PRIME_OFFSET, history_sequence );
-	puts("History order generation complete...");
+	puts("History order generation complete.");
 	/*************************************************************************************************************************************************************************/
-	/*************************************************************************** Define loop conditions **********************************************************************/
+	/**************************************************************** Create and open output file for MLP paths **************************************************************/
 	/*************************************************************************************************************************************************************************/
+	char MLP_filename[256];
+	sprintf(MLP_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATHS_FILENAME );
 	unsigned int start_history = 0, end_history = reconstruction_histories;
 	ULL i;	
-	puts("Starting image reconstruction...");
-	/*************************************************************************************************************************************************************************/
-	/************************************************************************ Perform image reconstruction *******************************************************************/
-	/*************************************************************************************************************************************************************************/
-	for( unsigned int iteration = 1; iteration <= ITERATIONS; iteration++ )
+	if( !MLP_FILE_EXISTS )
 	{
-		//clock_t start_ART=0, end_ART=0;
-		//timer(true, start_ART, end_ART );
-		printf("Performing iteration %u of image reconstruction\n", iteration);
-		/*********************************************************************************************************************************************************************/
-		/********************************************************************** Perform MLP calculations *********************************************************************/
-		/*********************************************************************************************************************************************************************/
+		puts("Precalculating MLP paths and writing them to disk...");
+		FILE* write_MLP_paths = fopen(MLP_filename, "wb");
+		fprintf(write_MLP_paths, "%u\n", reconstruction_histories);	
 		for( unsigned int n = start_history; n < end_history; n++ )
 		{		
 			i = history_sequence[n];			
 			path_intersections = find_MLP_path( path_voxels, chord_lengths, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], voxel_x_vector[i], voxel_y_vector[i], voxel_z_vector[i]);
-			write_MLP_path( path_file, path_voxels, path_intersections);
-			//update_iterate22( WEPL_vector[i], effective_chord_length, x_h, path_voxels, path_intersections );
-			//DROP_blocks( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_counts_h );
-			DROP_blocks2( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_voxels_h, block_intersections, block_counts_h );
-			if( (n+1) % BLOCK_SIZE == 0 )
-				//DROP_update( x_h, x_update_h, block_counts_h );
-				DROP_update2( x_h, x_update_h, block_voxels_h, block_intersections, block_counts_h );
-				//update_x();
-		}	
-		//timer(false, start_ART, end_ART );
-		sprintf(iterate_filename, "%s%d", "x_", iteration );		
-		if( WRITE_X_KI )
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			write_MLP_path( write_MLP_paths, path_voxels, path_intersections);
+		}
+		fclose(write_MLP_paths);
+		puts("MLP paths calculated and written to disk");
 	}
-}
-void precalculate_MLP_paths()
-{
-	/*************************************************************************************************************************************************************************/
-	/***************************************************************** Variable declarations and instantiations **************************************************************/
-	/*************************************************************************************************************************************************************************/
-	char data_filename[256], iterate_filename[256];
-	double effective_chord_length; 
-	effective_chord_length = VOXEL_WIDTH;	
-	/*************************************************************************************************************************************************************************/
-	/************************************************************************* Determine MLP endpoints ***********************************************************************/
-	/*************************************************************************************************************************************************************************/
-	puts("Determining entry and exit coordinates of hull...");
-	collect_MLP_endpoints();
-	puts("Entry and exit coordinate calculations complete.");
-	printf("%d of %d protons passed through hull", reconstruction_histories, post_cut_histories);
-	//cout << "recon histories = " << reconstruction_histories << endl;
-	//cout << "vector histories = " << (unsigned int)x_entry_vector.size() << endl;
-	//cout << "voxel vector histories = " << (unsigned int)voxel_x_vector.size() << endl;
-		/*************************************************************************************************************************************************************************/
-	/**************************************************************** Create and open output file for MLP paths **************************************************************/
-	/*************************************************************************************************************************************************************************/
-	sprintf(data_filename, "%s%s/MLP_paths.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER );
-	FILE* path_file = fopen(data_filename, "wb");
-	fprintf(path_file, "%d\n", reconstruction_histories);
-	/*************************************************************************************************************************************************************************/
-	/****************************************************************** Array allocations and initializations ****************************************************************/
-	/*************************************************************************************************************************************************************************/
-	unsigned int* path_voxels = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
-
-
-	double* chord_lengths = (double*)calloc( 1, sizeof(double));
-	if( (path_voxels == NULL) )
-		exit_program_if(true);
-
-	unsigned int path_intersections = 0;
-
-	/*************************************************************************************************************************************************************************/
-	/************************************************************************* Generate history sequence *********************************************************************/
-	/*************************************************************************************************************************************************************************/	
-	puts("Generating cyclic and exhaustive ordering of histories...");
-	history_sequence = (ULL*)calloc( reconstruction_histories, sizeof(ULL));
-	generate_history_sequence(reconstruction_histories, PRIME_OFFSET, history_sequence );
-	puts("History order generation complete...");
-	/*************************************************************************************************************************************************************************/
-	/*************************************************************************** Define loop conditions **********************************************************************/
-	/*************************************************************************************************************************************************************************/
-	unsigned int start_history = 0, end_history = reconstruction_histories;
-	ULL i;	
-	/*********************************************************************************************************************************************************************/
-	/********************************************************************** Perform MLP calculations *********************************************************************/
-	/*********************************************************************************************************************************************************************/
-	for( unsigned int n = start_history; n < end_history; n++ )
-	{		
-		i = history_sequence[n];			
-		path_intersections = find_MLP_path( path_voxels, chord_lengths, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], voxel_x_vector[i], voxel_y_vector[i], voxel_z_vector[i]);
-		write_MLP_path( path_file, path_voxels, path_intersections);
-	}	
-	fclose(path_file);
-}
-void image_reconstruction()
-{
-	/*************************************************************************************************************************************************************************/
-	/***************************************************************** Variable declarations and instantiations **************************************************************/
-	/*************************************************************************************************************************************************************************/
-	char data_filename[256], iterate_filename[256];
-	double effective_chord_length; 
-	effective_chord_length = VOXEL_WIDTH;	
-	/*************************************************************************************************************************************************************************/
-	/**************************************************************** Open MLP paths file **************************************************************/
-	/*************************************************************************************************************************************************************************/
-	sprintf(data_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATHS_FILENAME );
-
-	/*************************************************************************************************************************************************************************/
-	/****************************************************************** Array allocations and initializations ****************************************************************/
-	/*************************************************************************************************************************************************************************/
-	unsigned int* path_voxels = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
-	unsigned int* block_voxels = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));
-	unsigned int* block_counts = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));
-
-	double* chord_lengths = (double*)calloc( 1, sizeof(double));
-	x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
-	//intersection_counts_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));
-	
-	if( (path_voxels == NULL) || (block_voxels == NULL) || (block_counts == NULL) || (x_update_h == NULL) )
-		exit_program_if(true);
-
-	unsigned int block_intersections = 0;
-	unsigned int path_intersections = 0;
-	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
-	//cudaMalloc((void**) &x_update_d, SIZE_IMAGE_DOUBLE );
-	//cudaMalloc((void**) &num_voxel_intersections_d, SIZE_IMAGE_UINT );
-
-	//cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
-	/*************************************************************************************************************************************************************************/
-	/************************************************************************* Generate history sequence *********************************************************************/
-	/*************************************************************************************************************************************************************************/	
-	puts("Generating cyclic and exhaustive ordering of histories...");
-	history_sequence = (ULL*)calloc( reconstruction_histories, sizeof(ULL));
-	generate_history_sequence(reconstruction_histories, PRIME_OFFSET, history_sequence );
-	puts("History order generation complete...");
-	/*************************************************************************************************************************************************************************/
-	/*************************************************************************** Define loop conditions **********************************************************************/
-	/*************************************************************************************************************************************************************************/
-	unsigned int start_history = 0, end_history = reconstruction_histories;
-	ULL i;	
-	puts("Starting image reconstruction...");
 	/*************************************************************************************************************************************************************************/
 	/************************************************************************ Perform image reconstruction *******************************************************************/
-	/*************************************************************************************************************************************************************************/
+	/*************************************************************************************************************************************************************************/	
+	puts("Starting image reconstruction...");
+	char iterate_filename[256];
+	FILE* read_MLP_paths;	
+	unsigned int num_paths;
+	double effective_chord_length  = VOXEL_WIDTH;
 	for( unsigned int iteration = 1; iteration <= ITERATIONS; iteration++ )
 	{
-		//clock_t start_ART=0, end_ART=0;
-		//timer(true, start_ART, end_ART );
 		printf("Performing iteration %u of image reconstruction\n", iteration);
-		FILE* path_file = fopen(data_filename, "rb");
-		fprintf(path_file, "%d\n", reconstruction_histories);
+		read_MLP_paths = fopen(MLP_filename, "rb");
+		fscanf(read_MLP_paths, "%u\n", &num_paths);
+		end_history = min( num_paths, reconstruction_histories );
 		/*********************************************************************************************************************************************************************/
 		/********************************************************************** Perform MLP calculations *********************************************************************/
 		/*********************************************************************************************************************************************************************/
 		for( unsigned int n = start_history; n < end_history; n++ )
 		{		
 			i = history_sequence[n];			
-			//update_iterate22( WEPL_vector[i], effective_chord_length, x_h, path_voxels, path_intersections );
-			path_intersections = read_MLP_path(path_file, path_voxels);
+			//path_intersections = find_MLP_path( path_voxels, chord_lengths, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], voxel_x_vector[i], voxel_y_vector[i], voxel_z_vector[i]);
+			path_intersections = read_MLP_path( read_MLP_paths, path_voxels);
 			update_iterate22( WEPL_vector[i], effective_chord_length, x_h, path_voxels, path_intersections );
-			//DROP_blocks( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_counts );
+			//DROP_blocks( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_counts_h );
+			//DROP_blocks2( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_voxels_h, block_intersections, block_counts_h );
 			//if( (n+1) % BLOCK_SIZE == 0 )
-				//DROP_update( x_h, x_update_h, block_counts );
-				//update_x();
+			//	//DROP_update( x_h, x_update_h, block_counts_h );
+			//	DROP_update2( x_h, x_update_h, block_voxels_h, block_intersections, block_counts_h );
+			//	//update_x();
 		}	
-		//timer(false, start_ART, end_ART );
+		fclose(read_MLP_paths);
 		sprintf(iterate_filename, "%s%d", "x_", iteration );		
 		if( WRITE_X_KI )
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-		fclose(path_file);
-	}	
+	}
+	puts("Image reconstruction complete.");
 }
 void DROP_blocks2
 ( 
@@ -4721,212 +4257,37 @@ __global__ void update_x_GPU( float*& x_k, double*& x_update, unsigned int*& num
 }
 void write_MLP_path( FILE* path_file, unsigned int*& path, unsigned int num_intersections)
 {
-    //FILE* path_file = fopen("file_path.bin", "wb");
-    //printf("intersections to file = %d\n", num_intersections);
-    fprintf(path_file, "%d", num_intersections);
-    //fwrite(&num_intersections_all[0], sizeof(int), 1, path_file);
+    fwrite(&num_intersections, sizeof(unsigned int), 1, path_file);
     fwrite(path, sizeof(unsigned int), num_intersections, path_file);
 }
 unsigned int read_MLP_path(FILE* path_file, unsigned int*& path)
 {
     unsigned int num_intersections;
-    fscanf (path_file, "%d", &num_intersections);
-    //printf("intersections = %d\n", num_intersections);
+	fread(&num_intersections, sizeof(unsigned int), 1, path_file);
     fread(path, sizeof(unsigned int), num_intersections, path_file);
     return num_intersections;
 }
-void MLP_working()
+double mean_chord_length2( double x_entry, double y_entry, double z_entry, double x_exit, double y_exit, double z_exit, double xy_dim, double z_dim )
 {
-/*************************************************************************************************************************************************************************/
-	/***************************************************************** Variable Declarations and Instantiations **************************************************************/
-	/*************************************************************************************************************************************************************************/
-	char data_filename[256], iterate_filename[256];
-	double x_entry, y_entry, z_entry, x_exit, y_exit, z_exit;
-	double xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle;
-	double x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object;
-	double effective_chord_length; 	
-	int voxel_x, voxel_y, voxel_z, voxel_x_int, voxel_y_int, voxel_z_int;
-	//unsigned int block_history = 1;
-	unsigned int start_history = 0, end_history = (unsigned int)x_entry_vector.size(), num_intersections;
-	bool entered_object = false, exited_object = false;
-	//bool debug_output = false, MLP_image_output = false, constant_chord_lengths = true;
-	/*************************************************************************************************************************************************************************/
-	/****************************************************************** Array Allocations and Initializationa ****************************************************************/
-	/*************************************************************************************************************************************************************************/
-	unsigned int* path = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
-	double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));
-	double* x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
+    double xy_angle = atan2( y_exit - y_entry, x_exit - x_entry);
+    double xz_angle = atan2( z_exit - z_entry, x_exit - x_entry);
 
-	sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	FILE* pFile = create_MLP_path_file( data_filename );	
-	/*************************************************************************************************************************************************************************/
-	/************************************************************************* Generate History Sequence *********************************************************************/
-	/*************************************************************************************************************************************************************************/
-	unsigned int reconstruction_histories = 0;
-	//history_sequence = (ULL*)calloc( NUM_RECON_HISTORIES, sizeof(ULL));
-	//NUM_RECON_HISTORIES = 80000000;
-	//ULL PRIME_OFFSET = 50000017;
-	//generate_history_sequence( NUM_RECON_HISTORIES,  PRIME_OFFSET,  history_sequence );
-	/*************************************************************************************************************************************************************************/
-	/************************************************************************ Perform image reconstruction *******************************************************************/
-	/*************************************************************************************************************************************************************************/
-	for( unsigned int iteration = 1; iteration <= ITERATIONS; iteration++ )
-	{
-		reconstruction_histories = 0;
-		/*********************************************************************************************************************************************************************/
-		/********************************************************************** Perform MLP calculations *********************************************************************/
-		/*********************************************************************************************************************************************************************/
-		for( unsigned int i = start_history; i < end_history; i++ )
-		{		
-			/******************************************************************************************************************************************************************/
-			/******************************************************** Load history's entry/exit coordinates and angles ********************************************************/
-			/******************************************************************************************************************************************************************/
-			x_entry = x_entry_vector[i];
-			y_entry = y_entry_vector[i];
-			z_entry = z_entry_vector[i];
-			x_exit = x_exit_vector[i];
-			y_exit = y_exit_vector[i]; 
-			z_exit = z_exit_vector[i];
-			xy_entry_angle = xy_entry_angle_vector[i];
-			xz_entry_angle = xz_entry_angle_vector[i];
-			xy_exit_angle = xy_exit_angle_vector[i];
-			xz_exit_angle = xz_exit_angle_vector[i];
-			/********************************************************************************************************************************************************************/
-			/***************************************** Determine if proton entered and exited object and if so, where these occurred ********************************************/
-			/********************************************************************************************************************************************************************/
-			entered_object = find_MLP_endpoints( x_hull_h, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
-			exited_object = find_MLP_endpoints( x_hull_h, x_exit, y_exit, z_exit, xy_exit_angle, xz_exit_angle, x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-			/********************************************************************************************************************************************************************/
-			/****************************************************** Perform MLP if proton entered and exited object *************************************************************/
-			/********************************************************************************************************************************************************************/		
-			if( entered_object && exited_object )
-			{
-				reconstruction_histories++;
-				//effective_chord_length = mean_chord_length( u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object );
-				effective_chord_length = VOXEL_WIDTH;
+    double max_value_xy = xy_dim;
+    double min_value_xy = xy_dim/sqrt(2.0);
+    double range_xy = max_value_xy - min_value_xy;
+    double A_xy = range_xy/2;
+    double base_level_xy = (max_value_xy + min_value_xy)/2;
+    double xy_dist_sqd = pow(base_level_xy + A_xy * cos(4*xy_angle), 2.0);
 
-				num_intersections = find_MLP_path( path, chord_lengths, x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object, xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle, voxel_x, voxel_y, voxel_z);
-				//if(constant_chord_lengths)
-				update_iterate22( WEPL_vector[i], effective_chord_length, x_h, path, num_intersections );
-				//update_iterate2( WEPL_vector[i], effective_chord_length, x_h, path, num_intersections );
-				//else
-					//update_iterate( WEPL_vector[i], chord_lengths, x_h, path, num_intersections );
-				//if( ( i + 1 ) % BLOCK_SIZE == 0 )
-				//path_data_2_disk(char* data_filename, FILE* pFile, int voxel_intersections, int* voxel_numbers, T*& data, bool write_sparse)
-				//path_data_2_disk(data_filename, pFile, num_intersections, path, path, true);
-				//calculate_update( WEPL_vector[i], effective_chord_length, x_update_h, path, num_intersections );
-				//if( block_history == BLOCK_SIZE )
-				//{					
-				//	sprintf(updated_image_filename, "%s_%d_%d", "update_image", i, block_history );
-				//	array_2_disk(updated_image_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-				//	update_iterate3( x_h, x_update_h );
-				//	block_history = 0;
-				//}
-				//block_history++;
-			}	
-		}
-		sprintf(iterate_filename, "%s%d", "x_", iteration );		
-		if( WRITE_X_KI )
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-		cout << "reconstruction histories = " << reconstruction_histories << endl;
-	}
-}
-void MLP2()
-{
-	//char user_response[20];
-	//char MLP_test_filename[128];
-	char data_filename[256];
-	//char updated_image_filename[128];
-	//char filename[256];
-	char iterate_filename[256];
+    double max_value_xz = z_dim;
+    double min_value_xz = z_dim/sqrt(2.0);
+    double range_xz = max_value_xz - min_value_xz;
+    double A_xz = range_xz/2;
+    double base_level_xz = (max_value_xz + min_value_xz)/2;
+    //double xz_dist_sqd = pow(base_level_xz + A_xz * cos(4*xz_angle), 2.0);
+    double xz_dist_sqd = pow(sin(xz_angle), 2.0);
 
-	double x_entry, y_entry, z_entry, x_exit, y_exit, z_exit;
-	double xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle;
-	double x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object;
-	double effective_chord_length; 
-
-	
-	int voxel_x, voxel_y, voxel_z, voxel_x_int, voxel_y_int, voxel_z_int;
-	unsigned int num_intersections;
-
-	bool entered_object = false, exited_object = false;
-	//bool debug_output = false, MLP_image_output = false, constant_chord_lengths = true;
-
-	unsigned int* path = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
-	double* chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));
-	//if(!constant_chord_lengths)
-		//chord_lengths = (double*)calloc( MAX_INTERSECTIONS, sizeof(double));	
-	double* x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
-
-	sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	FILE* pFile = create_MLP_path_file( data_filename );
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	//int block_history = 1;
-	//int start_history = 3*x_entry_vector.size()/4;
-	unsigned int start_history = 0;
-	//int start_history = 10;
-	//int end_history = start_history + 12;
-	unsigned int end_history = x_entry_vector.size();
-	unsigned int iterations = 20;
-	//int end_history = x_entry_vector.size();
-	//array_2_disk( "MLP_image_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	//cout << "#histories = " << x_entry_vector.size() << " " << post_cut_histories << endl; 
-	//cout << "start i = " << start_history << endl;
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	for( unsigned int iteration = 1; iteration <= iterations; iteration++ )
-	{
-		for( unsigned int i = start_history; i < end_history; i++ )
-		{		
-			x_entry = x_entry_vector[i];
-			y_entry = y_entry_vector[i];
-			z_entry = z_entry_vector[i];
-			x_exit = x_exit_vector[i];
-			y_exit = y_exit_vector[i];
-			z_exit = z_exit_vector[i];
-			xy_entry_angle = xy_entry_angle_vector[i];
-			xz_entry_angle = xz_entry_angle_vector[i];
-			xy_exit_angle = xy_exit_angle_vector[i];;
-			xz_exit_angle = xz_exit_angle_vector[i];
-
-			/********************************************************************************************/
-			/**************************** Status Tracking Information ***********************************/
-			/********************************************************************************************/
-			entered_object = false;
-			exited_object = false;
-
-			entered_object = find_MLP_endpoints( x_hull_h, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
-			exited_object = find_MLP_endpoints( x_hull_h, x_exit, y_exit, z_exit, xy_exit_angle, xz_exit_angle, x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-
-			num_intersections = 0;
-
-			if( entered_object && exited_object )
-			{
-				//effective_chord_length = mean_chord_length( u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object );
-				effective_chord_length = VOXEL_WIDTH;
-
-				num_intersections = find_MLP_path( path, chord_lengths, x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object, xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle, voxel_x, voxel_y, voxel_z);
-				//if(constant_chord_lengths)
-				update_iterate2( WEPL_vector[i], effective_chord_length, x_h, path, num_intersections );
-				//else
-					//update_iterate( WEPL_vector[i], chord_lengths, x_h, path, num_intersections );
-				//if( ( i + 1 ) % BLOCK_SIZE == 0 )
-				//path_data_2_disk(char* data_filename, FILE* pFile, int voxel_intersections, int* voxel_numbers, T*& data, bool write_sparse)
-				//path_data_2_disk(data_filename, pFile, num_intersections, path, path, true);
-				//calculate_update( WEPL_vector[i], effective_chord_length, x_update_h, path, num_intersections );
-				//if( block_history == BLOCK_SIZE )
-				//{					
-				//	sprintf(updated_image_filename, "%s_%d_%d", "update_image", i, block_history );
-				//	array_2_disk(updated_image_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-				//	update_iterate3( x_h, x_update_h );
-				//	block_history = 0;
-				//}
-				//block_history++;
-			}	
-		}
-		sprintf(iterate_filename, "%s%d", "x_", iteration );		
-		if( WRITE_X_KI )
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	}
+    return sqrt( xy_dist_sqd + xz_dist_sqd);
 }
 double mean_chord_length( double x_entry, double y_entry, double z_entry, double x_exit, double y_exit, double z_exit )
 {

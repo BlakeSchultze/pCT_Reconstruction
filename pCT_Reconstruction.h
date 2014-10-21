@@ -128,13 +128,16 @@ std::map<std::string,unsigned int> switchmap;
 // 20367505: 32955315 -> 32955313
 // 20367499: 32955306 ->32955301
 
-//ULL NUM_RECON_HISTORIES = 20367505;
+//ULL NUM_RECON_HISTORIES = 20367505;// 32955315->32955313
 //ULL PRIME_OFFSET = 32955313;
-//ULL NUM_RECON_HISTORIES = 20367499;
+//ULL NUM_RECON_HISTORIES = 20367499;//32955306->32955301
 ///ULL PRIME_OFFSET = 32955301;
-ULL NUM_RECON_HISTORIES = 20648257;
+//ULL NUM_RECON_HISTORIES = 20648257;//33409582->33409577/33409603
+//ULL PRIME_OFFSET = 33409577;
+ULL NUM_RECON_HISTORIES = 20764061;//33596956->33596939/33596977
+ULL PRIME_OFFSET = 33596939;
 //ULL NUM_RECON_HISTORIES = 20648251;//33409572->33409567
-ULL PRIME_OFFSET = 33409577;
+//ULL PRIME_OFFSET = 33409567;
 ULL* history_sequence;
 
 const bool AVG_FILTER_HULL		= true;									// Apply averaging filter to hull (T) or not (F)
@@ -147,8 +150,12 @@ const double ITERATE_FILTER_THRESHOLD = 0.1;
 const unsigned int FBP_FILTER_RADIUS = 3;
 const double FBP_FILTER_THRESHOLD = 0.1;
 
+#define HULL_FILTER_THRESHOLD	0.1										// [#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the hull
+#define HULL_FILTER_RADIUS		2										// [#] Averaging filter neighborhood radius in: [voxel - AVG_FILTER_SIZE, voxel + AVG_FILTER_RADIUS]
+
+const bool MLP_FILE_EXISTS = false;
 const bool IMPORT_MLP_PATHS = false;
-const bool WRITE_MLP_PATHS = true;
+const bool WRITE_MLP_PATHS = false;
 const char* MLP_PATHS_FILENAME = "MLP_paths.bin";
 unsigned int num_run_arguments;
 char** run_arguments;
@@ -179,7 +186,7 @@ const bool EXIT_AFTER_BINNING	= false;									// Exit program early after compl
 const bool EXIT_AFTER_HULLS		= false;									// Exit program early after completing hull-detection
 const bool EXIT_AFTER_CUTS		= false;									// Exit program early after completing statistical cuts
 const bool EXIT_AFTER_SINOGRAM	= false;									// Exit program early after completing the construction of the sinogram
-const bool EXIT_AFTER_FBP		= true;									// Exit program early after completing FBP
+const bool EXIT_AFTER_FBP		= false;									// Exit program early after completing FBP
 /***************************************************************************************************************************************************************************/
 /********************************************************************** Preprocessing option parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -336,8 +343,6 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE};							// Define the types of filters that are available for use in FBP
 const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the defined filters will be used in FBP
 #define RAM_LAK_TAU				2/ROOT_TWO * T_BIN_SIZE					// Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
-#define HULL_FILTER_THRESHOLD	0.1										// [#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the hull
-#define HULL_FILTER_RADIUS		3										// [#] Averaging filter neighborhood radius in: [voxel - AVG_FILTER_SIZE, voxel + AVG_FILTER_RADIUS]
 #define FBP_THRESHOLD			0.6										// [cm] RSP threshold used to generate FBP_hull from FBP_image
 /***************************************************************************************************************************************************************************/
 /******************************************************************* Reconstruction cylinder parameters ********************************************************************/
@@ -589,6 +594,7 @@ int* MSC_counts_h, * MSC_counts_d;
 int* SM_counts_h, * SM_counts_d;
 int* MLP_test_image_h, * MLP_test_image_d;
 float* FBP_image_h, * FBP_image_d;
+float* FBP_image_filtered_h, * FBP_image_filtered_d;
 double* x_update_h, * x_update_d;
 unsigned int* num_voxel_intersections_h, * num_voxel_intersections_d;
 unsigned int* intersection_counts_h, * intersection_counts_d;
