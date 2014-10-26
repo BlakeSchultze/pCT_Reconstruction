@@ -23,8 +23,8 @@ void exit_program_if( bool );
 
 // Memory transfers and allocations/deallocations
 void initial_processing_memory_clean();
-void resize_vectors( const unsigned int );
-void shrink_vectors( const unsigned int );
+void resize_vectors( unsigned int );
+void shrink_vectors( unsigned int );
 void allocations( const unsigned int );
 void reallocations( const unsigned int );
 void post_cut_memory_clean(); 
@@ -33,6 +33,7 @@ void post_cut_memory_clean();
 template<typename T> void initialize_host_image( T*& );
 template<typename T> void add_ellipse( T*&, int, double, double, double, double, T );
 template<typename T> void add_circle( T*&, int, double, double, double, T );
+template<typename O> void import_image( O*&, char* );
 
 // Preprocessing setup and initializations 
 void write_run_settings();
@@ -79,22 +80,23 @@ void SM_edge_detection();
 void SM_edge_detection_2();
 void hull_selection();
 template<typename T, typename T2> void averaging_filter( T*&, T2*&, int, bool, double );
+template<typename H, typename D> void median_filter( H*&, D*&, unsigned int );
 
 // MLP: IN DEVELOPMENT
 void create_MLP_test_image();	
-void MLP_test();
-void MLP_test2();
 void MLP();
-void MLP2();
 template<typename O> bool find_MLP_endpoints( O*&, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool);
 void collect_MLP_endpoints();
 unsigned int find_MLP_path( unsigned int*&, double*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
 double mean_chord_length( double, double, double, double, double, double );
+double mean_chord_length2( double, double, double, double, double, double, double, double );
+double EffectiveChordLength(double, double);
 
 
 // Image Reconstruction
 void define_initial_iterate();
 void create_hull_image_hybrid();
+void image_reconstruction();
 template< typename T, typename L, typename R> T discrete_dot_product( L*&, R*&, unsigned int*&, unsigned int );
 template< typename A, typename X> double update_vector_multiplier( double, A*&, X*&, unsigned int*&, unsigned int );
 template< typename A, typename X> void update_iterate( double, A*&, X*&, unsigned int*&, unsigned int );
@@ -110,7 +112,10 @@ template<typename X, typename U> void update_iterate3( X*&, U*& );
 void DROP_blocks( unsigned int*&, float*&, double, unsigned int, double, double*&, unsigned int*& );
 void DROP_update( float*&, double*&, unsigned int*& );
 void DROP_blocks2( unsigned int*&, float*&, double, unsigned int, double, double*&, unsigned int*&, unsigned int&, unsigned int*& );
-void DROP_update2( float*&, double*&, unsigned int*&, unsigned int, unsigned int*& );
+void DROP_update2( float*&, double*&, unsigned int*&, unsigned int&, unsigned int*& );
+void DROP_blocks3( unsigned int*&, float*&, double, unsigned int, double, double*&, unsigned int*&, unsigned int& );
+void DROP_update3( float*&, double*&, unsigned int*&, unsigned int&);
+
 
 // Write arrays/vectors to file(s)
 void binary_2_ASCII();
@@ -121,10 +126,15 @@ template<typename T> void bins_2_disk( const char*, const std::vector<int>&, con
 template<typename T> void t_bins_2_disk( FILE*, int*&, T*&, const unsigned int, const BIN_ANALYSIS_TYPE, const BIN_ORGANIZATION, int );
 template<typename T> void bins_2_disk( const char*, int*&, T*&, const int, const BIN_ANALYSIS_TYPE, const BIN_ANALYSIS_FOR, const BIN_ORGANIZATION, ... );
 FILE* create_MLP_path_file( char* );
-//template<typename T> void path_data_2_disk(char*, FILE*, int, T(&)[MAX_INTERSECTIONS], bool );
 template<typename T> void path_data_2_disk(char*, FILE*, unsigned int, unsigned int*, T*&, bool );
+void write_MLP_endpoints();
+unsigned int read_MLP_endpoints();
 void write_MLP_path( FILE*, unsigned int*&, unsigned int);
 unsigned int read_MLP_path(FILE*, unsigned int*&);
+void export_hull();
+void import_hull();
+void write_reconstruction_settings();
+
 
 // Image position/voxel calculation functions
 int calculate_voxel( double, double, double );
@@ -148,6 +158,7 @@ template< typename T, typename T2> T max_n( int, T2, ...);
 template< typename T, typename T2> T min_n( int, T2, ...);
 template<typename T> T* sequential_numbers( int, int );
 void bin_2_indexes( int, int&, int&, int& );
+inline const char * const bool_2_string( bool b ){ return b ? "true" : "false"; }
 
 // New routine test functions
 void command_line_settings( unsigned int, char** );
@@ -234,6 +245,11 @@ __global__ void test_func_device( double*, double*, double* );
 /***********************************************************************************************************************************************************************************************************************/
 int main(unsigned int argc, char** argv)
 {
+	if( DIRECT_IMAGE_RECONSTRUCTION )
+	{
+		import_hull();
+		image_reconstruction();
+	}
 	if( RUN_ON )
 	{
 		command_line_settings( argc, argv );
@@ -387,7 +403,7 @@ int main(unsigned int argc, char** argv)
 		exit_program_if( EXIT_AFTER_FBP );
 		hull_selection();
 		define_initial_iterate();
-		MLP();
+		image_reconstruction();
 		if( WRITE_X )
 			array_2_disk("x", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		array_2_disk("x_hull_after", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
@@ -451,7 +467,7 @@ void pause_execution()
 {
 	clock_t pause_start, pause_end;
 	pause_start = clock();
-	char user_response[20];
+	//char user_response[20];
 	puts("Execution paused.  Hit enter to continue execution.\n");
 	 //Clean the stream and ask for input
 	std::cin.ignore ( std::numeric_limits<std::streamsize>::max(), '\n' );
@@ -518,7 +534,307 @@ void command_line_settings( unsigned int num_arguments, char** arguments )
 	for( unsigned int i = 0; i < num_voxel_scales; i++ )
 		printf("voxel_scale[%d] = %3f\n", i, voxel_scales[i] );
 }
+/***********************************************************************************************************************************************************************************************************************/
+/************************************************************************* Read and set reconstruction configurations, settings, and parameters ************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
+void define_switchmap()
+{
+	// Generate mapping of all possible keys to integer ID so key can be used to control switch statement
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_DIRECTORY"), 1));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_DIRECTORY"), 2));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_FOLDER"), 3));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_FOLDER"), 4));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_BASE_NAME"), 5));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("FILE_EXTENSION"), 6));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("GANTRY_ANGLES"), 7));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("NUM_SCANS"), 8));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_T_SIZE"), 9));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_V_SIZE"), 10));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_SHIFT"), 11));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("U_SHIFT"), 12));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BIN_SIZE"), 13));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BINS"), 14));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BIN_SIZE"), 15));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BINS"), 16));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ANGULAR_BIN_SIZE"), 17));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SIGMAS_TO_KEEP"), 18));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_RADIUS"), 19));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_HEIGHT"), 20));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_WIDTH"), 21));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_HEIGHT"), 22));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_THICKNESS"), 23));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("COLUMNS"), 24));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ROWS"), 25));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SLICES"), 26));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_WIDTH"), 27));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_HEIGHT"), 28));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_THICKNESS"), 29));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("LAMBDA"), 30));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("parameter"), 31));
 
+}
+struct generic_input_container read_parameter( FILE* input_file )
+{
+	char key[512], equal_sign[10], temp[512];	
+	char* start, * end;
+	int length;
+	struct generic_input_container input_value;	
+	fscanf (input_file, "%s %s %s", &key, &equal_sign, &temp);
+	input_value.key = key;
+	start = std::strchr(temp, '"' );
+	if( start == NULL)
+	{
+		start = std::strchr(temp, '.' );
+		if( start == NULL )
+		{
+			puts("found integer");
+			sscanf( temp, "%d", &input_value.integer_input );
+			//cout << integer_value << endl;
+			input_value.input_type_ID = 1;
+		}
+		else
+		{
+			puts("found double");
+			sscanf( temp, "%lf", &input_value.double_input );
+			//cout << double_value << endl;
+			input_value.input_type_ID = 2;
+		}
+	}
+	else
+	{
+		puts("found quote");
+		end = std::strrchr(temp, '"' );
+		length = (int)(end - start) - 1; //(end -1 ) - ( start + 1 ) + 1
+		memcpy( input_value.string_input, start + 1, length );
+		//printf("%s\n", string_value); 
+		input_value.input_type_ID = 3;
+	}
+	return input_value;
+}
+void read_config_file()
+{		
+	FILE* input_file = fopen(CONFIG_DIRECTORY, "r" );
+	//input_file = fopen(CONFIG_DIRECTORY, "r" );
+	define_switchmap();
+	while( !feof(input_file) )
+	{
+		struct generic_input_container input_value = read_parameter(input_file);
+		printf("key = %s\n", input_value.key );
+		set_parameter( input_value );
+		//cout << input_value.specifier << endl;
+		if( input_value.input_type_ID == 1 )
+		{
+			cout << input_value.integer_input << endl;
+		}
+		else if( input_value.input_type_ID == 2 )
+		{
+			cout << input_value.double_input << endl;
+		}
+		else if( input_value.input_type_ID == 3 )
+		{
+			cout << input_value.string_input << endl;
+		}
+		else
+			puts("invalid type_ID");
+		
+		//pause_execution();
+	}
+	fclose(input_file);
+	//parameters_2_GPU();
+}
+void set_parameter( struct generic_input_container value )
+{
+	std::map<std::string,unsigned int>::iterator map_iterator = switchmap.find(std::string(value.key));
+
+	int key_ID;
+	if(  map_iterator != switchmap.end() )
+		key_ID = map_iterator->second;
+	else
+		key_ID = -1;
+	//cout << "key_ID = " << key_ID << endl;
+	switch( key_ID )
+	{
+		//case 1:
+		//	INPUT_DIRECTORY = value.string_input;
+		//	//printf("it set to %s\n", input_directory );
+		//	puts("1");
+		//	break;
+		//case 2:
+		//	OUTPUT_DIRECTORY = value.string_input;
+		//	puts("2");
+		//	break;
+		//case 3:
+		//	INPUT_FOLDER = value.string_input;
+		//	puts("3");
+		//	break;
+		//case 4:
+		//	OUTPUT_FOLDER = value.string_input;
+		//	puts("4");
+		//	break;
+		//case 5:
+		//	INPUT_BASE_NAME = value.string_input;
+		//	puts("5");
+		//	break;
+		//case 6:
+		//	FILE_EXTENSION = value.string_input;
+		//	puts("6");
+		//	break;
+		//case 7:
+		//	GANTRY_ANGLES = value.integer_input;
+		//	puts("7");
+		//	break;
+		//case 8:
+		//	NUM_SCANS = value.integer_input;
+		//	puts("8");
+		//	break;
+		//case 9:
+		//	SSD_T_SIZE = value.double_input;
+		//	puts("9");
+		//	break;
+		//case 10:
+		//	SSD_V_SIZE = value.double_input;
+		//	puts("10");
+		//	break;
+		//case 11:
+		//	T_SHIFT = value.double_input;
+		//	puts("11");
+		//	break;
+		//case 12:
+		//	U_SHIFT = value.double_input;
+		//	puts("12");
+		//	break;
+		//case 13:
+		//	T_BIN_SIZE = value.double_input;
+		//	puts("13");
+		//	break;
+		//case 14:
+		//	T_BINS = value.integer_input;
+		//	puts("14");
+		//	break;
+		//case 15:
+		//	V_BIN_SIZE = value.double_input;
+		//	puts("15");
+		//	break;
+		//case 16:
+		//	V_BINS = value.integer_input;
+		//	puts("16");
+		//	break;
+		//case 17:
+		//	ANGULAR_BIN_SIZE = value.double_input;
+		//	puts("17");
+		//	break;
+		//case 18:
+		//	SIGMAS_TO_KEEP = value.integer_input;
+		//	puts("18");
+		//	break;
+		//case 19:
+		//	RECON_CYL_RADIUS = value.double_input;
+		//	puts("19");
+		//	break;
+		//case 20:
+		//	RECON_CYL_HEIGHT = value.double_input;
+		//	puts("20");
+		//	break;
+		//case 21:
+		//	IMAGE_WIDTH = value.double_input;
+		//	puts("21");
+		//	break;
+		//case 22:
+		//	IMAGE_HEIGHT = value.double_input;
+		//	puts("22");
+		//	break;
+		//case 23:
+		//	IMAGE_THICKNESS = value.double_input;
+		//	puts("23");
+		//	break;
+		//case 24:
+		//	COLUMNS = value.integer_input;
+		//	puts("24");
+		//	break;
+		//case 25:
+		//	ROWS = value.integer_input;
+		//	puts("25");
+		//	break;
+		//case 26:
+		//	SLICES = value.integer_input;
+		//	puts("26");
+		//	break;
+		//case 27:
+		//	VOXEL_WIDTH = value.double_input;
+		//	puts("29");
+		//	break;
+		//case 28:
+		//	VOXEL_HEIGHT = value.double_input;
+		//	puts("28");
+		//	break;
+		//case 29:
+		//	VOXEL_THICKNESS = value.double_input;
+		//	puts("30");
+		//	break;
+		case 30:
+			LAMBDA = value.double_input;
+			puts("30");
+			break;
+		case 31:
+			parameter = value.integer_input;
+			puts("31");
+			break;
+		default:
+			puts("invalid key specified");
+	};
+}
+void fill_parameter_struct()
+{
+	//parameter_container.INPUT_DIRECTORY_D = INPUT_DIRECTORY;
+	//parameter_container.OUTPUT_DIRECTORY_D = OUTPUT_DIRECTORY;
+	//parameter_container.INPUT_FOLDER_D = INPUT_FOLDER;
+	//parameter_container.OUTPUT_FOLDER_D = OUTPUT_FOLDER;
+	//parameter_container.INPUT_BASE_NAME_D = INPUT_BASE_NAME;
+	//parameter_container.FILE_EXTENSION_D = FILE_EXTENSION;
+	//parameter_container.GANTRY_ANGLES_D = GANTRY_ANGLES;
+	//parameter_container.NUM_SCANS_D = NUM_SCANS;
+	//parameter_container.SSD_T_SIZE_D = SSD_T_SIZE;
+	//parameter_container.SSD_V_SIZE_D = SSD_V_SIZE;
+	//parameter_container.T_SHIFT_D = T_SHIFT;
+	//parameter_container.U_SHIFT_D = U_SHIFT;
+	//parameter_container.T_BIN_SIZE_D = T_BIN_SIZE;
+	//parameter_container.T_BINS_D = T_BINS;
+	//parameter_container.V_BIN_SIZE_D = V_BIN_SIZE;
+	//parameter_container.V_BINS_D = V_BINS;
+	//parameter_container.ANGULAR_BIN_SIZE_D = ANGULAR_BIN_SIZE;
+	//parameter_container.SIGMAS_TO_KEEP_D = SIGMAS_TO_KEEP;
+	//parameter_container.RECON_CYL_RADIUS_D = RECON_CYL_RADIUS;
+	//parameter_container.RECON_CYL_HEIGHT_D = RECON_CYL_HEIGHT;
+	//parameter_container.IMAGE_WIDTH_D = IMAGE_WIDTH;
+	//parameter_container.IMAGE_HEIGHT_D = IMAGE_HEIGHT;
+	//parameter_container.IMAGE_THICKNESS_D = IMAGE_THICKNESS;
+	//parameter_container.COLUMNS_D = COLUMNS;
+	//parameter_container.ROWS_D = ROWS;
+	//parameter_container.SLICES_D = SLICES;
+	//parameter_container.VOXEL_WIDTH_D = VOXEL_WIDTH;
+	//parameter_container.VOXEL_HEIGHT_D = VOXEL_HEIGHT;
+	//parameter_container.VOXEL_THICKNESS_D = VOXEL_THICKNESS;
+	//parameter_container.LAMBDA_D = LAMBDA;
+	//parameter_container.parameter_D = parameter;
+}
+void parameters_2_GPU()
+{
+	double* x = (double*) calloc(1, sizeof(double) );
+	double* x_d;
+	cudaMalloc((void**) &x_d, sizeof(double));
+	cudaMemcpy( x_d, x, sizeof(double), cudaMemcpyHostToDevice);
+	printf("parameters_h = %3f\n", parameters_h->lambda);
+
+	cudaMalloc((void**) &parameters_d,			sizeof(parameters) );
+	cudaMemcpy( parameters_d,			parameters_h,			sizeof(parameters),		cudaMemcpyHostToDevice );
+
+	dim3 dimBlock( 1 );
+	dim3 dimGrid( 1 );   	
+	//test_func_GPU<<< dimGrid, dimBlock >>>( parameters_d, x_d );
+
+	cudaMemcpy( x, x_d, sizeof(double), cudaMemcpyDeviceToHost);
+	printf("xs[0] = %3f\n", x[0]);
+}
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Memory Transfers, Maintenance, and Cleaning ************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -576,7 +892,7 @@ void initial_processing_memory_clean()
 	cudaFree( bin_num_d );
 	cudaFree( WEPL_d);
 }
-void resize_vectors( const unsigned int new_size )
+void resize_vectors( unsigned int new_size )
 {
 	bin_num_vector.resize( new_size );
 	//gantry_angle_vector.resize( new_size );
@@ -592,7 +908,7 @@ void resize_vectors( const unsigned int new_size )
 	xy_exit_angle_vector.resize( new_size );
 	xz_exit_angle_vector.resize( new_size );
 }
-void shrink_vectors( const unsigned int new_capacity )
+void shrink_vectors( unsigned int new_capacity )
 {
 	bin_num_vector.shrink_to_fit();
 	//gantry_angle_vector.shrink_to_fit();
@@ -1054,9 +1370,98 @@ template<typename T> void add_circle( T*& image, int slice, double x_center, dou
 		}
 	}
 }	
+template<typename O> void import_image( O*& import_into, char* filename )
+{
+	FILE* input_file = fopen(filename, "rb" );
+	O* temp = (O*)calloc(NUM_VOXELS, sizeof(O) );
+	fread(temp, sizeof(O), NUM_VOXELS, input_file );
+	free(import_into);
+	import_into = temp;
+}
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Data importation, initial cuts, and binning ************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
+void combine_data_sets()
+{
+//	char input_filename1[256];
+//	char input_filename2[256];
+//	char output_filename[256];
+//	unsigned int gantry_position, gantry_angle, scan_number, file_histories, array_index = 0, histories_read = 0;
+//
+//	printf("%d histories to be read from %d files\n", num_histories, end_file_num - start_file_num + 1 );
+//	
+//	for( unsigned int file_num = start_file_num; file_num <= end_file_num; file_num++ )
+//	{	
+//		gantry_position = file_num / NUM_SCANS;
+//		gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
+//		scan_number = file_num % NUM_SCANS + 1;
+//		file_histories = histories_per_file[file_num];
+//		
+//		sprintf(data_filename, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION );
+//		FILE* input_file1 = fopen(data_filename1, "rb");
+//		FILE* input_file2 = fopen(data_filename2, "rb");
+//		FILE* output_file2 = fopen(data_filename2, "rb");
+//		if( data_file == NULL )
+//		{
+//			fputs( "Error Opening Data File:  Check that the directories are properly named.", stderr ); 
+//			exit_program_if(true);
+//		}
+//		if( VERSION_ID == 0 )
+//		{
+//			printf("\t");
+//			printf("Reading %d histories for gantry angle %d from scan number %d...\n", file_histories, gantry_angle, scan_number );			
+//			fseek( data_file, SKIP_2_DATA_SIZE, SEEK_SET );
+//
+//			fread( &t_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &t_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &t_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &t_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &v_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &v_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &v_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &v_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &u_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &u_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &u_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &u_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
+//			fclose(data_file);
+//
+//			histories_read += file_histories;
+//			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
+//				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
+//		}
+//		else if( VERSION_ID == 1 )
+//		{
+//			printf("\t");
+//			printf("Reading %d histories for gantry angle %d from scan number %d...\n", file_histories, gantry_angle, scan_number );			
+//			fseek( data_file, SKIP_2_DATA_SIZE, SEEK_SET );
+//
+//			fread( &t_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &t_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &t_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &t_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &v_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &v_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &v_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &v_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &u_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &u_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &u_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &u_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
+//			fclose(data_file);
+//
+//			histories_read += file_histories;
+//			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
+//				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
+//		}
+//	}
+//	if( DATA_IN_MM )
+//		convert_mm_2_cm( num_histories );
+//	if( T_SHIFT != 0.0	||  U_SHIFT != 0.0 )
+//		apply_tu_shifts( num_histories );
+}
 void convert_mm_2_cm( unsigned int num_histories )
 {
 	for( unsigned int i = 0; i < num_histories; i++ ) 
@@ -2455,7 +2860,19 @@ void FBP()
 		array_2_disk( "FBP_image_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 	}
 
-	if( AVG_FILTER_FBP )
+	if( IMPORT_FILTERED_FBP)
+	{
+		//char filename[256];
+		//char* name = "FBP_med7";		
+		//sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, name, ".bin" );
+		//import_image( image, filename );
+		float* image = (float*)calloc( NUM_VOXELS, sizeof(float));
+		sprintf(IMPORT_FBP_PATH,"%s%s/%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, IMPORT_FBP_FILENAME, 2*FBP_MEDIAN_RADIUS+1,".bin" );
+		import_image( image, IMPORT_FBP_PATH );
+		FBP_image_h = image;
+		array_2_disk( "FBP_after", OUTPUT_DIRECTORY, OUTPUT_FOLDER, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	}
+	else if( AVG_FILTER_FBP )
 	{
 		puts("Applying average filter to FBP image...");
 		//cout << FBP_image_d << endl;
@@ -2465,9 +2882,9 @@ void FBP()
 		cudaMemcpy( FBP_image_filtered_d, FBP_image_filtered_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
 
 		//averaging_filter( FBP_image_h, FBP_image_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
-		averaging_filter( FBP_image_filtered_h, FBP_image_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
+		averaging_filter( FBP_image_filtered_h, FBP_image_filtered_d, FBP_AVG_RADIUS, false, FBP_AVG_THRESHOLD );
 		puts("FBP Filtering complete");
-		if( WRITE_FILTERED_FBP )
+		if( WRITE_AVG_FBP )
 		{
 			puts("Writing filtered hull to disk...");
 			//cudaMemcpy(FBP_image_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
@@ -2475,10 +2892,35 @@ void FBP()
 			cudaMemcpy(FBP_image_filtered_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			//cout << FBP_image_d << endl;
 			array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			//FBP_image_h = FBP_image_filtered_h;
 		}
 		cudaFree(FBP_image_filtered_d);
 	}
-
+	else if( MEDIAN_FILTER_FBP )
+	{
+		puts("Applying median filter to FBP image...");
+		//cout << FBP_image_d << endl;
+		//float* FBP_image_filtered_d;
+		//FBP_median_filtered_h = FBP_image_h;
+		//cudaMalloc((void**) &FBP_median_filtered_d, SIZE_IMAGE_FLOAT );
+		//cudaMemcpy( FBP_median_filtered_d, FBP_median_filtered_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
+		FBP_median_filtered_h = (float*)calloc(NUM_VOXELS, sizeof(float));
+		//averaging_filter( FBP_image_h, FBP_image_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
+		median_filter( FBP_image_h, FBP_median_filtered_h, FBP_MEDIAN_RADIUS );
+		puts("FBP median filtering complete");
+		if( WRITE_MEDIAN_FBP )
+		{
+			puts("Writing filtered hull to disk...");
+			//cudaMemcpy(FBP_image_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
+			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			//cudaMemcpy(FBP_median_filtered_h, FBP_median_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
+			//cout << FBP_image_d << endl;
+			array_2_disk( "FBP_median_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_median_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			//FBP_image_h = FBP_image_filtered_h;
+		}
+		cudaFree(FBP_image_filtered_d);
+	}
+	
 	// Generate FBP hull by thresholding FBP image
 	FBP_image_2_hull();
 
@@ -3415,6 +3857,43 @@ void hull_detection_finish()
 			free( SM_counts_h );
 	}
 }
+void hull_selection()
+{
+	puts("Performing hull selection...");
+
+	x_hull_h = (bool*) calloc( NUM_VOXELS, sizeof(bool) );
+	switch( MLP_HULL )
+	{
+		case SC_HULL  : x_hull_h = SC_hull_h;																							break;
+		case MSC_HULL : std::transform( MSC_counts_h, MSC_counts_h + NUM_VOXELS, MSC_counts_h, x_hull_h, std::logical_or<int> () );		break;
+		case SM_HULL  : std::transform( SM_counts_h,  SM_counts_h + NUM_VOXELS,  SM_counts_h,  x_hull_h, std::logical_or<int> () );		break;
+		case FBP_HULL : x_hull_h = FBP_hull_h;								
+	}
+	if( WRITE_X_HULL )
+	{
+		puts("Writing selected hull to disk...");
+		array_2_disk("x_hull", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	}
+
+	// Allocate memory for and transfer hull to the GPU
+	cudaMalloc((void**) &x_hull_d, SIZE_IMAGE_BOOL );
+	cudaMemcpy( x_hull_d, x_hull_h, SIZE_IMAGE_BOOL, cudaMemcpyHostToDevice );
+
+
+	if( AVG_FILTER_HULL )
+	{
+		puts("Filtering hull...");
+		averaging_filter( x_hull_h, x_hull_d, HULL_FILTER_RADIUS, true, HULL_FILTER_THRESHOLD );
+		puts("Hull Filtering complete");
+		if( WRITE_FILTERED_HULL )
+		{
+			puts("Writing filtered hull to disk...");
+			cudaMemcpy(x_hull_h, x_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost) ;
+			array_2_disk( "x_hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		}
+	}
+	puts("Hull selection complete."); 
+}
 /***********************************************************************************************************************************************************************************************************************/
 template<typename H, typename D> void averaging_filter( H*& image_h, D*& image_d, int radius, bool perform_threshold, double threshold_value )
 {
@@ -3454,6 +3933,110 @@ template<typename D> __global__ void averaging_filter_GPU( D* image, D* new_valu
 	else
 		new_value[voxel] = sum / neighborhood_voxels;
 }
+template<typename H, typename D> void median_filter( H*& input_image, D*& output_image, unsigned int radius )
+{
+	//D* new_value_h = (D*)calloc(NUM_VOXELS, sizeof(D));
+
+	unsigned int neighborhood_voxels = (2*radius + 1 ) * (2*radius + 1 );
+	unsigned int middle = neighborhood_voxels/2;
+	unsigned int voxel, voxel2;
+	//D* neighborhood = (D*)calloc( neighborhood_voxels, sizeof(D));
+	std::vector<D> neighborhood;
+	for( unsigned int slice = 0; slice < SLICES; slice++ )
+	{
+		for( unsigned int column = radius; column < COLUMNS - radius; column++ )
+		{
+			for( unsigned int row = radius; row < ROWS - radius; row++ )
+			{
+				voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
+				//i = 0;
+				for( unsigned int column2 = column - radius; column2 <= column + radius; column2++ )
+				{
+					for( unsigned int row2 = row - radius; row2 <=  row + radius; row2++ )
+					{
+						voxel2 = column2 + row2 * COLUMNS + slice * COLUMNS * ROWS;
+						neighborhood.push_back(input_image[voxel2]);
+						//neighborhood[i] = image_h[voxel2];
+						//i++;
+					}
+				}
+				std::sort( neighborhood.begin(), neighborhood.end());
+				output_image[voxel] = neighborhood[middle];
+			}
+		}
+	}
+	//int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+	//unsigned int left_edge = max( voxel_x - radius, 0 );
+	//unsigned int right_edge = min( voxel_x + radius, COLUMNS - 1);
+	//unsigned int top_edge = max( voxel_y - radius, 0 );
+	//unsigned int bottom_edge = min( voxel_y + radius, ROWS - 1);	
+	//int neighborhood_voxels = ( right_edge - left_edge + 1 ) * ( bottom_edge - top_edge + 1 );
+	//std::copy( new_value_h, new_value_h + NUM_VOXELS, image_h );
+	////bool is_hull = ( typeid(bool) == typeid(D) );
+	//bool sequential = true;
+	//D* new_value_d;
+	//int new_value_size = NUM_VOXELS * sizeof(D);
+	//cudaMalloc(&new_value_d, new_value_size );
+
+	//dim3 dimBlock( SLICES );
+	//dim3 dimGrid( COLUMNS, ROWS );   
+	//median_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d, radius, perform_threshold, threshold_value );
+	////apply_averaging_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d );
+	////cudaFree(new_value_d);
+	//cudaFree(image_d);
+	//image_d = new_value_d;
+
+	//if( sequential )
+
+	//else
+	//{
+
+	//}
+
+}
+template<typename D> __global__ void median_filter_GPU( D* image, D* new_value, int radius, bool perform_threshold, double threshold_value )
+{
+//	int voxel_x = blockIdx.x;
+//	int voxel_y = blockIdx.y;	
+//	int voxel_z = threadIdx.x;
+//	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+//	unsigned int left_edge = max( voxel_x - radius, 0 );
+//	unsigned int right_edge = min( voxel_x + radius, COLUMNS - 1);
+//	unsigned int top_edge = max( voxel_y - radius, 0 );
+//	unsigned int bottom_edge = min( voxel_y + radius, ROWS - 1);	
+//	int neighborhood_voxels = ( right_edge - left_edge + 1 ) * ( bottom_edge - top_edge + 1 );
+//	double sum_threshold = neighborhood_voxels * threshold_value;
+//	double sum = 0.0;
+//	D new_element = image[voxel];
+//	int middle = floor(neighborhood_voxels/2);
+//
+//	int count_up = 0;
+//	int count_down = 0;
+//	D current_value;
+//	D* sorted = (D*)calloc( neighborhood_voxels, sizeof(D) );
+//	//std::sort(
+//	// Determine neighborhood sum for voxels whose neighborhood is completely enclosed in image
+//	// Strip of size floor(AVG_FILTER_SIZE/2) around image perimeter must be ignored
+//	for( int column = left_edge; column <= right_edge; column++ )
+//	{
+//		for( int row = top_edge; row <= bottom_edge; row++ )
+//		{
+//			current_value =  image[column + (row * COLUMNS) + (voxel_z * COLUMNS * ROWS)];
+//			for( int column2 = left_edge; column2 <= right_edge; column2++ )
+//			{
+//				for( int row2 = top_edge; row2 <= bottom_edge; row2++ )
+//				{
+//					if(  image[column2 + (row2 * COLUMNS) + (voxel_z * COLUMNS * ROWS)] < current_value)
+//						count++;
+//				}
+//			}
+//			if( count == middle )
+//				new_element = current_value;
+//			count = 0;
+//		}
+//	}
+//	new_value[voxel] = new_element;
+}
 template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( T* image, T2* new_value )
 {
 	int voxel_x = blockIdx.x;
@@ -3462,44 +4045,6 @@ template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( T*
 	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
 	image[voxel] = new_value[voxel];
 }
-void hull_selection()
-{
-	puts("Performing hull selection...");
-
-	x_hull_h = (bool*) calloc( NUM_VOXELS, sizeof(bool) );
-	switch( MLP_HULL )
-	{
-		case SC_HULL  : x_hull_h = SC_hull_h;																							break;
-		case MSC_HULL : std::transform( MSC_counts_h, MSC_counts_h + NUM_VOXELS, MSC_counts_h, x_hull_h, std::logical_or<int> () );		break;
-		case SM_HULL  : std::transform( SM_counts_h,  SM_counts_h + NUM_VOXELS,  SM_counts_h,  x_hull_h, std::logical_or<int> () );		break;
-		case FBP_HULL : x_hull_h = FBP_hull_h;								
-	}
-	if( WRITE_X_HULL )
-	{
-		puts("Writing selected hull to disk...");
-		array_2_disk("x_hull", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	}
-
-	// Allocate memory for and transfer hull to the GPU
-	cudaMalloc((void**) &x_hull_d, SIZE_IMAGE_BOOL );
-	cudaMemcpy( x_hull_d, x_hull_h, SIZE_IMAGE_BOOL, cudaMemcpyHostToDevice );
-
-
-	if( AVG_FILTER_HULL )
-	{
-		puts("Filtering hull...");
-		averaging_filter( x_hull_h, x_hull_d, HULL_FILTER_RADIUS, true, HULL_FILTER_THRESHOLD );
-		puts("Hull Filtering complete");
-		if( WRITE_FILTERED_HULL )
-		{
-			puts("Writing filtered hull to disk...");
-			cudaMemcpy(x_hull_h, x_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost) ;
-			array_2_disk( "x_hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-		}
-	}
-	puts("Hull selection complete."); 
-}
-/***********************************************************************************************************************************************************************************************************************/
 /****************************************************************************************************** MLP (host) *****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
 void create_MLP_test_image()
@@ -3882,7 +4427,7 @@ unsigned int find_MLP_path
 	while( u_1 < u_2 - MLP_U_STEP)
 	//while( u_1 < u_2 - 0.001)
 	{
-		R_0[1] = u_1 - u_0;
+		R_0[1] = u_1;
 		R_1[1] = u_2 - u_1;
 		R_1T[2] = u_2 - u_1;
 
@@ -3997,9 +4542,6 @@ void collect_MLP_endpoints()
 	/*************************************************************************************************************************************************************************/
 	/***************************************************************** Variable Declarations and Instantiations **************************************************************/
 	/*************************************************************************************************************************************************************************/
-	//char data_filename[256], iterate_filename[256];
-	//double x_entry, y_entry, z_entry, x_exit, y_exit, z_exit;
-	//double xy_entry_angle, xz_entry_angle, xy_exit_angle, xz_exit_angle;
 	double x_in_object, y_in_object, z_in_object, x_out_object, y_out_object, z_out_object;	
 	int voxel_x, voxel_y, voxel_z, voxel_x_int, voxel_y_int, voxel_z_int;
 	bool entered_object = false, exited_object = false;
@@ -4011,26 +4553,11 @@ void collect_MLP_endpoints()
 	/*************************************************************************************************************************************************************************/
 	for( unsigned int i = 0; i < post_cut_histories; i++ )
 	{		
-		/*********************************************************************************************************************************************************************/
-		/********************************************************* Load history's entry/exit coordinates and angles **********************************************************/
-		/*********************************************************************************************************************************************************************/
-		/*x_entry = x_entry_vector[i], 
-		y_entry = y_entry_vector[i], 
-		z_entry = z_entry_vector[i];
-		x_exit = x_exit_vector[i], 
-		y_exit = y_exit_vector[i], 
-		z_exit = z_exit_vector[i];
-		xy_entry_angle = xy_entry_angle_vector[i], 
-		xz_entry_angle = xz_entry_angle_vector[i];
-		xy_exit_angle = xy_exit_angle_vector[i], 
-		xz_exit_angle = xz_exit_angle_vector[i];*/
 		/********************************************************************************************************************************************************************/
 		/***************************************** Determine if proton entered and exited object and if so, where these occurred ********************************************/
 		/********************************************************************************************************************************************************************/
 		entered_object = find_MLP_endpoints( x_hull_h, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
 		exited_object = find_MLP_endpoints( x_hull_h, x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-		//entered_object = find_MLP_endpoints( x_hull_h, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
-		//exited_object = find_MLP_endpoints( x_hull_h, x_exit, y_exit, z_exit, xy_exit_angle, xz_exit_angle, x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);		
 		/********************************************************************************************************************************************************************/
 		/***************************************************** Shift data down if proton entered and exited object **********************************************************/
 		/********************************************************************************************************************************************************************/		
@@ -4056,204 +4583,69 @@ void collect_MLP_endpoints()
 	}
 	resize_vectors( reconstruction_histories );
 	shrink_vectors( reconstruction_histories );
+
+	//if( WRITE_MLP_ENDPOINTS )
+	write_MLP_endpoints();
 }
-void MLP()
+void write_MLP_endpoints()
 {
-	/*************************************************************************************************************************************************************************/
-	/************************************************************************* Determine MLP endpoints ***********************************************************************/
-	/*************************************************************************************************************************************************************************/
-	puts("Determining entry and exit coordinates of hull...");
-	collect_MLP_endpoints();
-	puts("Entry and exit coordinate calculations complete.");
-	printf("%d of %d protons passed through hull\n", reconstruction_histories, post_cut_histories);
-	/*************************************************************************************************************************************************************************/
-	/****************************************************************** Array allocations and initializations ****************************************************************/
-	/*************************************************************************************************************************************************************************/
-	unsigned int* path_voxels = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
-	double* chord_lengths = (double*)calloc( 1, sizeof(double));
-	//block_voxels_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));
-	//block_counts_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));	
-	//x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
+	puts("Writing MLP endpoints to disk...");
+	char endpoints_filename[256];
+	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME, HULL_FILTER_RADIUS );
+	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
+	FILE* write_MLP_endpoints = fopen(endpoints_filename, "wb");
+	fwrite( &reconstruction_histories, sizeof(unsigned int), 1, write_MLP_endpoints );
+	fwrite( &voxel_x_vector[0], sizeof(int), voxel_x_vector.size(), write_MLP_endpoints );
+	fwrite( &voxel_y_vector[0], sizeof(int), voxel_y_vector.size(), write_MLP_endpoints);
+	fwrite( &voxel_z_vector[0], sizeof(int), voxel_z_vector.size(), write_MLP_endpoints );
+	fwrite( &bin_num_vector[0], sizeof(int), bin_num_vector.size(), write_MLP_endpoints );
+	fwrite( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), write_MLP_endpoints );
+	fwrite( &x_entry_vector[0], sizeof(float), x_entry_vector.size(), write_MLP_endpoints);
+	fwrite( &y_entry_vector[0], sizeof(float), y_entry_vector.size(), write_MLP_endpoints);
+	fwrite( &z_entry_vector[0], sizeof(float), z_entry_vector.size(), write_MLP_endpoints);
+	fwrite( &x_exit_vector[0], sizeof(float), x_exit_vector.size(), write_MLP_endpoints );
+	fwrite( &y_exit_vector[0], sizeof(float), y_exit_vector.size(), write_MLP_endpoints );
+	fwrite( &z_exit_vector[0], sizeof(float), z_exit_vector.size(), write_MLP_endpoints );
+	fwrite( &xy_entry_angle_vector[0], sizeof(float), xy_entry_angle_vector.size(), write_MLP_endpoints );
+	fwrite( &xz_entry_angle_vector[0], sizeof(float), xz_entry_angle_vector.size(), write_MLP_endpoints );
+	fwrite( &xy_exit_angle_vector[0], sizeof(float), xy_exit_angle_vector.size(), write_MLP_endpoints );
+	fwrite( &xz_exit_angle_vector[0], sizeof(float), xz_exit_angle_vector.size(), write_MLP_endpoints );
+	fclose(write_MLP_endpoints);
+	puts("Finished writing MLP endpoints to disk.");
+}
+unsigned int read_MLP_endpoints()
+{
+	char endpoints_filename[256];
+	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
+	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME, HULL_FILTER_RADIUS );
+	FILE* read_MLP_endpoints = fopen(endpoints_filename, "rb");
+	unsigned int histories;
+	fread( &histories, sizeof(unsigned int), 1, read_MLP_endpoints );
 	
-	//if( (path_voxels == NULL) || (block_voxels_h == NULL) || (block_counts_h == NULL) || (x_update_h == NULL) )
-		//exit_program_if(true);
+	resize_vectors( histories );
+	shrink_vectors( histories );
+	voxel_x_vector.resize(histories);
+	voxel_y_vector.resize(histories);
+	voxel_z_vector.resize(histories);
 
-	unsigned int block_intersections = 0;
-	unsigned int path_intersections = 0;
-	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
-	//cudaMalloc((void**) &x_update_d, SIZE_IMAGE_DOUBLE );
-	//cudaMalloc((void**) &num_voxel_intersections_d, SIZE_IMAGE_UINT );
-
-	//cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
-	/*************************************************************************************************************************************************************************/
-	/************************************************************************* Generate history sequence *********************************************************************/
-	/*************************************************************************************************************************************************************************/	
-	puts("Generating cyclic and exhaustive ordering of histories...");
-	history_sequence = (ULL*)calloc( reconstruction_histories, sizeof(ULL));
-	generate_history_sequence(reconstruction_histories, PRIME_OFFSET, history_sequence );
-	puts("History order generation complete.");
-	/*************************************************************************************************************************************************************************/
-	/**************************************************************** Create and open output file for MLP paths **************************************************************/
-	/*************************************************************************************************************************************************************************/
-	char MLP_filename[256];
-	sprintf(MLP_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATHS_FILENAME );
-	unsigned int start_history = 0, end_history = reconstruction_histories;
-	ULL i;	
-	if( !MLP_FILE_EXISTS )
-	{
-		puts("Precalculating MLP paths and writing them to disk...");
-		FILE* write_MLP_paths = fopen(MLP_filename, "wb");
-		fprintf(write_MLP_paths, "%u\n", reconstruction_histories);	
-		for( unsigned int n = start_history; n < end_history; n++ )
-		{		
-			i = history_sequence[n];			
-			path_intersections = find_MLP_path( path_voxels, chord_lengths, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], voxel_x_vector[i], voxel_y_vector[i], voxel_z_vector[i]);
-			write_MLP_path( write_MLP_paths, path_voxels, path_intersections);
-		}
-		fclose(write_MLP_paths);
-		puts("MLP paths calculated and written to disk");
-	}
-	/*************************************************************************************************************************************************************************/
-	/************************************************************************ Perform image reconstruction *******************************************************************/
-	/*************************************************************************************************************************************************************************/	
-	puts("Starting image reconstruction...");
-	char iterate_filename[256];
-	FILE* read_MLP_paths;	
-	unsigned int num_paths;
-	double effective_chord_length  = VOXEL_WIDTH;
-	for( unsigned int iteration = 1; iteration <= ITERATIONS; iteration++ )
-	{
-		printf("Performing iteration %u of image reconstruction\n", iteration);
-		read_MLP_paths = fopen(MLP_filename, "rb");
-		fscanf(read_MLP_paths, "%u\n", &num_paths);
-		end_history = min( num_paths, reconstruction_histories );
-		/*********************************************************************************************************************************************************************/
-		/********************************************************************** Perform MLP calculations *********************************************************************/
-		/*********************************************************************************************************************************************************************/
-		for( unsigned int n = start_history; n < end_history; n++ )
-		{		
-			i = history_sequence[n];			
-			//path_intersections = find_MLP_path( path_voxels, chord_lengths, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], voxel_x_vector[i], voxel_y_vector[i], voxel_z_vector[i]);
-			path_intersections = read_MLP_path( read_MLP_paths, path_voxels);
-			update_iterate22( WEPL_vector[i], effective_chord_length, x_h, path_voxels, path_intersections );
-			//DROP_blocks( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_counts_h );
-			//DROP_blocks2( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_voxels_h, block_intersections, block_counts_h );
-			//if( (n+1) % BLOCK_SIZE == 0 )
-			//	//DROP_update( x_h, x_update_h, block_counts_h );
-			//	DROP_update2( x_h, x_update_h, block_voxels_h, block_intersections, block_counts_h );
-			//	//update_x();
-		}	
-		fclose(read_MLP_paths);
-		sprintf(iterate_filename, "%s%d", "x_", iteration );		
-		if( WRITE_X_KI )
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	}
-	puts("Image reconstruction complete.");
-}
-void DROP_blocks2
-( 
-	unsigned int*& path_voxels, float*& x_k, double bi, unsigned int path_intersections, double mean_chord_length, 
-	double*& x_update, unsigned int*& block_voxels, unsigned int& block_intersections, unsigned int*& block_counts 
-)
-{
-	// x(K+1) = x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / <ai, ai> ] ai =  x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ] ai 
-	//  (1) <ai, x(k)>
-	double a_i_dot_x_k = scalar_dot_product2( mean_chord_length, x_k, path_voxels, path_intersections );
-	// (2) ( bi - <ai, x(k)> ) / <ai, ai>
-	double scaled_residual = ( bi - a_i_dot_x_k ) /  (  pow(mean_chord_length, 2.0) * path_intersections );
-	// (3) LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ]
-	double update_value = mean_chord_length * LAMBDA * scaled_residual;	
-	//for( unsigned int intersection = 0; intersection < num_voxel_scales; intersection++ )
-	//{
-	//	x_update[a_i[intersection]] += voxel_scales[intersection] * update_value;
-	//	voxel_intersections[a_i[intersection]] += 1;
-	//}
-	//bool new_block_voxel = true;
-	for( unsigned int path_intersection = 0; path_intersection < path_intersections; path_intersection++)
-	{
-		//for( unsigned int block_intersection = 0; block_intersection < block_intersections; block_intersection++ )
-		//{
-			//if( path_voxels[path_intersection] == block_voxels[block_intersection] )
-			unsigned int* ptr = std::find( block_voxels, block_voxels + block_intersections, path_voxels[path_intersection] );
-			
-			if( ptr == block_voxels + block_intersections )
-			{
-				block_voxels[block_intersections] = path_voxels[path_intersection];
-				x_update[block_intersections] += update_value;
-				block_counts[block_intersections] +=1;
-				block_intersections++;
-			}
-			else
-			{
-				x_update[*ptr] += update_value;
-				block_counts[*ptr] +=1;
-			}
-			//else
-			//{
-			//	x_update[block_intersection] += update_value;
-			//	block_counts[block_intersection] +=1;
-			//}
-		//}
-	}
-}
-void DROP_update2( float*& x_k, double*& x_update, unsigned int*& block_voxels, unsigned int block_intersections, unsigned int*& block_counts )
-{
-	for( unsigned int block_intersection = 0; block_intersection < block_intersections; block_intersection++ )
-	{
-			x_k[block_voxels[block_intersection]] += x_update[block_intersection] / block_counts[block_intersection];
-			x_update[block_intersection] = 0;
-			block_counts[block_intersection] = 0;
-	}
-}
-void DROP_blocks( unsigned int*& a_i, float*& x_k, double bi, unsigned int num_intersections, double mean_chord_length, double*& x_update, unsigned int*& voxel_intersections )
-{
-	// x(K+1) = x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / <ai, ai> ] ai =  x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ] ai 
-	//  (1) <ai, x(k)>
-	double a_i_dot_x_k = scalar_dot_product2( mean_chord_length, x_k, a_i, num_intersections );
-	// (2) ( bi - <ai, x(k)> ) / <ai, ai>
-	double scaled_residual = ( bi - a_i_dot_x_k ) /  (  pow(mean_chord_length, 2.0) * num_intersections );
-	// (3) LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ]
-	double update_value = mean_chord_length * LAMBDA * scaled_residual;	
-	//for( unsigned int intersection = 0; intersection < num_voxel_scales; intersection++ )
-	//{
-	//	x_update[a_i[intersection]] += voxel_scales[intersection] * update_value;
-	//	voxel_intersections[a_i[intersection]] += 1;
-	//}
-	for( unsigned int intersection = 0; intersection < num_intersections; intersection++)
-	{
-		x_update[a_i[intersection]] += update_value;
-		voxel_intersections[a_i[intersection]] += 1;
-	}
-}
-void DROP_update( float*& x_k, double*& x_update, unsigned int*& voxel_intersections )
-{
-	for( unsigned int voxel = 0; voxel < NUM_VOXELS; voxel++ )
-	{
-		if( voxel_intersections[voxel] > 0 )
-		{
-			x_k[voxel] += x_update[voxel] / voxel_intersections[voxel];
-			x_update[voxel] = 0;
-			voxel_intersections[voxel] = 0;
-		}
-	}
-}
-void update_x()
-{
-	cudaMemcpy( block_voxels_d, block_voxels_h, SIZE_IMAGE_UINT, cudaMemcpyHostToDevice );
-	cudaMemcpy( x_update_d, x_update_h, SIZE_IMAGE_DOUBLE, cudaMemcpyHostToDevice );
-	
-	dim3 dimBlock( SLICES );
-	dim3 dimGrid( COLUMNS, ROWS );   
-
-	update_x_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, block_voxels_d );
-	cudaMemcpy( x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
-}
-__global__ void update_x_GPU( float*& x_k, double*& x_update, unsigned int*& num_intersections )
-{
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-	if( voxel < NUM_VOXELS && num_intersections[voxel] > 0 )
-		x_k[voxel] += x_update[voxel] / num_intersections[voxel];
+	//fread( &reconstruction_histories, sizeof(unsigned int), 1, read_MLP_endpoints );
+	fread( &voxel_x_vector[0], sizeof(int), voxel_x_vector.size(), read_MLP_endpoints );
+	fread( &voxel_y_vector[0], sizeof(int), voxel_y_vector.size(), read_MLP_endpoints);
+	fread( &voxel_z_vector[0], sizeof(int), voxel_z_vector.size(), read_MLP_endpoints );
+	fread( &bin_num_vector[0], sizeof(int), bin_num_vector.size(), read_MLP_endpoints );
+	fread( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), read_MLP_endpoints );
+	fread( &x_entry_vector[0], sizeof(float), x_entry_vector.size(), read_MLP_endpoints);
+	fread( &y_entry_vector[0], sizeof(float), y_entry_vector.size(), read_MLP_endpoints);
+	fread( &z_entry_vector[0], sizeof(float), z_entry_vector.size(), read_MLP_endpoints);
+	fread( &x_exit_vector[0], sizeof(float), x_exit_vector.size(), read_MLP_endpoints );
+	fread( &y_exit_vector[0], sizeof(float), y_exit_vector.size(), read_MLP_endpoints );
+	fread( &z_exit_vector[0], sizeof(float), z_exit_vector.size(), read_MLP_endpoints );
+	fread( &xy_entry_angle_vector[0], sizeof(float), xy_entry_angle_vector.size(), read_MLP_endpoints );
+	fread( &xz_entry_angle_vector[0], sizeof(float), xz_entry_angle_vector.size(), read_MLP_endpoints );
+	fread( &xy_exit_angle_vector[0], sizeof(float), xy_exit_angle_vector.size(), read_MLP_endpoints );
+	fread( &xz_exit_angle_vector[0], sizeof(float), xz_exit_angle_vector.size(), read_MLP_endpoints );
+	fclose(read_MLP_endpoints);
+	return histories;
 }
 void write_MLP_path( FILE* path_file, unsigned int*& path, unsigned int num_intersections)
 {
@@ -4267,90 +4659,26 @@ unsigned int read_MLP_path(FILE* path_file, unsigned int*& path)
     fread(path, sizeof(unsigned int), num_intersections, path_file);
     return num_intersections;
 }
-double mean_chord_length2( double x_entry, double y_entry, double z_entry, double x_exit, double y_exit, double z_exit, double xy_dim, double z_dim )
+void export_hull()
 {
-    double xy_angle = atan2( y_exit - y_entry, x_exit - x_entry);
-    double xz_angle = atan2( z_exit - z_entry, x_exit - x_entry);
-
-    double max_value_xy = xy_dim;
-    double min_value_xy = xy_dim/sqrt(2.0);
-    double range_xy = max_value_xy - min_value_xy;
-    double A_xy = range_xy/2;
-    double base_level_xy = (max_value_xy + min_value_xy)/2;
-    double xy_dist_sqd = pow(base_level_xy + A_xy * cos(4*xy_angle), 2.0);
-
-    double max_value_xz = z_dim;
-    double min_value_xz = z_dim/sqrt(2.0);
-    double range_xz = max_value_xz - min_value_xz;
-    double A_xz = range_xz/2;
-    double base_level_xz = (max_value_xz + min_value_xz)/2;
-    //double xz_dist_sqd = pow(base_level_xz + A_xz * cos(4*xz_angle), 2.0);
-    double xz_dist_sqd = pow(sin(xz_angle), 2.0);
-
-    return sqrt( xy_dist_sqd + xz_dist_sqd);
+//	puts("Writing image reconstruction hull to disk...");
+//	char input_hull_filename[256];
+//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
+//	fwrite( &x_hull_h, sizeof(bool), NUM_VOXELS, write_input_hull );
+//	fclose(write_input_hull);
+//	puts("Finished writing image reconstruction hull to disk.");
 }
-double mean_chord_length( double x_entry, double y_entry, double z_entry, double x_exit, double y_exit, double z_exit )
+void import_hull()
 {
-
-	double xy_angle = atan2( y_exit - y_entry, x_exit - x_entry);
-	double xz_angle = atan2( z_exit - z_entry, x_exit - x_entry);
-
-	double int_part;
-	double reduced_angle = modf( xy_angle/(PI/2), &int_part );
-	double effective_angle_ut = fabs(reduced_angle);
-	double effective_angle_uv = fabs(xz_angle );
-	//
-	//double average_pixel_size = ( VOXEL_WIDTH + VOXEL_HEIGHT) / 2;
-	//double s = MLP_U_STEP;
-	//double l = average_pixel_size;
-
-	double sin_ut_angle = sin(effective_angle_ut);
-	double sin_2_ut_angle = sin(2 * effective_angle_ut);
-	double cos_ut_angle = cos(effective_angle_ut);
-
-	double sin_uv_angle = sin(effective_angle_uv);
-	double sin_2_uv_angle = sin(2 * effective_angle_uv);
-	double cos_uv_angle = cos(effective_angle_uv);
-
-	double sum_ut_angles = sin(effective_angle_ut) + cos(effective_angle_ut);
-	double sum_uv_angles = sin(effective_angle_uv) + cos(effective_angle_uv);
-	
-	////		(L/3) { [(s/L)^2 S{2O} - 6] / [(s/L)S{2O} - 2(C{O} + S{O}) ] } + { [(s/L)^2 S{2O}] / [ 2(C{O} + S{O})] } = (L/3)*[( (s/L)^3 * S{2O}^2 - 12 (C{O} + S{O}) ) / ( 2(s/L)*S{2O}*(C{O} + S{O}) - 4(C{O} + S{O})^2 ]
-	////		
-
-	//double chord_length_t = ( l / 6.0 * sum_ut_angles) * ( pow(s/l, 3.0) * pow( sin(2 * effective_angle_ut), 2.0 ) - 12 * sum_ut_angles ) / ( (s/l) * sin(2 * effective_angle_ut) - 2 * sum_ut_angles );
-	//
-	//// Multiply this by the effective chord in the v-u plane
-	//double mean_pixel_width = average_pixel_size / sum_ut_angles;
-	//double height_fraction = SLICE_THICKNESS / mean_pixel_width;
-	//s = MLP_U_STEP;
-	//l = mean_pixel_width;
-	//double chord_length_v = ( l / (6.0 * height_fraction * sum_uv_angles) ) * ( pow(s/l, 3.0) * pow( sin(2 * effective_angle_uv), 2.0 ) - 12 * height_fraction * sum_uv_angles ) / ( (s/l) * sin(2 * effective_angle_uv) - 2 * height_fraction * sum_uv_angles );
-	//return sqrt(chord_length_t * chord_length_t + chord_length_v*chord_length_v);
-
-	double eff_angle_t,eff_angle_v;
-	
-	//double xy_angle = atan2( y_exit - y_entry, x_exit - x_entry);
-	//double xz_angle = atan2( z_exit - z_entry, x_exit - x_entry);
-
-	//eff_angle_t = modf( xy_angle/(PI/2), &int_part );
-	//eff_angle_t = fabs( eff_angle_t);
-	eff_angle_t = xy_angle - ( int( xy_angle/(PI/2) ) ) * (PI/2);
-	//cout << "eff angle t = " << eff_angle_t << endl;
-	eff_angle_v=fabs(xz_angle);
-	
-	// Get the effective chord in the t-u plane
-	double step_fraction=MLP_U_STEP/VOXEL_WIDTH;
-	double chord_length_2D=(1/3.0)*((step_fraction*step_fraction*sin(2*eff_angle_t)-6)/(step_fraction*sin(2*eff_angle_t)-2*(cos(eff_angle_t)+sin(eff_angle_t))) + step_fraction*step_fraction*sin(2*eff_angle_t)/(2*(cos(eff_angle_t)+sin(eff_angle_t))));
-	
-	// Multiply this by the effective chord in the v-u plane
-	double mean_pixel_width=VOXEL_WIDTH/(cos(eff_angle_t)+sin(eff_angle_t));
-	double height_fraction=SLICE_THICKNESS/mean_pixel_width;
-	step_fraction=MLP_U_STEP/mean_pixel_width;
-	double chord_length_3D=(1/3.0)*((step_fraction*step_fraction*sin(2*eff_angle_v)-6*height_fraction)/(step_fraction*sin(2*eff_angle_v)-2*(height_fraction*cos(eff_angle_v)+sin(eff_angle_v))) + step_fraction*step_fraction*sin(2*eff_angle_v)/(2*(height_fraction*cos(eff_angle_v)+sin(eff_angle_v))));
-	
-	//cout << "2D = " << chord_length_2D << " 3D = " << chord_length_3D << endl;
-	return VOXEL_WIDTH*chord_length_2D*chord_length_3D;
+//	puts("Reading image reconstruction hull from disk...");
+//	char input_hull_filename[256];
+//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	FILE* read_input_hull = fopen(input_hull_filename, "rb");
+//	x_hull_h = (bool*)calloc( NUM_VOXELS, sizeof(bool) );
+//	fwrite( &x_hull_h, sizeof(bool), NUM_VOXELS, read_input_hull );
+//	fclose(read_input_hull);
+//	puts("Finished reading image reconstruction hull from disk.");
 }
 /***********************************************************************************************************************************************************************************************************************/
 /******************************************************************************************************* MLP (GPU) *****************************************************************************************************/
@@ -4926,36 +5254,6 @@ __device__ void MLP_GPU()
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************* Image Reconstruction (host) *********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void define_initial_iterate()
-{
-	x_h = (float*) calloc( NUM_VOXELS, sizeof(float) );
-
-	switch( X_K0 )
-	{
-		case X_HULL		: std::copy( x_hull_h, x_hull_h + NUM_VOXELS, x_h );													break;
-		case FBP_IMAGE	: x_h = FBP_image_h;																					break;
-		case HYBRID		: std::transform(FBP_image_h, FBP_image_h + NUM_VOXELS, x_hull_h, x_h, std::multiplies<float>() );		break;
-		case ZEROS		: break;
-	}
-
-	//if( AVG_FILTER_ITERATE )
-	//{
-	//	puts("Filtering initial iterate...");
-	//	cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
-	//	cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
-	//	averaging_filter( x_h, x_d, ITERATE_FILTER_RADIUS, true, ITERATE_FILTER_THRESHOLD );
-	//	puts("Hull Filtering complete");
-	//	if( WRITE_FILTERED_HULL )
-	//	{
-	//		puts("Writing filtered hull to disk...");
-	//		cudaMemcpy(x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
-	//		array_2_disk( "x_hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	//	}
-	//}
-
-	if( WRITE_X_K0 )
-		array_2_disk("x_k0", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-}
 void create_hull_image_hybrid()
 {
 	/*int* SM_differences_h = (int*) calloc( NUM_VOXELS, sizeof(int) );
@@ -4980,6 +5278,373 @@ __global__ void create_hull_image_hybrid_GPU( bool*& x_hull, float*& FBP_image)
 	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
 	FBP_image[voxel] *= x_hull[voxel];
 }
+void export_initial_iterate()
+{
+//	puts("Writing image reconstruction hull to disk...");
+//	char input_hull_filename[256];
+//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
+//	fwrite( &x_hull_h, sizeof(bool), NUM_VOXELS, write_input_hull );
+//	fclose(write_input_hull);
+//	puts("Finished writing image reconstruction hull to disk.");
+}
+void import_initial_iterate()
+{
+//	puts("Reading image reconstruction hull from disk...");
+//	char input_hull_filename[256];
+//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	FILE* read_input_hull = fopen(input_hull_filename, "rb");
+//	x_hull_h = (bool*)calloc( NUM_VOXELS, sizeof(bool) );
+//	fwrite( &x_hull_h, sizeof(bool), NUM_VOXELS, read_input_hull );
+//	fclose(read_input_hull);
+//	puts("Finished reading image reconstruction hull from disk.");
+}
+void define_initial_iterate()
+{
+	x_h = (float*) calloc( NUM_VOXELS, sizeof(float) );
+
+	switch( X_K0 )
+	{
+		case X_HULL		: std::copy( x_hull_h, x_hull_h + NUM_VOXELS, x_h );													break;
+		case FBP_IMAGE	: x_h = FBP_image_h;																					break;
+		case HYBRID		: std::transform(FBP_image_h, FBP_image_h + NUM_VOXELS, x_hull_h, x_h, std::multiplies<float>() );		break;
+		case IMPORT		: sprintf( INPUT_ITERATE_PATH, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_ITERATE_FILENAME );
+						  import_image( x_h, INPUT_ITERATE_PATH );																break;
+		case ZEROS		: break;
+		default			: puts("ERROR: Invalid initial iterate selected");
+						  exit(1);
+	}
+
+	//if( AVG_FILTER_ITERATE )
+	//{
+	//	puts("Filtering initial iterate...");
+	//	cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
+	//	cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
+	//	averaging_filter( x_h, x_d, ITERATE_FILTER_RADIUS, true, ITERATE_FILTER_THRESHOLD );
+	//	puts("Hull Filtering complete");
+	//	if( WRITE_FILTERED_HULL )
+	//	{
+	//		puts("Writing filtered hull to disk...");
+	//		cudaMemcpy(x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
+	//		array_2_disk( "x_hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	//	}
+	//}
+
+	if( WRITE_X_K0 )
+		array_2_disk("x_k0", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+}
+void generate_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
+{
+    history_sequence[0] = 0;
+    for( ULL i = 1; i < N; i++ )
+        history_sequence[i] = ( history_sequence[i-1] + offset_prime ) % N;
+}
+void verify_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
+{
+	for( ULL i = 1; i < N; i++ )
+    {
+        if(history_sequence[i] == 1)
+        {
+            printf("repeats at i = %llu\n", i);
+            printf("sequence[i] = %llu\n", history_sequence[i]);
+            break;
+        }
+        if(history_sequence[i] > N)
+        {
+            printf("exceeds at i = %llu\n", i);
+            printf("sequence[i] = %llu\n", history_sequence[i]);
+            break;
+        }
+    }
+}
+void print_history_sequence(ULL* history_sequence, ULL print_start, ULL print_end )
+{
+    for( ULL i = print_start; i < print_end; i++ )
+		printf("history_sequence[i] = %llu\n", history_sequence[i]);
+}
+void write_reconstruction_settings()
+{
+	FILE* settings_file = fopen("reconstruction_settings.txt", "w");
+	time_t rawtime;
+	struct tm * timeinfo;
+
+	time (&rawtime);
+	timeinfo = localtime (&rawtime);
+	fprintf (settings_file, "Current local time and date: %s", asctime(timeinfo));
+	fprintf(settings_file, "PRIME_OFFSET = %d \n",  PRIME_OFFSET);
+	fprintf(settings_file, "AVG_FILTER_HULL = %s \n",  bool_2_string(AVG_FILTER_HULL));
+	
+	fprintf(settings_file, "HULL_FILTER_RADIUS = %d \n",  HULL_FILTER_RADIUS);
+	fprintf(settings_file, "HULL_FILTER_THRESHOLD = %d \n",  HULL_FILTER_THRESHOLD);
+	fprintf(settings_file, "LAMBDA = %d \n",  LAMBDA);
+	switch( X_K0 )
+	{
+		case X_HULL:		fprintf(settings_file, "X_K0 = X_HULL\n");		break;
+		case FBP_IMAGE:		fprintf(settings_file, "X_K0 = FBP_IMAGE\n");	break;
+		case HYBRID:		fprintf(settings_file, "X_K0 = HYBRID\n");		break;
+		case ZEROS:			fprintf(settings_file, "X_K0 = ZEROS\n");		break;
+		case IMPORT:		fprintf(settings_file, "X_K0 = IMPORT\n");		break;
+	}
+	fprintf(settings_file, "IMPORT_FILTERED_FBP = %d \n", bool_2_string(IMPORT_FILTERED_FBP) );
+	if( IMPORT_FILTERED_FBP )
+	{
+		fprintf(settings_file, "FILTERED_FBP_PATH = %d \n",  IMPORT_FBP_PATH);
+	}
+	switch( PROJECTION_ALGORITHM )
+	{
+		case X_HULL:		fprintf(settings_file, "PROJECTION_ALGORITHM = ART\n");		break;
+		case FBP_IMAGE:		fprintf(settings_file, "PROJECTION_ALGORITHM = SART\n");	break;
+		case HYBRID:		fprintf(settings_file, "PROJECTION_ALGORITHM = DROP\n");	break;
+		case ZEROS:			fprintf(settings_file, "PROJECTION_ALGORITHM = BIP\n");		break;
+		case IMPORT:		fprintf(settings_file, "PROJECTION_ALGORITHM = SAP\n");		break;
+	}
+	fclose(settings_file);
+}
+double mean_chord_length2( double x_entry, double y_entry, double z_entry, double x_exit, double y_exit, double z_exit, double xy_dim, double z_dim )
+{
+    double xy_angle = atan2( y_exit - y_entry, x_exit - x_entry);
+    double xz_angle = atan2( z_exit - z_entry, x_exit - x_entry);
+
+    double max_value_xy = xy_dim;
+    double min_value_xy = xy_dim/sqrt(2.0);
+    double range_xy = max_value_xy - min_value_xy;
+    double A_xy = range_xy/2;
+    double base_level_xy = (max_value_xy + min_value_xy)/2;
+    double xy_dist_sqd = pow(base_level_xy + A_xy * cos(4*xy_angle), 2.0);
+
+    //double max_value_xz = z_dim;
+    //double min_value_xz = z_dim/sqrt(2.0);
+    //double range_xz = max_value_xz - min_value_xz;
+    //double A_xz = range_xz/2;
+    //double base_level_xz = (max_value_xz + min_value_xz)/2;
+    //double xz_dist_sqd = pow(base_level_xz + A_xz * cos(4*xz_angle), 2.0);
+    double xz_dist_sqd = pow(sin(xz_angle), 2.0);
+
+    return sqrt( xy_dist_sqd + xz_dist_sqd);
+}
+double mean_chord_length( double x_entry, double y_entry, double z_entry, double x_exit, double y_exit, double z_exit )
+{
+
+	double xy_angle = atan2( y_exit - y_entry, x_exit - x_entry);
+	double xz_angle = atan2( z_exit - z_entry, x_exit - x_entry);
+
+	double int_part;
+	//double reduced_angle = modf( xy_angle/(PI/2), &int_part );
+	double reduced_angle = xy_angle - ( int( xy_angle/(PI/2) ) ) * (PI/2);
+	double effective_angle_ut = fabs(reduced_angle);
+	double effective_angle_uv = fabs(xz_angle );
+	//
+	double average_pixel_size = ( VOXEL_WIDTH + VOXEL_HEIGHT) / 2;
+	double s = MLP_U_STEP;
+	double l = average_pixel_size;
+
+	double sin_ut_angle = sin(effective_angle_ut);
+	double sin_2_ut_angle = sin(2 * effective_angle_ut);
+	double cos_ut_angle = cos(effective_angle_ut);
+
+	double sin_uv_angle = sin(effective_angle_uv);
+	double sin_2_uv_angle = sin(2 * effective_angle_uv);
+	double cos_uv_angle = cos(effective_angle_uv);
+
+	double sum_ut_angles = sin(effective_angle_ut) + cos(effective_angle_ut);
+	double sum_uv_angles = sin(effective_angle_uv) + cos(effective_angle_uv);
+	
+	////		(L/3) { [(s/L)^2 S{2O} - 6] / [(s/L)S{2O} - 2(C{O} + S{O}) ] } + { [(s/L)^2 S{2O}] / [ 2(C{O} + S{O})] } = (L/3)*[( (s/L)^3 * S{2O}^2 - 12 (C{O} + S{O}) ) / ( 2(s/L)*S{2O}*(C{O} + S{O}) - 4(C{O} + S{O})^2 ]
+	////		
+
+	double chord_length_t = ( l / 6.0 * sum_ut_angles) * ( pow(s/l, 3.0) * pow( sin(2 * effective_angle_ut), 2.0 ) - 12 * sum_ut_angles ) / ( (s/l) * sin(2 * effective_angle_ut) - 2 * sum_ut_angles );
+	
+	// Multiply this by the effective chord in the v-u plane
+	double mean_pixel_width = average_pixel_size / sum_ut_angles;
+	double height_fraction = SLICE_THICKNESS / mean_pixel_width;
+	s = MLP_U_STEP;
+	l = mean_pixel_width;
+	double chord_length_v = ( l / (6.0 * height_fraction * sum_uv_angles) ) * ( pow(s/l, 3.0) * pow( sin(2 * effective_angle_uv), 2.0 ) - 12 * height_fraction * sum_uv_angles ) / ( (s/l) * sin(2 * effective_angle_uv) - 2 * height_fraction * sum_uv_angles );
+	return sqrt(chord_length_t * chord_length_t + chord_length_v*chord_length_v);
+
+	//double eff_angle_t,eff_angle_v;
+	//
+	////double xy_angle = atan2( y_exit - y_entry, x_exit - x_entry);
+	////double xz_angle = atan2( z_exit - z_entry, x_exit - x_entry);
+
+	////eff_angle_t = modf( xy_angle/(PI/2), &int_part );
+	////eff_angle_t = fabs( eff_angle_t);
+	////eff_angle_t = xy_angle - ( int( xy_angle/(PI/2) ) ) * (PI/2);
+	//eff_angle_t = effective_angle_ut;
+	//
+	////cout << "eff angle t = " << eff_angle_t << endl;
+	//eff_angle_v=fabs(xz_angle);
+	//
+	//// Get the effective chord in the t-u plane
+	//double step_fraction=MLP_U_STEP/VOXEL_WIDTH;
+	//double chord_length_2D=(1/3.0)*((step_fraction*step_fraction*sin(2*eff_angle_t)-6)/(step_fraction*sin(2*eff_angle_t)-2*(cos(eff_angle_t)+sin(eff_angle_t))) + step_fraction*step_fraction*sin(2*eff_angle_t)/(2*(cos(eff_angle_t)+sin(eff_angle_t))));
+	//
+	//// Multiply this by the effective chord in the v-u plane
+	//double mean_pixel_width=VOXEL_WIDTH/(cos(eff_angle_t)+sin(eff_angle_t));
+	//double height_fraction=SLICE_THICKNESS/mean_pixel_width;
+	//step_fraction=MLP_U_STEP/mean_pixel_width;
+	//double chord_length_3D=(1/3.0)*((step_fraction*step_fraction*sin(2*eff_angle_v)-6*height_fraction)/(step_fraction*sin(2*eff_angle_v)-2*(height_fraction*cos(eff_angle_v)+sin(eff_angle_v))) + step_fraction*step_fraction*sin(2*eff_angle_v)/(2*(height_fraction*cos(eff_angle_v)+sin(eff_angle_v))));
+	//
+	////cout << "2D = " << chord_length_2D << " 3D = " << chord_length_3D << endl;
+	//return VOXEL_WIDTH*chord_length_2D*chord_length_3D;
+}
+double EffectiveChordLength(double abs_angle_t, double abs_angle_v)
+{
+	
+	double eff_angle_t,eff_angle_v;
+	
+	eff_angle_t=abs_angle_t-((int)(abs_angle_t/(PI/2)))*(PI/2);
+	
+	eff_angle_v=fabs(abs_angle_v);
+	
+	// Get the effective chord in the t-u plane
+	double step_fraction=MLP_U_STEP/VOXEL_WIDTH;
+	double chord_length_2D=(1/3.0)*((step_fraction*step_fraction*sinf(2*eff_angle_t)-6)/(step_fraction*sinf(2*eff_angle_t)-2*(cosf(eff_angle_t)+sinf(eff_angle_t))) + step_fraction*step_fraction*sinf(2*eff_angle_t)/(2*(cosf(eff_angle_t)+sinf(eff_angle_t))));
+	
+	// Multiply this by the effective chord in the v-u plane
+	double mean_pixel_width=VOXEL_WIDTH/(cosf(eff_angle_t)+sinf(eff_angle_t));
+	double height_fraction=VOXEL_THICKNESS/mean_pixel_width;
+	step_fraction=MLP_U_STEP/mean_pixel_width;
+	double chord_length_3D=(1/3.0)*((step_fraction*step_fraction*sinf(2*eff_angle_v)-6*height_fraction)/(step_fraction*sinf(2*eff_angle_v)-2*(height_fraction*cosf(eff_angle_v)+sinf(eff_angle_v))) + step_fraction*step_fraction*sinf(2*eff_angle_v)/(2*(height_fraction*cosf(eff_angle_v)+sinf(eff_angle_v))));
+	
+	return VOXEL_WIDTH*chord_length_2D*chord_length_3D;
+	 
+}
+double radial_lambda( double radius_squared )
+{
+	//	1 - a*r(i)^2 DECAY_FACTOR
+	//exp(-a*r)  EXPONENTIAL_DECAY
+	//exp(-a*r^2)  EXPONENTIAL_SQD_DECAY
+
+	return LAMBDA * ( 1 - DECAY_FACTOR * radius_squared );
+	//return LAMBDA * exp( -EXPONENTIAL_DECAY * sqrt( radius_squared ) );
+	//return LAMBDA * exp( -EXPONENTIAL_SQD_DECAY * radius_squared );
+
+}
+void image_reconstruction()
+{
+	/*************************************************************************************************************************************************************************/
+	/************************************************************************* Determine MLP endpoints ***********************************************************************/
+	/*************************************************************************************************************************************************************************/
+	//collect_MLP_endpoints();
+	if( !MLP_ENDPOINTS_FILE_EXISTS )
+	{
+		puts("Calculating hull entry/exit coordinates and writing results to disk...");
+		collect_MLP_endpoints();
+	}
+	else
+	{
+		puts("Reading hull entry/exit coordinates from disk...");
+		reconstruction_histories = read_MLP_endpoints();
+	}
+	puts("Acquistion of hull entry/exit coordinates complete.");
+	printf("%d of %d protons passed through hull\n", reconstruction_histories, post_cut_histories);
+	/*************************************************************************************************************************************************************************/
+	/****************************************************************** Array allocations and initializations ****************************************************************/
+	/*************************************************************************************************************************************************************************/
+	unsigned int* path_voxels = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
+	double* chord_lengths = (double*)calloc( 1, sizeof(double));
+	//block_voxels_h = (unsigned int*)calloc( BLOCK_SIZE * MAX_INTERSECTIONS, sizeof(unsigned int));
+	block_counts_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));	
+	x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
+	
+	//if( (path_voxels == NULL) || (block_voxels_h == NULL) || (block_counts_h == NULL) || (x_update_h == NULL) )
+	if( (path_voxels == NULL) ||  (block_counts_h == NULL) || (x_update_h == NULL) )
+	//if( (path_voxels == NULL) || (block_voxels_h == NULL) || (x_update_h == NULL) )
+	{
+		puts("ERROR: Memory allocation for one or more image reconstruction arrays failed.");
+		exit_program_if(true);
+	}
+	unsigned int block_intersections = 0;
+	unsigned int path_intersections = 0;
+	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
+	//cudaMalloc((void**) &x_update_d, SIZE_IMAGE_DOUBLE );
+	//cudaMalloc((void**) &num_voxel_intersections_d, SIZE_IMAGE_UINT );
+
+	//cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
+	/*************************************************************************************************************************************************************************/
+	/************************************************************************* Generate history sequence *********************************************************************/
+	/*************************************************************************************************************************************************************************/	
+	puts("Generating cyclic and exhaustive ordering of histories...");
+	history_sequence = (ULL*)calloc( reconstruction_histories, sizeof(ULL));
+	generate_history_sequence(reconstruction_histories, PRIME_OFFSET, history_sequence );
+	puts("History order generation complete.");
+	/*************************************************************************************************************************************************************************/
+	/**************************************************************** Create and open output file for MLP paths **************************************************************/
+	/*************************************************************************************************************************************************************************/
+	char MLP_filename[256];
+	sprintf(MLP_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATHS_FILENAME, HULL_FILTER_RADIUS );
+	unsigned int start_history = 0, end_history = reconstruction_histories;
+	ULL i;	
+	if( !MLP_FILE_EXISTS )
+	{
+		puts("Precalculating MLP paths and writing them to disk...");
+		FILE* write_MLP_paths = fopen(MLP_filename, "wb");
+		fprintf(write_MLP_paths, "%u\n", reconstruction_histories);	
+		for( unsigned int n = start_history; n < end_history; n++ )
+		{		
+			i = history_sequence[n];			
+			path_intersections = find_MLP_path( path_voxels, chord_lengths, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], voxel_x_vector[i], voxel_y_vector[i], voxel_z_vector[i]);
+			write_MLP_path( write_MLP_paths, path_voxels, path_intersections);
+		}
+		fclose(write_MLP_paths);
+		puts("MLP paths calculated and written to disk");
+	}
+	/*************************************************************************************************************************************************************************/
+	/************************************************************************ Perform image reconstruction *******************************************************************/
+	/*************************************************************************************************************************************************************************/	
+	puts("Starting image reconstruction...");
+	char iterate_filename[256];
+	FILE* read_MLP_paths;	
+	unsigned int num_paths;
+	double effective_chord_length  = VOXEL_WIDTH;
+	double u_0, t_0, v_0, u_2, t_2, v_2;
+	for( unsigned int iteration = 1; iteration <= ITERATIONS; iteration++ )
+	{
+		printf("Performing iteration %u of image reconstruction\n", iteration);
+		read_MLP_paths = fopen(MLP_filename, "rb");
+		fscanf(read_MLP_paths, "%u\n", &num_paths);
+		end_history = min( num_paths, reconstruction_histories );
+		/*********************************************************************************************************************************************************************/
+		/********************************************************************** Perform MLP calculations *********************************************************************/
+		/*********************************************************************************************************************************************************************/
+		for( unsigned int n = start_history; n < end_history; n++ )
+		{		
+			i = history_sequence[n];			
+			//path_intersections = find_MLP_path( path_voxels, chord_lengths, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], voxel_x_vector[i], voxel_y_vector[i], voxel_z_vector[i]);
+			path_intersections = read_MLP_path( read_MLP_paths, path_voxels);
+			//effective_chord_length = mean_chord_length2( x_entry_vector[i],  y_entry_vector[i],  z_entry_vector[i],  x_exit_vector[i],  y_exit_vector[i],  z_exit_vector[i], VOXEL_WIDTH, VOXEL_THICKNESS);
+			//effective_chord_length = mean_chord_length( x_entry_vector[i],  y_entry_vector[i],  z_entry_vector[i],  x_exit_vector[i],  y_exit_vector[i],  z_exit_vector[i]);
+			//u_0 = ( cos( xy_entry_angle_vector[i] ) * x_entry_vector[i] ) + ( sin( xy_entry_angle_vector[i] ) * y_entry_vector[i] );
+			//t_0 = ( cos( xy_entry_angle_vector[i] ) * y_entry_vector[i] ) - ( sin( xy_entry_angle_vector[i] ) * x_entry_vector[i] );
+			//u_2 = ( cos(xy_exit_angle_vector[i]) * x_exit_vector[i] ) + ( sin(xy_exit_angle_vector[i]) * y_exit_vector[i] );
+			//t_2 = ( cos(xy_exit_angle_vector[i]) * y_exit_vector[i] ) - ( sin(xy_exit_angle_vector[i]) * x_exit_vector[i] );
+			//effective_chord_length = EffectiveChordLength( atanf( (t_2 - t_0) / (u_2 - u_0) ), atanf( (z_exit_vector[i] - z_entry_vector[i]) / (u_2 - u_0) ) );
+
+			effective_chord_length = EffectiveChordLength( ( xy_entry_angle_vector[i] + xy_exit_angle_vector[i] ) / 2, ( xz_entry_angle_vector[i] + xz_exit_angle_vector[i] ) / 2 );			
+			//effective_chord_length = EffectiveChordLength(atan2((y_exit_vector[i] - y_entry_vector[i]),(x_exit_vector[i] - x_entry_vector[i])), atan2((z_exit_vector[i] - z_entry_vector[i]),(x_exit_vector[i] - x_entry_vector[i])));
+			//if( n < 10 )
+				//cout << WEPL_vector[i] << endl;
+			//update_iterate22( WEPL_vector[i], effective_chord_length, x_h, path_voxels, path_intersections );
+			DROP_blocks( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_counts_h );
+			//DROP_blocks2( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_voxels_h, block_intersections, block_counts_h );
+			//DROP_blocks3( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_voxels_h, block_intersections );
+			if( (n+1) % BLOCK_SIZE == 0 )
+			{
+				DROP_update( x_h, x_update_h, block_counts_h );
+				//DROP_update2( x_h, x_update_h, block_voxels_h, block_intersections, block_counts_h );
+				//DROP_update3( x_h, x_update_h, block_voxels_h, block_intersections);
+				//	//update_x();
+			}
+		}	
+		fclose(read_MLP_paths);
+		sprintf(iterate_filename, "%s%d", "x_", iteration );		
+		if( WRITE_X_KI )
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	}
+	puts("Image reconstruction complete.");
+}
+/********************************************************************************************************* ART *********************************************************************************************************/
 template< typename T, typename LHS, typename RHS> T discrete_dot_product( LHS*& left, RHS*& right, unsigned int*& elements, unsigned int num_elements )
 {
 	T sum = 0;
@@ -5132,6 +5797,153 @@ __device__ void update_iterate22_GPU( double bi, double mean_chord_length, float
 //		//x_k[voxels_intersected[intersection]] += (LAMBDA * max(1.0, sqrt(bi) ) ) * ai_multiplier * mean_chord_length;
 //	}
 }
+/**************************************************************************************************** DROP ******************************************************************************************************/
+void DROP_blocks3
+( 
+	unsigned int*& path_voxels, float*& x_k, double bi, unsigned int path_intersections, double mean_chord_length, 
+	double*& x_update, unsigned int*& block_voxels, unsigned int& block_intersections
+)
+{
+	// x(K+1) = x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / <ai, ai> ] ai =  x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ] ai 
+	//  (1) <ai, x(k)>
+	double a_i_dot_x_k = scalar_dot_product2( mean_chord_length, x_k, path_voxels, path_intersections );
+	// (2) ( bi - <ai, x(k)> ) / <ai, ai>
+	double scaled_residual = ( bi - a_i_dot_x_k ) /  (  pow(mean_chord_length, 2.0) * path_intersections );
+	// (3) LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ]
+	double update_value = mean_chord_length * LAMBDA * scaled_residual;	
+	//for( unsigned int intersection = 0; intersection < num_voxel_scales; intersection++ )
+	//{
+	//	x_update[a_i[intersection]] += voxel_scales[intersection] * update_value;
+	//	voxel_intersections[a_i[intersection]] += 1;
+	//}
+	//bool new_block_voxel = true;
+	for( unsigned int path_intersection = 0; path_intersection < path_intersections; path_intersection++)
+	{
+		block_voxels[block_intersections] = path_voxels[path_intersection];
+		x_update[block_voxels[block_intersections]] += update_value;
+		//block_counts[block_intersections] +=1;
+		block_intersections++;
+	}
+}
+void DROP_update3( float*& x_k, double*& x_update, unsigned int*& block_voxels, unsigned int& block_intersections )
+{
+	unsigned int count;
+	for( unsigned int block_intersection = 0; block_intersection < block_intersections; block_intersection++ )
+	{
+		count = std::count(block_voxels, block_voxels + block_intersections, block_voxels[block_intersection] );
+		x_k[block_voxels[block_intersection]] += x_update[block_voxels[block_intersection]] / count;
+		//x_update[block_intersection] = 0;
+	}
+	memset(x_update, 0.0, NUM_VOXELS );
+	block_intersections = 0;
+}
+void DROP_blocks2
+( 
+	unsigned int*& path_voxels, float*& x_k, double bi, unsigned int path_intersections, double mean_chord_length, 
+	double*& x_update, unsigned int*& block_voxels, unsigned int& block_intersections, unsigned int*& block_counts 
+)
+{
+	// x(K+1) = x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / <ai, ai> ] ai =  x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ] ai 
+	//  (1) <ai, x(k)>
+	double a_i_dot_x_k = scalar_dot_product2( mean_chord_length, x_k, path_voxels, path_intersections );
+	// (2) ( bi - <ai, x(k)> ) / <ai, ai>
+	double scaled_residual = ( bi - a_i_dot_x_k ) /  (  pow(mean_chord_length, 2.0) * path_intersections );
+	// (3) LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ]
+	double update_value = mean_chord_length * LAMBDA * scaled_residual;	
+	//for( unsigned int intersection = 0; intersection < num_voxel_scales; intersection++ )
+	//{
+	//	x_update[a_i[intersection]] += voxel_scales[intersection] * update_value;
+	//	voxel_intersections[a_i[intersection]] += 1;
+	//}
+	//bool new_block_voxel = true;
+	for( unsigned int path_intersection = 0; path_intersection < path_intersections; path_intersection++)
+	{
+		//for( unsigned int block_intersection = 0; block_intersection < block_intersections; block_intersection++ )
+		//{
+			//if( path_voxels[path_intersection] == block_voxels[block_intersection] )
+			unsigned int* ptr = std::find( block_voxels, block_voxels + block_intersections, path_voxels[path_intersection] );
+			
+			if( ptr == block_voxels + block_intersections )
+			{
+				block_voxels[block_intersections] = path_voxels[path_intersection];
+				x_update[block_intersections] += update_value;
+				block_counts[block_intersections] +=1;
+				block_intersections++;
+			}
+			else
+			{
+				x_update[*ptr] += update_value;
+				block_counts[*ptr] +=1;
+			}
+			//else
+			//{
+			//	x_update[block_intersection] += update_value;
+			//	block_counts[block_intersection] +=1;
+			//}
+		//}
+	}
+}
+void DROP_update2( float*& x_k, double*& x_update, unsigned int*& block_voxels, unsigned int& block_intersections, unsigned int*& block_counts )
+{
+	for( unsigned int block_intersection = 0; block_intersection < block_intersections; block_intersection++ )
+	{
+			x_k[block_voxels[block_intersection]] += x_update[block_intersection] / block_counts[block_intersection];
+			x_update[block_intersection] = 0;
+			block_counts[block_intersection] = 0;
+	}
+	block_intersections = 0;
+}
+void DROP_blocks( unsigned int*& a_i, float*& x_k, double bi, unsigned int num_intersections, double mean_chord_length, double*& x_update, unsigned int*& voxel_intersections )
+{
+	// x(K+1) = x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / <ai, ai> ] ai =  x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ] ai 
+	//  (1) <ai, x(k)>
+	double a_i_dot_x_k = scalar_dot_product2( mean_chord_length, x_k, a_i, num_intersections );
+	// (2) ( bi - <ai, x(k)> ) / <ai, ai>
+	double scaled_residual = ( bi - a_i_dot_x_k ) /  (  pow(mean_chord_length, 2.0) * num_intersections );
+	// (3) LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ]
+	double update_value = mean_chord_length * LAMBDA * scaled_residual;	
+	//for( unsigned int intersection = 0; intersection < num_voxel_scales; intersection++ )
+	//{
+	//	x_update[a_i[intersection]] += voxel_scales[intersection] * update_value;
+	//	voxel_intersections[a_i[intersection]] += 1;
+	//}
+	for( unsigned int intersection = 0; intersection < num_intersections; intersection++)
+	{
+		x_update[a_i[intersection]] += update_value;
+		voxel_intersections[a_i[intersection]] += 1;
+	}
+}
+void DROP_update( float*& x_k, double*& x_update, unsigned int*& voxel_intersections )
+{
+	for( unsigned int voxel = 0; voxel < NUM_VOXELS; voxel++ )
+	{
+		if( voxel_intersections[voxel] > 0 )
+		{
+			x_k[voxel] += x_update[voxel] / voxel_intersections[voxel];
+			x_update[voxel] = 0;
+			voxel_intersections[voxel] = 0;
+		}
+	}
+}
+void update_x()
+{
+	cudaMemcpy( block_voxels_d, block_voxels_h, SIZE_IMAGE_UINT, cudaMemcpyHostToDevice );
+	cudaMemcpy( x_update_d, x_update_h, SIZE_IMAGE_DOUBLE, cudaMemcpyHostToDevice );
+	
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( COLUMNS, ROWS );   
+
+	update_x_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, block_voxels_d );
+	cudaMemcpy( x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
+}
+__global__ void update_x_GPU( float*& x_k, double*& x_update, unsigned int*& num_intersections )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
+	if( voxel < NUM_VOXELS && num_intersections[voxel] > 0 )
+		x_k[voxel] += x_update[voxel] / num_intersections[voxel];
+}
+
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************** Routines for Writing Data Arrays/Vectors to Disk ***********************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -5999,351 +6811,18 @@ void bin_2_indexes( int& bin_num, int& t_bin, int& v_bin, int& angular_bin )
 /*********************************************************************************************** Device Helper Functions ***********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
 
-
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************ Testing Functions and Functions in Development ***********************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-double radial_lambda( double radius_squared )
-{
-	//	1 - a*r(i)^2 DECAY_FACTOR
-	//exp(-a*r)  EXPONENTIAL_DECAY
-	//exp(-a*r^2)  EXPONENTIAL_SQD_DECAY
-
-	return LAMBDA * ( 1 - DECAY_FACTOR * radius_squared );
-	//return LAMBDA * exp( -EXPONENTIAL_DECAY * sqrt( radius_squared ) );
-	//return LAMBDA * exp( -EXPONENTIAL_SQD_DECAY * radius_squared );
-
-}
-void generate_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
-{
-    history_sequence[0] = 0;
-    for( ULL i = 1; i < N; i++ )
-        history_sequence[i] = ( history_sequence[i-1] + offset_prime ) % N;
-}
-void verify_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
-{
-	for( ULL i = 1; i < N; i++ )
-    {
-        if(history_sequence[i] == 1)
-        {
-            printf("repeats at i = %llu\n", i);
-            printf("sequence[i] = %llu\n", history_sequence[i]);
-            break;
-        }
-        if(history_sequence[i] > N)
-        {
-            printf("exceeds at i = %llu\n", i);
-            printf("sequence[i] = %llu\n", history_sequence[i]);
-            break;
-        }
-    }
-}
-void print_history_sequence(ULL* history_sequence, ULL print_start, ULL print_end )
-{
-    for( ULL i = print_start; i < print_end; i++ )
-		printf("history_sequence[i] = %llu\n", history_sequence[i]);
-}
-void define_switchmap()
-{
-	// Generate mapping of all possible keys to integer ID so key can be used to control switch statement
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_DIRECTORY"), 1));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_DIRECTORY"), 2));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_FOLDER"), 3));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_FOLDER"), 4));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_BASE_NAME"), 5));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("FILE_EXTENSION"), 6));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("GANTRY_ANGLES"), 7));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("NUM_SCANS"), 8));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_T_SIZE"), 9));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_V_SIZE"), 10));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_SHIFT"), 11));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("U_SHIFT"), 12));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BIN_SIZE"), 13));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BINS"), 14));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BIN_SIZE"), 15));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BINS"), 16));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ANGULAR_BIN_SIZE"), 17));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SIGMAS_TO_KEEP"), 18));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_RADIUS"), 19));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_HEIGHT"), 20));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_WIDTH"), 21));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_HEIGHT"), 22));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_THICKNESS"), 23));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("COLUMNS"), 24));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ROWS"), 25));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SLICES"), 26));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_WIDTH"), 27));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_HEIGHT"), 28));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_THICKNESS"), 29));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("LAMBDA"), 30));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("parameter"), 31));
-
-}
-struct generic_input_container read_parameter( FILE* input_file )
-{
-	char key[512], equal_sign[10], temp[512];	
-	char* start, * end;
-	int length;
-	struct generic_input_container input_value;	
-	fscanf (input_file, "%s %s %s", &key, &equal_sign, &temp);
-	input_value.key = key;
-	start = std::strchr(temp, '"' );
-	if( start == NULL)
-	{
-		start = std::strchr(temp, '.' );
-		if( start == NULL )
-		{
-			puts("found integer");
-			sscanf( temp, "%d", &input_value.integer_input );
-			//cout << integer_value << endl;
-			input_value.input_type_ID = 1;
-		}
-		else
-		{
-			puts("found double");
-			sscanf( temp, "%lf", &input_value.double_input );
-			//cout << double_value << endl;
-			input_value.input_type_ID = 2;
-		}
-	}
-	else
-	{
-		puts("found quote");
-		end = std::strrchr(temp, '"' );
-		length = (int)(end - start) - 1; //(end -1 ) - ( start + 1 ) + 1
-		memcpy( input_value.string_input, start + 1, length );
-		//printf("%s\n", string_value); 
-		input_value.input_type_ID = 3;
-	}
-	return input_value;
-}
-void set_parameter( struct generic_input_container value )
-{
-	std::map<std::string,unsigned int>::iterator map_iterator = switchmap.find(std::string(value.key));
-
-	int key_ID;
-	if(  map_iterator != switchmap.end() )
-		key_ID = map_iterator->second;
-	else
-		key_ID = -1;
-	//cout << "key_ID = " << key_ID << endl;
-	switch( key_ID )
-	{
-		//case 1:
-		//	INPUT_DIRECTORY = value.string_input;
-		//	//printf("it set to %s\n", input_directory );
-		//	puts("1");
-		//	break;
-		//case 2:
-		//	OUTPUT_DIRECTORY = value.string_input;
-		//	puts("2");
-		//	break;
-		//case 3:
-		//	INPUT_FOLDER = value.string_input;
-		//	puts("3");
-		//	break;
-		//case 4:
-		//	OUTPUT_FOLDER = value.string_input;
-		//	puts("4");
-		//	break;
-		//case 5:
-		//	INPUT_BASE_NAME = value.string_input;
-		//	puts("5");
-		//	break;
-		//case 6:
-		//	FILE_EXTENSION = value.string_input;
-		//	puts("6");
-		//	break;
-		//case 7:
-		//	GANTRY_ANGLES = value.integer_input;
-		//	puts("7");
-		//	break;
-		//case 8:
-		//	NUM_SCANS = value.integer_input;
-		//	puts("8");
-		//	break;
-		//case 9:
-		//	SSD_T_SIZE = value.double_input;
-		//	puts("9");
-		//	break;
-		//case 10:
-		//	SSD_V_SIZE = value.double_input;
-		//	puts("10");
-		//	break;
-		//case 11:
-		//	T_SHIFT = value.double_input;
-		//	puts("11");
-		//	break;
-		//case 12:
-		//	U_SHIFT = value.double_input;
-		//	puts("12");
-		//	break;
-		//case 13:
-		//	T_BIN_SIZE = value.double_input;
-		//	puts("13");
-		//	break;
-		//case 14:
-		//	T_BINS = value.integer_input;
-		//	puts("14");
-		//	break;
-		//case 15:
-		//	V_BIN_SIZE = value.double_input;
-		//	puts("15");
-		//	break;
-		//case 16:
-		//	V_BINS = value.integer_input;
-		//	puts("16");
-		//	break;
-		//case 17:
-		//	ANGULAR_BIN_SIZE = value.double_input;
-		//	puts("17");
-		//	break;
-		//case 18:
-		//	SIGMAS_TO_KEEP = value.integer_input;
-		//	puts("18");
-		//	break;
-		//case 19:
-		//	RECON_CYL_RADIUS = value.double_input;
-		//	puts("19");
-		//	break;
-		//case 20:
-		//	RECON_CYL_HEIGHT = value.double_input;
-		//	puts("20");
-		//	break;
-		//case 21:
-		//	IMAGE_WIDTH = value.double_input;
-		//	puts("21");
-		//	break;
-		//case 22:
-		//	IMAGE_HEIGHT = value.double_input;
-		//	puts("22");
-		//	break;
-		//case 23:
-		//	IMAGE_THICKNESS = value.double_input;
-		//	puts("23");
-		//	break;
-		//case 24:
-		//	COLUMNS = value.integer_input;
-		//	puts("24");
-		//	break;
-		//case 25:
-		//	ROWS = value.integer_input;
-		//	puts("25");
-		//	break;
-		//case 26:
-		//	SLICES = value.integer_input;
-		//	puts("26");
-		//	break;
-		//case 27:
-		//	VOXEL_WIDTH = value.double_input;
-		//	puts("29");
-		//	break;
-		//case 28:
-		//	VOXEL_HEIGHT = value.double_input;
-		//	puts("28");
-		//	break;
-		//case 29:
-		//	VOXEL_THICKNESS = value.double_input;
-		//	puts("30");
-		//	break;
-		case 30:
-			LAMBDA = value.double_input;
-			puts("30");
-			break;
-		case 31:
-			parameter = value.integer_input;
-			puts("31");
-			break;
-		default:
-			puts("invalid key specified");
-	};
-}
-void read_config_file()
-{		
-	FILE* input_file = fopen(CONFIG_DIRECTORY, "r" );
-	//input_file = fopen(CONFIG_DIRECTORY, "r" );
-	define_switchmap();
-	while( !feof(input_file) )
-	{
-		struct generic_input_container input_value = read_parameter(input_file);
-		printf("key = %s\n", input_value.key );
-		set_parameter( input_value );
-		//cout << input_value.specifier << endl;
-		if( input_value.input_type_ID == 1 )
-		{
-			cout << input_value.integer_input << endl;
-		}
-		else if( input_value.input_type_ID == 2 )
-		{
-			cout << input_value.double_input << endl;
-		}
-		else if( input_value.input_type_ID == 3 )
-		{
-			cout << input_value.string_input << endl;
-		}
-		else
-			puts("invalid type_ID");
-		
-		//pause_execution();
-	}
-	fclose(input_file);
-	//parameters_2_GPU();
-}
-void fill_parameter_struct()
-{
-	//parameter_container.INPUT_DIRECTORY_D = INPUT_DIRECTORY;
-	//parameter_container.OUTPUT_DIRECTORY_D = OUTPUT_DIRECTORY;
-	//parameter_container.INPUT_FOLDER_D = INPUT_FOLDER;
-	//parameter_container.OUTPUT_FOLDER_D = OUTPUT_FOLDER;
-	//parameter_container.INPUT_BASE_NAME_D = INPUT_BASE_NAME;
-	//parameter_container.FILE_EXTENSION_D = FILE_EXTENSION;
-	//parameter_container.GANTRY_ANGLES_D = GANTRY_ANGLES;
-	//parameter_container.NUM_SCANS_D = NUM_SCANS;
-	//parameter_container.SSD_T_SIZE_D = SSD_T_SIZE;
-	//parameter_container.SSD_V_SIZE_D = SSD_V_SIZE;
-	//parameter_container.T_SHIFT_D = T_SHIFT;
-	//parameter_container.U_SHIFT_D = U_SHIFT;
-	//parameter_container.T_BIN_SIZE_D = T_BIN_SIZE;
-	//parameter_container.T_BINS_D = T_BINS;
-	//parameter_container.V_BIN_SIZE_D = V_BIN_SIZE;
-	//parameter_container.V_BINS_D = V_BINS;
-	//parameter_container.ANGULAR_BIN_SIZE_D = ANGULAR_BIN_SIZE;
-	//parameter_container.SIGMAS_TO_KEEP_D = SIGMAS_TO_KEEP;
-	//parameter_container.RECON_CYL_RADIUS_D = RECON_CYL_RADIUS;
-	//parameter_container.RECON_CYL_HEIGHT_D = RECON_CYL_HEIGHT;
-	//parameter_container.IMAGE_WIDTH_D = IMAGE_WIDTH;
-	//parameter_container.IMAGE_HEIGHT_D = IMAGE_HEIGHT;
-	//parameter_container.IMAGE_THICKNESS_D = IMAGE_THICKNESS;
-	//parameter_container.COLUMNS_D = COLUMNS;
-	//parameter_container.ROWS_D = ROWS;
-	//parameter_container.SLICES_D = SLICES;
-	//parameter_container.VOXEL_WIDTH_D = VOXEL_WIDTH;
-	//parameter_container.VOXEL_HEIGHT_D = VOXEL_HEIGHT;
-	//parameter_container.VOXEL_THICKNESS_D = VOXEL_THICKNESS;
-	//parameter_container.LAMBDA_D = LAMBDA;
-	//parameter_container.parameter_D = parameter;
-}
-void parameters_2_GPU()
-{
-	double* x = (double*) calloc(1, sizeof(double) );
-	double* x_d;
-	cudaMalloc((void**) &x_d, sizeof(double));
-	cudaMemcpy( x_d, x, sizeof(double), cudaMemcpyHostToDevice);
-	printf("parameters_h = %3f\n", parameters_h->lambda);
-
-	cudaMalloc((void**) &parameters_d,			sizeof(parameters) );
-	cudaMemcpy( parameters_d,			parameters_h,			sizeof(parameters),		cudaMemcpyHostToDevice );
-
-	dim3 dimBlock( 1 );
-	dim3 dimGrid( 1 );   	
-	//test_func_GPU<<< dimGrid, dimBlock >>>( parameters_d, x_d );
-
-	cudaMemcpy( x, x_d, sizeof(double), cudaMemcpyDeviceToHost);
-	printf("xs[0] = %3f\n", x[0]);
-}
 void test_func()
 {
-	read_config_file();
+	char filename[256];
+	char* name = "FBP_med7";
+	sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, name, ".bin" );
+	float* image = (float*)calloc( NUM_VOXELS, sizeof(float));
+	import_image( image, filename );
+	array_2_disk( name, OUTPUT_DIRECTORY, OUTPUT_FOLDER, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	//read_config_file();
 	//double voxels[4] = {1,2,3,4};
 	//std::copy( x_hull_h, x_hull_h + NUM_VOXELS, x_h );
 	//std::function<double(int, int)> fn1 = my_divide;                    // function
@@ -6392,7 +6871,7 @@ void test_func()
 	//	//cout << x[i] << endl; // -8.0
 	//	//cout << y[i] << endl;
 	//	//cout << z[i] << endl;
-	//}a
+	//}
 }
 void test_func2( std::vector<int>& bin_numbers, std::vector<double>& data )
 {
@@ -6679,6 +7158,50 @@ void test_func2( std::vector<int>& bin_numbers, std::vector<double>& data )
 	//for( unsigned int i = 0; i < angular_bins.size(); i++ )
 	//	std::cout << angular_bins[i] << std::endl;
 	//int angles[] = {32,120,212};
+}
+void test_transfer()
+{
+	unsigned int N_x = 4;
+	unsigned int N_y = 4;
+	unsigned int N_z = 4;
+
+	double* x = (double*) calloc(N_x, sizeof(double) );
+	double* y = (double*) calloc(N_y, sizeof(double) );
+	double* z = (double*) calloc(N_z, sizeof(double) );
+
+	double* x_d, *y_d, *z_d;
+
+	cudaMalloc((void**) &x_d, N_x*sizeof(double));
+	cudaMalloc((void**) &y_d, N_y*sizeof(double));
+	cudaMalloc((void**) &z_d, N_z*sizeof(double));
+
+	cudaMemcpy( x_d, x, N_x*sizeof(double), cudaMemcpyHostToDevice);
+	cudaMemcpy( y_d, y, N_y*sizeof(double), cudaMemcpyHostToDevice);
+	cudaMemcpy( z_d, z, N_z*sizeof(double), cudaMemcpyHostToDevice);
+
+	dim3 dimBlock( 1 );
+	dim3 dimGrid( 1 );   	
+	test_func_device<<< dimGrid, dimBlock >>>( x_d, y_d, z_d );
+
+	cudaMemcpy( x, x_d, N_x*sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy( y, y_d, N_y*sizeof(double), cudaMemcpyDeviceToHost);
+	cudaMemcpy( z, z_d, N_z*sizeof(double), cudaMemcpyDeviceToHost);
+
+	for( unsigned int i = 0; i < N_x; i++)
+	{
+		printf("%3f\n", x[i] );
+		printf("%3f\n", y[i] );
+		printf("%3f\n", z[i] );
+		//cout << x[i] << endl; // -8.0
+		//cout << y[i] << endl;
+		//cout << z[i] << endl;
+	}
+}
+void test_transfer_GPU(double* x, double* y, double* z)
+{
+	//x = 2;
+	//y = 3;
+	//z = 4;
 }
 __global__ void test_func_device( double* x, double* y, double* z )
 {
