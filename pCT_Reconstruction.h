@@ -125,12 +125,13 @@ ULL PRIME_OFFSET = 5038457;
 /***************************************************************************************************************************************************************************/
 /********************************************************************* Execution and early exit options ********************************************************************/
 /***************************************************************************************************************************************************************************/
-const bool RUN_ON				= true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
-const bool EXIT_AFTER_BINNING	= false;									// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_HULLS		= false;									// Exit program early after completing hull-detection
-const bool EXIT_AFTER_CUTS		= false;									// Exit program early after completing statistical cuts
-const bool EXIT_AFTER_SINOGRAM	= false;									// Exit program early after completing the construction of the sinogram
-const bool EXIT_AFTER_FBP		= true;									// Exit program early after completing FBP
+const bool RUN_ON					= true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
+const bool EXIT_AFTER_RECON_CUTS	= false;									// Exit program early after completing data read and initial processing
+const bool EXIT_AFTER_BINNING		= false;									// Exit program early after completing data read and initial processing
+const bool EXIT_AFTER_HULLS			= false;									// Exit program early after completing hull-detection
+const bool EXIT_AFTER_CUTS			= false;									// Exit program early after completing statistical cuts
+const bool EXIT_AFTER_SINOGRAM		= false;									// Exit program early after completing the construction of the sinogram
+const bool EXIT_AFTER_FBP			= true;									// Exit program early after completing FBP
 /***************************************************************************************************************************************************************************/
 /********************************************************************** Preprocessing option parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -160,8 +161,8 @@ const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 201
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
-const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
-const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
+//const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
+//const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
 //const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordInf";
 //const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordInf";
 //const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordSup";
@@ -174,8 +175,8 @@ const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
 //const char OUTPUT_FOLDER[]	   = "PedHead-july";
 //const char INPUT_FOLDER[]	   = "output_ESFPhant";
 //const char OUTPUT_FOLDER[]	   = "output_ESFPhant";
-//const char INPUT_FOLDER[]	   = "input_CTP404";
-//const char OUTPUT_FOLDER[]	   = "input_CTP404";
+const char INPUT_FOLDER[]	   = "input_CTP404";
+const char OUTPUT_FOLDER[]	   = "input_CTP404";
 //const char INPUT_FOLDER[]	   = "input_water_GeantNONUC";
 //const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
 //const char INPUT_FOLDER[]	   = "input_water_Geant500000";
@@ -274,8 +275,8 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 /************************************************************* Host/GPU computation and structure information **************************************************************/
 /***************************************************************************************************************************************************************************/
 #define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
-#define MAX_GPU_HISTORIES		2800000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
-#define MAX_CUTS_HISTORIES		500000
+#define MAX_GPU_HISTORIES		1200000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_CUTS_HISTORIES		900000
 #define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
 /***************************************************************************************************************************************************************************/
 /**************************************** Scanning and detector system	(source distance, tracking plane dimensions) parameters ********************************************/
@@ -285,8 +286,8 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 #define GANTRY_ANGLES			int( 360 / GANTRY_ANGLE_INTERVAL )		// [#] Total number of projection angles
 #define NUM_SCANS				1										// [#] Total number of scans
 #define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
-#define SSD_T_SIZE				18.0									// [cm] Length of SSD in t (lateral) direction
-#define SSD_V_SIZE				11.0										// [cm] Length of SSD in v (vertical) direction
+#define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
+#define SSD_V_SIZE				9.0										// [cm] Length of SSD in v (vertical) direction
 /***************************************************************************************************************************************************************************/
 /************************************************* Binning (for statistical analysis) and sinogram (for FBP) parameters ****************************************************/
 /***************************************************************************************************************************************************************************/
