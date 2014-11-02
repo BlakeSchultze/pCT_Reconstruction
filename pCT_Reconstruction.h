@@ -143,7 +143,7 @@ const bool IMPORT_FILTERED_FBP			= false;
 const bool SC_ON						= false;							// Turn Space Carving on (T) or off (F)
 const bool MSC_ON						= true;								// Turn Modified Space Carving on (T) or off (F)
 const bool SM_ON						= false;							// Turn Space Modeling on (T) or off (F)
-const bool AVG_FILTER_HULL				= true;								// Apply averaging filter to hull (T) or not (F)
+const bool AVG_FILTER_HULL				= false;								// Apply averaging filter to hull (T) or not (F)
 const bool COUNT_0_WEPLS				= false;							// Count the number of histories with WEPL = 0 (T) or not (F)
 const bool REALLOCATE					= false;
 const bool MLP_FILE_EXISTS				= false;
@@ -160,8 +160,14 @@ const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 201
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
-const char INPUT_FOLDER[]	   = "CTP404_4M";
-const char OUTPUT_FOLDER[]	   = "CTP404_4M";
+const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
+const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
+//const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordInf";
+//const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordInf";
+//const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordSup";
+//const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordSup";
+//const char INPUT_FOLDER[]	   = "CTP404_4M";
+//const char OUTPUT_FOLDER[]	   = "CTP404_4M";
 //const char INPUT_FOLDER[]	   = "output_HeadPhantom";
 //const char OUTPUT_FOLDER[]	   = "output_HeadPhantom";
 //const char INPUT_FOLDER[]	   = "PedHead-july";
@@ -268,7 +274,8 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 /************************************************************* Host/GPU computation and structure information **************************************************************/
 /***************************************************************************************************************************************************************************/
 #define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
-#define MAX_GPU_HISTORIES		1500000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_GPU_HISTORIES		2800000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_CUTS_HISTORIES		500000
 #define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
 /***************************************************************************************************************************************************************************/
 /**************************************** Scanning and detector system	(source distance, tracking plane dimensions) parameters ********************************************/
@@ -278,19 +285,20 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 #define GANTRY_ANGLES			int( 360 / GANTRY_ANGLE_INTERVAL )		// [#] Total number of projection angles
 #define NUM_SCANS				1										// [#] Total number of scans
 #define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
-#define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
-#define SSD_V_SIZE				9.0										// [cm] Length of SSD in v (vertical) direction
+#define SSD_T_SIZE				18.0									// [cm] Length of SSD in t (lateral) direction
+#define SSD_V_SIZE				11.0										// [cm] Length of SSD in v (vertical) direction
 /***************************************************************************************************************************************************************************/
 /************************************************* Binning (for statistical analysis) and sinogram (for FBP) parameters ****************************************************/
 /***************************************************************************************************************************************************************************/
 #define T_SHIFT					0.0										// [cm] Amount by which to shift all t coordinates on input
-#define U_SHIFT					0.0										// [cm] Amount by which to shift all v coordinates on input
+#define U_SHIFT					0.0										// [cm] Amount by which to shift all u coordinates on input
+#define V_SHIFT					0.0									// [cm] Amount by which to shift all v coordinates on input
 //#define T_SHIFT				   2.05									// [cm] Amount by which to shift all t coordinates on input
-//#define U_SHIFT				   -0.16								// [cm] Amount by which to shift all v coordinates on input
-#define T_BIN_SIZE				0.05										// [cm] Distance between adjacent bins in t (lateral) direction
+//#define U_SHIFT				   -0.16								// [cm] Amount by which to shift all u coordinates on input
+#define T_BIN_SIZE				0.1									// [cm] Distance between adjacent bins in t (lateral) direction
 #define T_BINS					int( SSD_T_SIZE / T_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
-#define V_BIN_SIZE				0.125									// [cm] Distance between adjacent bins in v (vertical) direction
-#define V_BINS					int( SSD_V_SIZE / V_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
+#define V_BIN_SIZE				0.25									// [cm] Distance between adjacent bins in v (vertical) direction
+#define V_BINS					int( SSD_V_SIZE/ V_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
 #define ANGULAR_BIN_SIZE		4.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
 #define ANGULAR_BINS			int( 360 / ANGULAR_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for path angle 
 #define NUM_BINS				( ANGULAR_BINS * T_BINS * V_BINS )		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
@@ -333,7 +341,7 @@ const unsigned int FBP_MEDIAN_RADIUS = 3;
 /***************************************************************************************************************************************************************************/
 #define MSC_DIFF_THRESH			50										// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
 #define SC_THRESHOLD			0.0										// [cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
-#define MSC_THRESHOLD			0.0										// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
+#define MSC_THRESHOLD			0.0									// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
 #define SM_LOWER_THRESHOLD		6.0										// [cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
 #define SM_UPPER_THRESHOLD		21.0									// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
 #define SM_SCALE_THRESHOLD		1.0										// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity

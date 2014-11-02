@@ -50,8 +50,9 @@ void read_energy_responses( const int, const int, const int );
 void read_data_chunk( const int, const int, const int );
 void read_data_chunk_old( const int, const int, const int );
 void read_data_chunk_v0( const int, const int, const int );
+void read_data_chunk_v02( const int, const int, const int );
 void read_data_chunk_v1( const int, const int, const int );
-void apply_tu_shifts( unsigned int );
+void apply_tuv_shifts( unsigned int );
 void convert_mm_2_cm( unsigned int );
 void recon_volume_intersections( const int );
 void binning( const int );
@@ -274,6 +275,7 @@ int main(unsigned int argc, char** argv)
 		initializations();				// allocate and initialize host and GPU memory for statistical
 		count_histories();				// count the number of histories per file, per scan, total, etc.
 		reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
+		
 		/********************************************************************************************************************************************************/
 		/* Reading the 16 energy detector responses for each of the 5 stages and generate single energy response for each history								*/
 		/********************************************************************************************************************************************************/
@@ -322,6 +324,7 @@ int main(unsigned int argc, char** argv)
 			initial_processing_memory_clean();
 			start_file_num = end_file_num;
 			histories_to_process = 0;
+			//pause_execution();
 		}
 		if( COUNT_0_WEPLS )
 			std::cout << "Histories with WEPL = 0 : " << zero_WEPL << std::endl;
@@ -341,6 +344,23 @@ int main(unsigned int argc, char** argv)
 		/* Calculate the mean WEPL, relative ut-angle, and relative uv-angle for each bin and count the number of histories in each bin							*/											
 		/********************************************************************************************************************************************************/
 		calculate_means();
+		//for( int i = 0; i < 10; i++ )
+		//{
+		//	cout << bin_num_vector[i] << endl;
+		//		//cout << gantry_angle_vector[i] << endl;
+		//	cout << 	WEPL_vector[i] << endl;
+		//	cout << 	x_entry_vector[i] << endl;
+		//	cout << 	y_entry_vector[i] << endl;
+		//	cout << 	z_entry_vector[i] << endl;
+		//	cout << 	x_exit_vector[i]	 << endl;
+		//	cout << 	y_exit_vector[i] << endl;	
+		//	cout << 	z_exit_vector[i]	 << endl;
+		//	cout << 	xy_entry_angle_vector[i] << endl;
+		//	cout << 	xz_entry_angle_vector[i] << endl;
+		//	cout << 	xy_exit_angle_vector[i] << endl;
+		//	cout << 	xz_exit_angle_vector[i] << endl;
+		//}
+		//pause_execution();
 		initialize_stddev();
 		/********************************************************************************************************************************************************/
 		/* Calculate the standard deviation in WEPL, relative ut-angle, and relative uv-angle for each bin.  Iterate through the valid history std::vectors one	*/
@@ -353,13 +373,13 @@ int main(unsigned int argc, char** argv)
 		int start_position = 0;
 		while( remaining_histories > 0 )
 		{
-			if( remaining_histories > MAX_GPU_HISTORIES )
-				histories_to_process = MAX_GPU_HISTORIES;
+			if( remaining_histories > MAX_CUTS_HISTORIES )
+				histories_to_process = MAX_CUTS_HISTORIES;
 			else
 				histories_to_process = remaining_histories;
 			sum_squared_deviations( start_position, histories_to_process );
-			remaining_histories -= MAX_GPU_HISTORIES;
-			start_position		+= MAX_GPU_HISTORIES;
+			remaining_histories -= MAX_CUTS_HISTORIES;
+			start_position		+= MAX_CUTS_HISTORIES;
 		} 
 		calculate_standard_deviations();
 		/********************************************************************************************************************************************************/
@@ -373,13 +393,13 @@ int main(unsigned int argc, char** argv)
 		remaining_histories = recon_vol_histories, start_position = 0;
 		while( remaining_histories > 0 )
 		{
-			if( remaining_histories > MAX_GPU_HISTORIES )
-				histories_to_process = MAX_GPU_HISTORIES;
+			if( remaining_histories > MAX_CUTS_HISTORIES )
+				histories_to_process = MAX_CUTS_HISTORIES;
 			else
 				histories_to_process = remaining_histories;
 			statistical_cuts( start_position, histories_to_process );
-			remaining_histories -= MAX_GPU_HISTORIES;
-			start_position		+= MAX_GPU_HISTORIES;
+			remaining_histories -= MAX_CUTS_HISTORIES;
+			start_position		+= MAX_CUTS_HISTORIES;
 		}
 		puts("Statistical cuts complete.");
 		printf("%d out of %d (%4.2f%%) histories also passed statistical cuts\n", post_cut_histories, total_histories, (double) post_cut_histories / total_histories * 100  );
@@ -390,11 +410,29 @@ int main(unsigned int argc, char** argv)
 		resize_vectors( post_cut_histories );
 		shrink_vectors( post_cut_histories );
 		exit_program_if( EXIT_AFTER_CUTS );
+
 		/********************************************************************************************************************************************************/
 		/* Recalculate the mean WEPL for each bin using	the histories remaining after cuts and use these to produce the sinogram								*/
 		/********************************************************************************************************************************************************/
 		construct_sinogram();
 		exit_program_if( EXIT_AFTER_SINOGRAM );
+		//for( int i = post_cut_histories-10; i < post_cut_histories; i++ )
+		//{
+		//	cout << bin_num_vector[i] << endl;
+		//		//cout << gantry_angle_vector[i] << endl;
+		//	cout << 	WEPL_vector[i] << endl;
+		//	cout << 	x_entry_vector[i] << endl;
+		//	cout << 	y_entry_vector[i] << endl;
+		//	cout << 	z_entry_vector[i] << endl;
+		//	cout << 	x_exit_vector[i]	 << endl;
+		//	cout << 	y_exit_vector[i] << endl;	
+		//	cout << 	z_exit_vector[i]	 << endl;
+		//	cout << 	xy_entry_angle_vector[i] << endl;
+		//	cout << 	xz_entry_angle_vector[i] << endl;
+		//	cout << 	xy_exit_angle_vector[i] << endl;
+		//	cout << 	xz_exit_angle_vector[i] << endl;
+		//}
+		//pause_execution();
 		/********************************************************************************************************************************************************/
 		/* Perform filtered backprojection and write FBP hull to disk																							*/
 		/********************************************************************************************************************************************************/
@@ -847,6 +885,12 @@ void initializations()
 	mean_rel_ut_angle_h	  = (float*) calloc( NUM_BINS, sizeof(float) );
 	mean_rel_uv_angle_h	  = (float*) calloc( NUM_BINS, sizeof(float) );
 	
+	if( ( bin_counts_h == NULL ) || (mean_WEPL_h == NULL) || (mean_rel_ut_angle_h == NULL) || (mean_rel_uv_angle_h == NULL) )
+	{
+		puts("std dev allocation error\n");
+		exit(1);
+	}
+
 	cudaMalloc((void**) &bin_counts_d,			SIZE_BINS_INT );
 	cudaMalloc((void**) &mean_WEPL_d,			SIZE_BINS_FLOAT );
 	cudaMalloc((void**) &mean_rel_ut_angle_d,	SIZE_BINS_FLOAT );
@@ -929,7 +973,11 @@ void initialize_stddev()
 	stddev_rel_ut_angle_h = (float*) calloc( NUM_BINS, sizeof(float) );	
 	stddev_rel_uv_angle_h = (float*) calloc( NUM_BINS, sizeof(float) );	
 	stddev_WEPL_h		  = (float*) calloc( NUM_BINS, sizeof(float) );
-
+	if( ( stddev_rel_ut_angle_h == NULL ) || (stddev_rel_uv_angle_h == NULL) || (stddev_WEPL_h == NULL) )
+	{
+		puts("std dev allocation error\n");
+		exit(1);
+	}
 	cudaMalloc((void**) &stddev_rel_ut_angle_d,	SIZE_BINS_FLOAT );
 	cudaMalloc((void**) &stddev_rel_uv_angle_d,	SIZE_BINS_FLOAT );
 	cudaMalloc((void**) &stddev_WEPL_d,			SIZE_BINS_FLOAT );
@@ -1492,7 +1540,7 @@ void convert_mm_2_cm( unsigned int num_histories )
 		zero_WEPL_files = 0;
 	}
 }
-void apply_tu_shifts( unsigned int num_histories)
+void apply_tuv_shifts( unsigned int num_histories)
 {
 	for( unsigned int i = 0; i < num_histories; i++ ) 
 	{
@@ -1505,6 +1553,10 @@ void apply_tu_shifts( unsigned int num_histories)
 		u_in_2_h[i]	 += U_SHIFT;
 		u_out_1_h[i] += U_SHIFT;
 		u_out_2_h[i] += U_SHIFT;
+		v_in_1_h[i]	 += V_SHIFT;
+		v_in_2_h[i]	 += V_SHIFT;
+		v_out_1_h[i] += V_SHIFT;
+		v_out_2_h[i] += V_SHIFT;
 		if( WRITE_SSD_ANGLES )
 		{
 			ut_entry_angle[i] = atan2( t_in_2_h[i] - t_in_1_h[i], u_in_2_h[i] - u_in_1_h[i] );	
@@ -1740,8 +1792,8 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 	}
 	if( DATA_IN_MM )
 		convert_mm_2_cm( num_histories );
-	if( T_SHIFT != 0.0	||  U_SHIFT != 0.0 )
-		apply_tu_shifts( num_histories );
+	if( T_SHIFT != 0.0	||  U_SHIFT != 0.0 ||  V_SHIFT != 0.0)
+		apply_tuv_shifts( num_histories );
 }
 void read_data_chunk_v02( const int num_histories, const int start_file_num, const int end_file_num )
 {
@@ -1847,6 +1899,10 @@ void read_data_chunk_v02( const int num_histories, const int start_file_num, con
 			data_file.read((char*)&u_out_2_h[histories_read], data_size);
 			data_file.read((char*)&WEPL_h[histories_read], data_size);
 	
+			double max_v = 0;
+			double min_v = 0;
+			double max_WEPL = 0;
+			double min_WEPL = 0;
 			//float v_data[4], t_data[4], WEPL_data, gantry_angle_data, dummy_data;
 			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
 			{
@@ -1862,19 +1918,47 @@ void read_data_chunk_v02( const int num_histories, const int start_file_num, con
 					t_out_1_h[array_index]	*= MM_TO_CM; 
 					t_out_2_h[array_index]	*= MM_TO_CM;
 					WEPL_h[array_index]		*= MM_TO_CM;
-					if( WEPL_h[array_index] < 0 )
-						printf("WEPL[%d] = %3f\n", i, WEPL_h[array_index] );
+					//if( WEPL_h[array_index] < 0 )
+						//printf("WEPL[%d] = %3f\n", i, WEPL_h[array_index] );
 					u_in_1_h[array_index]		*= MM_TO_CM;
 					u_in_2_h[array_index]		*= MM_TO_CM;
 					u_out_1_h[array_index]	*= MM_TO_CM;
 					u_out_2_h[array_index]	*= MM_TO_CM;
+					if( (v_in_1_h[array_index]) > max_v )
+						max_v = v_in_1_h[array_index];
+					if( (v_in_2_h[array_index]) > max_v )
+						max_v = v_in_2_h[array_index];
+					if( (v_out_1_h[array_index]) > max_v )
+						max_v = v_out_1_h[array_index];
+					if( (v_out_2_h[array_index]) > max_v )
+						max_v = v_out_2_h[array_index];
+					
+					if( (v_in_1_h[array_index]) < min_v )
+						min_v = v_in_1_h[array_index];
+					if( (v_in_2_h[array_index]) < min_v )
+						min_v = v_in_2_h[array_index];
+					if( (v_out_1_h[array_index]) < min_v )
+						min_v = v_out_1_h[array_index];
+					if( (v_out_2_h[array_index]) < min_v )
+						min_v = v_out_2_h[array_index];
+
+					if( (WEPL_h[array_index]) > max_WEPL )
+						max_WEPL = WEPL_h[array_index];
+					if( (WEPL_h[array_index]) < min_WEPL )
+						min_WEPL = WEPL_h[array_index];
 				}
-				gantry_angle_h[array_index] = int(projection_angle);
+				gantry_angle_h[array_index] = (int(projection_angle) + 270)%360;
 			}
+			//printf("max_v = %3f\n", max_v );
+			//printf("min_v = %3f\n", min_v );
+			printf("max_WEPL = %3f\n", max_WEPL );
+			printf("min_WEPL = %3f\n", min_WEPL );
 			data_file.close();
 			histories_read += file_histories;
 		}
 	}
+	//printf("gantry_angle_h[0] = %d\n", gantry_angle_h[0] );
+	//printf("t_in_1_h[0] = %3f\n", t_in_1_h[0] );
 }
 void read_data_chunk_v1( const int num_histories, const int start_file_num, const int end_file_num )
 {
@@ -2153,6 +2237,7 @@ __global__ void recon_volume_intersections_GPU
 		/* between [45,135] or [225,315], calculations are performed in a rotated coordinate system to avoid these numerical issues								*/
 		/********************************************************************************************************************************************************/
 		double ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );
+		//ut_entry_angle += PI;
 		double u_entry, t_entry;
 		
 		// Calculate if and where proton enters reconstruction volume; u_entry/t_entry passed by reference so they hold the entry point upon function returns
@@ -2352,7 +2437,7 @@ void binning( const int num_histories )
 	cudaMalloc((void**) &bin_num_d,	size_ints );
 
 	cudaMemcpy( WEPL_d,		WEPL_h,		size_floats,	cudaMemcpyHostToDevice) ;
-	//cudaMemcpy( bin_num_d,	bin_num_h,	size_ints,		cudaMemcpyHostToDevice );
+	cudaMemcpy( bin_num_d,	bin_num_h,	size_ints,		cudaMemcpyHostToDevice );
 
 	dim3 dimBlock( THREADS_PER_BLOCK );
 	dim3 dimGrid( (int)( num_histories/THREADS_PER_BLOCK ) + 1 );
@@ -2526,6 +2611,9 @@ __global__ void binning_GPU
 void calculate_means()
 {
 	puts("Calculating the Mean for Each Bin Before Cuts...");
+	//cudaMemcpy( mean_WEPL_h,	mean_WEPL_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
+	//	int* empty_parameter;
+	//	bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
 
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
@@ -2540,15 +2628,16 @@ void calculate_means()
 		int* empty_parameter;
 		bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
 	}
-	//cudaMemcpy( bin_counts_h,	bin_counts_d,	SIZE_BINS_INT, cudaMemcpyDeviceToHost );
-	//cudaMemcpy( mean_WEPL_h,	mean_WEPL_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
-	//cudaMemcpy( mean_rel_ut_angle_h,	mean_rel_ut_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
-	//cudaMemcpy( mean_rel_uv_angle_h,	mean_rel_uv_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
+	bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
+	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
+	cudaMemcpy( mean_WEPL_h,	mean_WEPL_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
+	cudaMemcpy( mean_rel_ut_angle_h,	mean_rel_ut_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
+	cudaMemcpy( mean_rel_uv_angle_h,	mean_rel_uv_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 
-	//array_2_disk("bin_counts_h_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	//array_2_disk("mean_WEPL_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	//array_2_disk("mean_rel_ut_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	//array_2_disk("mean_rel_uv_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("bin_counts_h_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("mean_WEPL_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("mean_rel_ut_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("mean_rel_uv_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	free(bin_counts_h);
 	free(mean_WEPL_h);
@@ -2586,6 +2675,7 @@ void sum_squared_deviations( const int start_position, const int num_histories )
 	cudaMemcpy( xz_entry_angle_d,		&xz_entry_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
 	cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
 	cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
+
 
 	//cudaMemcpy( bin_num_d,				&bin_num[start_position],			size_ints, cudaMemcpyHostToDevice);
 	//cudaMemcpy( WEPL_d,					&WEPL[start_position],				size_floats, cudaMemcpyHostToDevice);
@@ -2647,13 +2737,20 @@ void calculate_standard_deviations()
 	( 
 		bin_counts_d, stddev_WEPL_d, stddev_rel_ut_angle_d, stddev_rel_uv_angle_d
 	);
+	cudaMemcpy( stddev_rel_ut_angle_h,	stddev_rel_ut_angle_h,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
+	cudaMemcpy( stddev_rel_uv_angle_h,	stddev_rel_uv_angle_h,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
+	cudaMemcpy( stddev_WEPL_h,			stddev_WEPL_d,			SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
+
+	array_2_disk("stddev_rel_ut_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("stddev_rel_uv_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("stddev_WEPL_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	//cudaFree( bin_counts_d );
 }
 __global__ void calculate_standard_deviations_GPU( int* bin_counts, float* stddev_WEPL, float* stddev_rel_ut_angle, float* stddev_rel_uv_angle )
 {
 	int v = blockIdx.x, angle = blockIdx.y, t = threadIdx.x;
 	int bin = t + angle * T_BINS + v * T_BINS * ANGULAR_BINS;
-	if( bin_counts[bin] > 0 )
+	if( bin_counts[bin] > 1 )
 	{
 		// SAMPLE_STD_DEV = true/false = 1/0 => std_dev = SUM{i = 1 -> N} [ ( mu - x_i)^2 / ( N - 1/0 ) ]
 		stddev_WEPL[bin] = sqrtf( stddev_WEPL[bin] / ( bin_counts[bin] - SAMPLE_STD_DEV ) );		
@@ -2779,7 +2876,8 @@ __global__ void statistical_cuts_GPU
 		if( rel_uv_angle < -PI )
 			rel_uv_angle += 2 * PI;
 		bool passed_ut_cut = ( abs( rel_ut_angle - mean_rel_ut_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_ut_angle[bin_num[i]] ) );
-		bool passed_uv_cut = ( abs( rel_uv_angle - mean_rel_uv_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_uv_angle[bin_num[i]] ) );
+		//bool passed_uv_cut = ( abs( rel_uv_angle - mean_rel_uv_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_uv_angle[bin_num[i]] ) );
+		bool passed_uv_cut = true;
 		bool passed_WEPL_cut = ( abs( mean_WEPL[bin_num[i]] - WEPL[i] ) <= ( SIGMAS_TO_KEEP * stddev_WEPL[bin_num[i]] ) );
 		failed_cuts[i] = !passed_ut_cut || !passed_uv_cut || !passed_WEPL_cut;
 
@@ -2797,12 +2895,23 @@ void initialize_sinogram()
 {
 	puts("Allocating host/GPU memory and initializing sinogram...");
 	sinogram_h = (float*) calloc( NUM_BINS, sizeof(float) );
+	if( sinogram_h == NULL )
+	{
+		puts("ERROR: Memory allocation for sinogram_filtered_h failed.");
+		exit(1);
+	}
 	cudaMalloc((void**) &sinogram_d, SIZE_BINS_FLOAT );
-	cudaMemcpy( sinogram_d,	sinogram_h,	SIZE_BINS_FLOAT, cudaMemcpyHostToDevice );	
+	cudaMemcpy( sinogram_d ,	sinogram_h,	SIZE_BINS_FLOAT, cudaMemcpyHostToDevice );	
 }
 void construct_sinogram()
 {
 	puts("Recalculating the mean WEPL for each bin and constructing the sinogram...");
+	bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
+	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
+	array_2_disk( "bin_counts_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+
+	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
+	array_2_disk("sinogram_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
 	construct_sinogram_GPU<<< dimGrid, dimBlock >>>( bin_counts_d, sinogram_d );
@@ -2813,12 +2922,11 @@ void construct_sinogram()
 		int* empty_parameter;
 		bins_2_disk( "WEPL_dist_post_test2", empty_parameter, sinogram_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
 	}
-	//cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
-	//array_2_disk("sinogram", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
+	array_2_disk("sinogram", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 
-	//bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
-	//cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
-	//array_2_disk( "bin_counts_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
+	array_2_disk( "bin_counts_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	cudaFree(bin_counts_d);
 }
 __global__ void construct_sinogram_GPU( int* bin_counts, float* sinogram )
@@ -2933,6 +3041,11 @@ void filter()
 	puts("Filtering the sinogram...");	
 
 	sinogram_filtered_h = (float*) calloc( NUM_BINS, sizeof(float) );
+	if( sinogram_filtered_h == NULL )
+	{
+		puts("ERROR: Memory allocation for sinogram_filtered_h failed.");
+		exit(1);
+	}
 	cudaMalloc((void**) &sinogram_filtered_d, SIZE_BINS_FLOAT);
 	cudaMemcpy( sinogram_filtered_d, sinogram_filtered_h, SIZE_BINS_FLOAT, cudaMemcpyHostToDevice);
 
