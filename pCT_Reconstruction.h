@@ -120,18 +120,18 @@ double* voxel_scales;
 
 // CTP_404M
 // 20153778: 5038452-> 5038457										// r=1
+//ULL NUM_RECON_HISTORIES = 20574733
 ULL NUM_RECON_HISTORIES = 20153778;
 ULL PRIME_OFFSET = 5038457;
 /***************************************************************************************************************************************************************************/
 /********************************************************************* Execution and early exit options ********************************************************************/
 /***************************************************************************************************************************************************************************/
-const bool RUN_ON					= true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
-const bool EXIT_AFTER_RECON_CUTS	= false;									// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_BINNING		= false;									// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_HULLS			= false;									// Exit program early after completing hull-detection
-const bool EXIT_AFTER_CUTS			= false;									// Exit program early after completing statistical cuts
-const bool EXIT_AFTER_SINOGRAM		= false;									// Exit program early after completing the construction of the sinogram
-const bool EXIT_AFTER_FBP			= true;									// Exit program early after completing FBP
+const bool RUN_ON				= true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
+const bool EXIT_AFTER_BINNING	= false;									// Exit program early after completing data read and initial processing
+const bool EXIT_AFTER_HULLS		= false;									// Exit program early after completing hull-detection
+const bool EXIT_AFTER_CUTS		= false;									// Exit program early after completing statistical cuts
+const bool EXIT_AFTER_SINOGRAM	= false;									// Exit program early after completing the construction of the sinogram
+const bool EXIT_AFTER_FBP		= false;									// Exit program early after completing FBP
 /***************************************************************************************************************************************************************************/
 /********************************************************************** Preprocessing option parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -142,9 +142,9 @@ const bool AVG_FILTER_FBP				= false;							// Apply averaging filter to initial
 const bool MEDIAN_FILTER_FBP			= false; 
 const bool IMPORT_FILTERED_FBP			= false;
 const bool SC_ON						= false;							// Turn Space Carving on (T) or off (F)
-const bool MSC_ON						= false;								// Turn Modified Space Carving on (T) or off (F)
+const bool MSC_ON						= true;								// Turn Modified Space Carving on (T) or off (F)
 const bool SM_ON						= false;							// Turn Space Modeling on (T) or off (F)
-const bool AVG_FILTER_HULL				= false;								// Apply averaging filter to hull (T) or not (F)
+const bool AVG_FILTER_HULL				= true;								// Apply averaging filter to hull (T) or not (F)
 const bool COUNT_0_WEPLS				= false;							// Count the number of histories with WEPL = 0 (T) or not (F)
 const bool REALLOCATE					= false;
 const bool MLP_FILE_EXISTS				= false;
@@ -161,10 +161,12 @@ const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 201
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
+const char INPUT_FOLDER[]	   = "my_merged";
+const char OUTPUT_FOLDER[]	   = "my_merged";
 //const char INPUT_FOLDER[]	   = "merged_data";
 //const char OUTPUT_FOLDER[]	   = "merged_data";
-const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
-const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
+//const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
+//const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
 //const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordInf";
 //const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordInf";
 //const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordSup";
@@ -277,8 +279,8 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 /************************************************************* Host/GPU computation and structure information **************************************************************/
 /***************************************************************************************************************************************************************************/
 #define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
-#define MAX_GPU_HISTORIES		2800000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
-#define MAX_CUTS_HISTORIES		1000000
+#define MAX_GPU_HISTORIES		2900000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_CUTS_HISTORIES		2900000
 #define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
 /***************************************************************************************************************************************************************************/
 /**************************************** Scanning and detector system	(source distance, tracking plane dimensions) parameters ********************************************/
@@ -288,8 +290,8 @@ const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton 
 #define GANTRY_ANGLES			int( 360 / GANTRY_ANGLE_INTERVAL )		// [#] Total number of projection angles
 #define NUM_SCANS				1										// [#] Total number of scans
 #define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
-#define SSD_T_SIZE				20.0									// [cm] Length of SSD in t (lateral) direction
-#define SSD_V_SIZE				7.0										// [cm] Length of SSD in v (vertical) direction
+#define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
+#define SSD_V_SIZE				9.0										// [cm] Length of SSD in v (vertical) direction
 /***************************************************************************************************************************************************************************/
 /************************************************* Binning (for statistical analysis) and sinogram (for FBP) parameters ****************************************************/
 /***************************************************************************************************************************************************************************/
@@ -316,7 +318,7 @@ const unsigned int FBP_MEDIAN_RADIUS = 3;
 /***************************************************************************************************************************************************************************/
 /******************************************************************* Reconstruction cylinder parameters ********************************************************************/
 /***************************************************************************************************************************************************************************/
-#define RECON_CYL_RADIUS		9.0									// [cm] Radius of reconstruction cylinder
+#define RECON_CYL_RADIUS		10.0									// [cm] Radius of reconstruction cylinder
 #define RECON_CYL_DIAMETER		( 2 * RECON_CYL_RADIUS )				// [cm] Diameter of reconstruction cylinder
 #define RECON_CYL_HEIGHT		(SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
 /***************************************************************************************************************************************************************************/

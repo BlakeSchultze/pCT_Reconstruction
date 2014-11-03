@@ -16,7 +16,7 @@
 /***********************************************************************************************************************************************************************************************************************/
 
 // Execution Control Functions
-bool is_bad_angle( int );	// Just for use with Micah's simultated data
+bool is_bad_angle( const int );	// Just for use with Micah's simultated data
 void timer( bool, clock_t, clock_t);
 void pause_execution();
 void exit_program_if( bool );
@@ -25,8 +25,8 @@ void exit_program_if( bool );
 void initial_processing_memory_clean();
 void resize_vectors( unsigned int );
 void shrink_vectors( unsigned int );
-void allocations( unsigned int );
-void reallocations( unsigned int );
+void allocations( const unsigned int );
+void reallocations( const unsigned int );
 void post_cut_memory_clean(); 
 
 // Image Initialization/Construction Functions
@@ -42,28 +42,26 @@ void initializations();
 void count_histories();	
 void count_histories_old();
 void count_histories_v0();
-void count_histories_v02();
 void count_histories_v1();
 void reserve_vector_capacity(); 
 
 // Preprocessing functions
-void read_energy_responses( int, int, int );
-void read_data_chunk( int, int, int );
-void read_data_chunk_old( int, int, int );
-void read_data_chunk_v0( int, int, int );
-void read_data_chunk_v02( int, int, int );
-void read_data_chunk_v1( int, int, int );
+void read_energy_responses( const int, const int, const int );
+void combine_data_sets();
+void read_data_chunk( const int, const int, const int );
+void read_data_chunk_old( const int, const int, const int );
+void read_data_chunk_v0( const int, const int, const int );
+void read_data_chunk_v02( const int, const int, const int );
+void read_data_chunk_v1( const int, const int, const int );
 void apply_tuv_shifts( unsigned int );
 void convert_mm_2_cm( unsigned int );
-void recon_volume_intersections( int, int );
-void recon_volume_intersections2( int);
-void binning( int, int );
-void binning2( int, int );
+void recon_volume_intersections( const int );
+void binning( const int );
 void calculate_means();
 void initialize_stddev();
-void sum_squared_deviations( int, int );
+void sum_squared_deviations( const int, const int );
 void calculate_standard_deviations();
-void statistical_cuts( int, int );
+void statistical_cuts( const int, const int );
 void initialize_sinogram();
 void construct_sinogram();
 void FBP();
@@ -74,14 +72,12 @@ void backprojection();
 // Hull-Detection 
 void hull_initializations();
 template<typename T> void initialize_hull( T*&, T*& );
-void hull_detection( int );
-void hull_detection_2( int );
+void hull_detection( const int );
 void hull_detection_finish();
-void SC( int );
-void MSC( int );
-void MSC_2( int );
+void SC( const int );
+void MSC( const int );
 void MSC_edge_detection();
-void SM( int );
+void SM( const int );
 void SM_edge_detection();
 void SM_edge_detection_2();
 void hull_selection();
@@ -125,14 +121,14 @@ void DROP_update3( float*&, double*&, unsigned int*&, unsigned int&);
 
 // Write arrays/vectors to file(s)
 void binary_2_ASCII();
-template<typename T> void array_2_disk( const char*, const char*, const char*, T*, int, int, int, int, bool );
-template<typename T> void vector_2_disk( const char*, const char*, const char*, std::vector<T>, int, int, int, bool );
-template<typename T> void t_bins_2_disk( FILE*, std::vector<int>&, std::vector<T>&, BIN_ANALYSIS_TYPE, int );
-template<typename T> void bins_2_disk( const char*, std::vector<int>&, std::vector<T>&, BIN_ANALYSIS_TYPE, BIN_ANALYSIS_FOR, BIN_ORGANIZATION, ... );
-template<typename T> void t_bins_2_disk( FILE*, int*&, T*&, unsigned int, BIN_ANALYSIS_TYPE, BIN_ORGANIZATION, int );
-template<typename T> void bins_2_disk( const char*, int*&, T*&, int, BIN_ANALYSIS_TYPE, BIN_ANALYSIS_FOR, BIN_ORGANIZATION, ... );
-FILE* create_MLP_path_file( const char* );
-template<typename T> void path_data_2_disk(const char*, FILE*, unsigned int, unsigned int*, T*&, bool );
+template<typename T> void array_2_disk( char*, const char*, const char*, T*, const int, const int, const int, const int, const bool );
+template<typename T> void vector_2_disk( char*, const char*, const char*, std::vector<T>, const int, const int, const int, const bool );
+template<typename T> void t_bins_2_disk( FILE*, const std::vector<int>&, const std::vector<T>&, const BIN_ANALYSIS_TYPE, const int );
+template<typename T> void bins_2_disk( const char*, const std::vector<int>&, const std::vector<T>&, const BIN_ANALYSIS_TYPE, const BIN_ANALYSIS_FOR, const BIN_ORGANIZATION, ... );
+template<typename T> void t_bins_2_disk( FILE*, int*&, T*&, const unsigned int, const BIN_ANALYSIS_TYPE, const BIN_ORGANIZATION, int );
+template<typename T> void bins_2_disk( const char*, int*&, T*&, const int, const BIN_ANALYSIS_TYPE, const BIN_ANALYSIS_FOR, const BIN_ORGANIZATION, ... );
+FILE* create_MLP_path_file( char* );
+template<typename T> void path_data_2_disk(char*, FILE*, unsigned int, unsigned int*, T*&, bool );
 void write_MLP_endpoints();
 unsigned int read_MLP_endpoints();
 void write_MLP_path( FILE*, unsigned int*&, unsigned int);
@@ -145,7 +141,7 @@ void write_reconstruction_settings();
 // Image position/voxel calculation functions
 int calculate_voxel( double, double, double );
 int position_2_voxel( double, double, double );
-int positions_2_voxels(double, double, double, int&, int&, int& );
+int positions_2_voxels(const double, const double, const double, int&, int&, int& );
 void voxel_2_3D_voxels( int, int&, int&, int& );
 double voxel_2_position( int, double, int, int );
 void voxel_2_positions( int, double&, double&, double& );
@@ -156,15 +152,15 @@ double distance_remaining( double, double, int, int, double, int );
 double edge_coordinate( double, int, double, int, int );
 double path_projection( double, double, double, int, double, int, int );
 double corresponding_coordinate( double, double, double, double );
-void take_2D_step( int, int, int, double, double, double, double, double, double, double, double, double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
-void take_3D_step( int, int, int, double, double, double, double, double, double, double, double, double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
+void take_2D_step( const int, const int, const int, const double, const double, const double, const double, const double, const double, const double, const double, const double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
+void take_3D_step( const int, const int, const int, const double, const double, const double, const double, const double, const double, const double, const double, const double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
 
 // Host helper functions		
 template< typename T, typename T2> T max_n( int, T2, ...);
 template< typename T, typename T2> T min_n( int, T2, ...);
 template<typename T> T* sequential_numbers( int, int );
 void bin_2_indexes( int, int&, int&, int& );
-inline char * bool_2_string( bool b ){ return b ? "true" : "false"; }
+inline const char * const bool_2_string( bool b ){ return b ? "true" : "false"; }
 
 // New routine test functions
 void command_line_settings( unsigned int, char** );
@@ -187,7 +183,6 @@ void test_func2( std::vector<int>&, std::vector<double>&);
 __device__ bool calculate_intercepts( double, double, double, double&, double& );
 __global__ void recon_volume_intersections_GPU( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void binning_GPU( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void binning_GPU_2( int, int*, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void calculate_means_GPU( int*, float*, float*, float* );
 __global__ void sum_squared_deviations_GPU( int, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*  );
 __global__ void calculate_standard_deviations_GPU( int*, float*, float*, float* );
@@ -199,10 +194,9 @@ __global__ void FBP_image_2_hull_GPU( float*, bool* );
 
 // Hull-Detection 
 template<typename T> __global__ void initialize_hull_GPU( T* );
-__global__ void SC_GPU( int, bool*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void MSC_GPU( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void MSC_GPU_2( int, int*, int*, float*, float*, float*, float*, float*, float*, float* );
-__global__ void SM_GPU( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
+__global__ void SC_GPU( const int, bool*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
+__global__ void MSC_GPU( const int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
+__global__ void SM_GPU( const int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void MSC_edge_detection_GPU( int* );
 __global__ void SM_edge_detection_GPU( int*, int* );
 __global__ void SM_edge_detection_GPU_2( int*, int* );
@@ -227,7 +221,7 @@ __global__ void update_x_GPU( float*&, double*&, unsigned int*& );
 
 // Image position/voxel calculation functions
 __device__ int calculate_voxel_GPU( double, double, double );
-__device__ int positions_2_voxels_GPU(double, double, double, int&, int&, int& );
+__device__ int positions_2_voxels_GPU(const double, const double, const double, int&, int&, int& );
 __device__ int position_2_voxel_GPU( double, double, double );
 __device__ void voxel_2_3D_voxels_GPU( int, int&, int&, int& );
 __device__ double voxel_2_position_GPU( int, double, int, int );
@@ -239,8 +233,8 @@ __device__ double distance_remaining_GPU( double, double, int, int, double, int 
 __device__ double edge_coordinate_GPU( double, int, double, int, int );
 __device__ double path_projection_GPU( double, double, double, int, double, int, int );
 __device__ double corresponding_coordinate_GPU( double, double, double, double );
-__device__ void take_2D_step_GPU( int, int, int, double, double, double, double, double, double, double, double, double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
-__device__ void take_3D_step_GPU( int, int, int, double, double, double, double, double, double, double, double, double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
+__device__ void take_2D_step_GPU( const int, const int, const int, const double, const double, const double, const double, const double, const double, const double, const double, const double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
+__device__ void take_3D_step_GPU( const int, const int, const int, const double, const double, const double, const double, const double, const double, const double, const double, const double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
 
 // Device helper functions
 
@@ -279,9 +273,9 @@ int main(unsigned int argc, char** argv)
 		/********************************************************************************************************************************************************/		
 		if( DATA_FORMAT == OLD_FORMAT )
 			assign_SSD_positions();		// Read the detector plane u-coordinates from config file
-		//initializations();				// allocate and initialize host and GPU memory for statistical
+		initializations();				// allocate and initialize host and GPU memory for statistical
 		count_histories();				// count the number of histories per file, per scan, total, etc.
-		//reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
+		reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
 		
 		/********************************************************************************************************************************************************/
 		/* Reading the 16 energy detector responses for each of the 5 stages and generate single energy response for each history								*/
@@ -314,60 +308,6 @@ int main(unsigned int argc, char** argv)
 		puts("Removing proton histories that don't pass through the reconstruction volume");
 		puts("Binning the data from those that did...");
 		start_file_num = 0, end_file_num = 0, histories_to_process = 0;
-		int total_chunk_histories, process_chunk, start_pos = 0;
-		//while( start_file_num != NUM_FILES )
-		//{
-		//	while( end_file_num < NUM_FILES )
-		//	{
-		//		if( histories_to_process + histories_per_file[end_file_num] < MAX_GPU_HISTORIES )
-		//			histories_to_process += histories_per_file[end_file_num];
-		//		else
-		//			break;
-		//		end_file_num++;
-		//	}
-		//	read_data_chunk( histories_to_process, start_file_num, end_file_num );
-		//	total_chunk_histories = histories_to_process;
-		//	while( total_chunk_histories > 0 )
-		//	{
-		//		puts("Starting");
-		//		printf("start_pos = %d\n",start_pos);
-		//		if( total_chunk_histories >= MAX_CUTS_HISTORIES )
-		//		{
-		//			puts("total_chunk_histories > MAX_CUTS_HISTORIES");
-		//			recon_volume_intersections( MAX_CUTS_HISTORIES, start_pos );
-		//			binning( MAX_CUTS_HISTORIES, start_pos );
-		//			hull_detection( MAX_CUTS_HISTORIES );
-		//		}
-		//		else
-		//		{
-		//			puts("total_chunk_histories <= MAX_CUTS_HISTORIES");
-		//			recon_volume_intersections( total_chunk_histories, start_pos );
-		//			binning( total_chunk_histories, start_pos );
-		//			hull_detection( total_chunk_histories );
-		//		}				
-		//		total_chunk_histories -= MAX_CUTS_HISTORIES;
-		//		start_pos += MAX_CUTS_HISTORIES;
-		//		printf("total_chunk_histories = %d\n",total_chunk_histories);
-		//	}
-		//	start_pos = 0;
-		//	initial_processing_memory_clean();
-		//	start_file_num = end_file_num;
-		//	histories_to_process = 0;
-
-		//	free(t_in_1_h);
-		//	free(t_in_2_h);
-		//	free(t_out_1_h);
-		//	free(t_out_2_h);
-		//	free(v_in_1_h);
-		//	free(v_in_2_h);
-		//	free(v_out_1_h);
-		//	free(v_out_2_h);
-		//	free(u_in_1_h);
-		//	free(u_in_2_h);
-		//	free(u_out_1_h);
-		//	free(u_out_2_h);
-		//	//pause_execution();
-		//}
 		while( start_file_num != NUM_FILES )
 		{
 			while( end_file_num < NUM_FILES )
@@ -379,39 +319,23 @@ int main(unsigned int argc, char** argv)
 				end_file_num++;
 			}
 			read_data_chunk( histories_to_process, start_file_num, end_file_num );
-			recon_volume_intersections2( histories_to_process );
-			//initial_processing_memory_clean();
+			recon_volume_intersections( histories_to_process );
+			binning( histories_to_process );
+			hull_detection( histories_to_process );
+			initial_processing_memory_clean();
 			start_file_num = end_file_num;
 			histories_to_process = 0;
+			//pause_execution();
 		}
 		if( COUNT_0_WEPLS )
 			std::cout << "Histories with WEPL = 0 : " << zero_WEPL << std::endl;
 		puts("Data reading complete.");
 		printf("%d out of %d (%4.2f%%) histories traversed the reconstruction volume\n", recon_vol_histories, total_histories, (double) recon_vol_histories / total_histories * 100  );
-		
-		exit_program_if( EXIT_AFTER_RECON_CUTS );
-		initializations();
-		int remaining_histories = recon_vol_histories;
-		int start_position = 0;
-		while( remaining_histories > 0 )
-		{
-			if( remaining_histories >= MAX_CUTS_HISTORIES )
-				histories_to_process = MAX_CUTS_HISTORIES;
-			else
-				histories_to_process = remaining_histories;
-			binning2( histories_to_process, start_position );
-			hull_detection_2( histories_to_process );
-			remaining_histories -= MAX_CUTS_HISTORIES;
-			start_position		+= MAX_CUTS_HISTORIES;
-		} 
-
 		exit_program_if( EXIT_AFTER_BINNING );
 		/********************************************************************************************************************************************************/
 		/* Reduce vector capacities to their size, the number of histories remaining after histories that didn't intersect reconstruction volume were ignored	*/																				
-		/********************************************************************************************************************************************************/
-		resize_vectors( recon_vol_histories );
+		/********************************************************************************************************************************************************/		
 		shrink_vectors( recon_vol_histories );
-		cout << "bin num vector size = " <<  bin_num_vector.size() << endl;
 		/********************************************************************************************************************************************************/
 		/* Perform thresholding on MSC and SM hulls and write all hull images to file																			*/																					
 		/********************************************************************************************************************************************************/
@@ -421,7 +345,23 @@ int main(unsigned int argc, char** argv)
 		/* Calculate the mean WEPL, relative ut-angle, and relative uv-angle for each bin and count the number of histories in each bin							*/											
 		/********************************************************************************************************************************************************/
 		calculate_means();
-
+		//for( int i = 0; i < 10; i++ )
+		//{
+		//	cout << bin_num_vector[i] << endl;
+		//		//cout << gantry_angle_vector[i] << endl;
+		//	cout << 	WEPL_vector[i] << endl;
+		//	cout << 	x_entry_vector[i] << endl;
+		//	cout << 	y_entry_vector[i] << endl;
+		//	cout << 	z_entry_vector[i] << endl;
+		//	cout << 	x_exit_vector[i]	 << endl;
+		//	cout << 	y_exit_vector[i] << endl;	
+		//	cout << 	z_exit_vector[i]	 << endl;
+		//	cout << 	xy_entry_angle_vector[i] << endl;
+		//	cout << 	xz_entry_angle_vector[i] << endl;
+		//	cout << 	xy_exit_angle_vector[i] << endl;
+		//	cout << 	xz_exit_angle_vector[i] << endl;
+		//}
+		//pause_execution();
 		initialize_stddev();
 		/********************************************************************************************************************************************************/
 		/* Calculate the standard deviation in WEPL, relative ut-angle, and relative uv-angle for each bin.  Iterate through the valid history std::vectors one	*/
@@ -430,11 +370,11 @@ int main(unsigned int argc, char** argv)
 		/* of these differences for each bin and dividing it by the number of histories in the bin 																*/
 		/********************************************************************************************************************************************************/
 		puts("Calculating the cumulative sum of the squared deviation in WEPL and relative ut/uv angles over all histories for each bin...");
-		remaining_histories = recon_vol_histories;
-		start_position = 0;
+		int remaining_histories = recon_vol_histories;
+		int start_position = 0;
 		while( remaining_histories > 0 )
 		{
-			if( remaining_histories >= MAX_CUTS_HISTORIES )
+			if( remaining_histories > MAX_CUTS_HISTORIES )
 				histories_to_process = MAX_CUTS_HISTORIES;
 			else
 				histories_to_process = remaining_histories;
@@ -454,7 +394,7 @@ int main(unsigned int argc, char** argv)
 		remaining_histories = recon_vol_histories, start_position = 0;
 		while( remaining_histories > 0 )
 		{
-			if( remaining_histories >= MAX_CUTS_HISTORIES )
+			if( remaining_histories > MAX_CUTS_HISTORIES )
 				histories_to_process = MAX_CUTS_HISTORIES;
 			else
 				histories_to_process = remaining_histories;
@@ -510,7 +450,9 @@ int main(unsigned int argc, char** argv)
 	else
 	{
 		//binary_2_ASCII();
-		test_func();
+		//test_func();
+		combine_data_sets();
+		puts("finished program");
 	}
 	/************************************************************************************************************************************************************/
 	/* Program has finished execution. Require the user to hit enter to terminate the program and close the terminal/console window								*/ 															
@@ -521,7 +463,7 @@ int main(unsigned int argc, char** argv)
 /***********************************************************************************************************************************************************************************************************************/
 /**************************************************************************************** t/v conversions and energy calibrations **************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void read_energy_responses( int num_histories, int start_file_num, int end_file_num )
+void read_energy_responses( const int num_histories, const int start_file_num, const int end_file_num )
 {
 	
 	//char data_filename[128];
@@ -545,9 +487,9 @@ void read_energy_responses( int num_histories, int start_file_num, int end_file_
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************** Execution Control Functions ********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-bool is_bad_angle( int angle )
+bool is_bad_angle( const int angle )
 {
-	static int bad_angles[] = {0, 80, 84, 88, 92, 96, 100, 180, 260, 264, 268, 272, 276};
+	static const int bad_angles[] = {0, 80, 84, 88, 92, 96, 100, 180, 260, 264, 268, 272, 276};
 	return std::binary_search( bad_angles, bad_angles + sizeof(bad_angles) / sizeof(int), angle );
 }
 void timer( bool start, clock_t start_time, clock_t end_time)
@@ -948,12 +890,12 @@ void initializations()
 	
 	if( ( bin_counts_h == NULL ) || (mean_WEPL_h == NULL) || (mean_rel_ut_angle_h == NULL) || (mean_rel_uv_angle_h == NULL) )
 	{
-		puts("mean arrays allocation error\n");
+		puts("std dev allocation error\n");
 		exit(1);
 	}
 
 	cudaMalloc((void**) &bin_counts_d,			SIZE_BINS_INT );
-	cudaMalloc((void**) &mean_WEPL_d,			SIZE_BINS_FLOAT );	
+	cudaMalloc((void**) &mean_WEPL_d,			SIZE_BINS_FLOAT );
 	cudaMalloc((void**) &mean_rel_ut_angle_d,	SIZE_BINS_FLOAT );
 	cudaMalloc((void**) &mean_rel_uv_angle_d,	SIZE_BINS_FLOAT );
 
@@ -1034,7 +976,6 @@ void initialize_stddev()
 	stddev_rel_ut_angle_h = (float*) calloc( NUM_BINS, sizeof(float) );	
 	stddev_rel_uv_angle_h = (float*) calloc( NUM_BINS, sizeof(float) );	
 	stddev_WEPL_h		  = (float*) calloc( NUM_BINS, sizeof(float) );
-
 	if( ( stddev_rel_ut_angle_h == NULL ) || (stddev_rel_uv_angle_h == NULL) || (stddev_WEPL_h == NULL) )
 	{
 		puts("std dev allocation error\n");
@@ -1048,7 +989,7 @@ void initialize_stddev()
 	cudaMemcpy( stddev_rel_uv_angle_d,	stddev_rel_uv_angle_h,	SIZE_BINS_FLOAT,	cudaMemcpyHostToDevice );
 	cudaMemcpy( stddev_WEPL_d,			stddev_WEPL_h,			SIZE_BINS_FLOAT,	cudaMemcpyHostToDevice );
 }
-void allocations( unsigned int num_histories)
+void allocations( const unsigned int num_histories)
 {
 	bin_num				= (int*)   calloc( num_histories,	sizeof(int)   );		
 	gantry_angle		= (int*)   calloc( num_histories,	sizeof(int)   );
@@ -1064,7 +1005,7 @@ void allocations( unsigned int num_histories)
 	xy_exit_angle		= (float*) calloc( num_histories,	sizeof(float) );	
 	xz_exit_angle		= (float*) calloc( num_histories,	sizeof(float) );	
 }
-void reallocations( unsigned int new_size)
+void reallocations( const unsigned int new_size)
 {
 	bin_num				= (int*)   realloc( bin_num,			new_size * sizeof(int)   );		
 	gantry_angle		= (int*)   realloc( gantry_angle,		new_size * sizeof(int)   );
@@ -1084,9 +1025,18 @@ void post_cut_memory_clean()
 {
 	puts("Freeing unnecessary memory, resizing vectors, and shrinking vectors to fit just the remaining histories...");
 
+	//free(failed_cuts_h );
 	free(stddev_rel_ut_angle_h);
 	free(stddev_rel_uv_angle_h);
 	free(stddev_WEPL_h);
+
+	//cudaFree( failed_cuts_d );
+	//cudaFree( bin_num_d );
+	//cudaFree( WEPL_d );
+	//cudaFree( xy_entry_angle_d );
+	//cudaFree( xz_entry_angle_d );
+	//cudaFree( xy_exit_angle_d );
+	//cudaFree( xz_exit_angle_d );
 
 	cudaFree( mean_rel_ut_angle_d );
 	cudaFree( mean_rel_uv_angle_d );
@@ -1094,7 +1044,6 @@ void post_cut_memory_clean()
 	cudaFree( stddev_rel_ut_angle_d );
 	cudaFree( stddev_rel_uv_angle_d );
 	cudaFree( stddev_WEPL_d );
-
 }
 /***********************************************************************************************************************************************************************************************************************/
 /**************************************************************************************** Preprocessing setup and initializations **************************************************************************************/
@@ -1485,84 +1434,251 @@ template<typename O> void import_image( O*& import_into, char* filename )
 /***********************************************************************************************************************************************************************************************************************/
 void combine_data_sets()
 {
-//	char input_filename1[256];
-//	char input_filename2[256];
-//	char output_filename[256];
-//	unsigned int gantry_position, gantry_angle, scan_number, file_histories, array_index = 0, histories_read = 0;
-//
-//	printf("%d histories to be read from %d files\n", num_histories, end_file_num - start_file_num + 1 );
-//	
-//	for( unsigned int file_num = start_file_num; file_num <= end_file_num; file_num++ )
-//	{	
-//		gantry_position = file_num / NUM_SCANS;
-//		gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
-//		scan_number = file_num % NUM_SCANS + 1;
-//		file_histories = histories_per_file[file_num];
-//		
-//		sprintf(data_filename, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION );
-//		FILE* input_file1 = fopen(data_filename1, "rb");
-//		FILE* input_file2 = fopen(data_filename2, "rb");
-//		FILE* output_file2 = fopen(data_filename2, "rb");
-//		if( data_file == NULL )
-//		{
-//			fputs( "Error Opening Data File:  Check that the directories are properly named.", stderr ); 
-//			exit_program_if(true);
-//		}
-//		if( VERSION_ID == 0 )
-//		{
-//			printf("\t");
-//			printf("Reading %d histories for gantry angle %d from scan number %d...\n", file_histories, gantry_angle, scan_number );			
-//			fseek( data_file, SKIP_2_DATA_SIZE, SEEK_SET );
-//
-//			fread( &t_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &t_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &t_out_1_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &t_out_2_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &v_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &v_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &v_out_1_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &v_out_2_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &u_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &u_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &u_out_1_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &u_out_2_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
-//			fclose(data_file);
-//
-//			histories_read += file_histories;
-//			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
-//				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
-//		}
-//		else if( VERSION_ID == 1 )
-//		{
-//			printf("\t");
-//			printf("Reading %d histories for gantry angle %d from scan number %d...\n", file_histories, gantry_angle, scan_number );			
-//			fseek( data_file, SKIP_2_DATA_SIZE, SEEK_SET );
-//
-//			fread( &t_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &t_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &t_out_1_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &t_out_2_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &v_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &v_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &v_out_1_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &v_out_2_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &u_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &u_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
-//			fread( &u_out_1_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &u_out_2_h[histories_read], sizeof(float), file_histories, data_file );
-//			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
-//			fclose(data_file);
-//
-//			histories_read += file_histories;
-//			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
-//				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
-//		}
-//	}
-//	if( DATA_IN_MM )
-//		convert_mm_2_cm( num_histories );
-//	if( T_SHIFT != 0.0	||  U_SHIFT != 0.0 )
-//		apply_tu_shifts( num_histories );
+	char input_filename1[256];
+	char input_filename2[256];
+	char output_filename[256];
+	const char INPUT_FOLDER1[]	   = "input_CTP404";
+	const char INPUT_FOLDER2[]	   = "CTP404_4M";
+	const char MERGED_FOLDER[]	   = "my_merged";
+	unsigned int gantry_position, gantry_angle, scan_number, file_histories, array_index = 0, histories_read = 0;
+
+	char magic_number1[4], magic_number2[4];
+	int version_id1, version_id2;
+	int file_histories1, file_histories2, total_histories;
+
+	float projection_angle1, beam_energy1;
+	int generation_date1, preprocess_date1;
+	int phantom_name_size1, data_source_size1, prepared_by_size1;
+	char *phantom_name1, *data_source1, *prepared_by1;
+	
+	float projection_angle2, beam_energy2;
+	int generation_date2, preprocess_date2;
+	int phantom_name_size2, data_source_size2, prepared_by_size2;
+	char *phantom_name2, *data_source2, *prepared_by2;
+
+	float* t_in_1_h1, * t_in_1_h2, *t_in_2_h1, * t_in_2_h2; 
+	float* t_out_1_h1, * t_out_1_h2, * t_out_2_h1, * t_out_2_h2;
+	float* v_in_1_h1, * v_in_1_h2, * v_in_2_h1, * v_in_2_h2;
+	float* v_out_1_h1, * v_out_1_h2, * v_out_2_h1, * v_out_2_h2;
+	float* u_in_1_h1, * u_in_1_h2, * u_in_2_h1, * u_in_2_h2;
+	float* u_out_1_h1, * u_out_1_h2, * u_out_2_h1, * u_out_2_h2;
+	float* WEPL_h1, * WEPL_h2;
+
+	for( unsigned int gantry_angle = 0; gantry_angle < 360; gantry_angle += int(GANTRY_ANGLE_INTERVAL) )
+	{	
+		cout << gantry_angle << endl;
+		sprintf(input_filename1, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER1, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION );
+		sprintf(input_filename2, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER2, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION );
+		sprintf(output_filename, "%s%s/%s_%03d%s", INPUT_DIRECTORY, MERGED_FOLDER, INPUT_BASE_NAME, gantry_angle, FILE_EXTENSION );
+
+		printf("%s\n", input_filename1 );
+		printf("%s\n", input_filename2 );
+		printf("%s\n", output_filename );
+
+		FILE* input_file1 = fopen(input_filename1, "rb");
+		FILE* input_file2 = fopen(input_filename2, "rb");
+		FILE* output_file = fopen(output_filename, "wb");
+
+		if( (input_file1 == NULL) ||  (input_file2 == NULL)  || (output_file == NULL)  )
+		{
+			fputs( "Error Opening Data File:  Check that the directories are properly named.", stderr ); 
+			exit_program_if(true);
+		}
+
+		fread(&magic_number1, sizeof(char), 4, input_file1 );
+		fread(&magic_number2, sizeof(char), 4, input_file2 );
+		fwrite( &magic_number1, sizeof(char), 4, output_file );
+		//if( magic_number != MAGIC_NUMBER_CHECK ) 
+		//{
+		//	puts("Error: unknown file type (should be PCTD)!\n");
+		//	exit_program_if(true);
+		//}
+
+		fread(&version_id1, sizeof(int), 1, input_file1 );
+		fread(&version_id2, sizeof(int), 1, input_file2 );
+		fwrite( &version_id1, sizeof(int), 1, output_file );
+
+		fread(&file_histories1, sizeof(int), 1, input_file1 );
+		fread(&file_histories2, sizeof(int), 1, input_file2 );
+		total_histories = file_histories1 + file_histories2;
+		fwrite( &total_histories, sizeof(int), 1, output_file );
+
+		puts("Reading headers from files...\n");
+	
+		fread(&projection_angle1, sizeof(float), 1, input_file1 );
+		fread(&projection_angle2, sizeof(float), 1, input_file2 );
+		fwrite( &projection_angle1, sizeof(float), 1, output_file );
+			
+		fread(&beam_energy1, sizeof(float), 1, input_file1 );
+		fread(&beam_energy2, sizeof(float), 1, input_file2 );
+		fwrite( &beam_energy1, sizeof(float), 1, output_file );
+
+		fread(&generation_date1, sizeof(int), 1, input_file1 );
+		fread(&generation_date2, sizeof(int), 1, input_file2 );
+		fwrite( &generation_date1, sizeof(int), 1, output_file );
+
+		fread(&preprocess_date1, sizeof(int), 1, input_file1 );
+		fread(&preprocess_date2, sizeof(int), 1, input_file2 );
+		fwrite( &preprocess_date1, sizeof(int), 1, output_file );
+
+		fread(&phantom_name_size1, sizeof(int), 1, input_file1 );
+		fread(&phantom_name_size2, sizeof(int), 1, input_file2 );
+		fwrite( &phantom_name_size1, sizeof(int), 1, output_file );
+
+		phantom_name1 = (char*)malloc(phantom_name_size1);
+		phantom_name2 = (char*)malloc(phantom_name_size2);
+
+		fread(phantom_name1, phantom_name_size1, 1, input_file1 );
+		fread(phantom_name2, phantom_name_size2, 1, input_file2 );
+		fwrite( phantom_name1, phantom_name_size1, 1, output_file );
+
+		fread(&data_source_size1, sizeof(int), 1, input_file1 );
+		fread(&data_source_size2, sizeof(int), 1, input_file2 );
+		fwrite( &data_source_size1, sizeof(int), 1, output_file );
+
+		data_source1 = (char*)malloc(data_source_size1);
+		data_source2 = (char*)malloc(data_source_size2);
+
+		fread(data_source1, data_source_size1, 1, input_file1 );
+		fread(data_source2, data_source_size2, 1, input_file2 );
+		fwrite( &data_source1, data_source_size1, 1, output_file );
+
+		fread(&prepared_by_size1, sizeof(int), 1, input_file1 );
+		fread(&prepared_by_size2, sizeof(int), 1, input_file2 );
+		fwrite( &prepared_by_size1, sizeof(int), 1, output_file );
+
+		prepared_by1 = (char*)malloc(prepared_by_size1);
+		prepared_by2 = (char*)malloc(prepared_by_size2);
+
+		fread(prepared_by1, prepared_by_size1, 1, input_file1 );
+		fread(prepared_by2, prepared_by_size2, 1, input_file2 );
+		fwrite( &prepared_by1, prepared_by_size1, 1, output_file );
+
+		puts("Reading data from files...\n");
+
+		t_in_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		t_in_1_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		t_in_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		t_in_2_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		t_out_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		t_out_1_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		t_out_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		t_out_2_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		v_in_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		v_in_1_h2 = (float*)calloc( file_histories2, sizeof(float ) );		
+		v_in_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		v_in_2_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		v_out_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		v_out_1_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		v_out_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		v_out_2_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		u_in_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		u_in_1_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		u_in_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		u_in_2_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		u_out_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		u_out_1_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		u_out_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		u_out_2_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+		WEPL_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		WEPL_h2 = (float*)calloc( file_histories2, sizeof(float ) );
+
+		fread( t_in_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( t_in_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( t_out_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( t_out_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( v_in_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( v_in_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( v_out_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( v_out_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( u_in_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( u_in_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( u_out_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( u_out_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( WEPL_h1,  sizeof(float), file_histories1, input_file1 );
+
+		fread( t_in_1_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( t_in_2_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( t_out_1_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( t_out_2_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( v_in_1_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( v_in_2_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( v_out_1_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( v_out_2_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( u_in_1_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( u_in_2_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( u_out_1_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( u_out_2_h2,  sizeof(float), file_histories2, input_file2 );
+		fread( WEPL_h2,  sizeof(float), file_histories2, input_file2 );
+
+		fwrite( t_in_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( t_in_1_h2, sizeof(float), file_histories2, output_file );		
+		fwrite( t_in_2_h1, sizeof(float), file_histories1, output_file );
+		fwrite( t_in_2_h2, sizeof(float), file_histories2, output_file );		
+		fwrite( t_out_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( t_out_1_h2, sizeof(float), file_histories2, output_file );		
+		fwrite( t_out_2_h1, sizeof(float), file_histories1, output_file );
+		fwrite( t_out_2_h2, sizeof(float), file_histories2, output_file );	
+
+		fwrite( v_in_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( v_in_1_h2, sizeof(float), file_histories2, output_file );		
+		fwrite( v_in_2_h1, sizeof(float), file_histories1, output_file );
+		fwrite( v_in_2_h2, sizeof(float), file_histories2, output_file );		
+		fwrite( v_out_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( v_out_1_h2, sizeof(float), file_histories2, output_file );		
+		fwrite( v_out_2_h1, sizeof(float), file_histories1, output_file );
+		fwrite( v_out_2_h2, sizeof(float), file_histories2, output_file );	
+
+		fwrite( u_in_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( u_in_1_h2, sizeof(float), file_histories2, output_file );		
+		fwrite( u_in_2_h1, sizeof(float), file_histories1, output_file );
+		fwrite( u_in_2_h2, sizeof(float), file_histories2, output_file );	
+		fwrite( u_out_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( u_out_1_h2, sizeof(float), file_histories2, output_file );	
+		fwrite( u_out_2_h1, sizeof(float), file_histories1, output_file );
+		fwrite( u_out_2_h2, sizeof(float), file_histories2, output_file );	
+
+		fwrite( WEPL_h1, sizeof(float), file_histories1, output_file );
+		fwrite( WEPL_h2, sizeof(float), file_histories2, output_file );
+		
+		free( t_in_1_h1 );
+		free( t_in_1_h2 );
+		free( t_in_2_h1 );
+		free( t_in_2_h2 );
+		free( t_out_1_h1 );
+		free( t_out_1_h2 );
+		free( t_out_2_h1 );
+		free( t_out_2_h2 );
+
+		free( v_in_1_h1 );
+		free( v_in_1_h2 );
+		free( v_in_2_h1 );
+		free( v_in_2_h2 );
+		free( v_out_1_h1 );
+		free( v_out_1_h2 );
+		free( v_out_2_h1 );
+		free( v_out_2_h2 );
+
+		free( u_in_1_h1 );
+		free( u_in_1_h2 );
+		free( u_in_2_h1 );
+		free( u_in_2_h2 );
+		free( u_out_1_h1 );
+		free( u_out_1_h2 );
+		free( u_out_2_h1 );
+		free( u_out_2_h2 );
+
+		free( WEPL_h1 );
+		free( WEPL_h2 );
+
+		fclose(input_file1);						
+		fclose(input_file2);	
+		fclose(output_file);	
+
+		puts("Finished");
+		pause_execution();
+	}
+
 }
 void convert_mm_2_cm( unsigned int num_histories )
 {
@@ -1632,7 +1748,7 @@ void apply_tuv_shifts( unsigned int num_histories)
 		array_2_disk( "ut_entry_angle", OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 	}
 }
-void read_data_chunk( int num_histories, int start_file_num, int end_file_num )
+void read_data_chunk( const int num_histories, const int start_file_num, const int end_file_num )
 {
 	// The GPU cannot process all the histories at once, so they are broken up into chunks that can fit on the GPU.  As we iterate 
 	// through the data one chunk at a time, we determine which histories enter the reconstruction volume and if they belong to a 
@@ -1657,11 +1773,6 @@ void read_data_chunk( int num_histories, int start_file_num, int end_file_num )
 	WEPL_h			= (float*) malloc(size_floats);
 	gantry_angle_h	= (int*)   malloc(size_ints);
 
-	if( gantry_angle_h == NULL )
-	{
-		puts("Data read allocation error");
-		exit(1);
-	}
 	if( WRITE_SSD_ANGLES )
 	{
 		ut_entry_angle	= (float*) malloc(size_floats);
@@ -1676,7 +1787,7 @@ void read_data_chunk( int num_histories, int start_file_num, int end_file_num )
 		case VERSION_1  : read_data_chunk_v1(  num_histories, start_file_num, end_file_num - 1 );
 	}
 }
-void read_data_chunk_old( int num_histories, int start_file_num, int end_file_num )
+void read_data_chunk_old( const int num_histories, const int start_file_num, const int end_file_num )
 {
 	int array_index = 0, gantry_position, gantry_angle, scan_number, scan_histories;
 	float v_data[4], t_data[4], WEPL_data, gantry_angle_data, dummy_data;
@@ -1755,7 +1866,7 @@ void read_data_chunk_old( int num_histories, int start_file_num, int end_file_nu
 		fclose(data_file);		
 	}
 }
-void read_data_chunk_v0( int num_histories, int start_file_num, int end_file_num )
+void read_data_chunk_v0( const int num_histories, const int start_file_num, const int end_file_num )
 {	
 	/*
 	Event data:
@@ -1814,22 +1925,9 @@ void read_data_chunk_v0( int num_histories, int start_file_num, int end_file_num
 			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
 			fclose(data_file);
 
-			double max_WEPL = 0;
-			double min_WEPL = 0;
-
 			histories_read += file_histories;
 			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
-			{
-				gantry_angle_h[array_index] = int(projection_angles[file_num]);		
-				if( (WEPL_h[array_index]) > max_WEPL )
-					max_WEPL = WEPL_h[array_index];
-				if( (WEPL_h[array_index]) < min_WEPL )
-					min_WEPL = WEPL_h[array_index];
-			}
-			//printf("max_v = %3f\n", max_v );
-			//printf("min_v = %3f\n", min_v );
-			printf("max_WEPL = %3f\n", max_WEPL );
-			printf("min_WEPL = %3f\n", min_WEPL );					
+				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
 		}
 		else if( VERSION_ID == 1 )
 		{
@@ -1867,7 +1965,7 @@ void read_data_chunk_v0( int num_histories, int start_file_num, int end_file_num
 	if( T_SHIFT != 0.0	||  U_SHIFT != 0.0 ||  V_SHIFT != 0.0)
 		apply_tuv_shifts( num_histories );
 }
-void read_data_chunk_v02( int num_histories, int start_file_num, int end_file_num )
+void read_data_chunk_v02( const int num_histories, const int start_file_num, const int end_file_num )
 {
 	/*
 	Contains the following headers:
@@ -2032,7 +2130,7 @@ void read_data_chunk_v02( int num_histories, int start_file_num, int end_file_nu
 	//printf("gantry_angle_h[0] = %d\n", gantry_angle_h[0] );
 	//printf("t_in_1_h[0] = %3f\n", t_in_1_h[0] );
 }
-void read_data_chunk_v1( int num_histories, int start_file_num, int end_file_num )
+void read_data_chunk_v1( const int num_histories, const int start_file_num, const int end_file_num )
 {
 	/*
 	Contains the following headers:
@@ -2164,127 +2262,12 @@ void read_data_chunk_v1( int num_histories, int start_file_num, int end_file_num
 		}
 	}
 }
-void recon_volume_intersections( int num_histories, int start_pos )
+void recon_volume_intersections( const int num_histories )
 {
 	//printf("There are %d histories in this projection\n", num_histories );
 	unsigned int size_floats = sizeof(float) * num_histories;
 	unsigned int size_ints = sizeof(int) * num_histories;
 	unsigned int size_bool = sizeof(bool) * num_histories;
-
-	// Allocate GPU memory
-	cudaMalloc((void**) &t_in_1_d,				size_floats);
-	cudaMalloc((void**) &t_in_2_d,				size_floats);
-	cudaMalloc((void**) &t_out_1_d,				size_floats);
-	cudaMalloc((void**) &t_out_2_d,				size_floats);
-	cudaMalloc((void**) &u_in_1_d,				size_floats);
-	cudaMalloc((void**) &u_in_2_d,				size_floats);
-	cudaMalloc((void**) &u_out_1_d,				size_floats);
-	cudaMalloc((void**) &u_out_2_d,				size_floats);
-	cudaMalloc((void**) &v_in_1_d,				size_floats);
-	cudaMalloc((void**) &v_in_2_d,				size_floats);
-	cudaMalloc((void**) &v_out_1_d,				size_floats);
-	cudaMalloc((void**) &v_out_2_d,				size_floats);		
-	cudaMalloc((void**) &gantry_angle_d,		size_ints);
-
-	cudaMalloc((void**) &x_entry_d,				size_floats);
-	cudaMalloc((void**) &y_entry_d,				size_floats);
-	cudaMalloc((void**) &z_entry_d,				size_floats);
-	cudaMalloc((void**) &x_exit_d,				size_floats);
-	cudaMalloc((void**) &y_exit_d,				size_floats);
-	cudaMalloc((void**) &z_exit_d,				size_floats);
-	cudaMalloc((void**) &xy_entry_angle_d,		size_floats);	
-	cudaMalloc((void**) &xz_entry_angle_d,		size_floats);
-	cudaMalloc((void**) &xy_exit_angle_d,		size_floats);
-	cudaMalloc((void**) &xz_exit_angle_d,		size_floats);
-	cudaMalloc((void**) &missed_recon_volume_d,	size_bool);	
-
-	cudaMemcpy(t_in_1_d,		&t_in_1_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(t_in_2_d,		&t_in_2_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(t_out_1_d,		&t_out_1_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(t_out_2_d,		&t_out_2_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(u_in_1_d,		&u_in_1_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(u_in_2_d,		&u_in_2_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(u_out_1_d,		&u_out_1_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(u_out_2_d,		&u_out_2_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(v_in_1_d,		&v_in_1_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(v_in_2_d,		&v_in_2_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(v_out_1_d,		&v_out_1_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(v_out_2_d,		&v_out_2_h[start_pos],		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(gantry_angle_d,	&gantry_angle_h[start_pos],	size_ints,   cudaMemcpyHostToDevice) ;
-
-	dim3 dimBlock(THREADS_PER_BLOCK);
-	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
-	recon_volume_intersections_GPU<<<dimGrid, dimBlock>>>
-	(
-		num_histories, gantry_angle_d, missed_recon_volume_d,
-		t_in_1_d, t_in_2_d, t_out_1_d, t_out_2_d,
-		u_in_1_d, u_in_2_d, u_out_1_d, u_out_2_d,
-		v_in_1_d, v_in_2_d, v_out_1_d, v_out_2_d, 	
-		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d, 		
-		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d
-	);
-
-	//free(t_in_1_h);
-	//free(t_in_2_h);
-	//free(t_out_1_h);
-	//free(t_out_2_h);
-	//free(v_in_1_h);
-	//free(v_in_2_h);
-	//free(v_out_1_h);
-	//free(v_out_2_h);
-	//free(u_in_1_h);
-	//free(u_in_2_h);
-	//free(u_out_1_h);
-	//free(u_out_2_h);
-	// Host memory not freed
-
-
-	cudaFree(t_in_1_d);
-	cudaFree(t_in_2_d);
-	cudaFree(t_out_1_d);
-	cudaFree(t_out_2_d);
-	cudaFree(v_in_1_d);
-	cudaFree(v_in_2_d);
-	cudaFree(v_out_1_d);
-	cudaFree(v_out_2_d);
-	cudaFree(u_in_1_d);
-	cudaFree(u_in_2_d);
-	cudaFree(u_out_1_d);
-	cudaFree(u_out_2_d);	
-	cudaFree(gantry_angle_d);
-	/* 
-		Device memory allocated but not freed here
-		x_entry_d;
-		y_entry_d;
-		z_entry_d;
-		x_exit_d;
-		y_exit_d;
-		z_exit_d;
-		xy_entry_angle_d;
-		xz_entry_angle_d;
-		xy_exit_angle_d;
-		xz_exit_angle_d;
-		missed_recon_volume_d;
-	*/
-}
-void recon_volume_intersections2( int num_histories )
-{
-	//printf("There are %d histories in this projection\n", num_histories );
-	unsigned int size_floats = sizeof(float) * num_histories;
-	unsigned int size_ints = sizeof(int) * num_histories;
-	unsigned int size_bool = sizeof(bool) * num_histories;
-
-	missed_recon_volume_h		= (bool*)  calloc( num_histories, sizeof(bool)	);	
-	x_entry_h					= (float*) calloc( num_histories, sizeof(float) );
-	y_entry_h					= (float*) calloc( num_histories, sizeof(float) );
-	z_entry_h					= (float*) calloc( num_histories, sizeof(float) );
-	x_exit_h					= (float*) calloc( num_histories, sizeof(float) );
-	y_exit_h					= (float*) calloc( num_histories, sizeof(float) );
-	z_exit_h					= (float*) calloc( num_histories, sizeof(float) );	
-	xy_entry_angle_h			= (float*) calloc( num_histories, sizeof(float) );	
-	xz_entry_angle_h			= (float*) calloc( num_histories, sizeof(float) );
-	xy_exit_angle_h				= (float*) calloc( num_histories, sizeof(float) );
-	xz_exit_angle_h				= (float*) calloc( num_histories, sizeof(float) );
 
 	// Allocate GPU memory
 	cudaMalloc((void**) &t_in_1_d,				size_floats);
@@ -2339,82 +2322,6 @@ void recon_volume_intersections2( int num_histories )
 		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d
 	);
 
-	cudaMemcpy( missed_recon_volume_h,		missed_recon_volume_d,		size_bool,		cudaMemcpyDeviceToHost );
-	cudaMemcpy( x_entry_h,					x_entry_d,					size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( y_entry_h,					y_entry_d,					size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( z_entry_h,					z_entry_d,					size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( x_exit_h,					x_exit_d,					size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( y_exit_h,					y_exit_d,					size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( z_exit_h,					z_exit_d,					size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( xy_entry_angle_h,			xy_entry_angle_d,			size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( xz_entry_angle_h,			xz_entry_angle_d,			size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( xy_exit_angle_h,			xy_exit_angle_d,			size_floats,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( xz_exit_angle_h,			xz_exit_angle_d,			size_floats,	cudaMemcpyDeviceToHost );
-
-	char data_filename[128];
-	if( WRITE_BIN_WEPLS )
-	{
-		sprintf(data_filename, "%s_%03d%s", "bin_numbers", gantry_angle_h[0], ".txt" );
-		array_2_disk( data_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_num_h, COLUMNS, ROWS, SLICES, num_histories, true );
-	}
-
-	// Push data from valid histories  (i.e. missed_recon_volume = FALSE) onto the end of each vector
-	int offset = 0;
-	for( unsigned int i = 0; i < num_histories; i++ )
-	{
-		if( !missed_recon_volume_h[i] )
-		{
-			//gantry_angle_vector.push_back( gantry_angle_h[i] );
-			WEPL_vector.push_back( WEPL_h[i] );
-			x_entry_vector.push_back( x_entry_h[i] );
-			y_entry_vector.push_back( y_entry_h[i] );
-			z_entry_vector.push_back( z_entry_h[i] );
-			x_exit_vector.push_back( x_exit_h[i] );
-			y_exit_vector.push_back( y_exit_h[i] );
-			z_exit_vector.push_back( z_exit_h[i] );
-			xy_entry_angle_vector.push_back( xy_entry_angle_h[i] );
-			xz_entry_angle_vector.push_back( xz_entry_angle_h[i] );
-			xy_exit_angle_vector.push_back( xy_exit_angle_h[i] );
-			xz_exit_angle_vector.push_back( xz_exit_angle_h[i] );
-			offset++;
-			recon_vol_histories++;
-		}
-	}
-	printf( "=======>%d out of %d (%4.2f%%) histories passed intersection cuts\n\n", offset, num_histories, (double) offset / num_histories * 100 );
-	
-	free( missed_recon_volume_h ); 
-	free( x_entry_h );
-	free( y_entry_h );
-	free( z_entry_h );
-	free( x_exit_h );
-	free( y_exit_h );
-	free( z_exit_h );
-	free( xy_entry_angle_h );
-	free( xz_entry_angle_h );
-	free( xy_exit_angle_h );
-	free( xz_exit_angle_h );
-	free( WEPL_h);
-	/* 
-		Host memory allocated but not freed here
-		N/A
-	*/
-	cudaFree( missed_recon_volume_d );
-	cudaFree( x_entry_d );
-	cudaFree( y_entry_d );
-	cudaFree( z_entry_d );
-	cudaFree( x_exit_d );
-	cudaFree( y_exit_d );
-	cudaFree( z_exit_d );
-	cudaFree( xy_entry_angle_d );
-	cudaFree( xz_entry_angle_d );
-	cudaFree( xy_exit_angle_d );
-	cudaFree( xz_exit_angle_d );
-	cudaFree( WEPL_d);
-	/* 
-		Device memory allocated but not freed here
-		WEPL_d;
-		bin_num_d;
-	*/
 	free(t_in_1_h);
 	free(t_in_2_h);
 	free(t_out_1_h);
@@ -2427,7 +2334,6 @@ void recon_volume_intersections2( int num_histories )
 	free(u_in_2_h);
 	free(u_out_1_h);
 	free(u_out_2_h);
-	free(gantry_angle_h);
 	// Host memory not freed
 
 
@@ -2458,161 +2364,6 @@ void recon_volume_intersections2( int num_histories )
 		xz_exit_angle_d;
 		missed_recon_volume_d;
 	*/
-}
-void binning2( int num_histories, int start_position )
-{
-	unsigned int size_floats	= sizeof(float) * num_histories;
-	unsigned int size_ints		= sizeof(int) * num_histories;
-	unsigned int size_bool		= sizeof(bool) * num_histories;
-	
-	bin_num_h = (int*)   calloc( num_histories, sizeof(int)   );
-	cudaMalloc((void**) &bin_num_d,		size_ints );
-	cudaMemcpy( bin_num_d,	bin_num_h,	size_ints,		cudaMemcpyHostToDevice );
-
-	cudaMalloc((void**) &x_entry_d,				size_floats);
-	cudaMalloc((void**) &y_entry_d,				size_floats);
-	cudaMalloc((void**) &z_entry_d,				size_floats);
-	cudaMalloc((void**) &x_exit_d,				size_floats);
-	cudaMalloc((void**) &y_exit_d,				size_floats);
-	cudaMalloc((void**) &z_exit_d,				size_floats);
-	cudaMalloc((void**) &xy_entry_angle_d,		size_floats);	
-	cudaMalloc((void**) &xz_entry_angle_d,		size_floats);
-	cudaMalloc((void**) &xy_exit_angle_d,		size_floats);
-	cudaMalloc((void**) &xz_exit_angle_d,		size_floats);
-	cudaMalloc((void**) &WEPL_d,				size_floats);
-	
-		
-	//cudaMemcpy( bin_num_d,			&bin_num_vector[start_position],			size_ints, cudaMemcpyHostToDevice);
-	
-	cudaMemcpy( x_entry_d,				&x_entry_vector[start_position],			size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( y_entry_d,				&y_entry_vector[start_position],			size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( z_entry_d,				&z_entry_vector[start_position],			size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( x_exit_d,				&x_exit_vector[start_position],				size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( y_exit_d,				&y_exit_vector[start_position],				size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( z_exit_d,				&z_exit_vector[start_position],				size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( xy_entry_angle_d,		&xy_entry_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( xz_entry_angle_d,		&xz_entry_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle_vector[start_position],		size_floats, cudaMemcpyHostToDevice);
-	cudaMemcpy( WEPL_d,					&WEPL_vector[start_position],				size_floats, cudaMemcpyHostToDevice);
-
-
-	dim3 dimBlock( THREADS_PER_BLOCK );
-	dim3 dimGrid( (int)( num_histories/THREADS_PER_BLOCK ) + 1 );
-	binning_GPU_2<<<dimGrid, dimBlock>>>
-	( 
-		num_histories, bin_counts_d, bin_num_d,
-		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d, 
-		mean_WEPL_d, mean_rel_ut_angle_d, mean_rel_uv_angle_d, WEPL_d, 
-		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d
-	);
-
-	cudaMemcpy( bin_num_h,					bin_num_d,					size_ints,		cudaMemcpyDeviceToHost );
-
-	//char data_filename[128];
-	//if( WRITE_BIN_WEPLS )
-	//{
-	//	sprintf(data_filename, "%s_%03d%s", "bin_numbers", gantry_angle_h[0], ".txt" );
-	//	array_2_disk( data_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_num_h, COLUMNS, ROWS, SLICES, num_histories, true );
-	//}
-
-	// Push data from valid histories  (i.e. missed_recon_volume = FALSE) onto the end of each vector
-	int offset = 0;
-	for( unsigned int i = 0; i < num_histories; i++ )
-	{
-		//if( ( bin_num_h[i] >= 0 ) )
-		//{
-			bin_num_vector.push_back( bin_num_h[i] );
-			//gantry_angle_vector.push_back( gantry_angle_h[i] );
-			//offset++;
-			//recon_vol_histories++;
-		//}
-	}
-	//printf( "=======>%d out of %d (%4.2f%%) histories passed intersection cuts\n\n", offset, num_histories, (double) offset / num_histories * 100 );
-	
-	free( bin_num_h );
-	cudaFree( bin_num_d );
-	/* 
-		Host memory allocated but not freed here
-		N/A
-	*/
-
-	/* 
-		Device memory allocated but not freed here
-		WEPL_d;
-		bin_num_d;
-	*/
-}
-__global__ void binning_GPU_2
-( 
-	int num_histories, int* bin_counts, int* bin_num, 
-	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit, 
-	float* mean_WEPL, float* mean_rel_ut_angle, float* mean_rel_uv_angle, float* WEPL, 
-	float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle
-)
-{
-	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	if( i < num_histories )
-	{		
-		/********************************************************************************************************************/ 
-		/*	Bin histories according to angle/t/v.  The value of t varies along the path, so use the average value, which	*/
-		/*	occurs at the midpoint of the chord connecting the entry and exit of the reconstruction volume since the		*/
-		/*	orientation of the chord is symmetric about the midpoint (drawing included in documentation).					*/
-		/********************************************************************************************************************/ 
-		double x_midpath, y_midpath, z_midpath, path_angle;
-		int angle_bin, t_bin, v_bin;
-		double angle, t, v;
-		double rel_ut_angle, rel_uv_angle;
-
-		// Calculate midpoint of chord connecting entry and exit
-		x_midpath = ( x_entry[i] + x_exit[i] ) / 2;
-		y_midpath = ( y_entry[i] + y_exit[i] ) / 2;
-		z_midpath = ( z_entry[i] + z_exit[i] ) / 2;
-
-		// Calculate path angle and determine which angular bin is closest
-		path_angle = atan2( ( y_exit[i] - y_entry[i] ) , ( x_exit[i] - x_entry[i] ) );
-		if( path_angle < 0 )
-			path_angle += 2*PI;
-		angle_bin = int( ( path_angle * RADIANS_TO_ANGLE / ANGULAR_BIN_SIZE ) + 0.5) % ANGULAR_BINS;	
-		angle = angle_bin * ANGULAR_BIN_SIZE * ANGLE_TO_RADIANS;
-
-		// Calculate t/v of midpoint and find t/v bin closest to this value
-		t = y_midpath * cos(angle) - x_midpath * sin(angle);
-		t_bin = int( (t / T_BIN_SIZE ) + T_BINS/2);			
-			
-		v = z_midpath;
-		v_bin = int( (v / V_BIN_SIZE ) + V_BINS/2);
-		
-		// For histories with valid angular/t/v bin #, calculate bin #, add to its count and WEPL/relative angle sums
-		if( (t_bin >= 0) && (v_bin >= 0) && (t_bin < T_BINS) && (v_bin < V_BINS) )
-		{
-			bin_num[i] = t_bin + angle_bin * T_BINS + v_bin * T_BINS * ANGULAR_BINS;
-				//xy_entry_angle[i]
-				//xz_entry_angle[i]
-				//xy_exit_angle[i]
-				//xz_exit_angle[i]
-				rel_ut_angle = xy_exit_angle[i] - xy_entry_angle[i];
-				if( rel_ut_angle > PI )
-					rel_ut_angle -= 2 * PI;
-				if( rel_ut_angle < -PI )
-					rel_ut_angle += 2 * PI;
-				rel_uv_angle = xz_exit_angle[i] - xz_entry_angle[i];
-				if( rel_uv_angle > PI )
-					rel_uv_angle -= 2 * PI;
-				if( rel_uv_angle < -PI )
-					rel_uv_angle += 2 * PI;
-				atomicAdd( &bin_counts[bin_num[i]], 1 );
-				atomicAdd( &mean_WEPL[bin_num[i]], WEPL[i] );
-				atomicAdd( &mean_rel_ut_angle[bin_num[i]], rel_ut_angle );
-				atomicAdd( &mean_rel_uv_angle[bin_num[i]], rel_uv_angle );
-				//atomicAdd( &mean_rel_ut_angle[bin_num[i]], relative_ut_angle[i] );
-				//atomicAdd( &mean_rel_uv_angle[bin_num[i]], relative_uv_angle[i] );
-				//if( i < 5 )
-					//printf("bin Num = %d, WEPL = %3f, ut = %3f, uv = %3f \n", bin_num[i], WEPL[i], rel_ut_angle, rel_uv_angle );
-		}
-		else
-			bin_num[i] = -1;
-	}
 }
 __global__ void recon_volume_intersections_GPU
 (
@@ -2833,7 +2584,7 @@ __device__ bool calculate_intercepts( double u, double t, double ut_angle, doubl
 
 	return intersected;
 }
-void binning( int num_histories, int start_pos )
+void binning( const int num_histories )
 {
 	unsigned int size_floats	= sizeof(float) * num_histories;
 	unsigned int size_ints		= sizeof(int) * num_histories;
@@ -2855,7 +2606,7 @@ void binning( int num_histories, int start_pos )
 	cudaMalloc((void**) &WEPL_d,	size_floats);
 	cudaMalloc((void**) &bin_num_d,	size_ints );
 
-	cudaMemcpy( WEPL_d,		&WEPL_h[start_pos],		size_floats,	cudaMemcpyHostToDevice) ;
+	cudaMemcpy( WEPL_d,		WEPL_h,		size_floats,	cudaMemcpyHostToDevice) ;
 	cudaMemcpy( bin_num_d,	bin_num_h,	size_ints,		cudaMemcpyHostToDevice );
 
 	dim3 dimBlock( THREADS_PER_BLOCK );
@@ -3033,16 +2784,6 @@ void calculate_means()
 	//cudaMemcpy( mean_WEPL_h,	mean_WEPL_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	//	int* empty_parameter;
 	//	bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
-	//bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
-	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
-	cudaMemcpy( mean_WEPL_h,	mean_WEPL_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
-	cudaMemcpy( mean_rel_ut_angle_h,	mean_rel_ut_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
-	cudaMemcpy( mean_rel_uv_angle_h,	mean_rel_uv_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
-
-	array_2_disk("bin_counts_pre_mean", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("mean_WEPL_pre_mean", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("mean_rel_ut_pre_mean", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("mean_rel_uv_pre_mean", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
@@ -3057,16 +2798,16 @@ void calculate_means()
 		int* empty_parameter;
 		bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
 	}
-	//bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
+	bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
 	cudaMemcpy( mean_WEPL_h,	mean_WEPL_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	cudaMemcpy( mean_rel_ut_angle_h,	mean_rel_ut_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	cudaMemcpy( mean_rel_uv_angle_h,	mean_rel_uv_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 
-	array_2_disk("bin_counts_post_mean", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("mean_WEPL_post_mean", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("mean_rel_ut_angle_post_mean", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("mean_rel_uv_angle_post_mean", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("bin_counts_h_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("mean_WEPL_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("mean_rel_ut_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("mean_rel_uv_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	free(bin_counts_h);
 	free(mean_WEPL_h);
@@ -3084,7 +2825,7 @@ __global__ void calculate_means_GPU( int* bin_counts, float* mean_WEPL, float* m
 		mean_rel_uv_angle[bin] /= bin_counts[bin];
 	}
 }
-void sum_squared_deviations( int start_position, int num_histories )
+void sum_squared_deviations( const int start_position, const int num_histories )
 {
 	unsigned int size_floats = sizeof(float) * num_histories;
 	unsigned int size_ints = sizeof(int) * num_histories;
@@ -3158,15 +2899,6 @@ __global__ void sum_squared_deviations_GPU
 void calculate_standard_deviations()
 {
 	puts("Calculating standard deviations for each bin...");
-
-	cudaMemcpy( stddev_rel_ut_angle_h,	stddev_rel_ut_angle_d,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( stddev_rel_uv_angle_h,	stddev_rel_uv_angle_d,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
-	cudaMemcpy( stddev_WEPL_h,			stddev_WEPL_d,			SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
-
-	array_2_disk("stddev_rel_ut_angle_h_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("stddev_rel_uv_angle_h_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("stddev_WEPL_h_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
 	calculate_standard_deviations_GPU<<< dimGrid, dimBlock >>>
@@ -3177,9 +2909,9 @@ void calculate_standard_deviations()
 	cudaMemcpy( stddev_rel_uv_angle_h,	stddev_rel_uv_angle_d,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
 	cudaMemcpy( stddev_WEPL_h,			stddev_WEPL_d,			SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
 
-	array_2_disk("stddev_rel_ut_angle_h_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("stddev_rel_uv_angle_h_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("stddev_WEPL_h_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("stddev_rel_ut_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("stddev_rel_uv_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk("stddev_WEPL_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	//cudaFree( bin_counts_d );
 }
 __global__ void calculate_standard_deviations_GPU( int* bin_counts, float* stddev_WEPL, float* stddev_rel_ut_angle, float* stddev_rel_uv_angle )
@@ -3196,16 +2928,14 @@ __global__ void calculate_standard_deviations_GPU( int* bin_counts, float* stdde
 	syncthreads();
 	bin_counts[bin] = 0;
 }
-void statistical_cuts( int start_position,  int num_histories )
+void statistical_cuts( const int start_position, const int num_histories )
 {
 	unsigned int size_floats = sizeof(float) * num_histories;
 	unsigned int size_ints = sizeof(int) * num_histories;
 	unsigned int size_bools = sizeof(bool) * num_histories;
 
 	failed_cuts_h = (bool*) calloc ( num_histories, sizeof(bool) );
-	//bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
-
-	//cudaMalloc( (void**) &bin_counts_d,			size_ints );
+	
 	cudaMalloc( (void**) &bin_num_d,			size_ints );
 	cudaMalloc( (void**) &WEPL_d,				size_floats );
 	cudaMalloc( (void**) &xy_entry_angle_d,		size_floats );
@@ -3214,7 +2944,6 @@ void statistical_cuts( int start_position,  int num_histories )
 	cudaMalloc( (void**) &xz_exit_angle_d,		size_floats );
 	cudaMalloc( (void**) &failed_cuts_d,		size_bools );
 
-	//cudaMemcpy( bin_counts_d,				bin_counts_h,			size_ints,		cudaMemcpyHostToDevice );
 	cudaMemcpy( bin_num_d,				&bin_num_vector[start_position],			size_ints,		cudaMemcpyHostToDevice );
 	cudaMemcpy( WEPL_d,					&WEPL_vector[start_position],				size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( xy_entry_angle_d,		&xy_entry_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
@@ -3248,8 +2977,6 @@ void statistical_cuts( int start_position,  int num_histories )
 	{
 		if( !failed_cuts_h[i] )
 		{
-			if( post_cut_histories < 5 )
-				cout << "passed at " << i << endl;
 			bin_num_vector[post_cut_histories] = bin_num_vector[start_position + i];
 			//gantry_angle_vector[post_cut_histories] = gantry_angle_vector[start_position + i];
 			WEPL_vector[post_cut_histories] = WEPL_vector[start_position + i];
@@ -3279,7 +3006,7 @@ void statistical_cuts( int start_position,  int num_histories )
 			post_cut_histories++;
 		}
 	}
-
+	
 	cudaFree(bin_num_d);
 	cudaFree(WEPL_d);
 	cudaFree(xy_entry_angle_d);
@@ -3314,7 +3041,7 @@ __global__ void statistical_cuts_GPU
 )
 {
 	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	if( (i < num_histories) && (bin_num[i] > 0) && (bin_num[i] < NUM_BINS) )
+	if( i < num_histories )
 	{
 		double rel_ut_angle = xy_exit_angle[i] - xy_entry_angle[i];
 		if( rel_ut_angle > PI )
@@ -3328,6 +3055,7 @@ __global__ void statistical_cuts_GPU
 			rel_uv_angle += 2 * PI;
 		bool passed_ut_cut = ( abs( rel_ut_angle - mean_rel_ut_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_ut_angle[bin_num[i]] ) );
 		bool passed_uv_cut = ( abs( rel_uv_angle - mean_rel_uv_angle[bin_num[i]] ) < ( SIGMAS_TO_KEEP * stddev_rel_uv_angle[bin_num[i]] ) );
+		//bool passed_uv_cut = true;
 		bool passed_WEPL_cut = ( abs( mean_WEPL[bin_num[i]] - WEPL[i] ) <= ( SIGMAS_TO_KEEP * stddev_WEPL[bin_num[i]] ) );
 		failed_cuts[i] = !passed_ut_cut || !passed_uv_cut || !passed_WEPL_cut;
 
@@ -3362,19 +3090,19 @@ void construct_sinogram()
 
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
 	array_2_disk("sinogram_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
 	construct_sinogram_GPU<<< dimGrid, dimBlock >>>( bin_counts_d, sinogram_d );
 
-	//if( WRITE_WEPL_DISTS )
-	//{
-	//	cudaMemcpy( sinogram_h,	sinogram_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
-	//	int* empty_parameter;
-	//	bins_2_disk( "WEPL_dist_post_test2", empty_parameter, sinogram_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
-	//}
+	if( WRITE_WEPL_DISTS )
+	{
+		cudaMemcpy( sinogram_h,	sinogram_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
+		int* empty_parameter;
+		bins_2_disk( "WEPL_dist_post_test2", empty_parameter, sinogram_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
+	}
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
 	array_2_disk("sinogram", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	free(sinogram_h);
 
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
 	array_2_disk( "bin_counts_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
@@ -3392,6 +3120,9 @@ void FBP()
 	// Filter the sinogram before backprojecting
 	filter();
 
+	free(sinogram_h);
+	cudaFree(sinogram_d);
+
 	puts("Performing backprojection...");
 
 	FBP_image_h = (float*) calloc( NUM_VOXELS, sizeof(float) );
@@ -3401,24 +3132,14 @@ void FBP()
 		exit_program_if(true);
 	}
 
-	if( false )
-	{
-		backprojection();
-	}
-	else
-	{	
-		cudaMalloc((void**) &FBP_image_d, SIZE_IMAGE_FLOAT );
-		cudaMemcpy( FBP_image_d, FBP_image_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
-
-		dim3 dimBlock( SLICES );
-		dim3 dimGrid( COLUMNS, ROWS );   
-		backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );	
-		//backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_d, FBP_image_d );	
-	}
-	//
-	//cudaFree(sinogram_d);
-	cudaFree(sinogram_filtered_d);
 	free(sinogram_filtered_h);
+	cudaMalloc((void**) &FBP_image_d, SIZE_IMAGE_FLOAT );
+	cudaMemcpy( FBP_image_d, FBP_image_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
+
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( COLUMNS, ROWS );   
+	backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );
+	cudaFree(sinogram_filtered_d);
 
 	if( WRITE_FBP_IMAGE )
 	{
@@ -3507,88 +3228,42 @@ void filter()
 	cudaMalloc((void**) &sinogram_filtered_d, SIZE_BINS_FLOAT);
 	cudaMemcpy( sinogram_filtered_d, sinogram_filtered_h, SIZE_BINS_FLOAT, cudaMemcpyHostToDevice);
 
-	/*dim3 dimBlock( T_BINS );
-	dim3 dimGrid( V_BINS, ANGULAR_BINS ); */  	
 	dim3 dimBlock( T_BINS );
-	dim3 dimGrid( ANGULAR_BINS, V_BINS  ); 
+	dim3 dimGrid( V_BINS, ANGULAR_BINS );   	
 	filter_GPU<<< dimGrid, dimBlock >>>( sinogram_d, sinogram_filtered_d );
-
-	cudaFree(sinogram_d);
-
-	cudaMemcpy( sinogram_filtered_h, sinogram_filtered_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
-	array_2_disk( "sinogram_filtered_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_filtered_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 }
-__global__ void filter_GPU( float* sino, float* sino_filtered )
-//__global__ void filter_GPU( float* sinogram, float* sinogram_filtered )
+__global__ void filter_GPU( float* sinogram, float* sinogram_filtered )
 {		
-		int n_prime,m,n,k,difference;
-	float filtered,s,v,scale_factor;
-	
-	// v detector index
-	k = blockIdx.y;
-	
-	// binned projection index
-	m = blockIdx.x;
-	
-	// t detector index
-	n = threadIdx.x;
-	
-	// Calculate the cone beam scaling factor
-	v=(k-(V_BINS/2))*V_BIN_SIZE+V_BIN_SIZE/2.0;
+	int v_bin = blockIdx.x, angle_bin = blockIdx.y, t_bin = threadIdx.x;
+	int t_bin_ref, t_bin_sep, strip_index; 
+	double filtered, t, scale_factor;
+	double v = ( v_bin - V_BINS/2 ) * V_BIN_SIZE + V_BIN_SIZE/2.0;
 	
 	// Loop over strips for this strip
-	for(n_prime=0;n_prime<T_BINS;n_prime++)
+	for( t_bin_ref = 0; t_bin_ref < T_BINS; t_bin_ref++ )
 	{
-		
-		// Calculate the fan beam scaling factor
-		s=(n_prime-(T_BINS/2))*T_BIN_SIZE+T_BIN_SIZE/2.0;
-		
-		scale_factor=(SOURCE_RADIUS)/sqrtf(SOURCE_RADIUS*SOURCE_RADIUS+s*s+v*v);
-		
-		difference=n-n_prime;
-		
-		// Ram-Lak
-		//if(difference==0){ filtered=1.0/(8.0*d_t*d_t); }
-		//else if(difference%2==0){ filtered=0; }
-		//else{ filtered=-1.0/(2.0*d_t*d_t*PI*PI*difference*difference); }
-		
-		// Shepp-Logan filter
-		filtered=(1.0/(PI*PI*T_BIN_SIZE*T_BIN_SIZE))*(1.0/(1.0-(4.0*difference*difference)));
-		
-		sino_filtered[(k*ANGULAR_BINS*T_BINS)+(m*T_BINS)+n]+=T_BIN_SIZE*sino[(k*ANGULAR_BINS*T_BINS)+(m*T_BINS)+n_prime]*filtered*scale_factor;
+		t = ( t_bin_ref - T_BINS/2 ) * T_BIN_SIZE + T_BIN_SIZE/2.0;
+		t_bin_sep = t_bin - t_bin_ref;
+		// scale_factor = r . path = cos(theta_{r,path})
+		scale_factor = SOURCE_RADIUS / sqrt( SOURCE_RADIUS * SOURCE_RADIUS + t * t + v * v );
+		switch( FBP_FILTER )
+		{
+			case NONE: 
+				break;
+			case RAM_LAK:
+				if( t_bin_sep == 0 )
+					filtered = 1.0 / ( 4.0 * pow( RAM_LAK_TAU, 2.0 ) );
+				else if( t_bin_sep % 2 == 0 )
+					filtered = 0;
+				else
+					filtered = -1.0 / ( pow( RAM_LAK_TAU * PI * t_bin_sep, 2.0 ) );	
+				break;
+			case SHEPP_LOGAN:
+				filtered = pow( pow(T_BIN_SIZE * PI, 2.0) * ( 1.0 - pow(2 * t_bin_sep, 2.0) ), -1.0 );
+		}
+		strip_index = ( v_bin * ANGULAR_BINS * T_BINS ) + ( angle_bin * T_BINS );
+		sinogram_filtered[strip_index + t_bin] += T_BIN_SIZE * sinogram[strip_index + t_bin_ref] * filtered * scale_factor;
 	}
-	//int t_bin = threadIdx.x, angle_bin = blockIdx.x, v_bin = blockIdx.y;
-	////int v_bin = threadIdx.x, angle_bin = blockIdx.y, t_bin = blockIdx.x;
-	////int v_bin = blockIdx.x, angle_bin = blockIdx.y, t_bin = threadIdx.x;
-	//int t_bin_ref, t_bin_sep, strip_index; 
-	//double filtered, t, scale_factor;
-	//double v = ( v_bin - V_BINS/2 ) * V_BIN_SIZE + V_BIN_SIZE/2.0;
-	//
-	//// Loop over strips for this strip
-	//for( t_bin_ref = 0; t_bin_ref < T_BINS; t_bin_ref++ )
-	//{
-	//	t = ( t_bin_ref - T_BINS/2 ) * T_BIN_SIZE + T_BIN_SIZE/2.0;
-	//	t_bin_sep = t_bin - t_bin_ref;
-	//	// scale_factor = r . path = cos(theta_{r,path})
-	//	scale_factor = SOURCE_RADIUS / sqrt( SOURCE_RADIUS * SOURCE_RADIUS + t * t + v * v );
-	//	switch( FBP_FILTER )
-	//	{
-	//		case NONE: 
-	//			break;
-	//		case RAM_LAK:
-	//			if( t_bin_sep == 0 )
-	//				filtered = 1.0 / ( 4.0 * pow( RAM_LAK_TAU, 2.0 ) );
-	//			else if( t_bin_sep % 2 == 0 )
-	//				filtered = 0;
-	//			else
-	//				filtered = -1.0 / ( pow( RAM_LAK_TAU * PI * t_bin_sep, 2.0 ) );	
-	//			break;
-	//		case SHEPP_LOGAN:
-	//			filtered = pow( pow(T_BIN_SIZE * PI, 2.0) * ( 1.0 - pow(2 * t_bin_sep, 2.0) ), -1.0 );
-	//	}
-	//	strip_index = ( v_bin * ANGULAR_BINS * T_BINS ) + ( angle_bin * T_BINS );
-	//	sinogram_filtered[strip_index + t_bin] += T_BIN_SIZE * sinogram[strip_index + t_bin_ref] * filtered * scale_factor;
-	//}
 }
 void backprojection()
 {
@@ -3785,21 +3460,12 @@ __global__ void FBP_image_2_hull_GPU( float* FBP_image, bool* FBP_hull )
 /***********************************************************************************************************************************************************************************************************************/
 /*************************************************************************************************** Hull-Detection ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void hull_detection(  int histories_to_process)
+void hull_detection( const int histories_to_process)
 {
 	if( SC_ON  ) 
 		SC( histories_to_process );		
 	if( MSC_ON )
 		MSC( histories_to_process );
-	if( SM_ON )
-		SM( histories_to_process );   
-}
-void hull_detection_2(  int histories_to_process)
-{
-	if( SC_ON  ) 
-		SC( histories_to_process );		
-	if( MSC_ON )
-		MSC_2( histories_to_process );
 	if( SM_ON )
 		SM( histories_to_process );   
 }
@@ -3856,7 +3522,7 @@ template<typename T> __global__ void initialize_hull_GPU( T* hull )
 	else
 		hull[voxel] = 0;
 }
-void SC(  int num_histories )
+void SC( const int num_histories )
 {
 	dim3 dimBlock(THREADS_PER_BLOCK);
 	dim3 dimGrid( (int)( num_histories / THREADS_PER_BLOCK ) + 1 );
@@ -3869,7 +3535,7 @@ void SC(  int num_histories )
 }
 __global__ void SC_GPU
 ( 
-	 int num_histories, bool* SC_hull, int* bin_num, bool* missed_recon_volume, float* WEPL,
+	const int num_histories, bool* SC_hull, int* bin_num, bool* missed_recon_volume, float* WEPL,
 	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
 )
 {// 15 doubles, 11 integers, 2 booleans
@@ -3975,7 +3641,7 @@ __global__ void SC_GPU
 	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= SC_THRESHOLD) )
 }
 /***********************************************************************************************************************************************************************************************************************/
-void MSC(  int num_histories )
+void MSC( const int num_histories )
 {
 	dim3 dimBlock(THREADS_PER_BLOCK);
 	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
@@ -3985,19 +3651,9 @@ void MSC(  int num_histories )
 		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d
 	);
 }
-void MSC_2( int num_histories )
-{
-	dim3 dimBlock(THREADS_PER_BLOCK);
-	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
-	MSC_GPU_2<<<dimGrid, dimBlock>>>
-	(
-		num_histories, MSC_counts_d, bin_num_d, WEPL_d,
-		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d
-	);
-}
 __global__ void MSC_GPU
 ( 
-	 int num_histories, int* MSC_counts, int* bin_num, bool* missed_recon_volume, float* WEPL,
+	const int num_histories, int* MSC_counts, int* bin_num, bool* missed_recon_volume, float* WEPL,
 	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
 )
 {
@@ -4098,110 +3754,6 @@ __global__ void MSC_GPU
 		}//end: else: z_start != z_end => z_start == z_end
 	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
 }
-__global__ void MSC_GPU_2
-( 
-	 int num_histories, int* MSC_counts, int* bin_num, float* WEPL,
-	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
-)
-{
-	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	if( (i < num_histories) && (WEPL[i] <= MSC_THRESHOLD) )
-	{
-		/********************************************************************************************/
-		/************************** Path Characteristic Parameters **********************************/
-		/********************************************************************************************/
-		int x_move_direction, y_move_direction, z_move_direction;
-		double dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz;
-		/********************************************************************************************/
-		/**************************** Status Tracking Information ***********************************/
-		/********************************************************************************************/
-		double x = x_entry[i], y = y_entry[i], z = z_entry[i];
-		double x_to_go, y_to_go, z_to_go;		
-		//double x_extension, y_extension;	
-		int voxel_x, voxel_y, voxel_z, voxel;
-		int voxel_x_out, voxel_y_out, voxel_z_out, voxel_out; 
-		bool end_walk;
-		//bool debug_run = false;
-		/********************************************************************************************/
-		/******************** Initial Conditions and Movement Characteristics ***********************/
-		/********************************************************************************************/
-		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] >= x_exit[i] );
-		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
-		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
-
-		voxel_x = calculate_voxel_GPU( X_ZERO_COORDINATE, x_entry[i], VOXEL_WIDTH );
-		voxel_y = calculate_voxel_GPU( Y_ZERO_COORDINATE, y_entry[i], VOXEL_HEIGHT );
-		voxel_z = calculate_voxel_GPU( Z_ZERO_COORDINATE, z_entry[i], VOXEL_THICKNESS );		
-		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-
-		x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE,	x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH,	 voxel_x );
-		y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE,	y, Y_INCREASING_DIRECTION,  y_move_direction, VOXEL_HEIGHT,	 voxel_y );
-		z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE,	z, Z_INCREASING_DIRECTION,  z_move_direction, VOXEL_THICKNESS, voxel_z );				
-		/********************************************************************************************/
-		/***************************** Path and Walk Information ************************************/
-		/********************************************************************************************/
-		// Slopes corresponging to each possible direction/reference.  Explicitly calculated inverses to avoid 1/# calculations later
-		dy_dx = ( y_exit[i] - y_entry[i] ) / ( x_exit[i] - x_entry[i] );
-		dz_dx = ( z_exit[i] - z_entry[i] ) / ( x_exit[i] - x_entry[i] );
-		dz_dy = ( z_exit[i] - z_entry[i] ) / ( y_exit[i] - y_entry[i] );
-		dx_dy = ( x_exit[i] - x_entry[i] ) / ( y_exit[i] - y_entry[i] );
-		dx_dz = ( x_exit[i] - x_entry[i] ) / ( z_exit[i] - z_entry[i] );
-		dy_dz = ( y_exit[i] - y_entry[i] ) / ( z_exit[i] - z_entry[i] );
-		/********************************************************************************************/
-		/************************* Initialize and Check Exit Conditions *****************************/
-		/********************************************************************************************/
-		voxel_x_out = calculate_voxel_GPU( X_ZERO_COORDINATE, x_exit[i], VOXEL_WIDTH );
-		voxel_y_out = calculate_voxel_GPU( Y_ZERO_COORDINATE, y_exit[i], VOXEL_HEIGHT );
-		voxel_z_out = calculate_voxel_GPU( Z_ZERO_COORDINATE, z_exit[i], VOXEL_THICKNESS );
-		voxel_out = voxel_x_out + voxel_y_out * COLUMNS + voxel_z_out * COLUMNS * ROWS;
-
-		end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-		if( !end_walk )
-			atomicAdd(&MSC_counts[voxel], 1);
-		/********************************************************************************************/
-		/*********************************** Voxel Walk Routine *************************************/
-		/********************************************************************************************/
-		if( z_move_direction != 0 )
-		{
-			//printf("z_exit[i] != z_entry[i]\n");
-			while( !end_walk )
-			{
-				take_3D_step_GPU
-				( 
-					x_move_direction, y_move_direction, z_move_direction,
-					dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz, 
-					x_entry[i], y_entry[i], z_entry[i], 
-					x, y, z, 
-					voxel_x, voxel_y, voxel_z, voxel,
-					x_to_go, y_to_go, z_to_go
-				);
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					atomicAdd(&MSC_counts[voxel], 1);
-			}// end !end_walk 
-		}
-		else
-		{
-			//printf("z_exit[i] == z_entry[i]\n");
-			while( !end_walk )
-			{
-				take_2D_step_GPU
-				( 
-					x_move_direction, y_move_direction, z_move_direction,
-					dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz, 
-					x_entry[i], y_entry[i], z_entry[i], 
-					x, y, z, 
-					voxel_x, voxel_y, voxel_z, voxel,
-					x_to_go, y_to_go, z_to_go
-				);				
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					atomicAdd(&MSC_counts[voxel], 1);
-			}// end: while( !end_walk )
-		}//end: else: z_start != z_end => z_start == z_end
-	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
-}
-
 void MSC_edge_detection()
 {
 	puts("Performing edge-detection on MSC_counts...");
@@ -4241,7 +3793,7 @@ __global__ void MSC_edge_detection_GPU( int* MSC_counts )
 
 }
 /***********************************************************************************************************************************************************************************************************************/
-void SM(  int num_histories)
+void SM( const int num_histories)
 {
 	dim3 dimBlock(THREADS_PER_BLOCK);
 	dim3 dimGrid( (int)( num_histories / THREADS_PER_BLOCK ) + 1 );
@@ -4253,7 +3805,7 @@ void SM(  int num_histories)
 }
 __global__ void SM_GPU
 ( 
-	 int num_histories, int* SM_counts, int* bin_num, bool* missed_recon_volume, float* WEPL,
+	const int num_histories, int* SM_counts, int* bin_num, bool* missed_recon_volume, float* WEPL,
 	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
 )
 {
@@ -6717,7 +6269,7 @@ void binary_2_ASCII()
 		histories_to_process = 0;
 	} 
 }
-template<typename T> void array_2_disk( const char* filename_base, const char* directory, const char* folder, T* data, int x_max, int y_max, int z_max, int elements, bool single_file )
+template<typename T> void array_2_disk( char* filename_base, const char* directory, const char* folder, T* data, const int x_max, const int y_max, const int z_max, const int elements, const bool single_file )
 {
 	char filename[256];
 	std::ofstream output_file;
@@ -6760,7 +6312,7 @@ template<typename T> void array_2_disk( const char* filename_base, const char* d
 		output_file.close();
 	}
 }
-template<typename T> void vector_2_disk( const char* filename_base, const char* directory, const char* folder, std::vector<T> data, int x_max, int y_max, int z_max, bool single_file )
+template<typename T> void vector_2_disk( char* filename_base, const char* directory, const char* folder, std::vector<T> data, const int x_max, const int y_max, const int z_max, const bool single_file )
 {
 	char filename[256];
 	std::ofstream output_file;
@@ -6804,7 +6356,7 @@ template<typename T> void vector_2_disk( const char* filename_base, const char* 
 		output_file.close();
 	}
 }
-template<typename T> void t_bins_2_disk( FILE* output_file, std::vector<int>& bin_numbers, std::vector<T>& data, BIN_ANALYSIS_TYPE type, BIN_ORGANIZATION bin_order, int bin )
+template<typename T> void t_bins_2_disk( FILE* output_file, const std::vector<int>& bin_numbers, const std::vector<T>& data, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
 {
 	char* data_format = FLOAT_FORMAT;
 	if( typeid(T) == typeid(int) )
@@ -6846,7 +6398,7 @@ template<typename T> void t_bins_2_disk( FILE* output_file, std::vector<int>& bi
 		bin_histories.shrink_to_fit();
 	}
 }
-template<typename T> void bins_2_disk( const char* filename_base, std::vector<int>& bin_numbers, std::vector<T>& data, BIN_ANALYSIS_TYPE type, BIN_ANALYSIS_FOR which_bins, BIN_ORGANIZATION bin_order, ... )
+template<typename T> void bins_2_disk( const char* filename_base, const std::vector<int>& bin_numbers, const std::vector<T>& data, const BIN_ANALYSIS_TYPE type, const BIN_ANALYSIS_FOR which_bins, const BIN_ORGANIZATION bin_order, ... )
 {
 	//bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
 	//bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, sinogram_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
@@ -6908,7 +6460,7 @@ template<typename T> void bins_2_disk( const char* filename_base, std::vector<in
 		fclose (output_file);
 	}
 }
-template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T*& data, unsigned int data_elements, BIN_ANALYSIS_TYPE type, BIN_ORGANIZATION bin_order, int bin )
+template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T*& data, const unsigned int data_elements, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
 {
 	char* data_format = FLOAT_FORMAT;
 	if( typeid(T) == typeid(int) )
@@ -6952,7 +6504,7 @@ template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T
 		bin_histories.shrink_to_fit();
 	}
 }
-template<typename T>  void bins_2_disk( const char* filename_base, int*& bin_numbers, T*& data, int data_elements, BIN_ANALYSIS_TYPE type, BIN_ANALYSIS_FOR which_bins, BIN_ORGANIZATION bin_order, ... )
+template<typename T>  void bins_2_disk( const char* filename_base, int*& bin_numbers, T*& data, const int data_elements, const BIN_ANALYSIS_TYPE type, const BIN_ANALYSIS_FOR which_bins, const BIN_ORGANIZATION bin_order, ... )
 {
 	std::vector<int> angles;
 	std::vector<int> angular_bins;
@@ -7013,7 +6565,7 @@ template<typename T>  void bins_2_disk( const char* filename_base, int*& bin_num
 		fclose (output_file);
 	}
 }
-FILE* create_MLP_path_file( const char* data_filename )
+FILE* create_MLP_path_file( char* data_filename )
 {
 	FILE * pFile;
 	//char data_filename[256];
@@ -7021,7 +6573,7 @@ FILE* create_MLP_path_file( const char* data_filename )
 	pFile = fopen (data_filename,"w+");
 	return pFile;
 }
-template<typename T> void path_data_2_disk(const char* data_filename, FILE* pFile, unsigned int voxel_intersections, unsigned int* voxel_numbers, T*& data, bool write_sparse)
+template<typename T> void path_data_2_disk(char* data_filename, FILE* pFile, unsigned int voxel_intersections, unsigned int* voxel_numbers, T*& data, bool write_sparse)
 {
 	// Writes either voxel intersection numbers or chord lengths in either dense or sparse format
 	T data_value;	
@@ -7074,7 +6626,7 @@ int calculate_voxel( double zero_coordinate, double current_position, double vox
 {
 	return abs( current_position - zero_coordinate ) / voxel_size;
 }
-int positions_2_voxels(double x, double y, double z, int& voxel_x, int& voxel_y, int& voxel_z )
+int positions_2_voxels(const double x, const double y, const double z, int& voxel_x, int& voxel_y, int& voxel_z )
 {
 	voxel_x = int( ( x - X_ZERO_COORDINATE ) / VOXEL_WIDTH );				
 	voxel_y = int( ( Y_ZERO_COORDINATE - y ) / VOXEL_HEIGHT );
@@ -7137,7 +6689,7 @@ __device__ int calculate_voxel_GPU( double zero_coordinate, double current_posit
 {
 	return abs( current_position - zero_coordinate ) / voxel_size;
 }
-__device__ int positions_2_voxels_GPU(double x, double y, double z, int& voxel_x, int& voxel_y, int& voxel_z )
+__device__ int positions_2_voxels_GPU(const double x, const double y, const double z, int& voxel_x, int& voxel_y, int& voxel_z )
 {
 	voxel_x = int( ( x - X_ZERO_COORDINATE ) / VOXEL_WIDTH );				
 	voxel_y = int( ( Y_ZERO_COORDINATE - y ) / VOXEL_HEIGHT );
@@ -7231,10 +6783,10 @@ double corresponding_coordinate( double m, double x, double x0, double y0 )
 }
 void take_2D_step
 ( 
-	int x_move_direction, int y_move_direction, int z_move_direction,
-	double dy_dx, double dz_dx, double dz_dy, 
-	double dx_dy, double dx_dz, double dy_dz, 
-	double x_start, double y_start, double z_start, 
+	const int x_move_direction, const int y_move_direction, const int z_move_direction,
+	const double dy_dx, const double dz_dx, const double dz_dy, 
+	const double dx_dy, const double dx_dz, const double dy_dz, 
+	const double x_start, const double y_start, const double z_start, 
 	double& x, double& y, double& z, 
 	int& voxel_x, int& voxel_y, int& voxel_z, int& voxel,
 	double& x_to_go, double& y_to_go, double& z_to_go	
@@ -7277,10 +6829,10 @@ void take_2D_step
 }
 void take_3D_step
 ( 
-	int x_move_direction, int y_move_direction, int z_move_direction,
-	double dy_dx, double dz_dx, double dz_dy, 
-	double dx_dy, double dx_dz, double dy_dz, 
-	double x_start, double y_start, double z_start, 
+	const int x_move_direction, const int y_move_direction, const int z_move_direction,
+	const double dy_dx, const double dz_dx, const double dz_dy, 
+	const double dx_dy, const double dx_dz, const double dy_dz, 
+	const double x_start, const double y_start, const double z_start, 
 	double& x, double& y, double& z, 
 	int& voxel_x, int& voxel_y, int& voxel_z, int& voxel,
 	double& x_to_go, double& y_to_go, double& z_to_go	
@@ -7381,10 +6933,10 @@ __device__ double corresponding_coordinate_GPU( double m, double x, double x0, d
 }
 __device__ void take_2D_step_GPU
 ( 
-	int x_move_direction, int y_move_direction, int z_move_direction,
-	double dy_dx, double dz_dx, double dz_dy, 
-	double dx_dy, double dx_dz, double dy_dz, 
-	double x_start, double y_start, double z_start, 
+	const int x_move_direction, const int y_move_direction, const int z_move_direction,
+	const double dy_dx, const double dz_dx, const double dz_dy, 
+	const double dx_dy, const double dx_dz, const double dy_dz, 
+	const double x_start, const double y_start, const double z_start, 
 	double& x, double& y, double& z, 
 	int& voxel_x, int& voxel_y, int& voxel_z, int& voxel,
 	double& x_to_go, double& y_to_go, double& z_to_go	
@@ -7427,10 +6979,10 @@ __device__ void take_2D_step_GPU
 }
 __device__ void take_3D_step_GPU
 ( 
-	int x_move_direction, int y_move_direction, int z_move_direction,
-	double dy_dx, double dz_dx, double dz_dy, 
-	double dx_dy, double dx_dz, double dy_dz, 
-	double x_start, double y_start, double z_start, 
+	const int x_move_direction, const int y_move_direction, const int z_move_direction,
+	const double dy_dx, const double dz_dx, const double dz_dy, 
+	const double dx_dy, const double dx_dz, const double dy_dz, 
+	const double x_start, const double y_start, const double z_start, 
 	double& x, double& y, double& z, 
 	int& voxel_x, int& voxel_y, int& voxel_z, int& voxel,
 	double& x_to_go, double& y_to_go, double& z_to_go	
@@ -8003,4 +7555,3 @@ __global__ void test_func_GPU( int* a)
 	//test_func_device( x, y, z );
 	//image[voxel] = x * y * z;
 }
-//#endif //
