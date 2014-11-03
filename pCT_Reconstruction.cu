@@ -42,6 +42,7 @@ void initializations();
 void count_histories();	
 void count_histories_old();
 void count_histories_v0();
+void count_histories_v02();
 void count_histories_v1();
 void reserve_vector_capacity(); 
 
@@ -280,7 +281,7 @@ int main(unsigned int argc, char** argv)
 			assign_SSD_positions();		// Read the detector plane u-coordinates from config file
 		//initializations();				// allocate and initialize host and GPU memory for statistical
 		count_histories();				// count the number of histories per file, per scan, total, etc.
-		reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
+		//reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
 		
 		/********************************************************************************************************************************************************/
 		/* Reading the 16 energy detector responses for each of the 5 stages and generate single energy response for each history								*/
@@ -1656,6 +1657,11 @@ void read_data_chunk( int num_histories, int start_file_num, int end_file_num )
 	WEPL_h			= (float*) malloc(size_floats);
 	gantry_angle_h	= (int*)   malloc(size_ints);
 
+	if( gantry_angle_h == NULL )
+	{
+		puts("Data read allocation error");
+		exit(1);
+	}
 	if( WRITE_SSD_ANGLES )
 	{
 		ut_entry_angle	= (float*) malloc(size_floats);
@@ -1666,7 +1672,7 @@ void read_data_chunk( int num_histories, int start_file_num, int end_file_num )
 	switch( DATA_FORMAT )
 	{
 		case OLD_FORMAT : read_data_chunk_old( num_histories, start_file_num, end_file_num - 1 );	break;
-		case VERSION_0  : read_data_chunk_v0(  num_histories, start_file_num, end_file_num - 1 );	break;
+		case VERSION_0  : read_data_chunk_v02(  num_histories, start_file_num, end_file_num - 1 );	break;
 		case VERSION_1  : read_data_chunk_v1(  num_histories, start_file_num, end_file_num - 1 );
 	}
 }
@@ -1808,9 +1814,22 @@ void read_data_chunk_v0( int num_histories, int start_file_num, int end_file_num
 			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
 			fclose(data_file);
 
+			double max_WEPL = 0;
+			double min_WEPL = 0;
+
 			histories_read += file_histories;
 			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
-				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
+			{
+				gantry_angle_h[array_index] = int(projection_angles[file_num]);		
+				if( (WEPL_h[array_index]) > max_WEPL )
+					max_WEPL = WEPL_h[array_index];
+				if( (WEPL_h[array_index]) < min_WEPL )
+					min_WEPL = WEPL_h[array_index];
+			}
+			//printf("max_v = %3f\n", max_v );
+			//printf("min_v = %3f\n", min_v );
+			printf("max_WEPL = %3f\n", max_WEPL );
+			printf("min_WEPL = %3f\n", min_WEPL );					
 		}
 		else if( VERSION_ID == 1 )
 		{
@@ -3355,6 +3374,7 @@ void construct_sinogram()
 	//}
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
 	array_2_disk("sinogram", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	free(sinogram_h);
 
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
 	array_2_disk( "bin_counts_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
@@ -3372,9 +3392,6 @@ void FBP()
 	// Filter the sinogram before backprojecting
 	filter();
 
-	free(sinogram_h);
-	cudaFree(sinogram_d);
-
 	puts("Performing backprojection...");
 
 	FBP_image_h = (float*) calloc( NUM_VOXELS, sizeof(float) );
@@ -3384,14 +3401,24 @@ void FBP()
 		exit_program_if(true);
 	}
 
-	free(sinogram_filtered_h);
-	cudaMalloc((void**) &FBP_image_d, SIZE_IMAGE_FLOAT );
-	cudaMemcpy( FBP_image_d, FBP_image_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
+	if( false )
+	{
+		backprojection();
+	}
+	else
+	{	
+		cudaMalloc((void**) &FBP_image_d, SIZE_IMAGE_FLOAT );
+		cudaMemcpy( FBP_image_d, FBP_image_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
 
-	dim3 dimBlock( SLICES );
-	dim3 dimGrid( COLUMNS, ROWS );   
-	backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );
+		dim3 dimBlock( SLICES );
+		dim3 dimGrid( COLUMNS, ROWS );   
+		backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );	
+		//backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_d, FBP_image_d );	
+	}
+	//
+	//cudaFree(sinogram_d);
 	cudaFree(sinogram_filtered_d);
+	free(sinogram_filtered_h);
 
 	if( WRITE_FBP_IMAGE )
 	{
@@ -3480,42 +3507,88 @@ void filter()
 	cudaMalloc((void**) &sinogram_filtered_d, SIZE_BINS_FLOAT);
 	cudaMemcpy( sinogram_filtered_d, sinogram_filtered_h, SIZE_BINS_FLOAT, cudaMemcpyHostToDevice);
 
+	/*dim3 dimBlock( T_BINS );
+	dim3 dimGrid( V_BINS, ANGULAR_BINS ); */  	
 	dim3 dimBlock( T_BINS );
-	dim3 dimGrid( V_BINS, ANGULAR_BINS );   	
+	dim3 dimGrid( ANGULAR_BINS, V_BINS  ); 
 	filter_GPU<<< dimGrid, dimBlock >>>( sinogram_d, sinogram_filtered_d );
+
+	cudaFree(sinogram_d);
+
+	cudaMemcpy( sinogram_filtered_h, sinogram_filtered_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
+	array_2_disk( "sinogram_filtered_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_filtered_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 }
-__global__ void filter_GPU( float* sinogram, float* sinogram_filtered )
+__global__ void filter_GPU( float* sino, float* sino_filtered )
+//__global__ void filter_GPU( float* sinogram, float* sinogram_filtered )
 {		
-	int v_bin = blockIdx.x, angle_bin = blockIdx.y, t_bin = threadIdx.x;
-	int t_bin_ref, t_bin_sep, strip_index; 
-	double filtered, t, scale_factor;
-	double v = ( v_bin - V_BINS/2 ) * V_BIN_SIZE + V_BIN_SIZE/2.0;
+		int n_prime,m,n,k,difference;
+	float filtered,s,v,scale_factor;
+	
+	// v detector index
+	k = blockIdx.y;
+	
+	// binned projection index
+	m = blockIdx.x;
+	
+	// t detector index
+	n = threadIdx.x;
+	
+	// Calculate the cone beam scaling factor
+	v=(k-(V_BINS/2))*V_BIN_SIZE+V_BIN_SIZE/2.0;
 	
 	// Loop over strips for this strip
-	for( t_bin_ref = 0; t_bin_ref < T_BINS; t_bin_ref++ )
+	for(n_prime=0;n_prime<T_BINS;n_prime++)
 	{
-		t = ( t_bin_ref - T_BINS/2 ) * T_BIN_SIZE + T_BIN_SIZE/2.0;
-		t_bin_sep = t_bin - t_bin_ref;
-		// scale_factor = r . path = cos(theta_{r,path})
-		scale_factor = SOURCE_RADIUS / sqrt( SOURCE_RADIUS * SOURCE_RADIUS + t * t + v * v );
-		switch( FBP_FILTER )
-		{
-			case NONE: 
-				break;
-			case RAM_LAK:
-				if( t_bin_sep == 0 )
-					filtered = 1.0 / ( 4.0 * pow( RAM_LAK_TAU, 2.0 ) );
-				else if( t_bin_sep % 2 == 0 )
-					filtered = 0;
-				else
-					filtered = -1.0 / ( pow( RAM_LAK_TAU * PI * t_bin_sep, 2.0 ) );	
-				break;
-			case SHEPP_LOGAN:
-				filtered = pow( pow(T_BIN_SIZE * PI, 2.0) * ( 1.0 - pow(2 * t_bin_sep, 2.0) ), -1.0 );
-		}
-		strip_index = ( v_bin * ANGULAR_BINS * T_BINS ) + ( angle_bin * T_BINS );
-		sinogram_filtered[strip_index + t_bin] += T_BIN_SIZE * sinogram[strip_index + t_bin_ref] * filtered * scale_factor;
+		
+		// Calculate the fan beam scaling factor
+		s=(n_prime-(T_BINS/2))*T_BIN_SIZE+T_BIN_SIZE/2.0;
+		
+		scale_factor=(SOURCE_RADIUS)/sqrtf(SOURCE_RADIUS*SOURCE_RADIUS+s*s+v*v);
+		
+		difference=n-n_prime;
+		
+		// Ram-Lak
+		//if(difference==0){ filtered=1.0/(8.0*d_t*d_t); }
+		//else if(difference%2==0){ filtered=0; }
+		//else{ filtered=-1.0/(2.0*d_t*d_t*PI*PI*difference*difference); }
+		
+		// Shepp-Logan filter
+		filtered=(1.0/(PI*PI*T_BIN_SIZE*T_BIN_SIZE))*(1.0/(1.0-(4.0*difference*difference)));
+		
+		sino_filtered[(k*ANGULAR_BINS*T_BINS)+(m*T_BINS)+n]+=T_BIN_SIZE*sino[(k*ANGULAR_BINS*T_BINS)+(m*T_BINS)+n_prime]*filtered*scale_factor;
 	}
+	//int t_bin = threadIdx.x, angle_bin = blockIdx.x, v_bin = blockIdx.y;
+	////int v_bin = threadIdx.x, angle_bin = blockIdx.y, t_bin = blockIdx.x;
+	////int v_bin = blockIdx.x, angle_bin = blockIdx.y, t_bin = threadIdx.x;
+	//int t_bin_ref, t_bin_sep, strip_index; 
+	//double filtered, t, scale_factor;
+	//double v = ( v_bin - V_BINS/2 ) * V_BIN_SIZE + V_BIN_SIZE/2.0;
+	//
+	//// Loop over strips for this strip
+	//for( t_bin_ref = 0; t_bin_ref < T_BINS; t_bin_ref++ )
+	//{
+	//	t = ( t_bin_ref - T_BINS/2 ) * T_BIN_SIZE + T_BIN_SIZE/2.0;
+	//	t_bin_sep = t_bin - t_bin_ref;
+	//	// scale_factor = r . path = cos(theta_{r,path})
+	//	scale_factor = SOURCE_RADIUS / sqrt( SOURCE_RADIUS * SOURCE_RADIUS + t * t + v * v );
+	//	switch( FBP_FILTER )
+	//	{
+	//		case NONE: 
+	//			break;
+	//		case RAM_LAK:
+	//			if( t_bin_sep == 0 )
+	//				filtered = 1.0 / ( 4.0 * pow( RAM_LAK_TAU, 2.0 ) );
+	//			else if( t_bin_sep % 2 == 0 )
+	//				filtered = 0;
+	//			else
+	//				filtered = -1.0 / ( pow( RAM_LAK_TAU * PI * t_bin_sep, 2.0 ) );	
+	//			break;
+	//		case SHEPP_LOGAN:
+	//			filtered = pow( pow(T_BIN_SIZE * PI, 2.0) * ( 1.0 - pow(2 * t_bin_sep, 2.0) ), -1.0 );
+	//	}
+	//	strip_index = ( v_bin * ANGULAR_BINS * T_BINS ) + ( angle_bin * T_BINS );
+	//	sinogram_filtered[strip_index + t_bin] += T_BIN_SIZE * sinogram[strip_index + t_bin_ref] * filtered * scale_factor;
+	//}
 }
 void backprojection()
 {
@@ -7930,5 +8003,4 @@ __global__ void test_func_GPU( int* a)
 	//test_func_device( x, y, z );
 	//image[voxel] = x * y * z;
 }
-//#endif // #ifndef _TVS_DROP_FBP_KERNEL_H_
-
+//#endif //
