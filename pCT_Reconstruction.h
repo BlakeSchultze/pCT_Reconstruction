@@ -17,6 +17,7 @@
 
 #include <algorithm>    // std::transform
 #include <array>
+//#include <boost/lambda/lambda.hpp>
 #include <cmath>
 #include <cstdarg>		// va_list, va_arg, va_start, va_end, va_copy
 #include <cstdio>		// printf, sprintf,  
@@ -26,195 +27,132 @@
 #include <functional>	// std::multiplies, std::plus, std::function, std::negate
 #include <initializer_list>
 #include <iostream>
+#include <iterator>
 #include <map>
 #include <new>			 
 #include <numeric>		// inner_product, partial_sum, adjacent_difference, accumulate
-#include <omp.h>		// OpenMP
+//#include <omp.h>		// OpenMP
 #include <sstream>
+#include <stdexcept>
 #include <string>
+#include "sys/types.h"	// stat f
+#include "sys/stat.h"	// stat functions
 #include <tuple>
 #include <typeinfo>		//operator typeid
 #include <type_traits>	// is_pod
-#include <utility> // for std::move
+#include <utility>		// for std::move
 #include <vector>
-
-using namespace std::placeholders; 
+#if defined(_WIN32) || defined(_WIN64)
+	#include <windows.h>
+	#include "Shlwapi.h"	// Requires: Shlwapi.lib, Shlwapi.h, Shlwapi.dll (version 4.71 or later)
+#endif
+/***************************************************************************************************************************************************************************/
+/************************************************************** Global typedef and namespace usage definitions *************************************************************/
+/***************************************************************************************************************************************************************************/
+//using namespace std::placeholders; 
 //using namespace std;
 using std::cout;
 using std::endl;
 typedef unsigned long long ULL;
+typedef unsigned int uint;
 /***************************************************************************************************************************************************************************/
+/************************************************************************ User defined data types **********************************************************************/
 /***************************************************************************************************************************************************************************/
-/************************************************************************ Preprocessing usage options **********************************************************************/
-/***************************************************************************************************************************************************************************/
-/***************************************************************************************************************************************************************************/
-
-struct generic_input_container
+struct generic_IO_container
 {
+//generic_IO_container(): string_input(""){};
 	char* key;
 	unsigned int input_type_ID;
 	int integer_input;		// type_ID = 1
 	double double_input;	// type_ID = 2
-	char string_input[512];	// type_ID = 3
+	char* string_input;	// type_ID = 3
 };
 
 // Container for all config file specified parameters allowing these to be transffered to GPU with single statements
 // 8 UI, 18D, 6 C*
-struct parameters
+struct configurations
 {
-	double lambda;
-	//	char INPUT_DIRECTORY_D[256];
-	//	char OUTPUT_DIRECTORY_D[256];
-	//	char INPUT_FOLDER_D[256];
-	//	char OUTPUT_FOLDER_D[256];
-	//	char INPUT_BASE_NAME_D[32];
-	//	char FILE_EXTENSION_D[4];
-	//	unsigned int GANTRY_ANGLES_D;
-	//	unsigned int NUM_SCANS_D;
-	//	unsigned int T_BINS_D;
-	//	unsigned int V_BINS_D;
-	//	unsigned int COLUMNS_D;
-	//	unsigned int ROWS_D;
-	//	unsigned int SLICES_D;
-	//	unsigned int SIGMAS_TO_KEEP_D;
-	//	double SSD_T_SIZE_D;
-	//	double SSD_V_SIZE_D;
-	//	double T_SHIFT_D;
-	//	double U_SHIFT_D;
-	//	double T_BIN_SIZE_D;	
-	//	double V_BIN_SIZE_D;	
-	//	double ANGULAR_BIN_SIZE_D;	
-	//	double RECON_CYL_RADIUS_D;
-	//	double RECON_CYL_HEIGHT_D;
-	//	double IMAGE_WIDTH_D;
-	//	double IMAGE_HEIGHT_D;
-	//	double IMAGE_THICKNESS_D;
-	//	double VOXEL_WIDTH_D;
-	//	double VOXEL_HEIGHT_D;
-	//	double VOXEL_THICKNESS_D;
-	//	double lambda_D;
-	//	double LAMBDA_D;
-	//	double parameter_D;
+	char INPUT_DIRECTORY_D[256], OUTPUT_DIRECTORY_D[256], INPUT_FOLDER_D[256], OUTPUT_FOLDER_D[256], INPUT_BASE_NAME_D[32], FILE_EXTENSION_D[4];
+	unsigned int GANTRY_ANGLES_D, NUM_SCANS_D, T_BINS_D, V_BINS_D, COLUMNS_D, ROWS_D, SLICES_D, SIGMAS_TO_KEEP_D;
+	double SSD_T_SIZE_D, SSD_V_SIZE_D, T_SHIFT_D, U_SHIFT_D, T_BIN_SIZE_D, V_BIN_SIZE_D,  ANGULAR_BIN_SIZE_D, RECON_CYL_RADIUS_D, RECON_CYL_HEIGHT_D;
+	double IMAGE_WIDTH_D, IMAGE_HEIGHT_D, IMAGE_THICKNESS_D, VOXEL_WIDTH_D, VOXEL_HEIGHT_D, VOXEL_THICKNESS_D, LAMBDA_D, LAMBDA;
+	
+	//configurations() : GANTRY_ANGLES_D(), NUM_SCANS_D(), T_BINS_D(), V_BINS_D(), COLUMNS_D(), ROWS_D(), SLICES_D(), SIGMAS_TO_KEEP_D(),
+	//	SSD_T_SIZE_D(), SSD_V_SIZE_D(), T_SHIFT_D(), U_SHIFT_D(), T_BIN_SIZE_D(), V_BIN_SIZE_D(), ANGULAR_BIN_SIZE_D(),	
+	//	RECON_CYL_RADIUS_D(), RECON_CYL_HEIGHT_D(), IMAGE_WIDTH_D(), IMAGE_HEIGHT_D(), IMAGE_THICKNESS_D(), VOXEL_WIDTH_D(), 
+	//	VOXEL_HEIGHT_D(), VOXEL_THICKNESS_D(), LAMBDA_D(), LAMBDA() {};
+	configurations(
+		uint gantry_angles= 90, uint num_scans = 1, uint t_bins = 350, uint v_bins = 36, uint columns = 200, uint rows = 200, uint slices =  32, uint sigmas_to_keep =  3,
+		double ssd_t_size =  35.0, double ssd_v_size =  9.0, double t_shift = 0.0, double u_shift = 0.0, double t_bin_size = 0.1, double v_bin_size = 0.25, double angular_bin_size = 4.0, double recon_cyl_radius = 10.0, 
+		double recon_cyl_height = 8.0, double image_width =  20.0, double image_height = 20.0, double image_thickness = 8.0, double voxel_width = 20.0/200, double voxel_height =  20.0/200, double voxel_thickness =  0.25, 
+		double lambda = 0.0001,  double lambda2 = 0.0001
+	): 	
+		GANTRY_ANGLES_D(gantry_angles), NUM_SCANS_D(num_scans), T_BINS_D(t_bins), V_BINS_D(v_bins), COLUMNS_D(columns), ROWS_D(rows), SLICES_D(slices), SIGMAS_TO_KEEP_D(sigmas_to_keep),
+		SSD_T_SIZE_D(ssd_t_size), SSD_V_SIZE_D(ssd_v_size), T_SHIFT_D(t_shift), U_SHIFT_D(u_shift), T_BIN_SIZE_D(t_bin_size), V_BIN_SIZE_D(v_bin_size), ANGULAR_BIN_SIZE_D(angular_bin_size),	
+		RECON_CYL_RADIUS_D(recon_cyl_radius), RECON_CYL_HEIGHT_D(recon_cyl_height), IMAGE_WIDTH_D(image_width), IMAGE_HEIGHT_D(image_height), IMAGE_THICKNESS_D(image_thickness), VOXEL_WIDTH_D(voxel_width), 
+		VOXEL_HEIGHT_D(voxel_height), VOXEL_THICKNESS_D(voxel_thickness), LAMBDA_D(lambda), LAMBDA(lambda2) {};
 };
-parameters parameter_container;
-parameters *parameters_h = &parameter_container;
-parameters *parameters_d;
+enum SCAN_TYPE{ EXPERIMENTAL, SIMULATED};									// Experimental or simulated data
+enum DATA_FORMATS { OLD_FORMAT, VERSION_0, VERSION_1 };						// Define the data formats that are supported
+enum BIN_ANALYSIS_TYPE { MEANS, COUNTS, MEMBERS };							// Choices for what information about the binned data is desired 
+enum BIN_ANALYSIS_FOR { ALL_BINS, SPECIFIC_BINS };							// Choices for which bins the desired data should come from
+enum BIN_ORGANIZATION { BY_BIN, BY_HISTORY };								// Binned data is either organized in order by bin or by history w/ bin # specified separately
+enum BIN_ANALYSIS_OF { WEPLS, ANGLES, POSITIONS, BIN_NUMS };				// Choices for which type of binned data is desired
+enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE};								// Define the types of filters that are available for use in FBP
+enum IMAGE_DEFINED_BY { SIZE_VOXELS, DIMENSIONS_VOXELS, SIZE_DIMENSIONS};	// Image size defined by 2 of voxel dimenensions, image dimensions, and image discretization
+enum  HULL_TYPES {SC_HULL, MSC_HULL, SM_HULL, FBP_HULL };					// Define valid choices for which hull to use in MLP calculations
+enum  INITIAL_ITERATE { X_HULL, FBP_IMAGE, HYBRID, ZEROS, IMPORT };			// Define valid choices for which hull to use in MLP calculations
+enum RECON_ALGORITHMS { ART, DROP, BIP, SAP, ROBUST1, ROBUST2 };			// Define valid choices for iterative projection algorithm to use
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------- Preprocessing option parameters -------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+const bool SAMPLE_STD_DEV		= true;							// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
+bool FBP_ON						= true;							// Turn FBP on (T) or off (F)
+bool AVG_FILTER_FBP				= false;						// Apply averaging filter to initial iterate (T) or not (F)
+bool MEDIAN_FILTER_FBP			= false; 
+bool IMPORT_FILTERED_FBP		= false;
+bool SC_ON						= false;						// Turn Space Carving on (T) or off (F)
+bool MSC_ON						= true;							// Turn Modified Space Carving on (T) or off (F)
+bool SM_ON						= false;						// Turn Space Modeling on (T) or off (F)
+bool AVG_FILTER_HULL			= true;							// Apply averaging filter to hull (T) or not (F)
+bool MLP_FILE_EXISTS			= true;
+bool MLP_ENDPOINTS_FILE_EXISTS	= true;
+bool REPERFORM_PREPROCESSING	= false;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------- Input/output specifications and options ----------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
-std::map<std::string,unsigned int> switchmap;
-unsigned int num_run_arguments;
-char** run_arguments;
-char* CONFIG_DIRECTORY;
-char* input_directory;
-double lambda;
-int parameter;
-int num_voxel_scales;
-double* voxel_scales;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------ Path to the input/output directories -----------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+SCAN_TYPE DATA_TYPE = SIMULATED;
+char PCT_DIRECTORY[]			= "D:\\pCT_Data\\";
+char OBJECT[]					= "D:\\pCT_Data\\";
+char RUN_DATE[]					= "D:\\pCT_Data\\";
+char RUN_NUMBER[]				= "D:\\pCT_Data\\";
+char PREPROCESS_DATE[]			= "D:\\pCT_Data\\";
+char RECON_DATE[]				= "D:\\pCT_Data\\";
+char PCT_IMAGES[]				= "D:\\pCT_Data\\";
+char REFERENCE_IMAGES[]			= "D:\\pCT_Data\\";
+char TEST_OUTPUT_FILE[]			= "export_testing.cfg";
 
-// CTP_404
-// 20367505: 32955315 -> 32955313									// No average filtering on hull
-// 20367499: 32955306 ->32955301									// No average filtering on hull
-// 20573129: 5143282->5143291										// r=1
-// 20648251: 33409572->33409567										// r=2
-// 20648257: 33409582 -> 33409577/33409603//5162071;				// r=2
-// 20764061: 33596956->33596939/33596977							// r=3 
-
-// CTP_404M
-// 20153778: 5038452-> 5038457										// r=1
-//ULL NUM_RECON_HISTORIES = 20574733
-ULL NUM_RECON_HISTORIES = 20153778;
-ULL PRIME_OFFSET = 5038457;
-/***************************************************************************************************************************************************************************/
-/********************************************************************* Execution and early exit options ********************************************************************/
-/***************************************************************************************************************************************************************************/
-const bool RUN_ON				= true;									// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
-const bool EXIT_AFTER_BINNING	= false;									// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_HULLS		= false;									// Exit program early after completing hull-detection
-const bool EXIT_AFTER_CUTS		= false;									// Exit program early after completing statistical cuts
-const bool EXIT_AFTER_SINOGRAM	= false;									// Exit program early after completing the construction of the sinogram
-const bool EXIT_AFTER_FBP		= false;									// Exit program early after completing FBP
-/***************************************************************************************************************************************************************************/
-/********************************************************************** Preprocessing option parameters ********************************************************************/
-/***************************************************************************************************************************************************************************/
-const bool DEBUG_TEXT_ON				= true;								// Provide (T) or suppress (F) print statements to console during execution
-const bool SAMPLE_STD_DEV				= true;								// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
-const bool FBP_ON						= true;								// Turn FBP on (T) or off (F)
-const bool AVG_FILTER_FBP				= false;							// Apply averaging filter to initial iterate (T) or not (F)
-const bool MEDIAN_FILTER_FBP			= false; 
-const bool IMPORT_FILTERED_FBP			= false;
-const bool SC_ON						= false;							// Turn Space Carving on (T) or off (F)
-const bool MSC_ON						= true;								// Turn Modified Space Carving on (T) or off (F)
-const bool SM_ON						= false;							// Turn Space Modeling on (T) or off (F)
-const bool AVG_FILTER_HULL				= true;								// Apply averaging filter to hull (T) or not (F)
-const bool COUNT_0_WEPLS				= false;							// Count the number of histories with WEPL = 0 (T) or not (F)
-const bool REALLOCATE					= false;
-const bool MLP_FILE_EXISTS				= false;
-const bool MLP_ENDPOINTS_FILE_EXISTS	= false;
-/***************************************************************************************************************************************************************************/
-/***************************************************************** Input/output specifications and options *****************************************************************/
-/***************************************************************************************************************************************************************************/
-
-/***************************************************************************************************************************************************************************/
-/******************************************************************* Path to the input/output directories ******************************************************************/
-/***************************************************************************************************************************************************************************/
-const char INPUT_DIRECTORY[]   = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\";
-const char OUTPUT_DIRECTORY[]  = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\";
-/***************************************************************************************************************************************************************************/
-/******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
-/***************************************************************************************************************************************************************************/
-const char INPUT_FOLDER[]	   = "my_merged";
-const char OUTPUT_FOLDER[]	   = "my_merged";
-//const char INPUT_FOLDER[]	   = "merged_data";
-//const char OUTPUT_FOLDER[]	   = "merged_data";
-//const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
-//const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-Sensitom";
-//const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordInf";
-//const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordInf";
-//const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordSup";
-//const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordSup";
-//const char INPUT_FOLDER[]	   = "CTP404_4M";
-//const char OUTPUT_FOLDER[]	   = "CTP404_4M";
-//const char INPUT_FOLDER[]	   = "output_HeadPhantom";
-//const char OUTPUT_FOLDER[]	   = "output_HeadPhantom";
-//const char INPUT_FOLDER[]	   = "PedHead-july";
-//const char OUTPUT_FOLDER[]	   = "PedHead-july";
-//const char INPUT_FOLDER[]	   = "output_ESFPhant";
-//const char OUTPUT_FOLDER[]	   = "output_ESFPhant";
-//const char INPUT_FOLDER[]	   = "input_CTP404";
-//const char OUTPUT_FOLDER[]	   = "input_CTP404";
-//const char INPUT_FOLDER[]	   = "input_water_GeantNONUC";
-//const char OUTPUT_FOLDER[]	   = "input_water_GeantNONUC";
-//const char INPUT_FOLDER[]	   = "input_water_Geant500000";
-//const char OUTPUT_FOLDER[]   = "input_water_Geant500000";
-//const char INPUT_FOLDER[]	   = "waterPhantom";
-//const char OUTPUT_FOLDER[]   = "waterPhantom";
-//const char INPUT_FOLDER[]	   = "catphan";
-//const char OUTPUT_FOLDER[]   = "catphan";
-//const char INPUT_FOLDER[]	   = "DetectData";
-//const char OUTPUT_FOLDER[]   = "DetectData";
-//const char INPUT_FOLDER[]	   = "Rat_Scan2";
-//const char OUTPUT_FOLDER[]   = "Rat_Scan2"; 
-//const char INPUT_FOLDER[]	   = "DetectDataWeplNoisy1";
-//const char OUTPUT_FOLDER[]   = "DetectDataWeplNoisy1";
-//const char INPUT_FOLDER[]	   = "input_noisefloor40";
-//const char OUTPUT_FOLDER[]   = "input_noisefloor40";
-/***************************************************************************************************************************************************************************/
-/**************************************** Prefix of the input data set filename (_trans%d_%03d.txt (or .dat) will be added to this) ****************************************/
-/***************************************************************************************************************************************************************************/
-const char INPUT_BASE_NAME[]   = "projection";							// waterPhantom, catphan, input_water_Geant500000
-//const char INPUT_BASE_NAME[] = "simdata";								// Simulated data sets generated by Micah: DetectData, DetectDataWeplNoisy1, NoisyUniform1,...
-//const char INPUT_BASE_NAME[] = "rat_scan2_shift";						// Anesthetized rat held in restraints
-//const char INPUT_BASE_NAME[] = "ped_scan1";							// Anthropomorphic pediatric head phantom (Model 715-HN, CIRS1)
-/***************************************************************************************************************************************************************************/
-/******************************************************************** File extension for the input data ********************************************************************/
-/***************************************************************************************************************************************************************************/
-const char FILE_EXTENSION[]	   = ".bin";								// Binary file extension
-//const char FILE_EXTENSION[]  = ".dat";								// Generic data file extension, independent of encoding (various encodings can be used)
-//const char FILE_EXTENSION[]  = ".txt";								// ASCII text file extension
-/***************************************************************************************************************************************************************************/
-/****************************************************************** Input data specification parameters ********************************************************************/
-/***************************************************************************************************************************************************************************/
-enum DATA_FORMATS { OLD_FORMAT, VERSION_0, VERSION_1 };					// Define the data formats that are supported
-const DATA_FORMATS				DATA_FORMAT = VERSION_0;				// Specify which data format to use for this run
+char INPUT_BASE_NAME[]			= "projection";							// Prefix of the input data set filename
+char FILE_EXTENSION[]			= ".bin";								// File extension for the input data
+char CONFIG_DIRECTORY[]			= "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\";
+char* CONFIG_FILE_NAME			= TEST_OUTPUT_FILE;
+//char CONFIG_FILE_NAME[]		= "config_testing.cfg";
+char EXPORT_FILE_NAME[]			= "export_testing.cfg";
+char OUTPUT_FOLDER[]			= "CTP404\\input_CTP404_4M\\Robust2\\ETA0001\\";
+char OUTPUT_DIRECTORY[]			= "D:\\pCT_Data\\Output\\";
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------- Name of the folder where the input data resides and output data is to be written --------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+char INPUT_FOLDER[]				= "CTP404\\input_CTP404_4M";
+char INPUT_DIRECTORY[]			= "D:\\pCT_Data\\Input\\";
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------- Input data specification parameters -------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+DATA_FORMATS DATA_FORMAT		= VERSION_0;							// Specify which data format to use for this run
 unsigned int PHANTOM_NAME_SIZE;
 unsigned int DATA_SOURCE_SIZE;
 unsigned int PREPARED_BY_SIZE;
@@ -222,108 +160,77 @@ unsigned int MAGIC_NUMBER_CHECK = int('DTCP');
 unsigned int SKIP_2_DATA_SIZE;
 unsigned int VERSION_ID;
 unsigned int PROJECTION_INTERVAL;
-const bool BINARY_ENCODING	   = true;									// Input data provided in binary (T) encoded files or ASCI text files (F)
-const bool SINGLE_DATA_FILE    = false;									// Individual file for each gantry angle (T) or single data file for all data (F)
-const bool SSD_IN_MM		   = true;									// SSD distances from rotation axis given in mm (T) or cm (F)
-const bool DATA_IN_MM		   = true;									// Input data given in mm (T) or cm (F)
-const bool MICAH_SIM		   = false;									// Specify whether the input data is from Micah's simulator (T) or not (F)
-/***************************************************************************************************************************************************************************/
-/**************************************************************************** Output filenames *****************************************************************************/
-/***************************************************************************************************************************************************************************/
-const char SC_HULL_FILENAME[]		= "x_SC";
-const char MSC_HULL_FILENAME[]		= "x_MSC";
-const char SM_HULL_FILENAME[]		= "x_SM";
-const char FBP_HULL_FILENAME[]		= "x_FBP";
-const char FBP_IMAGE_FILENAME[]		= "FBP_image";
-const char* MLP_PATHS_FILENAME		= "MLP_paths";
-const char* MLP_ENDPOINTS_FILENAME	= "MLP_endpoints";
-const char* INPUT_ITERATE_FILENAME	= "FBP_med7.bin";
-const char* IMPORT_FBP_FILENAME		= "FBP_med";
-const char* INPUT_HULL_FILENAME		= "input_hull.bin";
+bool BINARY_ENCODING			= true;									// Input data provided in binary (T) encoded files or ASCI text files (F)
+bool SINGLE_DATA_FILE			= false;								// Individual file for each gantry angle (T) or single data file for all data (F)
+bool SSD_IN_MM					= true;									// SSD distances from rotation axis given in mm (T) or cm (F)
+bool DATA_IN_MM					= true;									// Input data given in mm (T) or cm (F)
 char IMPORT_FBP_PATH[256];
 char INPUT_ITERATE_PATH[256];
-/***************************************************************************************************************************************************************************/
-/************************************************************************ Output option parameters *************************************************************************/
-/***************************************************************************************************************************************************************************/
-const bool WRITE_SC_HULL		= true;									// Write SC hull to disk (T) or not (F)
-const bool WRITE_MSC_COUNTS		= true;									// Write MSC counts array to disk (T) or not (F) before performing edge detection 
-const bool WRITE_MSC_HULL		= true;									// Write MSC hull to disk (T) or not (F)
-const bool WRITE_SM_COUNTS		= true;									// Write SM counts array to disk (T) or not (F) before performing edge detection 
-const bool WRITE_SM_HULL		= true;									// Write SM hull to disk (T) or not (F)
-const bool WRITE_FBP_IMAGE		= true;									// Write FBP image before thresholding to disk (T) or not (F)
-const bool WRITE_FBP_HULL		= true;									// Write FBP hull to disk (T) or not (F)
-const bool WRITE_AVG_FBP		= true;									// Write average filtered FBP image before thresholding to disk (T) or not (F)
-const bool WRITE_MEDIAN_FBP		= false;								// Write median filtered FBP image to disk (T) or not (F)
-const bool WRITE_FILTERED_HULL	= true;									// Write average filtered FBP image to disk (T) or not (F)
-const bool WRITE_X_HULL			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
-const bool WRITE_X_K0			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
-const bool WRITE_X_KI			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
-const bool WRITE_X				= true;									// Write the reconstructed image to disk (T) or not (F)
-/***************************************************************************************************************************************************************************/
-/*************************************************************** Binned data analysis options and parameters ***************************************************************/
-/***************************************************************************************************************************************************************************/
-enum BIN_ANALYSIS_TYPE { MEANS, COUNTS, MEMBERS };						// Choices for what information about the binned data is desired 
-enum BIN_ANALYSIS_FOR { ALL_BINS, SPECIFIC_BINS };						// Choices for which bins the desired data should come from
-enum BIN_ORGANIZATION { BY_BIN, BY_HISTORY };							// Binned data is either organized in order by bin or by history w/ bin # specified separately
-enum BIN_ANALYSIS_OF { WEPLS, ANGLES, POSITIONS, BIN_NUMS };			// Choices for which type of binned data is desired
-const bool WRITE_BIN_WEPLS	   = false;									// Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
-const bool WRITE_WEPL_DISTS	   = false;									// Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
-const bool WRITE_SSD_ANGLES    = false;									// Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F) 
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------- Output option parameters ------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+bool WRITE_SC_HULL				= true;									// Write SC hull to disk (T) or not (F)
+bool WRITE_MSC_COUNTS			= true;									// Write MSC counts array to disk (T) or not (F) before performing edge detection 
+bool WRITE_MSC_HULL				= true;									// Write MSC hull to disk (T) or not (F)
+bool WRITE_SM_COUNTS			= true;									// Write SM counts array to disk (T) or not (F) before performing edge detection 
+bool WRITE_SM_HULL				= true;									// Write SM hull to disk (T) or not (F)
+bool WRITE_FBP_IMAGE			= true;									// Write FBP image before thresholding to disk (T) or not (F)
+bool WRITE_FBP_HULL				= true;									// Write FBP hull to disk (T) or not (F)
+bool WRITE_AVG_FBP				= true;									// Write average filtered FBP image before thresholding to disk (T) or not (F)
+bool WRITE_MEDIAN_FBP			= false;								// Write median filtered FBP image to disk (T) or not (F)
+bool WRITE_FILTERED_HULL		= true;									// Write average filtered FBP image to disk (T) or not (F)
+bool WRITE_X_HULL				= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+bool WRITE_X_K0					= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+bool WRITE_X_KI					= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+bool WRITE_X					= true;									// Write the reructed image to disk (T) or not (F)
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------------------------- Binned data analysis options and parameters --------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+bool WRITE_BIN_WEPLS			= false;								// Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
+bool WRITE_WEPL_DISTS			= false;								// Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
+bool WRITE_SSD_ANGLES			= false;								// Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F) 
 /***************************************************************************************************************************************************************************/
 /************************************************************************* Preprocessing Constants *************************************************************************/
 /***************************************************************************************************************************************************************************/
-/***************************************************************************************************************************************************************************/
-
-/***************************************************************************************************************************************************************************/
-/************************************************************* Host/GPU computation and structure information **************************************************************/
-/***************************************************************************************************************************************************************************/
-#define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
-#define MAX_GPU_HISTORIES		2900000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
-#define MAX_CUTS_HISTORIES		2900000
-#define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
-/***************************************************************************************************************************************************************************/
-/**************************************** Scanning and detector system	(source distance, tracking plane dimensions) parameters ********************************************/
-/***************************************************************************************************************************************************************************/
-#define SOURCE_RADIUS			260.7									// [cm] Distance  to source/scatterer 
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------- Scanning and detector system	(source distance, tracking plane dimensions) parameters -------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define GANTRY_ANGLE_INTERVAL	4.0										// [degrees] Angle between successive projection angles 
 #define GANTRY_ANGLES			int( 360 / GANTRY_ANGLE_INTERVAL )		// [#] Total number of projection angles
 #define NUM_SCANS				1										// [#] Total number of scans
 #define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
 #define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
 #define SSD_V_SIZE				9.0										// [cm] Length of SSD in v (vertical) direction
-/***************************************************************************************************************************************************************************/
-/************************************************* Binning (for statistical analysis) and sinogram (for FBP) parameters ****************************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------ Binning (for statistical analysis) and sinogram (for FBP) parameters ---------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define T_SHIFT					0.0										// [cm] Amount by which to shift all t coordinates on input
 #define U_SHIFT					0.0										// [cm] Amount by which to shift all u coordinates on input
-#define V_SHIFT					0.0									// [cm] Amount by which to shift all v coordinates on input
+#define V_SHIFT					0.0										// [cm] Amount by which to shift all v coordinates on input
 //#define T_SHIFT				   2.05									// [cm] Amount by which to shift all t coordinates on input
 //#define U_SHIFT				   -0.16								// [cm] Amount by which to shift all u coordinates on input
-#define T_BIN_SIZE				0.1									// [cm] Distance between adjacent bins in t (lateral) direction
+#define T_BIN_SIZE				0.1										// [cm] Distance between adjacent bins in t (lateral) direction
 #define T_BINS					int( SSD_T_SIZE / T_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
 #define V_BIN_SIZE				0.25									// [cm] Distance between adjacent bins in v (vertical) direction
-#define V_BINS					int( SSD_V_SIZE/ V_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
+#define V_BINS					int( SSD_V_SIZE/ V_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
 #define ANGULAR_BIN_SIZE		4.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
 #define ANGULAR_BINS			int( 360 / ANGULAR_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for path angle 
 #define NUM_BINS				( ANGULAR_BINS * T_BINS * V_BINS )		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
 #define SIGMAS_TO_KEEP			3										// [#] Number of standard deviations from mean to allow before cutting the history 
-enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE};							// Define the types of filters that are available for use in FBP
-const FILTER_TYPES				FBP_FILTER = SHEPP_LOGAN;			  	// Specifies which of the defined filters will be used in FBP
-#define RAM_LAK_TAU				2/ROOT_TWO * T_BIN_SIZE					// Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
-#define FBP_THRESHOLD			0.6										// [cm] RSP threshold used to generate FBP_hull from FBP_image
-const unsigned int FBP_AVG_RADIUS = 1;
-const double FBP_AVG_THRESHOLD = 0.1;
-const unsigned int FBP_MEDIAN_RADIUS = 3;
-/***************************************************************************************************************************************************************************/
-/******************************************************************* Reconstruction cylinder parameters ********************************************************************/
-/***************************************************************************************************************************************************************************/
+const FILTER_TYPES FBP_FILTER	= SHEPP_LOGAN;		  					// Specifies which of the defined filters will be used in FBP
+unsigned int FBP_AVG_RADIUS		= 1;
+double FBP_AVG_THRESHOLD		= 0.1;
+unsigned int FBP_MEDIAN_RADIUS	= 3;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------ Reconstruction cylinder parameters -------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define RECON_CYL_RADIUS		10.0									// [cm] Radius of reconstruction cylinder
 #define RECON_CYL_DIAMETER		( 2 * RECON_CYL_RADIUS )				// [cm] Diameter of reconstruction cylinder
 #define RECON_CYL_HEIGHT		(SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
-/***************************************************************************************************************************************************************************/
-/********************************************************************	Reconstruction image parameters ********************************************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------- Reconstruction image parameters -------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+IMAGE_DEFINED_BY IMAGE_SIZING	= SIZE_DIMENSIONS;
 #define IMAGE_WIDTH				RECON_CYL_DIAMETER						// [cm] Distance between left and right edges of each slice in image
 #define IMAGE_HEIGHT			RECON_CYL_DIAMETER						// [cm] Distance between top and bottom edges of each slice in image
 #define IMAGE_THICKNESS			( SLICES * SLICE_THICKNESS )			// [cm] Distance between bottom of bottom slice and top of the top slice of image
@@ -335,35 +242,94 @@ const unsigned int FBP_MEDIAN_RADIUS = 3;
 #define VOXEL_HEIGHT			( RECON_CYL_DIAMETER / ROWS )			// [cm] Distance between top and bottom edges of each voxel in image
 #define VOXEL_THICKNESS			( IMAGE_THICKNESS / SLICES )			// [cm] Distance between top and bottom of each slice in image
 #define SLICE_THICKNESS			0.25									// [cm] Distance between top and bottom of each slice in image
-#define X_ZERO_COORDINATE		-RECON_CYL_RADIUS						// [cm] x-coordinate corresponding to front edge of 1st voxel (i.e. column) in image space
-#define Y_ZERO_COORDINATE		RECON_CYL_RADIUS						// [cm] y-coordinate corresponding to front edge of 1st voxel (i.e. row) in image space
-#define Z_ZERO_COORDINATE		RECON_CYL_HEIGHT/2						// [cm] z-coordinate corresponding to front edge of 1st voxel (i.e. slice) in image space
-#define X_INCREASING_DIRECTION	RIGHT									// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
-#define Y_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
-#define Z_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
-/***************************************************************************************************************************************************************************/
-/************************************************************************ Hull-Detection Parameters ************************************************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------- Hull-Detection Parameters -----------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define MSC_DIFF_THRESH			50										// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
 #define SC_THRESHOLD			0.0										// [cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
-#define MSC_THRESHOLD			0.0									// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
+#define MSC_THRESHOLD			0.0										// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
 #define SM_LOWER_THRESHOLD		6.0										// [cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
 #define SM_UPPER_THRESHOLD		21.0									// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
 #define SM_SCALE_THRESHOLD		1.0										// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
 #define HULL_FILTER_THRESHOLD	0.1										// [#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the hull
 #define HULL_FILTER_RADIUS		1										// [#] Averaging filter neighborhood radius in: [voxel - AVG_FILTER_SIZE, voxel + AVG_FILTER_RADIUS]
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------- MLP Parameters ----------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+HULL_TYPES						MLP_HULL = MSC_HULL;					// Specify which of the HULL_TYPES to use in this run's MLP calculations
+#define VOXEL_STEP_SIZE			( VOXEL_WIDTH / 2 )						// [cm] Length of the step taken along the path, i.e. change in depth per step for
+#define MLP_U_STEP				( VOXEL_WIDTH / 2)						// Size of the step taken along u direction during MLP; depth difference between successive MLP points
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------------------------- Iterative Image Reconstruction Parameters ----------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+bool AVG_FILTER_ITERATE			= false;								// Apply averaging filter to initial iterate (T) or not (F)
+bool PREPROCESSING_REQUIRED		= false;
+uint ITERATE_FILTER_RADIUS		= 3;
+double ITERATE_FILTER_THRESHOLD = 0.1;
+INITIAL_ITERATE	X_K0			= HYBRID;								// Specify which of the HULL_TYPES to use in this run's MLP calculations
+RECON_ALGORITHMS RECONSTRUCTION = DROP;									// Specify which of the projection algorithms to use for image reconstruction
+uint reconstruction_histories	= 0;
+double LAMBDA					= 0.0001;
+double ETA                      = 0.0001;
+unsigned int METHOD             = 1;
+int PSI_SIGN                    = 1;									// Relaxation parameter to use in image iterative projection reconstruction algorithms					
+//#define LAMBDA				0.0001									// Relaxation parameter to use in image iterative projection reconstruction algorithms	
+#define ITERATIONS				12										// # of iterations through the entire set of histories to perform in iterative image reconstruction
+#define BLOCK_SIZE				60										// # of paths to use for each update: ART = 1, 
+#define CONSTANT_CHORD_NORM		pow(VOXEL_WIDTH, 2.0)
+double CONSTANT_LAMBDA_SCALE	= VOXEL_WIDTH * LAMBDA;
+//#define CONSTANT_LAMBDA_SCALE	VOXEL_WIDTH * LAMBDA
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------- Memory allocation size for arrays (binning, image) -----------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+#define SIZE_BINS_CHAR			( NUM_BINS   * sizeof(char)	 )			// Amount of memory required for a character array used for binning
+#define SIZE_BINS_BOOL			( NUM_BINS   * sizeof(bool)	 )			// Amount of memory required for a boolean array used for binning
+#define SIZE_BINS_INT			( NUM_BINS   * sizeof(int)	 )			// Amount of memory required for a integer array used for binning
+#define SIZE_BINS_UINT			( NUM_BINS   * sizeof(unsigned int)	 )	// Amount of memory required for a integer array used for binning
+#define SIZE_BINS_FLOAT			( NUM_BINS	 * sizeof(float) )			// Amount of memory required for a floating point array used for binning
+#define SIZE_IMAGE_CHAR			( NUM_VOXELS * sizeof(char)	 )			// Amount of memory required for a character array used for binning
+#define SIZE_IMAGE_BOOL			( NUM_VOXELS * sizeof(bool)	 )			// Amount of memory required for a boolean array used for binning
+#define SIZE_IMAGE_INT			( NUM_VOXELS * sizeof(int)	 )			// Amount of memory required for a integer array used for binning
+#define SIZE_IMAGE_UINT			( NUM_VOXELS * sizeof(unsigned int)	 )	// Amount of memory required for a integer array used for binning
+#define SIZE_IMAGE_FLOAT		( NUM_VOXELS * sizeof(float) )			// Amount of memory required for a floating point array used for binning
+#define SIZE_IMAGE_DOUBLE		( NUM_VOXELS * sizeof(double) )			// Amount of memory required for a floating point array used for binning
 /***************************************************************************************************************************************************************************/
-/****************************************************************************** MLP Parameters *****************************************************************************/
+/******************************************************************************* Constants *********************************************************************************/
 /***************************************************************************************************************************************************************************/
-enum  HULL_TYPES {SC_HULL, MSC_HULL, SM_HULL, FBP_HULL };				// Define valid choices for which hull to use in MLP calculations
-const HULL_TYPES				MLP_HULL = MSC_HULL;					// Specify which of the HULL_TYPES to use in this run's MLP calculations
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------ Host/GPU computation and structure information -------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+#define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
+#define MAX_GPU_HISTORIES		1500000									// [#] Number of histories to process on the GPU at a time, based on GPU capacity
+#define MAX_CUTS_HISTORIES		1500000
+#define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
+#define STRIDE					5
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------- FBP and FBP Filtering parameters --------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+#define SOURCE_RADIUS			260.7									// [cm] Distance  to source/scatterer 
+#define RAM_LAK_TAU				2/ROOT_TWO * T_BIN_SIZE					// Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
+#define FBP_THRESHOLD			0.6										// [cm] RSP threshold used to generate FBP_hull from FBP_image
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------------- Output filenames ----------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+char SC_HULL_FILENAME[]			= "x_SC";
+char MSC_HULL_FILENAME[]		= "x_MSC";
+char SM_HULL_FILENAME[]			= "x_SM";
+char FBP_HULL_FILENAME[]		= "x_FBP";
+char FBP_IMAGE_FILENAME[]		= "FBP_image";
+char* MLP_PATHS_FILENAME		= "MLP_paths";
+char* MLP_ENDPOINTS_FILENAME	= "MLP_endpoints";
+char* INPUT_ITERATE_FILENAME	= "FBP_med7.bin";
+char* IMPORT_FBP_FILENAME		= "FBP_med";
+char* INPUT_HULL_FILENAME		= "hull.txt";
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*----------------------------------------------------------------------------- MLP Parameters ----------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define E_0						13.6									// [MeV/c] empirical constant
 #define X_0						36.08									// [cm] radiation length
 #define RSP_AIR					0.00113									// [cm/cm] Approximate RSP of air
-#define VOXEL_STEP_SIZE			( VOXEL_WIDTH / 2 )						// [cm] Length of the step taken along the path, i.e. change in depth per step for
-#define MAX_INTERSECTIONS		1000										// Limit on the # of intersections expected for proton's MLP; = # voxels along image diagonal
-#define MLP_U_STEP				( VOXEL_WIDTH / 2)						// Size of the step taken along u direction during MLP; depth difference between successive MLP points
-const int max_path_elements = int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2)));
+#define MAX_INTERSECTIONS		1000									// Limit on the # of intersections expected for proton's MLP; = # voxels along image diagonal
 
 // Coefficients of 5th order polynomial fit to the term [1 / ( beta^2(u)*p^2(u) )] present in scattering covariance matrices Sigma 1/2 for:
 #define BEAM_ENERGY				200
@@ -411,49 +377,18 @@ const int max_path_elements = int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2)));
 #define A_5_OVER_8				A_5/8
 #define A_5_OVER_42				A_5/42
 #define A_5_OVER_168			A_5/168
-/***************************************************************************************************************************************************************************/
-/*************************************************************** Iterative Image Reconstruction Parameters *****************************************************************/
-/***************************************************************************************************************************************************************************/
-const bool AVG_FILTER_ITERATE	= false;									// Apply averaging filter to initial iterate (T) or not (F)
-const bool DIRECT_IMAGE_RECONSTRUCTION = false;
-
-const unsigned int ITERATE_FILTER_RADIUS = 3;
-const double ITERATE_FILTER_THRESHOLD = 0.1;
-enum  INITIAL_ITERATE { X_HULL, FBP_IMAGE, HYBRID, ZEROS, IMPORT };		// Define valid choices for which hull to use in MLP calculations
-const INITIAL_ITERATE			X_K0 = HYBRID;							// Specify which of the HULL_TYPES to use in this run's MLP calculations
-
-#define DECAY_FACTOR			(0.99 / pow(RECON_CYL_RADIUS, 2.0 ))	// Defines "a" in the lambda scaling factor 1 - a*r(i)^2 used to generate a radially dependent lambda
-#define EXPONENTIAL_DECAY		(5/RECON_CYL_RADIUS)					// Defines "a" in the lambda scaling factor exp(-a*r) used to generate a radially dependent lambda
-#define EXPONENTIAL_SQD_DECAY	(0.5/RECON_CYL_RADIUS)					// Defines "a" in the lambda scaling factor exp(-a*r^2) used to generate a radially dependent lambda
-//#define EXPONENTIAL_TERM	exp(-0.5/RECON_CYL_RADIUS)					// Defines "a" in the lambda scaling factor exp(-a*r^2) used to generate a radially dependent lambda
-#define AFFECT_RADIUS_SQD		pow(6.0, 2.0)
-enum PROJECTION_ALGORITHMS { ART, SART, DROP, BIP, SAP };				// Define valid choices for iterative projection algorithm to use
-const PROJECTION_ALGORITHMS		PROJECTION_ALGORITHM = DROP;			// Specify which of the projection algorithms to use for image reconstruction
-unsigned int reconstruction_histories = 0;
-double LAMBDA					= 0.0001;								// Relaxation parameter to use in image iterative projection reconstruction algorithms					
-//#define LAMBDA					0.0001								// Relaxation parameter to use in image iterative projection reconstruction algorithms	
-#define ITERATIONS				12										// # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define BLOCK_SIZE				60										// # of paths to use for each update: ART = 1, 
-#define CONSTANT_CHORD_NORM		pow(VOXEL_WIDTH, 2.0)
-double CONSTANT_LAMBDA_SCALE =	VOXEL_WIDTH * LAMBDA;
-//#define CONSTANT_LAMBDA_SCALE	VOXEL_WIDTH * LAMBDA
-/***************************************************************************************************************************************************************************/
-/*********************************************************** Memory allocation size for arrays (binning, image) ************************************************************/
-/***************************************************************************************************************************************************************************/
-#define SIZE_BINS_CHAR			( NUM_BINS   * sizeof(char)	 )			// Amount of memory required for a character array used for binning
-#define SIZE_BINS_BOOL			( NUM_BINS   * sizeof(bool)	 )			// Amount of memory required for a boolean array used for binning
-#define SIZE_BINS_INT			( NUM_BINS   * sizeof(int)	 )			// Amount of memory required for a integer array used for binning
-#define SIZE_BINS_UINT			( NUM_BINS   * sizeof(unsigned int)	 )			// Amount of memory required for a integer array used for binning
-#define SIZE_BINS_FLOAT			( NUM_BINS	 * sizeof(float) )			// Amount of memory required for a floating point array used for binning
-#define SIZE_IMAGE_CHAR			( NUM_VOXELS * sizeof(char)	 )			// Amount of memory required for a character array used for binning
-#define SIZE_IMAGE_BOOL			( NUM_VOXELS * sizeof(bool)	 )			// Amount of memory required for a boolean array used for binning
-#define SIZE_IMAGE_INT			( NUM_VOXELS * sizeof(int)	 )			// Amount of memory required for a integer array used for binning
-#define SIZE_IMAGE_UINT			( NUM_VOXELS * sizeof(unsigned int)	 )			// Amount of memory required for a integer array used for binning
-#define SIZE_IMAGE_FLOAT		( NUM_VOXELS * sizeof(float) )			// Amount of memory required for a floating point array used for binning
-#define SIZE_IMAGE_DOUBLE		( NUM_VOXELS * sizeof(double) )			// Amount of memory required for a floating point array used for binning
-/***************************************************************************************************************************************************************************/
-/************************************************************************* Precalculated Constants *************************************************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------- Reconstruction image parameters -------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+#define X_ZERO_COORDINATE		-RECON_CYL_RADIUS						// [cm] x-coordinate corresponding to front edge of 1st voxel (i.e. column) in image space
+#define Y_ZERO_COORDINATE		RECON_CYL_RADIUS						// [cm] y-coordinate corresponding to front edge of 1st voxel (i.e. row) in image space
+#define Z_ZERO_COORDINATE		RECON_CYL_HEIGHT/2						// [cm] z-coordinate corresponding to front edge of 1st voxel (i.e. slice) in image space
+#define X_INCREASING_DIRECTION	RIGHT									// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
+#define Y_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
+#define Z_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------ Precalculated Constants ------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 #define PHI						((1 + sqrt(5.0) ) / 2)					// Positive golden ratio, positive solution of PHI^2-PHI-1 = 0; also PHI = a/b when a/b = (a + b) / a 
 #define PHI_NEGATIVE			((1 - sqrt(5.0) ) / 2)					// Negative golden ratio, negative solution of PHI^2-PHI-1 = 0; 
 #define PI_OVER_4				( atan( 1.0 ) )							// 1*pi/4 radians =   pi/4 radians = 45 degrees
@@ -481,35 +416,61 @@ double CONSTANT_LAMBDA_SCALE =	VOXEL_WIDTH * LAMBDA;
 #define FLOAT_FORMAT			"%f"									// Specifies format to use for writing/printing floating point data using {s/sn/f/v/vn}printf statements
 #define STRING_FORMAT			"%s"									// Specifies format to use for writing/printing strings data using {s/sn/f/v/vn}printf statements
 /***************************************************************************************************************************************************************************/
+/****************************************************************** Global Variable and Array Declerations *****************************************************************/
 /***************************************************************************************************************************************************************************/
-/********************************************************************* Preprocessing Array Declerations ********************************************************************/
-/***************************************************************************************************************************************************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------- Preprocessing and reconstruction configuration/parameter container definitions --------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+configurations parameters;
+configurations parameter_container;
+configurations *parameters_h = &parameter_container;
+configurations *parameters_d;
 
-/***************************************************************************************************************************************************************************/
-/************************************** Declaration of arrays number of histories per file, projection, angle, total, and translation **************************************/
-/***************************************************************************************************************************************************************************/
+std::map<std::string,unsigned int> switchmap;
+unsigned int num_run_arguments;
+char** run_arguments;
+//char* CONFIG_DIRECTORY;
+char* input_directory;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------ Reconstruction history ordering and iterate update parameters ----------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+double lambda;
+int parameter;
+int num_voxel_scales;
+double* voxel_scales;
+
+// CTP_404
+// 20367505: 32955315 -> 32955313									// No average filtering on hull
+// 20367499: 32955306 ->32955301									// No average filtering on hull
+// 20573129: 5143282->5143291										// r=1
+// 20648251: 33409572->33409567										// r=2
+// 20648257: 33409582 -> 33409577/33409603//5162071;				// r=2
+// 20764061: 33596956->33596939/33596977							// r=3 
+
+// CTP_404M
+// 20153778: 5038452-> 5038457										// r=1
+//ULL NUM_RECON_HISTORIES = 20574733
+ULL NUM_RECON_HISTORIES			= 20153778;
+ULL PRIME_OFFSET				= 5038457;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------- Declaration of arrays number of histories per file, projection, angle, total, and translation -------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 int total_histories = 0, recon_vol_histories = 0, maximum_histories_per_file = 0;
 int* histories_per_projection, * histories_per_gantry_angle, * histories_per_file;
 int* recon_vol_histories_per_projection;
 int histories_per_scan[NUM_SCANS];
 int post_cut_histories = 0;
-//unsigned int total_histories = 0, recon_vol_histories = 0, maximum_histories_per_file = 0;
-//unsigned int* histories_per_projection, * histories_per_gantry_angle, * histories_per_file;
-//unsigned int* recon_vol_histories_per_projection;
-//unsigned int histories_per_scan[NUM_SCANS];
-//unsigned int post_cut_histories = 0;
-/***************************************************************************************************************************************************************************/
-/********************************************** Declaration of array used to store tracking plane distances from rotation axis *********************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------- Declaration of array used to store tracking plane distances from rotation axis --------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 std::vector<double> projection_angles;
 float SSD_u_Positions[8];
 float* ut_entry_angle, * uv_entry_angle, * ut_exit_angle, * uv_exit_angle; 
 int zero_WEPL = 0;
 int zero_WEPL_files = 0;
-/***************************************************************************************************************************************************************************/
-/************************************************* Declaration of arrays for storage of input data for use on the host (_h) ************************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------ Declaration of arrays for storage of input data for use on the host (_h) -----------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 int* gantry_angle_h, * bin_num_h, * bin_counts_h;
 bool* missed_recon_volume_h, * failed_cuts_h;
 float* t_in_1_h, * t_in_2_h, * t_out_1_h, * t_out_2_h;
@@ -523,9 +484,9 @@ float* xy_entry_angle_h, * xy_exit_angle_h;
 float* xz_entry_angle_h, * xz_exit_angle_h;
 float* relative_ut_angle_h, * relative_uv_angle_h;
 float* WEPL_h;
-/***************************************************************************************************************************************************************************/
-/*********************************************** Declaration of arrays for storage of input data for use on the device (_d) ************************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------- Declaration of arrays for storage of input data for use on the device (_d) -----------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 int* gantry_angle_d, * bin_num_d, * bin_counts_d;
 bool* missed_recon_volume_d, * failed_cuts_d;
 float* t_in_1_d, * t_in_2_d, * t_out_1_d, * t_out_2_d;
@@ -539,9 +500,9 @@ float* xy_entry_angle_d, * xy_exit_angle_d;
 float* xz_entry_angle_d, * xz_exit_angle_d;
 float* relative_ut_angle_d, * relative_uv_angle_d;
 float* WEPL_d;
-/***************************************************************************************************************************************************************************/
-/********************************************** Declaration of statistical analysis arrays for use on host(_h) or device (_d) **********************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------- Declaration of statistical analysis arrays for use on host(_h) or device (_d) ---------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 float* mean_WEPL_h, * mean_WEPL_d;
 float* mean_energy_h, * mean_energy_d;
 float* mean_rel_ut_angle_h, * mean_rel_ut_angle_d;
@@ -550,14 +511,14 @@ float* mean_total_rel_angle_h, * mean_total_rel_angle_d;
 float* stddev_rel_ut_angle_h, * stddev_rel_ut_angle_d;
 float* stddev_rel_uv_angle_h, * stddev_rel_uv_angle_d;
 float* stddev_WEPL_h, * stddev_WEPL_d;
-/***************************************************************************************************************************************************************************/
-/******************************************** Declaration of pre/post filter sinogram for FBP for use on host(_h) or device (_d) *******************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------- Declaration of pre/post filter sinogram for FBP for use on host(_h) or device (_d) ------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 float* sinogram_h, * sinogram_d;
 float* sinogram_filtered_h, * sinogram_filtered_d;
-/***************************************************************************************************************************************************************************/
-/***************************************************** Declaration of image arrays for use on host(_h) or device (_d) ******************************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------- Declaration of image arrays for use on host(_h) or device (_d) -----------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 bool* SC_hull_h, * SC_hull_d;
 bool* MSC_hull_h, * MSC_hull_d;
 bool* SM_hull_h, * SM_hull_d;
@@ -574,11 +535,12 @@ unsigned int* num_voxel_intersections_h, * num_voxel_intersections_d;
 unsigned int* intersection_counts_h, * intersection_counts_d;
 unsigned int* block_voxels_h, *block_voxels_d;
 unsigned int* block_counts_h, * block_counts_d;
+double* norm_Ai;
 float* x_h, * x_d;
 ULL* history_sequence;
-/***************************************************************************************************************************************************************************/
-/********************************** Declaration of vectors used to accumulate data from histories that have passed currently applied cuts **********************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------- Declaration of vectors used to accumulate data from histories that have passed currently applied cuts ---------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 std::vector<int>	bin_num_vector;			
 std::vector<int>	gantry_angle_vector;	
 std::vector<float>	WEPL_vector;		
@@ -597,65 +559,24 @@ std::vector<float>	xz_exit_angle_vector;
 std::vector<int> voxel_x_vector;
 std::vector<int> voxel_y_vector;
 std::vector<int> voxel_z_vector;
-/***************************************************************************************************************************************************************************/
-/********************************** Declaration of arrays used to accumulate data from histories that have passed currently applied cuts ***********************************/
-/***************************************************************************************************************************************************************************/
-int*	bin_index;
-float*	bin_WEPL;
-int*	bin_num;			
-int*	gantry_angle;	
-float*	WEPL;		
-float*	x_entry;		
-float*	y_entry;		
-float*	z_entry;		
-float*	x_exit;			
-float*	y_exit;			
-float*	z_exit;			
-float*	xy_entry_angle;	
-float*	xz_entry_angle;	
-float*	xy_exit_angle;	
-float*	xz_exit_angle;	
-float*	relative_ut_angle;	
-float*	relative_uv_angle;
-/***************************************************************************************************************************************************************************/
-/*********************************************************************** Execution timer variables *************************************************************************/
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------- Execution timer variables ------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 clock_t program_start, program_end, pause_cycles = 0;
-/***************************************************************************************************************************************************************************/
 /***************************************************************************************************************************************************************************/
 /************************************************************************* For Use In Development **************************************************************************/
 /***************************************************************************************************************************************************************************/
-/***************************************************************************************************************************************************************************/
-
-/***************************************************************************************************************************************************************************/
-/************************************************************************ MLP Test Image Parameters ************************************************************************/
-/***************************************************************************************************************************************************************************/
-int* test_image_h, test_image_d;
-
-
-int MLP_IMAGE_COLUMNS = 100, MLP_IMAGE_ROWS = 100, MLP_IMAGE_SLICES = 5;
-int MLP_IMAGE_VOXELS = MLP_IMAGE_COLUMNS * MLP_IMAGE_ROWS * MLP_IMAGE_SLICES;
-int MLP_IMAGE_SIZE = MLP_IMAGE_VOXELS * sizeof(int);
-
-int MLP_IMAGE_RECON_CYL_RADIUS_VOXELS = 50;
-int MLP_IMAGE_RECON_CYL_HEIGHT_VOXELS = 5;
-int MLP_PHANTOM_A_VOXELS = 15, MLP_PHANTOM_B_VOXELS = 25;
-
-double MLP_IMAGE_VOXEL_WIDTH = 0.1;
-double MLP_IMAGE_VOXEL_HEIGHT = 0.1;
-double MLP_IMAGE_VOXEL_THICKNESS = 1.0; 
-
-double MLP_IMAGE_RECON_CYL_RADIUS = MLP_IMAGE_RECON_CYL_RADIUS_VOXELS * MLP_IMAGE_VOXEL_WIDTH;
-double MLP_IMAGE_RECON_CYL_HEIGHT = MLP_IMAGE_RECON_CYL_HEIGHT_VOXELS * MLP_IMAGE_VOXEL_THICKNESS;
-double MLP_PHANTOM_A = MLP_PHANTOM_A_VOXELS * MLP_IMAGE_VOXEL_WIDTH;
-double MLP_PHANTOM_B = MLP_PHANTOM_B_VOXELS * MLP_IMAGE_VOXEL_HEIGHT;
-
-double MLP_IMAGE_WIDTH = MLP_IMAGE_COLUMNS * MLP_IMAGE_VOXEL_WIDTH;
-double MLP_IMAGE_HEIGHT = MLP_IMAGE_ROWS * MLP_IMAGE_VOXEL_HEIGHT;
-double MLP_IMAGE_THICKNESS = MLP_IMAGE_SLICES * MLP_IMAGE_VOXEL_THICKNESS;
-/***************************************************************************************************************************************************************************/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*-------------------------------------------------------------------- Execution and early exit options -------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+bool DEBUG_TEXT_ON				= true;							// Provide (T) or suppress (F) print statements to console during execution
+bool RUN_ON						= false;						// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
+bool EXIT_AFTER_BINNING			= false;						// Exit program early after completing data read and initial processing
+bool EXIT_AFTER_HULLS			= true;							// Exit program early after completing hull-detection
+bool EXIT_AFTER_CUTS			= false;						// Exit program early after completing statistical cuts
+bool EXIT_AFTER_SINOGRAM		= false;						// Exit program early after completing the ruction of the sinogram
+bool EXIT_AFTER_FBP				= false;						// Exit program early after completing FBP
 /***************************************************************************************************************************************************************************/
 /************************************************************************ End of Parameter Definitions *********************************************************************/
-/***************************************************************************************************************************************************************************/
 /***************************************************************************************************************************************************************************/
 //#endif // _PCT_RECONSTRUCTION_H_

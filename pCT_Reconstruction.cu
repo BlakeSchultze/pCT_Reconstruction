@@ -117,7 +117,9 @@ void DROP_blocks2( unsigned int*&, float*&, double, unsigned int, double, double
 void DROP_update2( float*&, double*&, unsigned int*&, unsigned int&, unsigned int*& );
 void DROP_blocks3( unsigned int*&, float*&, double, unsigned int, double, double*&, unsigned int*&, unsigned int& );
 void DROP_update3( float*&, double*&, unsigned int*&, unsigned int&);
-
+void DROP_blocks_robust2( unsigned int*&, float*&, double, unsigned int, double, double*&, unsigned int*&, double*& );
+void DROP_update_robust2( float*&, double*&, unsigned int*&, double*& );
+void DROP_blocks_red( unsigned int*&, float*&, double, unsigned int, double, double*&, unsigned int*& );
 
 // Write arrays/vectors to file(s)
 void binary_2_ASCII();
@@ -136,6 +138,7 @@ unsigned int read_MLP_path(FILE*, unsigned int*&);
 void export_hull();
 void import_hull();
 void write_reconstruction_settings();
+int create_unique_dir( char* );
 
 
 // Image position/voxel calculation functions
@@ -161,16 +164,18 @@ template< typename T, typename T2> T min_n( int, T2, ...);
 template<typename T> T* sequential_numbers( int, int );
 void bin_2_indexes( int, int&, int&, int& );
 inline const char * const bool_2_string( bool b ){ return b ? "true" : "false"; }
+char(&current_MMDD( char(&)[5]))[5];
+template<typename T> T cin_until_valid( T*, int, char* );
 
 // New routine test functions
-void command_line_settings( unsigned int, char** );
-void read_configurations();
+void apply_execution_arguments( unsigned int, char** );
+void read_configuration_parameters();
 void generate_history_sequence(ULL, ULL, ULL* );
 void verify_history_sequence(ULL, ULL, ULL* );
 void define_switchmap();
-void set_parameter( struct generic_input_container );
-void read_parameters();
-struct generic_input_container read_parameter( FILE* );
+
+//void read_parameters();
+struct generic_IO_container read_key_value_pair( FILE* );
 void parameters_2_GPU();
 void test_func();
 void test_func2( std::vector<int>&, std::vector<double>&);
@@ -247,14 +252,14 @@ __global__ void test_func_device( double*, double*, double* );
 /***********************************************************************************************************************************************************************************************************************/
 int main(unsigned int argc, char** argv)
 {
-	if( DIRECT_IMAGE_RECONSTRUCTION )
+	if( PREPROCESSING_REQUIRED )
 	{
 		import_hull();
 		image_reconstruction();
 	}
-	if( RUN_ON )
+	else if( RUN_ON )
 	{
-		command_line_settings( argc, argv );
+		apply_execution_arguments( argc, argv );
 		//pause_execution();
 		/********************************************************************************************************************************************************/
 		/* Start the execution timing clock																														*/
@@ -275,8 +280,9 @@ int main(unsigned int argc, char** argv)
 			assign_SSD_positions();		// Read the detector plane u-coordinates from config file
 		initializations();				// allocate and initialize host and GPU memory for statistical
 		count_histories();				// count the number of histories per file, per scan, total, etc.
+		//puts("hello");
 		reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
-		
+		//puts("hello");
 		/********************************************************************************************************************************************************/
 		/* Reading the 16 energy detector responses for each of the 5 stages and generate single energy response for each history								*/
 		/********************************************************************************************************************************************************/
@@ -321,14 +327,11 @@ int main(unsigned int argc, char** argv)
 			read_data_chunk( histories_to_process, start_file_num, end_file_num );
 			recon_volume_intersections( histories_to_process );
 			binning( histories_to_process );
-			hull_detection( histories_to_process );
+			hull_detection( histories_to_process );		
 			initial_processing_memory_clean();
 			start_file_num = end_file_num;
 			histories_to_process = 0;
-			//pause_execution();
 		}
-		if( COUNT_0_WEPLS )
-			std::cout << "Histories with WEPL = 0 : " << zero_WEPL << std::endl;
 		puts("Data reading complete.");
 		printf("%d out of %d (%4.2f%%) histories traversed the reconstruction volume\n", recon_vol_histories, total_histories, (double) recon_vol_histories / total_histories * 100  );
 		exit_program_if( EXIT_AFTER_BINNING );
@@ -345,23 +348,6 @@ int main(unsigned int argc, char** argv)
 		/* Calculate the mean WEPL, relative ut-angle, and relative uv-angle for each bin and count the number of histories in each bin							*/											
 		/********************************************************************************************************************************************************/
 		calculate_means();
-		//for( int i = 0; i < 10; i++ )
-		//{
-		//	cout << bin_num_vector[i] << endl;
-		//		//cout << gantry_angle_vector[i] << endl;
-		//	cout << 	WEPL_vector[i] << endl;
-		//	cout << 	x_entry_vector[i] << endl;
-		//	cout << 	y_entry_vector[i] << endl;
-		//	cout << 	z_entry_vector[i] << endl;
-		//	cout << 	x_exit_vector[i]	 << endl;
-		//	cout << 	y_exit_vector[i] << endl;	
-		//	cout << 	z_exit_vector[i]	 << endl;
-		//	cout << 	xy_entry_angle_vector[i] << endl;
-		//	cout << 	xz_entry_angle_vector[i] << endl;
-		//	cout << 	xy_exit_angle_vector[i] << endl;
-		//	cout << 	xz_exit_angle_vector[i] << endl;
-		//}
-		//pause_execution();
 		initialize_stddev();
 		/********************************************************************************************************************************************************/
 		/* Calculate the standard deviation in WEPL, relative ut-angle, and relative uv-angle for each bin.  Iterate through the valid history std::vectors one	*/
@@ -411,29 +397,11 @@ int main(unsigned int argc, char** argv)
 		resize_vectors( post_cut_histories );
 		shrink_vectors( post_cut_histories );
 		exit_program_if( EXIT_AFTER_CUTS );
-
 		/********************************************************************************************************************************************************/
 		/* Recalculate the mean WEPL for each bin using	the histories remaining after cuts and use these to produce the sinogram								*/
 		/********************************************************************************************************************************************************/
 		construct_sinogram();
 		exit_program_if( EXIT_AFTER_SINOGRAM );
-		//for( int i = post_cut_histories-10; i < post_cut_histories; i++ )
-		//{
-		//	cout << bin_num_vector[i] << endl;
-		//		//cout << gantry_angle_vector[i] << endl;
-		//	cout << 	WEPL_vector[i] << endl;
-		//	cout << 	x_entry_vector[i] << endl;
-		//	cout << 	y_entry_vector[i] << endl;
-		//	cout << 	z_entry_vector[i] << endl;
-		//	cout << 	x_exit_vector[i]	 << endl;
-		//	cout << 	y_exit_vector[i] << endl;	
-		//	cout << 	z_exit_vector[i]	 << endl;
-		//	cout << 	xy_entry_angle_vector[i] << endl;
-		//	cout << 	xz_entry_angle_vector[i] << endl;
-		//	cout << 	xy_exit_angle_vector[i] << endl;
-		//	cout << 	xz_exit_angle_vector[i] << endl;
-		//}
-		//pause_execution();
 		/********************************************************************************************************************************************************/
 		/* Perform filtered backprojection and write FBP hull to disk																							*/
 		/********************************************************************************************************************************************************/
@@ -445,13 +413,12 @@ int main(unsigned int argc, char** argv)
 		image_reconstruction();
 		if( WRITE_X )
 			array_2_disk("x", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-		array_2_disk("x_hull_after", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
 	else
 	{
 		//binary_2_ASCII();
-		//test_func();
-		combine_data_sets();
+		test_func();
+		//combine_data_sets();
 		puts("finished program");
 	}
 	/************************************************************************************************************************************************************/
@@ -529,21 +496,28 @@ void exit_program_if( bool early_exit)
 	}
 }
 /***********************************************************************************************************************************************************************************************************************/
-/******************************************************************************* Reading/Setting Run Settings, Parameters, and Configurations **************************************************************************/
+/******************************************************************************* Reading/Setting Run Settings, Parameters, and configuration_parameters **************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void command_line_settings( unsigned int num_arguments, char** arguments )
+void apply_execution_arguments( unsigned int num_arguments, char** arguments )
 {
 	num_run_arguments = num_arguments;
 	run_arguments = arguments; 
+	if(num_arguments == 4)
+	{
+	  
+	  METHOD = atoi(run_arguments[1]);
+	  ETA = atof(run_arguments[2]);
+	  PSI_SIGN = atoi(run_arguments[3]);	  
+	}
 	//printf("num_arguments = %d\n", num_arguments);
 	//printf("num_run_arguments = %d\n", num_run_arguments);
 	//printf("chars = %s\n", run_arguments[2]);
 	//printf("atof = %3f\n", atof(run_arguments[2]));
-	if( num_arguments > 1 )
+	/*if( num_arguments > 1 )
 		CONFIG_DIRECTORY = arguments[1];
 	if( num_run_arguments > 2 )
 	{
-		parameter_container.lambda = atof(run_arguments[2]); 
+		parameter_container.LAMBDA = atof(run_arguments[2]); 
 		LAMBDA = atof(run_arguments[2]);
 		CONSTANT_LAMBDA_SCALE = VOXEL_WIDTH * LAMBDA;
 	}
@@ -553,7 +527,7 @@ void command_line_settings( unsigned int num_arguments, char** arguments )
 		voxel_scales = (double*)calloc( num_voxel_scales, sizeof(double) ); 
 		for( unsigned int i = 3; i < num_run_arguments; i++ )
 			voxel_scales[i-3] = atof(run_arguments[i]);
-	}	
+	}*/	
 	//			  1				   2		   3	 4	  5    6   ...  N + 3  
 	// ./pCT_Reconstruction [.cfg address] [LAMBDA] [C1] [C2] [C3] ... [CN]
 	//switch( true )
@@ -564,318 +538,21 @@ void command_line_settings( unsigned int num_arguments, char** arguments )
 	//		for( unsigned int i = 3; i < num_run_arguments; i++ )
 	//			voxel_scales[i-3] = atof(run_arguments[i]);
 	//	case (num_arguments >= 3): 
-	//		parameter_container.lambda = atof(run_arguments[2]); 
+	//		parameter_container.LAMBDA = atof(run_arguments[2]); 
 	//		LAMBDA = atof(run_arguments[2]);
 	//	case (num_arguments >= 2): 
 	//		CONFIG_DIRECTORY = arguments[1];
 	//	case default: break;
 	//}
 	printf("LAMBDA = %3f\n", LAMBDA);
+	
 	cout << "voxels to be scaled = " << num_voxel_scales << endl;
 	for( unsigned int i = 0; i < num_voxel_scales; i++ )
 		printf("voxel_scale[%d] = %3f\n", i, voxel_scales[i] );
 }
 /***********************************************************************************************************************************************************************************************************************/
-/************************************************************************* Read and set reconstruction configurations, settings, and parameters ************************************************************************/
+/************************************************************************* Read and set reconstruction configuration_parameters, settings, and parameters ************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void define_switchmap()
-{
-	// Generate mapping of all possible keys to integer ID so key can be used to control switch statement
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_DIRECTORY"), 1));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_DIRECTORY"), 2));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_FOLDER"), 3));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_FOLDER"), 4));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_BASE_NAME"), 5));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("FILE_EXTENSION"), 6));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("GANTRY_ANGLES"), 7));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("NUM_SCANS"), 8));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_T_SIZE"), 9));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_V_SIZE"), 10));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_SHIFT"), 11));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("U_SHIFT"), 12));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BIN_SIZE"), 13));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BINS"), 14));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BIN_SIZE"), 15));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BINS"), 16));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ANGULAR_BIN_SIZE"), 17));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SIGMAS_TO_KEEP"), 18));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_RADIUS"), 19));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_HEIGHT"), 20));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_WIDTH"), 21));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_HEIGHT"), 22));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_THICKNESS"), 23));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("COLUMNS"), 24));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ROWS"), 25));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SLICES"), 26));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_WIDTH"), 27));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_HEIGHT"), 28));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_THICKNESS"), 29));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("LAMBDA"), 30));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("parameter"), 31));
-
-}
-struct generic_input_container read_parameter( FILE* input_file )
-{
-	char key[512], equal_sign[10], temp[512];	
-	char* start, * end;
-	int length;
-	struct generic_input_container input_value;	
-	fscanf (input_file, "%s %s %s", &key, &equal_sign, &temp);
-	input_value.key = key;
-	start = std::strchr(temp, '"' );
-	if( start == NULL)
-	{
-		start = std::strchr(temp, '.' );
-		if( start == NULL )
-		{
-			puts("found integer");
-			sscanf( temp, "%d", &input_value.integer_input );
-			//cout << integer_value << endl;
-			input_value.input_type_ID = 1;
-		}
-		else
-		{
-			puts("found double");
-			sscanf( temp, "%lf", &input_value.double_input );
-			//cout << double_value << endl;
-			input_value.input_type_ID = 2;
-		}
-	}
-	else
-	{
-		puts("found quote");
-		end = std::strrchr(temp, '"' );
-		length = (int)(end - start) - 1; //(end -1 ) - ( start + 1 ) + 1
-		memcpy( input_value.string_input, start + 1, length );
-		//printf("%s\n", string_value); 
-		input_value.input_type_ID = 3;
-	}
-	return input_value;
-}
-void read_config_file()
-{		
-	FILE* input_file = fopen(CONFIG_DIRECTORY, "r" );
-	//input_file = fopen(CONFIG_DIRECTORY, "r" );
-	define_switchmap();
-	while( !feof(input_file) )
-	{
-		struct generic_input_container input_value = read_parameter(input_file);
-		printf("key = %s\n", input_value.key );
-		set_parameter( input_value );
-		//cout << input_value.specifier << endl;
-		if( input_value.input_type_ID == 1 )
-		{
-			cout << input_value.integer_input << endl;
-		}
-		else if( input_value.input_type_ID == 2 )
-		{
-			cout << input_value.double_input << endl;
-		}
-		else if( input_value.input_type_ID == 3 )
-		{
-			cout << input_value.string_input << endl;
-		}
-		else
-			puts("invalid type_ID");
-		
-		//pause_execution();
-	}
-	fclose(input_file);
-	//parameters_2_GPU();
-}
-void set_parameter( struct generic_input_container value )
-{
-	std::map<std::string,unsigned int>::iterator map_iterator = switchmap.find(std::string(value.key));
-
-	int key_ID;
-	if(  map_iterator != switchmap.end() )
-		key_ID = map_iterator->second;
-	else
-		key_ID = -1;
-	//cout << "key_ID = " << key_ID << endl;
-	switch( key_ID )
-	{
-		//case 1:
-		//	INPUT_DIRECTORY = value.string_input;
-		//	//printf("it set to %s\n", input_directory );
-		//	puts("1");
-		//	break;
-		//case 2:
-		//	OUTPUT_DIRECTORY = value.string_input;
-		//	puts("2");
-		//	break;
-		//case 3:
-		//	INPUT_FOLDER = value.string_input;
-		//	puts("3");
-		//	break;
-		//case 4:
-		//	OUTPUT_FOLDER = value.string_input;
-		//	puts("4");
-		//	break;
-		//case 5:
-		//	INPUT_BASE_NAME = value.string_input;
-		//	puts("5");
-		//	break;
-		//case 6:
-		//	FILE_EXTENSION = value.string_input;
-		//	puts("6");
-		//	break;
-		//case 7:
-		//	GANTRY_ANGLES = value.integer_input;
-		//	puts("7");
-		//	break;
-		//case 8:
-		//	NUM_SCANS = value.integer_input;
-		//	puts("8");
-		//	break;
-		//case 9:
-		//	SSD_T_SIZE = value.double_input;
-		//	puts("9");
-		//	break;
-		//case 10:
-		//	SSD_V_SIZE = value.double_input;
-		//	puts("10");
-		//	break;
-		//case 11:
-		//	T_SHIFT = value.double_input;
-		//	puts("11");
-		//	break;
-		//case 12:
-		//	U_SHIFT = value.double_input;
-		//	puts("12");
-		//	break;
-		//case 13:
-		//	T_BIN_SIZE = value.double_input;
-		//	puts("13");
-		//	break;
-		//case 14:
-		//	T_BINS = value.integer_input;
-		//	puts("14");
-		//	break;
-		//case 15:
-		//	V_BIN_SIZE = value.double_input;
-		//	puts("15");
-		//	break;
-		//case 16:
-		//	V_BINS = value.integer_input;
-		//	puts("16");
-		//	break;
-		//case 17:
-		//	ANGULAR_BIN_SIZE = value.double_input;
-		//	puts("17");
-		//	break;
-		//case 18:
-		//	SIGMAS_TO_KEEP = value.integer_input;
-		//	puts("18");
-		//	break;
-		//case 19:
-		//	RECON_CYL_RADIUS = value.double_input;
-		//	puts("19");
-		//	break;
-		//case 20:
-		//	RECON_CYL_HEIGHT = value.double_input;
-		//	puts("20");
-		//	break;
-		//case 21:
-		//	IMAGE_WIDTH = value.double_input;
-		//	puts("21");
-		//	break;
-		//case 22:
-		//	IMAGE_HEIGHT = value.double_input;
-		//	puts("22");
-		//	break;
-		//case 23:
-		//	IMAGE_THICKNESS = value.double_input;
-		//	puts("23");
-		//	break;
-		//case 24:
-		//	COLUMNS = value.integer_input;
-		//	puts("24");
-		//	break;
-		//case 25:
-		//	ROWS = value.integer_input;
-		//	puts("25");
-		//	break;
-		//case 26:
-		//	SLICES = value.integer_input;
-		//	puts("26");
-		//	break;
-		//case 27:
-		//	VOXEL_WIDTH = value.double_input;
-		//	puts("29");
-		//	break;
-		//case 28:
-		//	VOXEL_HEIGHT = value.double_input;
-		//	puts("28");
-		//	break;
-		//case 29:
-		//	VOXEL_THICKNESS = value.double_input;
-		//	puts("30");
-		//	break;
-		case 30:
-			LAMBDA = value.double_input;
-			puts("30");
-			break;
-		case 31:
-			parameter = value.integer_input;
-			puts("31");
-			break;
-		default:
-			puts("invalid key specified");
-	};
-}
-void fill_parameter_struct()
-{
-	//parameter_container.INPUT_DIRECTORY_D = INPUT_DIRECTORY;
-	//parameter_container.OUTPUT_DIRECTORY_D = OUTPUT_DIRECTORY;
-	//parameter_container.INPUT_FOLDER_D = INPUT_FOLDER;
-	//parameter_container.OUTPUT_FOLDER_D = OUTPUT_FOLDER;
-	//parameter_container.INPUT_BASE_NAME_D = INPUT_BASE_NAME;
-	//parameter_container.FILE_EXTENSION_D = FILE_EXTENSION;
-	//parameter_container.GANTRY_ANGLES_D = GANTRY_ANGLES;
-	//parameter_container.NUM_SCANS_D = NUM_SCANS;
-	//parameter_container.SSD_T_SIZE_D = SSD_T_SIZE;
-	//parameter_container.SSD_V_SIZE_D = SSD_V_SIZE;
-	//parameter_container.T_SHIFT_D = T_SHIFT;
-	//parameter_container.U_SHIFT_D = U_SHIFT;
-	//parameter_container.T_BIN_SIZE_D = T_BIN_SIZE;
-	//parameter_container.T_BINS_D = T_BINS;
-	//parameter_container.V_BIN_SIZE_D = V_BIN_SIZE;
-	//parameter_container.V_BINS_D = V_BINS;
-	//parameter_container.ANGULAR_BIN_SIZE_D = ANGULAR_BIN_SIZE;
-	//parameter_container.SIGMAS_TO_KEEP_D = SIGMAS_TO_KEEP;
-	//parameter_container.RECON_CYL_RADIUS_D = RECON_CYL_RADIUS;
-	//parameter_container.RECON_CYL_HEIGHT_D = RECON_CYL_HEIGHT;
-	//parameter_container.IMAGE_WIDTH_D = IMAGE_WIDTH;
-	//parameter_container.IMAGE_HEIGHT_D = IMAGE_HEIGHT;
-	//parameter_container.IMAGE_THICKNESS_D = IMAGE_THICKNESS;
-	//parameter_container.COLUMNS_D = COLUMNS;
-	//parameter_container.ROWS_D = ROWS;
-	//parameter_container.SLICES_D = SLICES;
-	//parameter_container.VOXEL_WIDTH_D = VOXEL_WIDTH;
-	//parameter_container.VOXEL_HEIGHT_D = VOXEL_HEIGHT;
-	//parameter_container.VOXEL_THICKNESS_D = VOXEL_THICKNESS;
-	//parameter_container.LAMBDA_D = LAMBDA;
-	//parameter_container.parameter_D = parameter;
-}
-void parameters_2_GPU()
-{
-	double* x = (double*) calloc(1, sizeof(double) );
-	double* x_d;
-	cudaMalloc((void**) &x_d, sizeof(double));
-	cudaMemcpy( x_d, x, sizeof(double), cudaMemcpyHostToDevice);
-	printf("parameters_h = %3f\n", parameters_h->lambda);
-
-	cudaMalloc((void**) &parameters_d,			sizeof(parameters) );
-	cudaMemcpy( parameters_d,			parameters_h,			sizeof(parameters),		cudaMemcpyHostToDevice );
-
-	dim3 dimBlock( 1 );
-	dim3 dimGrid( 1 );   	
-	//test_func_GPU<<< dimGrid, dimBlock >>>( parameters_d, x_d );
-
-	cudaMemcpy( x, x_d, sizeof(double), cudaMemcpyDeviceToHost);
-	printf("xs[0] = %3f\n", x[0]);
-}
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Memory Transfers, Maintenance, and Cleaning ************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -988,38 +665,6 @@ void initialize_stddev()
 	cudaMemcpy( stddev_rel_ut_angle_d,	stddev_rel_ut_angle_h,	SIZE_BINS_FLOAT,	cudaMemcpyHostToDevice );
 	cudaMemcpy( stddev_rel_uv_angle_d,	stddev_rel_uv_angle_h,	SIZE_BINS_FLOAT,	cudaMemcpyHostToDevice );
 	cudaMemcpy( stddev_WEPL_d,			stddev_WEPL_h,			SIZE_BINS_FLOAT,	cudaMemcpyHostToDevice );
-}
-void allocations( const unsigned int num_histories)
-{
-	bin_num				= (int*)   calloc( num_histories,	sizeof(int)   );		
-	gantry_angle		= (int*)   calloc( num_histories,	sizeof(int)   );
-	WEPL				= (float*) calloc( num_histories,	sizeof(float) );		
-	x_entry				= (float*) calloc( num_histories,	sizeof(float) );		
-	y_entry				= (float*) calloc( num_histories,	sizeof(float) );		
-	z_entry				= (float*) calloc( num_histories,	sizeof(float) );		
-	x_exit				= (float*) calloc( num_histories,	sizeof(float) );		
-	y_exit				= (float*) calloc( num_histories,	sizeof(float) );			
-	z_exit				= (float*) calloc( num_histories,	sizeof(float) );			
-	xy_entry_angle		= (float*) calloc( num_histories,	sizeof(float) );	
-	xz_entry_angle		= (float*) calloc( num_histories,	sizeof(float) );	
-	xy_exit_angle		= (float*) calloc( num_histories,	sizeof(float) );	
-	xz_exit_angle		= (float*) calloc( num_histories,	sizeof(float) );	
-}
-void reallocations( const unsigned int new_size)
-{
-	bin_num				= (int*)   realloc( bin_num,			new_size * sizeof(int)   );		
-	gantry_angle		= (int*)   realloc( gantry_angle,		new_size * sizeof(int)   );
-	WEPL				= (float*) realloc( WEPL,				new_size * sizeof(float) );		
-	x_entry				= (float*) realloc( x_entry,			new_size * sizeof(float) );		
-	y_entry				= (float*) realloc( y_entry,			new_size * sizeof(float) );		
-	z_entry				= (float*) realloc( z_entry,			new_size * sizeof(float) );		
-	x_exit				= (float*) realloc( x_exit,				new_size * sizeof(float) );		
-	y_exit				= (float*) realloc( y_exit,				new_size * sizeof(float) );			
-	z_exit				= (float*) realloc( z_exit,				new_size * sizeof(float) );			
-	xy_entry_angle		= (float*) realloc( xy_entry_angle,		new_size * sizeof(float) );	
-	xz_entry_angle		= (float*) realloc( xz_entry_angle,		new_size * sizeof(float) );	
-	xy_exit_angle		= (float*) realloc( xy_exit_angle,		new_size * sizeof(float) );	
-	xz_exit_angle		= (float*) realloc( xz_exit_angle,		new_size * sizeof(float) );	
 }
 void post_cut_memory_clean()
 {
@@ -1698,17 +1343,8 @@ void convert_mm_2_cm( unsigned int num_histories )
 		u_out_1_h[i] *= MM_TO_CM;
 		u_out_2_h[i] *= MM_TO_CM;
 		WEPL_h[i]	 *= MM_TO_CM;
-		if( COUNT_0_WEPLS && WEPL_h[i] == 0 )
-		{
-			zero_WEPL++;
-			zero_WEPL_files++;
-		}
 	}
-	if( COUNT_0_WEPLS )
-	{
-		std::cout << "Histories in " << gantry_angle_h[0] << "with WEPL = 0 :" << zero_WEPL_files << std::endl;
-		zero_WEPL_files = 0;
-	}
+
 }
 void apply_tuv_shifts( unsigned int num_histories)
 {
@@ -1738,13 +1374,13 @@ void apply_tuv_shifts( unsigned int num_histories)
 	if( WRITE_SSD_ANGLES )
 	{
 		char data_filename[256];
-		sprintf(data_filename, "%s_%03d%s", "ut_entry_angle", gantry_angle, ".txt" );
+		sprintf(data_filename, "%s_%03d%s", "ut_entry_angle", gantry_angle_h, ".txt" );
 		array_2_disk( data_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, ut_entry_angle, COLUMNS, ROWS, SLICES, num_histories, true );
-		sprintf(data_filename, "%s_%03d%s", "uv_entry_angle", gantry_angle, ".txt" );
+		sprintf(data_filename, "%s_%03d%s", "uv_entry_angle", gantry_angle_h, ".txt" );
 		array_2_disk( "ut_entry_angle", OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_entry_angle, COLUMNS, ROWS, SLICES, num_histories, true );
-		sprintf(data_filename, "%s_%03d%s", "ut_exit_angle", gantry_angle, ".txt" );
+		sprintf(data_filename, "%s_%03d%s", "ut_exit_angle", gantry_angle_h, ".txt" );
 		array_2_disk( "ut_entry_angle", OUTPUT_DIRECTORY, OUTPUT_FOLDER, ut_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
-		sprintf(data_filename, "%s_%03d%s", "uv_exit_angle", gantry_angle, ".txt" );
+		sprintf(data_filename, "%s_%03d%s", "uv_exit_angle", gantry_angle_h, ".txt" );
 		array_2_disk( "ut_entry_angle", OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 	}
 }
@@ -1839,20 +1475,10 @@ void read_data_chunk_old( const int num_histories, const int start_file_num, con
 				t_out_2_h[array_index]	= t_data[3];
 				WEPL_h[array_index]		= WEPL_data;
 			}
-			if( !MICAH_SIM )
-			{
-				u_in_1_h[array_index]	= SSD_u_Positions[int(tracker_plane[0])];
-				u_in_2_h[array_index]	= SSD_u_Positions[int(tracker_plane[1])];
-				u_out_1_h[array_index]	= SSD_u_Positions[int(tracker_plane[2])];
-				u_out_2_h[array_index]	= SSD_u_Positions[int(tracker_plane[3])];
-			}
-			else
-			{
-				u_in_1_h[array_index]	= SSD_u_Positions[0];
-				u_in_2_h[array_index]	= SSD_u_Positions[2];
-				u_out_1_h[array_index]	= SSD_u_Positions[4];
-				u_out_2_h[array_index]	= SSD_u_Positions[6];
-			}
+			u_in_1_h[array_index]	= SSD_u_Positions[int(tracker_plane[0])];
+			u_in_2_h[array_index]	= SSD_u_Positions[int(tracker_plane[1])];
+			u_out_1_h[array_index]	= SSD_u_Positions[int(tracker_plane[2])];
+			u_out_2_h[array_index]	= SSD_u_Positions[int(tracker_plane[3])];
 			if( SSD_IN_MM )
 			{
 				// Convert the tracking plane positions from mm to cm
@@ -1954,11 +1580,6 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
 				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
 		}
-	}
-	if( COUNT_0_WEPLS )
-	{
-		std::cout << "Histories in " << gantry_angle_h[0] << "with WEPL = 0 :" << zero_WEPL_files << std::endl;
-		zero_WEPL_files = 0;
 	}
 	if( DATA_IN_MM )
 		convert_mm_2_cm( num_histories );
@@ -3644,7 +3265,7 @@ __global__ void SC_GPU
 void MSC( const int num_histories )
 {
 	dim3 dimBlock(THREADS_PER_BLOCK);
-	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
+	dim3 dimGrid((int)((num_histories/STRIDE)/THREADS_PER_BLOCK)+1);
 	MSC_GPU<<<dimGrid, dimBlock>>>
 	(
 		num_histories, MSC_counts_d, bin_num_d, missed_recon_volume_d, WEPL_d,
@@ -3657,102 +3278,107 @@ __global__ void MSC_GPU
 	float* x_entry, float* y_entry, float* z_entry, float* x_exit, float* y_exit, float* z_exit
 )
 {
-	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
-	if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
-	{
-		/********************************************************************************************/
-		/************************** Path Characteristic Parameters **********************************/
-		/********************************************************************************************/
-		int x_move_direction, y_move_direction, z_move_direction;
-		double dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz;
-		/********************************************************************************************/
-		/**************************** Status Tracking Information ***********************************/
-		/********************************************************************************************/
-		double x = x_entry[i], y = y_entry[i], z = z_entry[i];
-		double x_to_go, y_to_go, z_to_go;		
-		//double x_extension, y_extension;	
-		int voxel_x, voxel_y, voxel_z, voxel;
-		int voxel_x_out, voxel_y_out, voxel_z_out, voxel_out; 
-		bool end_walk;
-		//bool debug_run = false;
-		/********************************************************************************************/
-		/******************** Initial Conditions and Movement Characteristics ***********************/
-		/********************************************************************************************/
-		x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] >= x_exit[i] );
-		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
-		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
-
-		voxel_x = calculate_voxel_GPU( X_ZERO_COORDINATE, x_entry[i], VOXEL_WIDTH );
-		voxel_y = calculate_voxel_GPU( Y_ZERO_COORDINATE, y_entry[i], VOXEL_HEIGHT );
-		voxel_z = calculate_voxel_GPU( Z_ZERO_COORDINATE, z_entry[i], VOXEL_THICKNESS );		
-		voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-
-		x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE,	x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH,	 voxel_x );
-		y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE,	y, Y_INCREASING_DIRECTION,  y_move_direction, VOXEL_HEIGHT,	 voxel_y );
-		z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE,	z, Z_INCREASING_DIRECTION,  z_move_direction, VOXEL_THICKNESS, voxel_z );				
-		/********************************************************************************************/
-		/***************************** Path and Walk Information ************************************/
-		/********************************************************************************************/
-		// Slopes corresponging to each possible direction/reference.  Explicitly calculated inverses to avoid 1/# calculations later
-		dy_dx = ( y_exit[i] - y_entry[i] ) / ( x_exit[i] - x_entry[i] );
-		dz_dx = ( z_exit[i] - z_entry[i] ) / ( x_exit[i] - x_entry[i] );
-		dz_dy = ( z_exit[i] - z_entry[i] ) / ( y_exit[i] - y_entry[i] );
-		dx_dy = ( x_exit[i] - x_entry[i] ) / ( y_exit[i] - y_entry[i] );
-		dx_dz = ( x_exit[i] - x_entry[i] ) / ( z_exit[i] - z_entry[i] );
-		dy_dz = ( y_exit[i] - y_entry[i] ) / ( z_exit[i] - z_entry[i] );
-		/********************************************************************************************/
-		/************************* Initialize and Check Exit Conditions *****************************/
-		/********************************************************************************************/
-		voxel_x_out = calculate_voxel_GPU( X_ZERO_COORDINATE, x_exit[i], VOXEL_WIDTH );
-		voxel_y_out = calculate_voxel_GPU( Y_ZERO_COORDINATE, y_exit[i], VOXEL_HEIGHT );
-		voxel_z_out = calculate_voxel_GPU( Z_ZERO_COORDINATE, z_exit[i], VOXEL_THICKNESS );
-		voxel_out = voxel_x_out + voxel_y_out * COLUMNS + voxel_z_out * COLUMNS * ROWS;
-
-		end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-		if( !end_walk )
-			atomicAdd(&MSC_counts[voxel], 1);
-		/********************************************************************************************/
-		/*********************************** Voxel Walk Routine *************************************/
-		/********************************************************************************************/
-		if( z_move_direction != 0 )
+	int thread_num = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
+	unsigned int start_element = thread_num * STRIDE;
+	unsigned int i = start_element;
+	for( int iteration = 0; iteration < STRIDE; iteration++,i++ )
+	{		
+		if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
 		{
-			//printf("z_exit[i] != z_entry[i]\n");
-			while( !end_walk )
+			/********************************************************************************************/
+			/************************** Path Characteristic Parameters **********************************/
+			/********************************************************************************************/
+			int x_move_direction, y_move_direction, z_move_direction;
+			double dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz;
+			/********************************************************************************************/
+			/**************************** Status Tracking Information ***********************************/
+			/********************************************************************************************/
+			double x = x_entry[i], y = y_entry[i], z = z_entry[i];
+			double x_to_go, y_to_go, z_to_go;		
+			//double x_extension, y_extension;	
+			int voxel_x, voxel_y, voxel_z, voxel;
+			int voxel_x_out, voxel_y_out, voxel_z_out, voxel_out; 
+			bool end_walk;
+			//bool debug_run = false;
+			/********************************************************************************************/
+			/******************** Initial Conditions and Movement Characteristics ***********************/
+			/********************************************************************************************/
+			x_move_direction = ( x_entry[i] <= x_exit[i] ) - ( x_entry[i] >= x_exit[i] );
+			y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
+			z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
+
+			voxel_x = calculate_voxel_GPU( X_ZERO_COORDINATE, x_entry[i], VOXEL_WIDTH );
+			voxel_y = calculate_voxel_GPU( Y_ZERO_COORDINATE, y_entry[i], VOXEL_HEIGHT );
+			voxel_z = calculate_voxel_GPU( Z_ZERO_COORDINATE, z_entry[i], VOXEL_THICKNESS );		
+			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+
+			x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE,	x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH,	 voxel_x );
+			y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE,	y, Y_INCREASING_DIRECTION,  y_move_direction, VOXEL_HEIGHT,	 voxel_y );
+			z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE,	z, Z_INCREASING_DIRECTION,  z_move_direction, VOXEL_THICKNESS, voxel_z );				
+			/********************************************************************************************/
+			/***************************** Path and Walk Information ************************************/
+			/********************************************************************************************/
+			// Slopes corresponging to each possible direction/reference.  Explicitly calculated inverses to avoid 1/# calculations later
+			dy_dx = ( y_exit[i] - y_entry[i] ) / ( x_exit[i] - x_entry[i] );
+			dz_dx = ( z_exit[i] - z_entry[i] ) / ( x_exit[i] - x_entry[i] );
+			dz_dy = ( z_exit[i] - z_entry[i] ) / ( y_exit[i] - y_entry[i] );
+			dx_dy = ( x_exit[i] - x_entry[i] ) / ( y_exit[i] - y_entry[i] );
+			dx_dz = ( x_exit[i] - x_entry[i] ) / ( z_exit[i] - z_entry[i] );
+			dy_dz = ( y_exit[i] - y_entry[i] ) / ( z_exit[i] - z_entry[i] );
+			/********************************************************************************************/
+			/************************* Initialize and Check Exit Conditions *****************************/
+			/********************************************************************************************/
+			voxel_x_out = calculate_voxel_GPU( X_ZERO_COORDINATE, x_exit[i], VOXEL_WIDTH );
+			voxel_y_out = calculate_voxel_GPU( Y_ZERO_COORDINATE, y_exit[i], VOXEL_HEIGHT );
+			voxel_z_out = calculate_voxel_GPU( Z_ZERO_COORDINATE, z_exit[i], VOXEL_THICKNESS );
+			voxel_out = voxel_x_out + voxel_y_out * COLUMNS + voxel_z_out * COLUMNS * ROWS;
+
+			end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+			if( !end_walk )
+				atomicAdd(&MSC_counts[voxel], 1);
+			/********************************************************************************************/
+			/*********************************** Voxel Walk Routine *************************************/
+			/********************************************************************************************/
+			if( z_move_direction != 0 )
 			{
-				take_3D_step_GPU
-				( 
-					x_move_direction, y_move_direction, z_move_direction,
-					dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz, 
-					x_entry[i], y_entry[i], z_entry[i], 
-					x, y, z, 
-					voxel_x, voxel_y, voxel_z, voxel,
-					x_to_go, y_to_go, z_to_go
-				);
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					atomicAdd(&MSC_counts[voxel], 1);
-			}// end !end_walk 
-		}
-		else
-		{
-			//printf("z_exit[i] == z_entry[i]\n");
-			while( !end_walk )
+				//printf("z_exit[i] != z_entry[i]\n");
+				while( !end_walk )
+				{
+					take_3D_step_GPU
+					( 
+						x_move_direction, y_move_direction, z_move_direction,
+						dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz, 
+						x_entry[i], y_entry[i], z_entry[i], 
+						x, y, z, 
+						voxel_x, voxel_y, voxel_z, voxel,
+						x_to_go, y_to_go, z_to_go
+					);
+					end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+					if( !end_walk )
+						atomicAdd(&MSC_counts[voxel], 1);
+				}// end !end_walk 
+			}
+			else
 			{
-				take_2D_step_GPU
-				( 
-					x_move_direction, y_move_direction, z_move_direction,
-					dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz, 
-					x_entry[i], y_entry[i], z_entry[i], 
-					x, y, z, 
-					voxel_x, voxel_y, voxel_z, voxel,
-					x_to_go, y_to_go, z_to_go
-				);				
-				end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
-				if( !end_walk )
-					atomicAdd(&MSC_counts[voxel], 1);
-			}// end: while( !end_walk )
-		}//end: else: z_start != z_end => z_start == z_end
-	}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
+				//printf("z_exit[i] == z_entry[i]\n");
+				while( !end_walk )
+				{
+					take_2D_step_GPU
+					( 
+						x_move_direction, y_move_direction, z_move_direction,
+						dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz, 
+						x_entry[i], y_entry[i], z_entry[i], 
+						x, y, z, 
+						voxel_x, voxel_y, voxel_z, voxel,
+						x_to_go, y_to_go, z_to_go
+					);				
+					end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
+					if( !end_walk )
+						atomicAdd(&MSC_counts[voxel], 1);
+				}// end: while( !end_walk )
+			}//end: else: z_start != z_end => z_start == z_end
+		}// end: if( (i < num_histories) && !missed_recon_volume[i] && (WEPL[i] <= MSC_THRESHOLD) )
+	}
 }
 void MSC_edge_detection()
 {
@@ -4339,17 +3965,6 @@ template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( T*
 }
 /****************************************************************************************************** MLP (host) *****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void create_MLP_test_image()
-{	
-	//Create space carve object, init to zeros
-	MLP_test_image_h = (int*)calloc( MLP_IMAGE_VOXELS, sizeof(int));
-
-	for( int slice = 0; slice < MLP_IMAGE_SLICES; slice++ )
-	{
-		//add_circle( MLP_test_image_h, slice, 0.0, 0.0, MLP_IMAGE_RECON_CYL_RADIUS, 1 );
-		add_ellipse( MLP_test_image_h, slice, 0.0, 0.0, MLP_PHANTOM_A, MLP_PHANTOM_B, 1 );
-	}
-}
 template<typename O> bool find_MLP_endpoints
 ( 
 	O*& image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
@@ -5682,7 +5297,7 @@ void write_reconstruction_settings()
 	{
 		fprintf(settings_file, "FILTERED_FBP_PATH = %d \n",  IMPORT_FBP_PATH);
 	}
-	switch( PROJECTION_ALGORITHM )
+	switch( RECONSTRUCTION )
 	{
 		case X_HULL:		fprintf(settings_file, "PROJECTION_ALGORITHM = ART\n");		break;
 		case FBP_IMAGE:		fprintf(settings_file, "PROJECTION_ALGORITHM = SART\n");	break;
@@ -5802,17 +5417,6 @@ double EffectiveChordLength(double abs_angle_t, double abs_angle_v)
 	return VOXEL_WIDTH*chord_length_2D*chord_length_3D;
 	 
 }
-double radial_lambda( double radius_squared )
-{
-	//	1 - a*r(i)^2 DECAY_FACTOR
-	//exp(-a*r)  EXPONENTIAL_DECAY
-	//exp(-a*r^2)  EXPONENTIAL_SQD_DECAY
-
-	return LAMBDA * ( 1 - DECAY_FACTOR * radius_squared );
-	//return LAMBDA * exp( -EXPONENTIAL_DECAY * sqrt( radius_squared ) );
-	//return LAMBDA * exp( -EXPONENTIAL_SQD_DECAY * radius_squared );
-
-}
 void image_reconstruction()
 {
 	/*************************************************************************************************************************************************************************/
@@ -5836,12 +5440,14 @@ void image_reconstruction()
 	/*************************************************************************************************************************************************************************/
 	unsigned int* path_voxels = (unsigned int*)calloc( MAX_INTERSECTIONS, sizeof(unsigned int));
 	double* chord_lengths = (double*)calloc( 1, sizeof(double));
+	norm_Ai = (double*)calloc( NUM_VOXELS, sizeof(double));
 	//block_voxels_h = (unsigned int*)calloc( BLOCK_SIZE * MAX_INTERSECTIONS, sizeof(unsigned int));
 	block_counts_h = (unsigned int*)calloc( NUM_VOXELS, sizeof(unsigned int));	
 	x_update_h = (double*)calloc( NUM_VOXELS, sizeof(double));
 	
 	//if( (path_voxels == NULL) || (block_voxels_h == NULL) || (block_counts_h == NULL) || (x_update_h == NULL) )
-	if( (path_voxels == NULL) ||  (block_counts_h == NULL) || (x_update_h == NULL) )
+	//if( (path_voxels == NULL) ||  (block_counts_h == NULL) || (x_update_h == NULL) )
+	if( (path_voxels == NULL) ||  (block_counts_h == NULL) || (x_update_h == NULL) || ( norm_Ai == NULL ) )
 	//if( (path_voxels == NULL) || (block_voxels_h == NULL) || (x_update_h == NULL) )
 	{
 		puts("ERROR: Memory allocation for one or more image reconstruction arrays failed.");
@@ -5918,12 +5524,16 @@ void image_reconstruction()
 			//if( n < 10 )
 				//cout << WEPL_vector[i] << endl;
 			//update_iterate22( WEPL_vector[i], effective_chord_length, x_h, path_voxels, path_intersections );
-			DROP_blocks( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_counts_h );
+			//DROP_blocks_red(path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_counts_h);
+			//DROP_blocks( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_counts_h );
+			DROP_blocks_robust2( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_counts_h, norm_Ai );
+			
 			//DROP_blocks2( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_voxels_h, block_intersections, block_counts_h );
 			//DROP_blocks3( path_voxels, x_h, WEPL_vector[i], path_intersections, effective_chord_length, x_update_h, block_voxels_h, block_intersections );
 			if( (n+1) % BLOCK_SIZE == 0 )
 			{
-				DROP_update( x_h, x_update_h, block_counts_h );
+				DROP_update_robust2( x_h, x_update_h, block_counts_h, norm_Ai );
+				//DROP_update( x_h, x_update_h, block_counts_h );			
 				//DROP_update2( x_h, x_update_h, block_voxels_h, block_intersections, block_counts_h );
 				//DROP_update3( x_h, x_update_h, block_voxels_h, block_intersections);
 				//	//update_x();
@@ -6090,6 +5700,62 @@ __device__ void update_iterate22_GPU( double bi, double mean_chord_length, float
 //	}
 }
 /**************************************************************************************************** DROP ******************************************************************************************************/
+void DROP_blocks_red( unsigned int*& a_i, float*& x_k, double bi, unsigned int num_intersections, double mean_chord_length, double*& x_update, unsigned int*& voxel_intersections )
+{
+	// x(K+1) = x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / <ai, ai> ] ai =  x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ] ai 
+	//  (1) <ai, x(k)>
+	double a_i_dot_x_k = scalar_dot_product2( mean_chord_length, x_k, a_i, num_intersections );
+	// (2) ( bi - <ai, x(k)> ) / <ai, ai>
+	double a_i_dot_a_i =  pow(mean_chord_length, 2.0) * num_intersections;
+	//double scaled_residual = ( bi - a_i_dot_x_k ) /  (  pow(mean_chord_length, 2.0) * num_intersections );
+	// (3) LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ]
+	//double update_value = mean_chord_length * LAMBDA * scaled_residual;	
+	//for( unsigned int intersection = 0; intersection < num_voxel_scales; intersection++ )
+	//{
+	//	x_update[a_i[intersection]] += voxel_scales[intersection] * update_value;
+	//	voxel_intersections[a_i[intersection]] += 1;
+	//}
+	double residual =  bi - a_i_dot_x_k;
+	for( unsigned int intersection = 0; intersection < num_intersections; intersection++)
+	{
+	        double psi_i = ((1.0 - x_k[a_i[intersection]]) * ETA) * PSI_SIGN;
+		
+		double update_value = LAMBDA * (residual / (a_i_dot_a_i + psi_i)); 
+		x_update[a_i[intersection]] += update_value;
+		voxel_intersections[a_i[intersection]] += 1;
+	}
+}
+void DROP_blocks_robust2( unsigned int*& a_i, float*& x_k, double bi, unsigned int num_intersections, double mean_chord_length, double*& x_update, unsigned int*& voxel_intersections, double*& norm_Ai )
+{
+	// x(K+1) = x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / <ai, ai> ] ai =  x(k) + LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ] ai 
+	//  (1) <ai, x(k)>
+	double a_i_dot_x_k = scalar_dot_product2( mean_chord_length, x_k, a_i, num_intersections );
+	// (2) ( bi - <ai, x(k)> ) / <ai, ai>
+	double scaled_residual = ( bi - a_i_dot_x_k ) /  (  pow(mean_chord_length, 2.0) * num_intersections );
+	// (3) LAMBDA * [ ( bi - <ai, x(k)> ) / ||ai||^2 ]
+	double update_value = mean_chord_length * LAMBDA * scaled_residual;	
+	for( unsigned int intersection = 0; intersection < num_intersections; intersection++)
+	{
+		x_update[a_i[intersection]] += update_value;
+		voxel_intersections[a_i[intersection]] += 1;
+		norm_Ai[a_i[intersection]] += pow( mean_chord_length, 2.0 );
+	}
+}
+void DROP_update_robust2( float*& x_k, double*& x_update, unsigned int*& voxel_intersections, double*& norm_Ai )
+{
+	double psi_i;
+	for( unsigned int voxel = 0; voxel < NUM_VOXELS; voxel++ )
+	{
+		if( voxel_intersections[voxel] > 0 )
+		{
+			psi_i = PSI_SIGN*(1-x_k[voxel])*ETA;
+			//x_k[voxel] += x_update[voxel] / voxel_intersections[voxel];
+			x_k[voxel] += ( norm_Ai[voxel]/ (norm_Ai[voxel] + psi_i))  * x_update[voxel] / voxel_intersections[voxel];		
+			x_update[voxel] = 0;
+			voxel_intersections[voxel] = 0;
+		}
+	}
+}
 void DROP_blocks3
 ( 
 	unsigned int*& path_voxels, float*& x_k, double bi, unsigned int path_intersections, double mean_chord_length, 
@@ -6234,390 +5900,6 @@ __global__ void update_x_GPU( float*& x_k, double*& x_update, unsigned int*& num
 	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
 	if( voxel < NUM_VOXELS && num_intersections[voxel] > 0 )
 		x_k[voxel] += x_update[voxel] / num_intersections[voxel];
-}
-
-/***********************************************************************************************************************************************************************************************************************/
-/********************************************************************************** Routines for Writing Data Arrays/Vectors to Disk ***********************************************************************************/
-/***********************************************************************************************************************************************************************************************************************/
-void binary_2_ASCII()
-{
-	count_histories();
-	char filename[256];
-	FILE* output_file;
-	int start_file_num = 0, end_file_num = 0, histories_to_process = 0;
-	while( start_file_num != NUM_FILES )
-	{
-		while( end_file_num < NUM_FILES )
-		{
-			if( histories_to_process + histories_per_file[end_file_num] < MAX_GPU_HISTORIES )
-				histories_to_process += histories_per_file[end_file_num];
-			else
-				break;
-			end_file_num++;
-		}
-		read_data_chunk( histories_to_process, start_file_num, end_file_num );
-		sprintf( filename, "%s%s/%s%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_BASE_NAME, "_", gantry_angle_h[0], ".txt" );
-		output_file = fopen (filename, "w");
-
-		for( unsigned int i = 0; i < histories_to_process; i++ )
-		{
-			fprintf(output_file, "%3f %3f %3f %3f %3f %3f %3f %3f %3f\n", t_in_1_h[i], t_in_2_h[i], t_out_1_h[i], t_out_2_h[i], v_in_1_h[i], v_in_2_h[i], v_out_1_h[i], v_out_2_h[i], WEPL_h[i]);
-		}
-		fclose (output_file);
-		initial_processing_memory_clean();
-		start_file_num = end_file_num;
-		histories_to_process = 0;
-	} 
-}
-template<typename T> void array_2_disk( char* filename_base, const char* directory, const char* folder, T* data, const int x_max, const int y_max, const int z_max, const int elements, const bool single_file )
-{
-	char filename[256];
-	std::ofstream output_file;
-	int index;
-	int num_files = z_max;
-	int z_start = 0;
-	int z_end = 1;
-	if( single_file )
-	{
-		num_files = 1;
-		z_end = z_max;
-	}
-	for( int file = 0; file < num_files; file++)
-	{
-		if( num_files == z_max )
-			sprintf( filename, "%s%s/%s_%d.txt", directory, folder, filename_base, file );
-		else
-			sprintf( filename, "%s%s/%s.txt", directory, folder, filename_base );			
-		output_file.open(filename);		
-		for(int z = z_start; z < z_end; z++)
-		{			
-			for(int y = 0; y < y_max; y++)
-			{
-				for(int x = 0; x < x_max; x++)
-				{
-					index = x + ( y * x_max ) + ( z * x_max * y_max );
-					if( index >= elements )
-						break;
-					output_file << data[index] << " ";
-				}	
-				if( index >= elements )
-					break;
-				output_file << std::endl;
-			}
-			if( index >= elements )
-				break;
-		}
-		z_start += 1;
-		z_end += 1;
-		output_file.close();
-	}
-}
-template<typename T> void vector_2_disk( char* filename_base, const char* directory, const char* folder, std::vector<T> data, const int x_max, const int y_max, const int z_max, const bool single_file )
-{
-	char filename[256];
-	std::ofstream output_file;
-	int elements = data.size();
-	int index;
-	int num_files = z_max;
-	int z_start = 0;
-	int z_end = 1;
-	if( single_file )
-	{
-		num_files = 1;
-		z_end = z_max;
-	}
-	for( int file = 0; file < num_files; file++)
-	{
-		if( num_files == z_max )
-			sprintf( filename, "%s%s/%s_%d.txt", directory, folder, filename_base, file );
-		else
-			sprintf( filename, "%s%s/%s.txt", directory, folder, filename_base );			
-		output_file.open(filename);		
-		for(int z = z_start; z < z_end; z++)
-		{			
-			for(int y = 0; y < y_max; y++)
-			{
-				for(int x = 0; x < x_max; x++)
-				{
-					index = x + ( y * x_max ) + ( z * x_max * y_max );
-					if( index >= elements )
-						break;
-					output_file << data[index] << " ";
-				}	
-				if( index >= elements )
-					break;
-				output_file << std::endl;
-			}
-			if( index >= elements )
-				break;
-		}
-		z_start += 1;
-		z_end += 1;
-		output_file.close();
-	}
-}
-template<typename T> void t_bins_2_disk( FILE* output_file, const std::vector<int>& bin_numbers, const std::vector<T>& data, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
-{
-	char* data_format = FLOAT_FORMAT;
-	if( typeid(T) == typeid(int) )
-		data_format = INT_FORMAT;
-	if( typeid(T) == typeid(bool))
-		data_format = BOOL_FORMAT;
-	std::vector<T> bin_histories;
-	unsigned int num_bin_members;
-	for( int t_bin = 0; t_bin < T_BINS; t_bin++, bin++ )
-	{
-		if( bin_order == BY_HISTORY )
-		{
-			for( unsigned int i = 0; i < data.size(); i++ )
-				if( bin_numbers[i] == bin )
-					bin_histories.push_back(data[i]);
-		}
-		else
-			bin_histories.push_back(data[bin]);
-		num_bin_members = bin_histories.size();
-		switch( type )
-		{
-			case COUNTS:	
-				fprintf (output_file, "%d ", num_bin_members);																			
-				break;
-			case MEANS:		
-				fprintf (output_file, "%f ", std::accumulate(bin_histories.begin(), bin_histories.end(), 0.0) / max(num_bin_members, 1 ) );
-				break;
-			case MEMBERS:	
-				for( unsigned int i = 0; i < num_bin_members; i++ )
-				{
-					//fprintf (output_file, "%f ", bin_histories[i]); 
-					fprintf (output_file, data_format, bin_histories[i]); 
-					fputs(" ", output_file);
-				}					 
-				if( t_bin != T_BINS - 1 )
-					fputs("\n", output_file);
-		}
-		bin_histories.resize(0);
-		bin_histories.shrink_to_fit();
-	}
-}
-template<typename T> void bins_2_disk( const char* filename_base, const std::vector<int>& bin_numbers, const std::vector<T>& data, const BIN_ANALYSIS_TYPE type, const BIN_ANALYSIS_FOR which_bins, const BIN_ORGANIZATION bin_order, ... )
-{
-	//bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
-	//bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, sinogram_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
-	std::vector<int> angles;
-	std::vector<int> angular_bins;
-	std::vector<int> v_bins;
-	if( which_bins == ALL_BINS )
-	{
-		angular_bins.resize( ANGULAR_BINS);
-		v_bins.resize( V_BINS);
-		std::iota( angular_bins.begin(), angular_bins.end(), 0 );
-		std::iota( v_bins.begin(), v_bins.end(), 0 );
-	}
-	else
-	{
-		va_list specific_bins;
-		va_start( specific_bins, bin_order );
-		int num_angles = va_arg(specific_bins, int );
-		int* angle_array = va_arg(specific_bins, int* );	
-		angles.resize(num_angles);
-		std::copy(angle_array, angle_array + num_angles, angles.begin() );
-
-		int num_v_bins = va_arg(specific_bins, int );
-		int* v_bins_array = va_arg(specific_bins, int* );	
-		v_bins.resize(num_v_bins);
-		std::copy(v_bins_array, v_bins_array + num_v_bins, v_bins.begin() );
-
-		va_end(specific_bins);
-		angular_bins.resize(angles.size());
-		std::transform(angles.begin(), angles.end(), angular_bins.begin(), std::bind2nd(std::divides<int>(), GANTRY_ANGLE_INTERVAL ) );
-	}
-	
-	int num_angles = (int) angular_bins.size();
-	int num_v_bins = (int) v_bins.size();
-	/*for( unsigned int i = 0; i < 3; i++ )
-		printf("%d\n", angles[i] );
-	for( unsigned int i = 0; i < 3; i++ )
-		printf("%d\n", angular_bins[i] );
-	for( unsigned int i = 0; i < 3; i++ )
-		printf("%d\n", v_bins[i] );*/
-	char filename[256];
-	int start_bin, angle;
-	FILE* output_file;
-
-	for( int angular_bin = 0; angular_bin < num_angles; angular_bin++)
-	{
-		angle = angular_bins[angular_bin] * GANTRY_ANGLE_INTERVAL;
-		//printf("angle = %d\n", angular_bins[angular_bin]);
-		sprintf( filename, "%s%s/%s_%03d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, filename_base, angle, ".txt" );
-		output_file = fopen (filename, "w");
-		for( int v_bin = 0; v_bin < num_v_bins; v_bin++)
-		{			
-			//printf("v bin = %d\n", v_bins[v_bin]);
-			start_bin = angular_bins[angular_bin] * T_BINS + v_bins[v_bin] * ANGULAR_BINS * T_BINS;
-			t_bins_2_disk( output_file, bin_numbers, data, type, bin_order, start_bin );
-			if( v_bin != num_v_bins - 1 )
-				fputs("\n", output_file);
-		}	
-		fclose (output_file);
-	}
-}
-template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T*& data, const unsigned int data_elements, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
-{
-	char* data_format = FLOAT_FORMAT;
-	if( typeid(T) == typeid(int) )
-		data_format = INT_FORMAT;
-	if( typeid(T) == typeid(bool))
-		data_format = BOOL_FORMAT;
-
-	std::vector<T> bin_histories;
-	//int data_elements = sizeof(data)/sizeof(float);
-	unsigned int num_bin_members;
-	for( int t_bin = 0; t_bin < T_BINS; t_bin++, bin++ )
-	{
-		if( bin_order == BY_HISTORY )
-		{
-			for( unsigned int i = 0; i < data_elements; i++ )
-				if( bin_numbers[i] == bin )
-					bin_histories.push_back(data[i]);
-		}
-		else
-			bin_histories.push_back(data[bin]);
-		num_bin_members = (unsigned int) bin_histories.size();
-		switch( type )
-		{
-			case COUNTS:	
-				fprintf (output_file, "%d ", num_bin_members);																			
-				break;
-			case MEANS:		
-				fprintf (output_file, "%f ", std::accumulate(bin_histories.begin(), bin_histories.end(), 0.0) / max(num_bin_members, 1 ) );
-				break;
-			case MEMBERS:	
-				for( unsigned int i = 0; i < num_bin_members; i++ )
-				{
-					//fprintf (output_file, "%f ", bin_histories[i]); 
-					fprintf (output_file, data_format, bin_histories[i]); 
-					fputs(" ", output_file);
-				}
-				if( t_bin != T_BINS - 1 )
-					fputs("\n", output_file);
-		}
-		bin_histories.resize(0);
-		bin_histories.shrink_to_fit();
-	}
-}
-template<typename T>  void bins_2_disk( const char* filename_base, int*& bin_numbers, T*& data, const int data_elements, const BIN_ANALYSIS_TYPE type, const BIN_ANALYSIS_FOR which_bins, const BIN_ORGANIZATION bin_order, ... )
-{
-	std::vector<int> angles;
-	std::vector<int> angular_bins;
-	std::vector<int> v_bins;
-	if( which_bins == ALL_BINS )
-	{
-		angular_bins.resize( ANGULAR_BINS);
-		v_bins.resize( V_BINS);
-		std::iota( angular_bins.begin(), angular_bins.end(), 0 );
-		std::iota( v_bins.begin(), v_bins.end(), 0 );
-	}
-	else
-	{
-		va_list specific_bins;
-		va_start( specific_bins, bin_order );
-		int num_angles = va_arg(specific_bins, int );
-		int* angle_array = va_arg(specific_bins, int* );	
-		angles.resize(num_angles);
-		std::copy(angle_array, angle_array + num_angles, angles.begin() );
-
-		int num_v_bins = va_arg(specific_bins, int );
-		int* v_bins_array = va_arg(specific_bins, int* );	
-		v_bins.resize(num_v_bins);
-		std::copy(v_bins_array, v_bins_array + num_v_bins, v_bins.begin() );
-
-		va_end(specific_bins);
-		angular_bins.resize(angles.size());
-		std::transform(angles.begin(), angles.end(), angular_bins.begin(), std::bind2nd(std::divides<int>(), GANTRY_ANGLE_INTERVAL ) );
-	}
-	//int data_elements = sizeof(data)/sizeof(float);
-	//std::cout << std::endl << data_elements << std::endl << std::endl;
-	int num_angles = (int) angular_bins.size();
-	int num_v_bins = (int) v_bins.size();
-	/*for( unsigned int i = 0; i < 3; i++ )
-		printf("%d\n", angles[i] );
-	for( unsigned int i = 0; i < 3; i++ )
-		printf("%d\n", angular_bins[i] );
-	for( unsigned int i = 0; i < 3; i++ )
-		printf("%d\n", v_bins[i] );*/
-	char filename[256];
-	int start_bin, angle;
-	FILE* output_file;
-
-	for( int angular_bin = 0; angular_bin < num_angles; angular_bin++)
-	{
-		angle = angular_bins[angular_bin] * (int) GANTRY_ANGLE_INTERVAL;
-		//printf("angle = %d\n", angular_bins[angular_bin]);
-		sprintf( filename, "%s%s/%s_%03d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, filename_base, angle, ".txt" );
-		output_file = fopen (filename, "w");
-		for( int v_bin = 0; v_bin < num_v_bins; v_bin++)
-		{			
-			//printf("v bin = %d\n", v_bins[v_bin]);
-			start_bin = angular_bins[angular_bin] * T_BINS + v_bins[v_bin] * ANGULAR_BINS * T_BINS;
-			t_bins_2_disk( output_file, bin_numbers, data, data_elements, type, bin_order, start_bin );
-			if( v_bin != num_v_bins - 1 )
-				fputs("\n", output_file);
-		}	
-		fclose (output_file);
-	}
-}
-FILE* create_MLP_path_file( char* data_filename )
-{
-	FILE * pFile;
-	//char data_filename[256];
-	//sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
-	pFile = fopen (data_filename,"w+");
-	return pFile;
-}
-template<typename T> void path_data_2_disk(char* data_filename, FILE* pFile, unsigned int voxel_intersections, unsigned int* voxel_numbers, T*& data, bool write_sparse)
-{
-	// Writes either voxel intersection numbers or chord lengths in either dense or sparse format
-	T data_value;	
-	char* data_format = FLOAT_FORMAT;
-	if( typeid(T) == typeid(int) )
-		data_format = INT_FORMAT;
-	if( typeid(T) == typeid(bool))
-		data_format = BOOL_FORMAT;
-	freopen (data_filename,"a+", pFile);
-	//pFile = freopen (data_filename,"a+", pFile);
-	if( write_sparse )
-	{
-		for( unsigned int intersection_num = 0; intersection_num < voxel_intersections; intersection_num++ )
-		{
-			fprintf (pFile, data_format, data[intersection_num]);	
-			fputs(" ", pFile);
-		}
-	}
-	else
-	{
-		bool intersected = false;
-		
-		for( int voxel = 0; voxel < NUM_VOXELS; voxel++)
-		{
-			for( unsigned int i = 0; i < voxel_intersections; i++ )
-			{
-				if( voxel_numbers[i] == voxel )
-				{
-					data_value = data[i];
-					intersected = true;
-				}
-			}
-			if( typeid(T) == typeid(int) || typeid(T) == typeid(bool) )
-				fprintf (pFile, data_format, intersected);
-			else
-				fprintf (pFile, data_format, data_value);
-			if( voxel != NUM_VOXELS - 1 )
-				fputc(' ', pFile);
-			intersected = false;
-			data_value = 0;
-		}
-	}
-	fputc ('\n',pFile);
-	fclose (pFile);
 }
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************* Image Position/Voxel Calculation Functions (Host) ***********************************************************************************/
@@ -7045,6 +6327,392 @@ __device__ void take_3D_step_GPU
 	voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
 	//end_walk = ( voxel == voxel_out ) || ( voxel_x >= COLUMNS ) || ( voxel_y >= ROWS ) || ( voxel_z >= SLICES );
 }
+
+/***********************************************************************************************************************************************************************************************************************/
+/********************************************************************************** Routines for Writing Data Arrays/Vectors to Disk ***********************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
+void binary_2_ASCII()
+{
+	count_histories();
+	char filename[256];
+	FILE* output_file;
+	int start_file_num = 0, end_file_num = 0, histories_to_process = 0;
+	while( start_file_num != NUM_FILES )
+	{
+		while( end_file_num < NUM_FILES )
+		{
+			if( histories_to_process + histories_per_file[end_file_num] < MAX_GPU_HISTORIES )
+				histories_to_process += histories_per_file[end_file_num];
+			else
+				break;
+			end_file_num++;
+		}
+		read_data_chunk( histories_to_process, start_file_num, end_file_num );
+		sprintf( filename, "%s%s/%s%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_BASE_NAME, "_", gantry_angle_h[0], ".txt" );
+		output_file = fopen (filename, "w");
+
+		for( unsigned int i = 0; i < histories_to_process; i++ )
+		{
+			fprintf(output_file, "%3f %3f %3f %3f %3f %3f %3f %3f %3f\n", t_in_1_h[i], t_in_2_h[i], t_out_1_h[i], t_out_2_h[i], v_in_1_h[i], v_in_2_h[i], v_out_1_h[i], v_out_2_h[i], WEPL_h[i]);
+		}
+		fclose (output_file);
+		initial_processing_memory_clean();
+		start_file_num = end_file_num;
+		histories_to_process = 0;
+	} 
+}
+template<typename T> void array_2_disk( char* filename_base, const char* directory, const char* folder, T* data, const int x_max, const int y_max, const int z_max, const int elements, const bool single_file )
+{
+	char filename[256];
+	std::ofstream output_file;
+	int index;
+	int num_files = z_max;
+	int z_start = 0;
+	int z_end = 1;
+	if( single_file )
+	{
+		num_files = 1;
+		z_end = z_max;
+	}
+	for( int file = 0; file < num_files; file++)
+	{
+		if( num_files == z_max )
+			sprintf( filename, "%s%s/%s_%d.txt", directory, folder, filename_base, file );
+		else
+			sprintf( filename, "%s%s/%s.txt", directory, folder, filename_base );			
+		output_file.open(filename);		
+		for(int z = z_start; z < z_end; z++)
+		{			
+			for(int y = 0; y < y_max; y++)
+			{
+				for(int x = 0; x < x_max; x++)
+				{
+					index = x + ( y * x_max ) + ( z * x_max * y_max );
+					if( index >= elements )
+						break;
+					output_file << data[index] << " ";
+				}	
+				if( index >= elements )
+					break;
+				output_file << std::endl;
+			}
+			if( index >= elements )
+				break;
+		}
+		z_start += 1;
+		z_end += 1;
+		output_file.close();
+	}
+}
+template<typename T> void vector_2_disk( char* filename_base, const char* directory, const char* folder, std::vector<T> data, const int x_max, const int y_max, const int z_max, const bool single_file )
+{
+	char filename[256];
+	std::ofstream output_file;
+	int elements = data.size();
+	int index;
+	int num_files = z_max;
+	int z_start = 0;
+	int z_end = 1;
+	if( single_file )
+	{
+		num_files = 1;
+		z_end = z_max;
+	}
+	for( int file = 0; file < num_files; file++)
+	{
+		if( num_files == z_max )
+			sprintf( filename, "%s%s/%s_%d.txt", directory, folder, filename_base, file );
+		else
+			sprintf( filename, "%s%s/%s.txt", directory, folder, filename_base );			
+		output_file.open(filename);		
+		for(int z = z_start; z < z_end; z++)
+		{			
+			for(int y = 0; y < y_max; y++)
+			{
+				for(int x = 0; x < x_max; x++)
+				{
+					index = x + ( y * x_max ) + ( z * x_max * y_max );
+					if( index >= elements )
+						break;
+					output_file << data[index] << " ";
+				}	
+				if( index >= elements )
+					break;
+				output_file << std::endl;
+			}
+			if( index >= elements )
+				break;
+		}
+		z_start += 1;
+		z_end += 1;
+		output_file.close();
+	}
+}
+template<typename T> void t_bins_2_disk( FILE* output_file, const std::vector<int>& bin_numbers, const std::vector<T>& data, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
+{
+	char* data_format = FLOAT_FORMAT;
+	if( typeid(T) == typeid(int) )
+		data_format = INT_FORMAT;
+	if( typeid(T) == typeid(bool))
+		data_format = BOOL_FORMAT;
+	std::vector<T> bin_histories;
+	unsigned int num_bin_members;
+	for( int t_bin = 0; t_bin < T_BINS; t_bin++, bin++ )
+	{
+		if( bin_order == BY_HISTORY )
+		{
+			for( unsigned int i = 0; i < data.size(); i++ )
+				if( bin_numbers[i] == bin )
+					bin_histories.push_back(data[i]);
+		}
+		else
+			bin_histories.push_back(data[bin]);
+		num_bin_members = bin_histories.size();
+		switch( type )
+		{
+			case COUNTS:	
+				fprintf (output_file, "%d ", num_bin_members);																			
+				break;
+			case MEANS:		
+				fprintf (output_file, "%f ", std::accumulate(bin_histories.begin(), bin_histories.end(), 0.0) / max(num_bin_members, 1 ) );
+				break;
+			case MEMBERS:	
+				for( unsigned int i = 0; i < num_bin_members; i++ )
+				{
+					//fprintf (output_file, "%f ", bin_histories[i]); 
+					fprintf (output_file, data_format, bin_histories[i]); 
+					fputs(" ", output_file);
+				}					 
+				if( t_bin != T_BINS - 1 )
+					fputs("\n", output_file);
+		}
+		bin_histories.resize(0);
+		bin_histories.shrink_to_fit();
+	}
+}
+template<typename T> void bins_2_disk( const char* filename_base, const std::vector<int>& bin_numbers, const std::vector<T>& data, const BIN_ANALYSIS_TYPE type, const BIN_ANALYSIS_FOR which_bins, const BIN_ORGANIZATION bin_order, ... )
+{
+	//bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
+	//bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, sinogram_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
+	std::vector<int> angles;
+	std::vector<int> angular_bins;
+	std::vector<int> v_bins;
+	if( which_bins == ALL_BINS )
+	{
+		angular_bins.resize( ANGULAR_BINS);
+		v_bins.resize( V_BINS);
+		std::iota( angular_bins.begin(), angular_bins.end(), 0 );
+		std::iota( v_bins.begin(), v_bins.end(), 0 );
+	}
+	else
+	{
+		va_list specific_bins;
+		va_start( specific_bins, bin_order );
+		int num_angles = va_arg(specific_bins, int );
+		int* angle_array = va_arg(specific_bins, int* );	
+		angles.resize(num_angles);
+		std::copy(angle_array, angle_array + num_angles, angles.begin() );
+
+		int num_v_bins = va_arg(specific_bins, int );
+		int* v_bins_array = va_arg(specific_bins, int* );	
+		v_bins.resize(num_v_bins);
+		std::copy(v_bins_array, v_bins_array + num_v_bins, v_bins.begin() );
+
+		va_end(specific_bins);
+		angular_bins.resize(angles.size());
+		std::transform(angles.begin(), angles.end(), angular_bins.begin(), std::bind2nd(std::divides<int>(), GANTRY_ANGLE_INTERVAL ) );
+	}
+	
+	int num_angles = (int) angular_bins.size();
+	int num_v_bins = (int) v_bins.size();
+	/*for( unsigned int i = 0; i < 3; i++ )
+		printf("%d\n", angles[i] );
+	for( unsigned int i = 0; i < 3; i++ )
+		printf("%d\n", angular_bins[i] );
+	for( unsigned int i = 0; i < 3; i++ )
+		printf("%d\n", v_bins[i] );*/
+	char filename[256];
+	int start_bin, angle;
+	FILE* output_file;
+
+	for( int angular_bin = 0; angular_bin < num_angles; angular_bin++)
+	{
+		angle = angular_bins[angular_bin] * GANTRY_ANGLE_INTERVAL;
+		//printf("angle = %d\n", angular_bins[angular_bin]);
+		sprintf( filename, "%s%s/%s_%03d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, filename_base, angle, ".txt" );
+		output_file = fopen (filename, "w");
+		for( int v_bin = 0; v_bin < num_v_bins; v_bin++)
+		{			
+			//printf("v bin = %d\n", v_bins[v_bin]);
+			start_bin = angular_bins[angular_bin] * T_BINS + v_bins[v_bin] * ANGULAR_BINS * T_BINS;
+			t_bins_2_disk( output_file, bin_numbers, data, type, bin_order, start_bin );
+			if( v_bin != num_v_bins - 1 )
+				fputs("\n", output_file);
+		}	
+		fclose (output_file);
+	}
+}
+template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T*& data, const unsigned int data_elements, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
+{
+	char* data_format = FLOAT_FORMAT;
+	if( typeid(T) == typeid(int) )
+		data_format = INT_FORMAT;
+	if( typeid(T) == typeid(bool))
+		data_format = BOOL_FORMAT;
+
+	std::vector<T> bin_histories;
+	//int data_elements = sizeof(data)/sizeof(float);
+	unsigned int num_bin_members;
+	for( int t_bin = 0; t_bin < T_BINS; t_bin++, bin++ )
+	{
+		if( bin_order == BY_HISTORY )
+		{
+			for( unsigned int i = 0; i < data_elements; i++ )
+				if( bin_numbers[i] == bin )
+					bin_histories.push_back(data[i]);
+		}
+		else
+			bin_histories.push_back(data[bin]);
+		num_bin_members = (unsigned int) bin_histories.size();
+		switch( type )
+		{
+			case COUNTS:	
+				fprintf (output_file, "%d ", num_bin_members);																			
+				break;
+			case MEANS:		
+				fprintf (output_file, "%f ", std::accumulate(bin_histories.begin(), bin_histories.end(), 0.0) / max(num_bin_members, 1 ) );
+				break;
+			case MEMBERS:	
+				for( unsigned int i = 0; i < num_bin_members; i++ )
+				{
+					//fprintf (output_file, "%f ", bin_histories[i]); 
+					fprintf (output_file, data_format, bin_histories[i]); 
+					fputs(" ", output_file);
+				}
+				if( t_bin != T_BINS - 1 )
+					fputs("\n", output_file);
+		}
+		bin_histories.resize(0);
+		bin_histories.shrink_to_fit();
+	}
+}
+template<typename T>  void bins_2_disk( const char* filename_base, int*& bin_numbers, T*& data, const int data_elements, const BIN_ANALYSIS_TYPE type, const BIN_ANALYSIS_FOR which_bins, const BIN_ORGANIZATION bin_order, ... )
+{
+	std::vector<int> angles;
+	std::vector<int> angular_bins;
+	std::vector<int> v_bins;
+	if( which_bins == ALL_BINS )
+	{
+		angular_bins.resize( ANGULAR_BINS);
+		v_bins.resize( V_BINS);
+		std::iota( angular_bins.begin(), angular_bins.end(), 0 );
+		std::iota( v_bins.begin(), v_bins.end(), 0 );
+	}
+	else
+	{
+		va_list specific_bins;
+		va_start( specific_bins, bin_order );
+		int num_angles = va_arg(specific_bins, int );
+		int* angle_array = va_arg(specific_bins, int* );	
+		angles.resize(num_angles);
+		std::copy(angle_array, angle_array + num_angles, angles.begin() );
+
+		int num_v_bins = va_arg(specific_bins, int );
+		int* v_bins_array = va_arg(specific_bins, int* );	
+		v_bins.resize(num_v_bins);
+		std::copy(v_bins_array, v_bins_array + num_v_bins, v_bins.begin() );
+
+		va_end(specific_bins);
+		angular_bins.resize(angles.size());
+		std::transform(angles.begin(), angles.end(), angular_bins.begin(), std::bind2nd(std::divides<int>(), GANTRY_ANGLE_INTERVAL ) );
+	}
+	//int data_elements = sizeof(data)/sizeof(float);
+	//std::cout << std::endl << data_elements << std::endl << std::endl;
+	int num_angles = (int) angular_bins.size();
+	int num_v_bins = (int) v_bins.size();
+	/*for( unsigned int i = 0; i < 3; i++ )
+		printf("%d\n", angles[i] );
+	for( unsigned int i = 0; i < 3; i++ )
+		printf("%d\n", angular_bins[i] );
+	for( unsigned int i = 0; i < 3; i++ )
+		printf("%d\n", v_bins[i] );*/
+	char filename[256];
+	int start_bin, angle;
+	FILE* output_file;
+
+	for( int angular_bin = 0; angular_bin < num_angles; angular_bin++)
+	{
+		angle = angular_bins[angular_bin] * (int) GANTRY_ANGLE_INTERVAL;
+		//printf("angle = %d\n", angular_bins[angular_bin]);
+		sprintf( filename, "%s%s/%s_%03d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, filename_base, angle, ".txt" );
+		output_file = fopen (filename, "w");
+		for( int v_bin = 0; v_bin < num_v_bins; v_bin++)
+		{			
+			//printf("v bin = %d\n", v_bins[v_bin]);
+			start_bin = angular_bins[angular_bin] * T_BINS + v_bins[v_bin] * ANGULAR_BINS * T_BINS;
+			t_bins_2_disk( output_file, bin_numbers, data, data_elements, type, bin_order, start_bin );
+			if( v_bin != num_v_bins - 1 )
+				fputs("\n", output_file);
+		}	
+		fclose (output_file);
+	}
+}
+FILE* create_MLP_path_file( char* data_filename )
+{
+	FILE * pFile;
+	//char data_filename[256];
+	//sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
+	pFile = fopen (data_filename,"w+");
+	return pFile;
+}
+template<typename T> void path_data_2_disk(char* data_filename, FILE* pFile, unsigned int voxel_intersections, unsigned int* voxel_numbers, T*& data, bool write_sparse)
+{
+	// Writes either voxel intersection numbers or chord lengths in either dense or sparse format
+	T data_value;	
+	char* data_format = FLOAT_FORMAT;
+	if( typeid(T) == typeid(int) )
+		data_format = INT_FORMAT;
+	if( typeid(T) == typeid(bool))
+		data_format = BOOL_FORMAT;
+	freopen (data_filename,"a+", pFile);
+	//pFile = freopen (data_filename,"a+", pFile);
+	if( write_sparse )
+	{
+		for( unsigned int intersection_num = 0; intersection_num < voxel_intersections; intersection_num++ )
+		{
+			fprintf (pFile, data_format, data[intersection_num]);	
+			fputs(" ", pFile);
+		}
+	}
+	else
+	{
+		bool intersected = false;
+		
+		for( int voxel = 0; voxel < NUM_VOXELS; voxel++)
+		{
+			for( unsigned int i = 0; i < voxel_intersections; i++ )
+			{
+				if( voxel_numbers[i] == voxel )
+				{
+					data_value = data[i];
+					intersected = true;
+				}
+			}
+			if( typeid(T) == typeid(int) || typeid(T) == typeid(bool) )
+				fprintf (pFile, data_format, intersected);
+			else
+				fprintf (pFile, data_format, data_value);
+			if( voxel != NUM_VOXELS - 1 )
+				fputc(' ', pFile);
+			intersected = false;
+			data_value = 0;
+		}
+	}
+	fputc ('\n',pFile);
+	fclose (pFile);
+}
+
+
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************************ Host Helper Functions ************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -7099,6 +6767,29 @@ void bin_2_indexes( int& bin_num, int& t_bin, int& v_bin, int& angular_bin )
 	// => bin = t_bin > 0
 	t_bin = bin_num;
 }
+char(&current_MMDD( char(&date_MMDD)[5]))[5]
+{
+	time_t rawtime;
+	time (&rawtime);
+	struct tm * timeinfo = gmtime (&rawtime);
+	strftime (date_MMDD,11,"%m%d", timeinfo);
+	return date_MMDD;
+}
+char(&current_MMDDYYYY( char(&date_MMDDYYYY)[9]))[9]
+{
+	time_t rawtime;
+	time (&rawtime);
+	struct tm * timeinfo = gmtime (&rawtime);
+	strftime (date_MMDDYYYY,11,"%m%d%Y", timeinfo);
+	return date_MMDDYYYY;
+}
+template<typename T> char(&minimize_trailing_zeros( T value, char(&buf)[64]) )[64] 
+{
+	sprintf(buf, "%-.*G", 16, value);
+	if( std::strchr(buf, '.' ) == NULL )
+		strcat(buf, ".0");
+	return buf;
+}
 /***********************************************************************************************************************************************************************************************************************/
 /*********************************************************************************************** Device Helper Functions ***********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -7106,14 +6797,803 @@ void bin_2_indexes( int& bin_num, int& t_bin, int& v_bin, int& angular_bin )
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************ Testing Functions and Functions in Development ***********************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
+void add_object_directory(char* pct_data_dir, char* object_name)
+{
+
+	char mkdir_command[128];
+	sprintf(mkdir_command, "mkdir %s\\%s", pct_data_dir, object_name );
+	system(mkdir_command);
+}
+int create_unique_dir( char* dir_name )
+{
+	int i = 0;
+	char mkdir_command[256]= "mkdir ";
+	char system_command[256];
+	char dir_output[256];
+	strcat( mkdir_command, dir_name);
+	while( system(mkdir_command) )
+		sprintf(mkdir_command, "mkdir %s_%d", dir_name, ++i);
+	sprintf(dir_name, "%s_%d", dir_name, i);
+	return i;
+}
+bool directory_exists(char* dir_name )
+{
+	char mkdir_command[256]= "cd ";
+	strcat( mkdir_command, dir_name);
+	puts(mkdir_command);
+	return !system( mkdir_command );
+}
+
+int add_run_directory(char* pct_data_dir, char* object_name, char* run_date, char* run_number, SCAN_TYPE data_type )
+{
+
+	char mkdir_command[256];
+	char data_directory[256];
+	char images_directory[256];
+	char data_type_dir[15];
+	char run_date_dir[256];
+
+	if( data_type == EXPERIMENTAL )
+	{
+		strcpy(data_type_dir, "Experimental");
+	}
+	else if( data_type == SIMULATED )
+	{
+		strcpy(data_type_dir, "Simulated");
+	}
+	else
+	{
+		puts("ERROR: Invalid data type; must be EXPERIMENTAL or SIMULATED ");
+		exit(1);
+	}
+	sprintf(run_date_dir, "\"%s\\pCT_Data\\%s\\%s\\%s\\%s\"", pct_data_dir, object_name, data_type_dir, run_date, run_number );
+
+	char options[3] = {'q','c','d'};
+	char* cin_message = "Enter 'c' to continue and overwrite any existing data, 'd' to create numbered duplicate of directory, or 'q' to quit program";
+
+	int i = 0;
+	if( directory_exists(run_date_dir))
+	{
+		//puts(run_date_dir);
+		puts("ERROR: Directory (and possibly data) already exists for this run date and run number");
+		switch(cin_until_valid( options, 3, cin_message ) )
+		{
+		case 'd': puts("d selected"); i = create_unique_dir( run_date_dir ); break;
+		case 'q': puts("c selected"); exit(1); break;
+		case 'c': puts("a selected"); 
+		}
+	}
+	//if( i > 0 )
+		//sprintf(run_number, "%s_%d",run_number, i );
+	puts(run_number);
+	sprintf(data_directory, "%s\\Data", run_date_dir );
+	sprintf(images_directory, "%s\\Images", run_date_dir );
+
+	sprintf(mkdir_command, "mkdir %s\\Input", data_directory );
+	//puts(mkdir_command);
+	system(mkdir_command);
+	sprintf(mkdir_command, "mkdir %s\\Output", data_directory );
+	//puts(mkdir_command);
+	system(mkdir_command);
+
+	sprintf(mkdir_command, "mkdir %s\\pCT_Images", images_directory );
+	//puts(mkdir_command);
+	system(mkdir_command);
+	sprintf(mkdir_command, "mkdir %s\\pCT_Images\\DDMMYYYY", images_directory );
+	//puts(mkdir_command);
+	system(mkdir_command);
+	sprintf(mkdir_command, "mkdir %s\\Reference_Images", images_directory );
+	//puts(mkdir_command);
+	system(mkdir_command);
+	return i;
+}
+int add_pCT_Images_dir(char* pct_data_dir, char* object_name, char* run_date, char* run_number, SCAN_TYPE data_type )
+{
+	char mkdir_command[256];
+	char data_directory[256];
+	char pCT_Images_directory[256];
+	char data_type_dir[15];
+	char pCT_Images_date[9];
+
+	if( data_type == EXPERIMENTAL )
+	{
+		strcpy(data_type_dir, "Experimental");
+	}
+	else if( data_type == SIMULATED )
+	{
+		strcpy(data_type_dir, "Simulated");
+	}
+	else
+	{
+		puts("ERROR: Invalid data type; must be EXPERIMENTAL or SIMULATED ");
+		exit(1);
+	}
+	current_MMDDYYYY(pCT_Images_date);
+	sprintf(pCT_Images_directory, "\"%s\\pCT_Data\\%s\\%s\\%s\\%s\\Images\\pCT_Images\\%s\"", pct_data_dir, object_name, data_type_dir, run_date, run_number, pCT_Images_date );	
+	return create_unique_dir( pCT_Images_directory );
+}
+template<typename T> T cin_until_valid( T* valid_input, int num_valid, char* cin_message )
+{
+	T input;
+	//cout << sizeof(*valid_input)  << " " << sizeof(valid_input)<< endl;
+	//&& (std::find(valid_input, valid_input + sizeof(valid_input)/sizeof(*valid_input), input ) > &valid_input[sizeof(valid_input)/sizeof(*valid_input)-1])			
+	while(puts(cin_message) || ((std::cin >> input) && (std::find(valid_input, valid_input + num_valid, input ) > &valid_input[num_valid-1]) ) )			
+	{
+		std::cout << "Invalid selection";
+		std::cin.clear();
+		std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	}
+	std::cin.clear();
+	std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+	return input;
+}
+void set_parameter( generic_IO_container &);
+void define_switchmap()
+{
+	// Generate mapping of all possible keys to integer ID so key can be used to control switch statement
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_DIRECTORY"), 1));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_DIRECTORY"), 2));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_FOLDER"), 3));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_FOLDER"), 4));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_BASE_NAME"), 5));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("FILE_EXTENSION"), 6));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("GANTRY_ANGLES"), 7));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("NUM_SCANS"), 8));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_T_SIZE"), 9));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_V_SIZE"), 10));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_SHIFT"), 11));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("U_SHIFT"), 12));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BIN_SIZE"), 13));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BINS"), 14));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BIN_SIZE"), 15));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BINS"), 16));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ANGULAR_BIN_SIZE"), 17));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SIGMAS_TO_KEEP"), 18));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_RADIUS"), 19));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_HEIGHT"), 20));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_WIDTH"), 21));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_HEIGHT"), 22));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_THICKNESS"), 23));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("COLUMNS"), 24));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ROWS"), 25));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SLICES"), 26));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_WIDTH"), 27));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_HEIGHT"), 28));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_THICKNESS"), 29));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("LAMBDA"), 30));
+	switchmap.insert( std::pair<std::string,unsigned int>(std::string("parameter"), 31));
+
+}
+struct generic_IO_container read_key_value_pair( FILE* input_file )
+{
+	char key[512], equal_sign[10], temp[512];	
+	char* start, * end;
+	int length;
+	generic_IO_container input_value;	
+	fscanf (input_file, "%s %s %s", &key, &equal_sign, &temp);
+	input_value.key = key;
+	printf("key found = %s ", input_value.key);
+	//puts(input_value.key);
+	start = std::strchr(temp, '"' );
+	if( start == NULL)
+	{
+		//start = std::strchr(temp, '.' );
+		if( std::strchr(temp, '.' ) == NULL )
+		{
+			printf("is an integer");
+			sscanf( temp, "%d", &input_value.integer_input );
+			//cout << integer_value << endl;
+			input_value.input_type_ID = 1;
+		}
+		else
+		{
+			printf("is a double");
+			sscanf( temp, "%lf", &input_value.double_input );
+			//cout << double_value << endl;
+			input_value.input_type_ID = 2;
+		}
+	}
+	else
+	{
+		printf("is a string\n");
+		end = std::strrchr(temp, '"' );
+		length = (int)(end - start); //(end -1 ) - ( start + 1 ) + 1
+		input_value.string_input = (char*)calloc(length, sizeof(char));
+		//memcpy( input_value.string_input , start+1, length -1);
+		std::copy(	start+1, end, input_value.string_input );
+		//puts( input_value.string_input );
+		input_value.input_type_ID = 3;
+	}
+	//printf("key found = ");
+	//puts(input_value.key);
+	return input_value;
+}
+void read_config_file()
+{		
+
+	FILE* input_file = fopen(strcat(CONFIG_DIRECTORY,CONFIG_FILE_NAME), "r" );
+	puts("Reading configuration file");
+	while( !feof(input_file) )
+	{		
+		generic_IO_container input_value = read_key_value_pair(input_file);
+		//printf("key = ");
+		//puts( input_value.key );
+		set_parameter( input_value );
+		if( (input_value.input_type_ID != 1) && (input_value.input_type_ID != 2) && (input_value.input_type_ID != 3) )
+			puts("invalid type_ID");
+	}
+	fclose(input_file);
+	//parameters_2_GPU();
+}
+void set_parameter( generic_IO_container &value )
+{
+	printf("Setting parameter for key = ");
+	//cout << "Setting parameter for key = " << value.key << " to";
+	puts(value.key);
+	if( strcmp (value.key, "INPUT_DIRECTORY") == 0 )
+	{
+		strcpy(INPUT_DIRECTORY,value.string_input);
+		strcpy(parameters.INPUT_DIRECTORY_D, value.string_input);
+	}
+	else if( strcmp (value.key, "OUTPUT_DIRECTORY") == 0 )
+	{
+		strcpy(OUTPUT_DIRECTORY,value.string_input);
+		strcpy(parameters.OUTPUT_DIRECTORY_D, value.string_input);
+	}
+	else if( strcmp (value.key, "INPUT_FOLDER") == 0 )
+	{
+		//puts(INPUT_FOLDER);
+		//int length = sizeof(value.key)/sizeof(char);
+		//std::copy(value.string_input, value.string_input + 18, INPUT_FOLDER );
+		//std::copy(value.string_input, value.string_input + 18, parameters.INPUT_FOLDER_D );
+		strcpy(INPUT_FOLDER,value.string_input);
+		strcpy(parameters.INPUT_FOLDER_D, value.string_input);
+		//std::strxfrm(INPUT_FOLDER, INPUT_FOLDER, 18);
+		//puts(value.string_input);
+		//puts(parameters.INPUT_FOLDER_D);
+		//puts(INPUT_FOLDER);
+	}
+	else if( strcmp (value.key, "OUTPUT_FOLDER") == 0 )
+	{
+		strcpy(OUTPUT_FOLDER,value.string_input);
+		strcpy(parameters.OUTPUT_FOLDER_D, value.string_input);
+	}
+	else if( strcmp (value.key, "INPUT_BASE_NAME") == 0 )
+	{
+		strcpy(INPUT_BASE_NAME,value.string_input);
+		strcpy(parameters.INPUT_BASE_NAME_D, value.string_input);
+	}
+	else if( strcmp (value.key, "FILE_EXTENSION") == 0 )
+	{
+		strcpy(FILE_EXTENSION,value.string_input);
+		strcpy(parameters.FILE_EXTENSION_D, value.string_input);
+	}
+	else if( strcmp (value.key, "GANTRY_ANGLES") == 0 )
+	{
+		//GANTRY_ANGLES = value.integer_input;
+		parameters.GANTRY_ANGLES_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "NUM_SCANS") == 0 )
+	{
+		//NUM_SCANS = value.integer_input;
+		parameters.NUM_SCANS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "SSD_T_SIZE") == 0 )
+	{
+		//SSD_T_SIZE = value.double_input;
+		parameters.SSD_T_SIZE_D = value.double_input;
+	}
+	else if( strcmp (value.key, "SSD_V_SIZE") == 0 )
+	{
+		//SSD_V_SIZE = value.double_input;
+		parameters.SSD_V_SIZE_D = value.double_input;
+	}
+	else if( strcmp (value.key, "T_SHIFT") == 0 )
+	{
+		//T_SHIFT = value.double_input;
+		parameters.T_SHIFT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "U_SHIFT") == 0 )
+	{
+		//U_SHIFT = value.double_input;
+		parameters.U_SHIFT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "T_BIN_SIZE") == 0 )
+	{
+		//T_BIN_SIZE = value.double_input;
+		parameters.T_BIN_SIZE_D = value.double_input;
+	}
+	else if( strcmp (value.key, "T_BINS") == 0 )
+	{
+		//T_BINS = value.integer_input;
+		parameters.T_BINS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "V_BIN_SIZE") == 0 )
+	{
+		//V_BIN_SIZE = value.double_input;
+		parameters.V_BIN_SIZE_D = value.double_input;
+	}
+	else if( strcmp (value.key, "V_BINS") == 0 )
+	{
+		//V_BINS = value.integer_input;
+		parameters.V_BINS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "ANGULAR_BIN_SIZE") == 0 )
+	{
+		//ANGULAR_BIN_SIZE = value.integer_input;
+		parameters.ANGULAR_BIN_SIZE_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "SIGMAS_TO_KEEP") == 0 )
+	{
+		//SIGMAS_TO_KEEP = value.integer_input;
+		parameters.SIGMAS_TO_KEEP_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "RECON_CYL_RADIUS") == 0 )
+	{
+		//RECON_CYL_RADIUS = value.double_input;
+		parameters.RECON_CYL_RADIUS_D = value.double_input;
+	}
+	else if( strcmp (value.key, "RECON_CYL_HEIGHT") == 0 )
+	{
+		//RECON_CYL_HEIGHT = value.double_input;
+		parameters.RECON_CYL_HEIGHT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "IMAGE_WIDTH") == 0 )
+	{
+		//IMAGE_WIDTH = value.double_input;
+		parameters.IMAGE_WIDTH_D = value.double_input;
+	}
+	else if( strcmp (value.key, "IMAGE_HEIGHT") == 0 )
+	{
+		//IMAGE_HEIGHT = value.double_input;
+		parameters.IMAGE_HEIGHT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "IMAGE_THICKNESS") == 0 )
+	{
+		//IMAGE_THICKNESS = value.double_input;
+		parameters.IMAGE_THICKNESS_D = value.double_input;
+	}
+	else if( strcmp (value.key, "COLUMNS") == 0 )
+	{
+		//COLUMNS = value.integer_input;
+		parameters.COLUMNS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "ROWS") == 0 )
+	{
+		//ROWS = value.integer_input;
+		parameters.ROWS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "SLICES") == 0 )
+	{
+		//SLICES = value.integer_input;
+		parameters.SLICES_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "VOXEL_WIDTH") == 0 )
+	{
+		//VOXEL_WIDTH = value.double_input;
+		parameters.VOXEL_WIDTH_D = value.double_input;
+	}
+	else if( strcmp (value.key, "VOXEL_HEIGHT") == 0 )
+	{
+		//VOXEL_HEIGHT = value.double_input;
+		parameters.VOXEL_HEIGHT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "VOXEL_THICKNESS") == 0 )
+	{
+		//VOXEL_THICKNESS = value.double_input;
+		parameters.VOXEL_THICKNESS_D =  value.double_input;
+	}
+	else if( strcmp (value.key, "LAMBDA") == 0 )
+	{
+		LAMBDA = value.double_input;
+		parameters.LAMBDA_D = value.double_input;
+	}
+	else
+		puts("No match for this key");
+}
+
+void set_parameter2( struct generic_IO_container value )
+{
+	std::map<std::string,unsigned int>::iterator map_iterator = switchmap.find(std::string(value.key));
+
+	int key_ID;
+	if(  map_iterator != switchmap.end() )
+		key_ID = map_iterator->second;
+	else
+		key_ID = -1;
+	//cout << "key_ID = " << key_ID << endl;
+	switch( key_ID )
+	{
+		//case 1:
+		//	INPUT_DIRECTORY = value.string_input;
+		//	//printf("it set to %s\n", input_directory );
+		//	puts("1");
+		//	break;
+		//case 2:
+		//	OUTPUT_DIRECTORY = value.string_input;
+		//	puts("2");
+		//	break;
+		//case 3:
+		//	INPUT_FOLDER = value.string_input;
+		//	puts("3");
+		//	break;
+		//case 4:
+		//	OUTPUT_FOLDER = value.string_input;
+		//	puts("4");
+		//	break;
+		//case 5:
+		//	INPUT_BASE_NAME = value.string_input;
+		//	puts("5");
+		//	break;
+		//case 6:
+		//	FILE_EXTENSION = value.string_input;
+		//	puts("6");
+		//	break;
+		//case 7:
+		//	GANTRY_ANGLES = value.integer_input;
+		//	puts("7");
+		//	break;
+		//case 8:
+		//	NUM_SCANS = value.integer_input;
+		//	puts("8");
+		//	break;
+		//case 9:
+		//	SSD_T_SIZE = value.double_input;
+		//	puts("9");
+		//	break;
+		//case 10:
+		//	SSD_V_SIZE = value.double_input;
+		//	puts("10");
+		//	break;
+		//case 11:
+		//	T_SHIFT = value.double_input;
+		//	puts("11");
+		//	break;
+		//case 12:
+		//	U_SHIFT = value.double_input;
+		//	puts("12");
+		//	break;
+		//case 13:
+		//	T_BIN_SIZE = value.double_input;
+		//	puts("13");
+		//	break;
+		//case 14:
+		//	T_BINS = value.integer_input;
+		//	puts("14");
+		//	break;
+		//case 15:
+		//	V_BIN_SIZE = value.double_input;
+		//	puts("15");
+		//	break;
+		//case 16:
+		//	V_BINS = value.integer_input;
+		//	puts("16");
+		//	break;
+		//case 17:
+		//	ANGULAR_BIN_SIZE = value.double_input;
+		//	puts("17");
+		//	break;
+		//case 18:
+		//	SIGMAS_TO_KEEP = value.integer_input;
+		//	puts("18");
+		//	break;
+		//case 19:
+		//	RECON_CYL_RADIUS = value.double_input;
+		//	puts("19");
+		//	break;
+		//case 20:
+		//	RECON_CYL_HEIGHT = value.double_input;
+		//	puts("20");
+		//	break;
+		//case 21:
+		//	IMAGE_WIDTH = value.double_input;
+		//	puts("21");
+		//	break;
+		//case 22:
+		//	IMAGE_HEIGHT = value.double_input;
+		//	puts("22");
+		//	break;
+		//case 23:
+		//	IMAGE_THICKNESS = value.double_input;
+		//	puts("23");
+		//	break;
+		//case 24:
+		//	COLUMNS = value.integer_input;
+		//	puts("24");
+		//	break;
+		//case 25:
+		//	ROWS = value.integer_input;
+		//	puts("25");
+		//	break;
+		//case 26:
+		//	SLICES = value.integer_input;
+		//	puts("26");
+		//	break;
+		//case 27:
+		//	VOXEL_WIDTH = value.double_input;
+		//	puts("29");
+		//	break;
+		//case 28:
+		//	VOXEL_HEIGHT = value.double_input;
+		//	puts("28");
+		//	break;
+		//case 29:
+		//	VOXEL_THICKNESS = value.double_input;
+		//	puts("30");
+		//	break;
+		case 30:
+			LAMBDA = value.double_input;
+			puts("30");
+			break;
+		case 31:
+			parameter = value.integer_input;
+			puts("31");
+			break;
+		default:
+			puts("invalid key specified");
+	};
+}
+void set_configs_2_defines()
+{
+	strcpy(parameter_container.INPUT_DIRECTORY_D, INPUT_DIRECTORY );
+	strcpy(parameter_container.OUTPUT_DIRECTORY_D, OUTPUT_DIRECTORY );
+	strcpy(parameter_container.INPUT_FOLDER_D, INPUT_FOLDER );
+	strcpy(parameter_container.OUTPUT_FOLDER_D, OUTPUT_FOLDER );
+	strcpy(parameter_container.INPUT_BASE_NAME_D, INPUT_BASE_NAME );
+	strcpy(parameter_container.FILE_EXTENSION_D, FILE_EXTENSION );
+	puts(parameter_container.INPUT_DIRECTORY_D);
+	puts(parameter_container.OUTPUT_DIRECTORY_D);
+	puts(parameter_container.INPUT_FOLDER_D);
+	puts(parameter_container.OUTPUT_FOLDER_D);
+	puts(parameter_container.INPUT_BASE_NAME_D);
+	puts(parameter_container.FILE_EXTENSION_D);
+	parameter_container.GANTRY_ANGLES_D = GANTRY_ANGLES;
+	parameter_container.NUM_SCANS_D = NUM_SCANS;
+	parameter_container.SSD_T_SIZE_D = SSD_T_SIZE;
+	parameter_container.SSD_V_SIZE_D = SSD_V_SIZE;
+	parameter_container.T_SHIFT_D = T_SHIFT;
+	parameter_container.U_SHIFT_D = U_SHIFT;
+	parameter_container.T_BIN_SIZE_D = T_BIN_SIZE;
+	parameter_container.T_BINS_D = T_BINS;
+	parameter_container.V_BIN_SIZE_D = V_BIN_SIZE;
+	parameter_container.V_BINS_D = V_BINS;
+	parameter_container.ANGULAR_BIN_SIZE_D = ANGULAR_BIN_SIZE;
+	parameter_container.SIGMAS_TO_KEEP_D = SIGMAS_TO_KEEP;
+	parameter_container.RECON_CYL_RADIUS_D = RECON_CYL_RADIUS;
+	parameter_container.RECON_CYL_HEIGHT_D = RECON_CYL_HEIGHT;
+	parameter_container.IMAGE_WIDTH_D = IMAGE_WIDTH;
+	parameter_container.IMAGE_HEIGHT_D = IMAGE_HEIGHT;
+	parameter_container.IMAGE_THICKNESS_D = IMAGE_THICKNESS;
+	parameter_container.COLUMNS_D = COLUMNS;
+	parameter_container.ROWS_D = ROWS;
+	parameter_container.SLICES_D = SLICES;
+	parameter_container.VOXEL_WIDTH_D = VOXEL_WIDTH;
+	parameter_container.VOXEL_HEIGHT_D = VOXEL_HEIGHT;
+	parameter_container.VOXEL_THICKNESS_D = VOXEL_THICKNESS;
+	parameter_container.LAMBDA_D = LAMBDA;
+	parameter_container.LAMBDA = LAMBDA;
+}
+void set_defines_2_configs()
+{
+	//INPUT_DIRECTORY = parameter_container.INPUT_DIRECTORY_D;
+	//OUTPUT_DIRECTORY = parameter_container.OUTPUT_DIRECTORY_D;
+	//INPUT_FOLDER = parameter_container.INPUT_FOLDER_D;
+	//OUTPUT_FOLDER = parameter_container.OUTPUT_FOLDER_D;
+	//INPUT_BASE_NAME = parameter_container.INPUT_BASE_NAME_D;
+	//FILE_EXTENSION = parameter_container.FILE_EXTENSION_D;
+	//GANTRY_ANGLES = parameter_container.GANTRY_ANGLES_D;
+	//NUM_SCANS = parameter_container.NUM_SCANS_D;
+	//SSD_T_SIZE = parameter_container.SSD_T_SIZE_D;
+	//SSD_V_SIZE = parameter_container.SSD_V_SIZE_D;
+	//T_SHIFT = parameter_container.T_SHIFT_D;
+	//U_SHIFT = parameter_container.U_SHIFT_D;
+	//T_BIN_SIZE = parameter_container.T_BIN_SIZE_D;
+	//T_BINS = parameter_container.T_BINS_D;
+	//V_BIN_SIZE = parameter_container.V_BIN_SIZE_D;
+	//V_BINS = parameter_container.V_BINS_D;
+	//ANGULAR_BIN_SIZE = parameter_container.ANGULAR_BIN_SIZE_D;
+	//SIGMAS_TO_KEEP = parameter_container.SIGMAS_TO_KEEP_D;
+	//RECON_CYL_RADIUS = parameter_container.RECON_CYL_RADIUS_D;
+	//RECON_CYL_HEIGHT = parameter_container.RECON_CYL_HEIGHT_D;
+	//IMAGE_WIDTH = parameter_container.IMAGE_WIDTH_D;
+	//IMAGE_HEIGHT = parameter_container.IMAGE_HEIGHT_D;
+	//IMAGE_THICKNESS = parameter_container.IMAGE_THICKNESS_D;
+	//COLUMNS = parameter_container.COLUMNS_D;
+	//ROWS = parameter_container.ROWS_D;
+	//SLICES = parameter_container.SLICES_D;
+	//VOXEL_WIDTH = parameter_container.VOXEL_WIDTH_D;
+	//VOXEL_HEIGHT = parameter_container.VOXEL_HEIGHT_D;
+	//VOXEL_THICKNESS = parameter_container.VOXEL_THICKNESS_D;
+	LAMBDA = parameter_container.LAMBDA_D;
+}
+void parameters_2_GPU()
+{
+	double* x = (double*) calloc(1, sizeof(double) );
+	double* x_d;
+	cudaMalloc((void**) &x_d, sizeof(double));
+	cudaMemcpy( x_d, x, sizeof(double), cudaMemcpyHostToDevice);
+	printf("parameters_h = %3f\n", parameters_h->LAMBDA);
+
+	cudaMalloc((void**) &parameters_d,			sizeof(parameters) );
+	cudaMemcpy( parameters_d,			parameters_h,			sizeof(parameters),		cudaMemcpyHostToDevice );
+
+	dim3 dimBlock( 1 );
+	dim3 dimGrid( 1 );   	
+	//test_func_GPU<<< dimGrid, dimBlock >>>( parameters_d, x_d );
+
+	cudaMemcpy( x, x_d, sizeof(double), cudaMemcpyDeviceToHost);
+	printf("xs[0] = %3f\n", x[0]);
+}
+void export_D_configuration_parameters()
+{
+	char user_response[20];
+	char run_settings_filename[512];
+	puts("Writing configuration_parameters struct elements to disk...");
+
+	sprintf(run_settings_filename, "%s\\%s", CONFIG_DIRECTORY, CONFIG_FILE_NAME);
+
+	std::ofstream run_settings_file(run_settings_filename);		
+	if( !run_settings_file.is_open() ) {
+		printf("ERROR: run settings file not created properly %s!\n", run_settings_filename);	
+		exit_program_if(true);
+	}
+	char buf[64];
+	run_settings_file.setf (std::ios_base::showpoint);
+	run_settings_file << "INPUT_DIRECTORY = "	<<  "\""	<< parameters.INPUT_DIRECTORY_D								<< "\"" << std::endl;
+	run_settings_file << "OUTPUT_DIRECTORY = "	<<  "\""	<< parameters.OUTPUT_DIRECTORY_D							<< "\"" << std::endl;
+	run_settings_file << "INPUT_FOLDER = "		<<  "\""	<< parameters.INPUT_FOLDER_D								<< "\"" << std::endl;
+	run_settings_file << "OUTPUT_FOLDER = "		<<  "\""	<< parameters.OUTPUT_FOLDER_D								<< "\"" << std::endl;
+	run_settings_file << "INPUT_BASE_NAME = "	<<  "\""	<< parameters.INPUT_BASE_NAME_D								<< "\"" << std::endl;
+	run_settings_file << "FILE_EXTENSION = "	<<  "\""	<< parameters.FILE_EXTENSION_D								<< "\"" << std::endl;
+	run_settings_file << "GANTRY_ANGLES = "					<< parameters.GANTRY_ANGLES_D										<< std::endl;
+	run_settings_file << "NUM_SCANS = "						<< parameters.NUM_SCANS_D											<< std::endl;
+	run_settings_file << "T_BINS = "						<< parameters.T_BINS_D												<< std::endl;
+	run_settings_file << "V_BINS = "						<< parameters.V_BINS_D												<< std::endl;
+	run_settings_file << "COLUMNS = "						<< parameters.COLUMNS_D												<< std::endl;
+	run_settings_file << "ROWS = "							<< parameters.ROWS_D												<< std::endl;
+	run_settings_file << "SLICES = "						<< parameters.SLICES_D												<< std::endl;
+	run_settings_file << "SIGMAS_TO_KEEP = "				<< parameters.SIGMAS_TO_KEEP_D										<< std::endl;
+	run_settings_file << "ANGULAR_BIN_SIZE = "				<<  minimize_trailing_zeros( parameters.ANGULAR_BIN_SIZE_D, buf )	<< std::endl;
+	run_settings_file << "SSD_T_SIZE = "					<<  minimize_trailing_zeros( parameters.SSD_T_SIZE_D, buf )			<< std::endl;
+	run_settings_file << "SSD_V_SIZE = "					<<  minimize_trailing_zeros( parameters.SSD_V_SIZE_D, buf )			<< std::endl;
+	run_settings_file << "T_SHIFT = "						<<  minimize_trailing_zeros( parameters.T_SHIFT_D, buf )			<< std::endl;
+	run_settings_file << "U_SHIFT = "						<<  minimize_trailing_zeros( parameters.U_SHIFT_D, buf )			<< std::endl;
+	run_settings_file << "T_BIN_SIZE = "					<<  minimize_trailing_zeros( parameters.T_BIN_SIZE_D, buf )			<< std::endl;	
+	run_settings_file << "V_BIN_SIZE = "					<<  minimize_trailing_zeros( parameters.V_BIN_SIZE_D, buf )			<< std::endl;		
+	run_settings_file << "RECON_CYL_RADIUS = "				<<  minimize_trailing_zeros( parameters.RECON_CYL_RADIUS_D, buf )	<< std::endl;
+	run_settings_file << "RECON_CYL_HEIGHT = "				<<  minimize_trailing_zeros( parameters.RECON_CYL_HEIGHT_D, buf )	<< std::endl;
+	run_settings_file << "IMAGE_WIDTH = "					<<  minimize_trailing_zeros( parameters.IMAGE_WIDTH_D, buf )		<< std::endl;
+	run_settings_file << "IMAGE_HEIGHT = "					<<  minimize_trailing_zeros( parameters.IMAGE_HEIGHT_D, buf )		<< std::endl;
+	run_settings_file << "IMAGE_THICKNESS = "				<<  minimize_trailing_zeros( parameters.IMAGE_THICKNESS_D, buf )	<< std::endl;
+	run_settings_file << "VOXEL_WIDTH = "					<<  minimize_trailing_zeros( parameters.VOXEL_WIDTH_D, buf )		<< std::endl;
+	run_settings_file << "VOXEL_HEIGHT = "					<<  minimize_trailing_zeros( parameters.VOXEL_HEIGHT_D, buf )		<< std::endl;
+	run_settings_file << "VOXEL_THICKNESS = "				<<  minimize_trailing_zeros( parameters.VOXEL_THICKNESS_D, buf )	<< std::endl;
+	run_settings_file << "LAMBDA = "						<<  minimize_trailing_zeros( parameters.LAMBDA_D, buf )				<< std::endl;
+	run_settings_file << "LAMBDA = "						<<  minimize_trailing_zeros( parameters.LAMBDA, buf )				<< std::endl;
+	run_settings_file.close();
+}
+void export_configuration_parameters()
+{
+	char user_response[20];
+	char run_settings_filename[512];
+	puts("Writing configuration_parameters struct elements to disk...");
+
+	sprintf(run_settings_filename, "%s\\%s", CONFIG_DIRECTORY, CONFIG_FILE_NAME);
+
+	std::ofstream run_settings_file(run_settings_filename);		
+	if( !run_settings_file.is_open() ) {
+		printf("ERROR: run settings file not created properly %s!\n", run_settings_filename);	
+		exit_program_if(true);
+	}
+	char buf[64];
+	run_settings_file.setf (std::ios_base::showpoint);
+	run_settings_file << "INPUT_DIRECTORY = "	<<  "\""	<< INPUT_DIRECTORY								<< "\"" << std::endl;
+	run_settings_file << "OUTPUT_DIRECTORY = "	<<  "\""	<< OUTPUT_DIRECTORY								<< "\"" << std::endl;
+	run_settings_file << "INPUT_FOLDER = "		<<  "\""	<< INPUT_FOLDER									<< "\"" << std::endl;
+	run_settings_file << "OUTPUT_FOLDER = "		<<  "\""	<< OUTPUT_FOLDER								<< "\"" << std::endl;
+	run_settings_file << "INPUT_BASE_NAME = "	<<  "\""	<< INPUT_BASE_NAME								<< "\"" << std::endl;
+	run_settings_file << "FILE_EXTENSION = "	<<  "\""	<< FILE_EXTENSION								<< "\"" << std::endl;
+	run_settings_file << "GANTRY_ANGLES = "					<<  GANTRY_ANGLES										<< std::endl;
+	run_settings_file << "NUM_SCANS = "						<<  NUM_SCANS											<< std::endl;
+	run_settings_file << "T_BINS = "						<<  T_BINS												<< std::endl;
+	run_settings_file << "V_BINS = "						<<  V_BINS												<< std::endl;
+	run_settings_file << "COLUMNS = "						<<  COLUMNS												<< std::endl;
+	run_settings_file << "ROWS = "							<<  ROWS												<< std::endl;
+	run_settings_file << "SLICES = "						<<  SLICES												<< std::endl;
+	run_settings_file << "SIGMAS_TO_KEEP = "				<<  SIGMAS_TO_KEEP										<< std::endl;
+	run_settings_file << "ANGULAR_BIN_SIZE = "				<<  minimize_trailing_zeros( ANGULAR_BIN_SIZE, buf )	<< std::endl;
+	run_settings_file << "SSD_T_SIZE = "					<<  minimize_trailing_zeros( SSD_T_SIZE, buf )			<< std::endl;
+	run_settings_file << "SSD_V_SIZE = "					<<  minimize_trailing_zeros( SSD_V_SIZE, buf )			<< std::endl;
+	run_settings_file << "T_SHIFT = "						<<  minimize_trailing_zeros( T_SHIFT, buf )				<< std::endl;
+	run_settings_file << "U_SHIFT = "						<<  minimize_trailing_zeros( U_SHIFT, buf )				<< std::endl;
+	run_settings_file << "T_BIN_SIZE = "					<<  minimize_trailing_zeros( T_BIN_SIZE, buf )			<< std::endl;	
+	run_settings_file << "V_BIN_SIZE = "					<<  minimize_trailing_zeros( V_BIN_SIZE, buf )			<< std::endl;		
+	run_settings_file << "RECON_CYL_RADIUS = "				<<  minimize_trailing_zeros( RECON_CYL_RADIUS, buf )	<< std::endl;
+	run_settings_file << "RECON_CYL_HEIGHT = "				<<  minimize_trailing_zeros( RECON_CYL_HEIGHT, buf )	<< std::endl;
+	run_settings_file << "IMAGE_WIDTH = "					<<  minimize_trailing_zeros( IMAGE_WIDTH, buf )			<< std::endl;
+	run_settings_file << "IMAGE_HEIGHT = "					<<  minimize_trailing_zeros( IMAGE_HEIGHT, buf )		<< std::endl;
+	run_settings_file << "IMAGE_THICKNESS = "				<<  minimize_trailing_zeros( IMAGE_THICKNESS, buf )		<< std::endl;
+	run_settings_file << "VOXEL_WIDTH = "					<<  minimize_trailing_zeros( VOXEL_WIDTH, buf )			<< std::endl;
+	run_settings_file << "VOXEL_HEIGHT = "					<<  minimize_trailing_zeros( VOXEL_HEIGHT, buf )		<< std::endl;
+	run_settings_file << "VOXEL_THICKNESS = "				<<  minimize_trailing_zeros( VOXEL_THICKNESS, buf )		<< std::endl;
+	run_settings_file << "LAMBDA = "						<<  minimize_trailing_zeros( LAMBDA, buf )				<< std::endl;
+	run_settings_file.close();
+}
+template<typename T> void write_key_value_pair( FILE* output_file, char* key, T* value )
+{
+	int i = 0;
+}
+inline bool file_exists (const char* file_location) { return std::ifstream(file_location); }
+inline bool file_exists2 (const char* file_location) { return std::ifstream(file_location).good(); }
+inline bool file_exists3 (const char* file_location) 
+{
+    #if defined(_WIN32) || defined(_WIN64)
+    return file_location && ( PathFileExists (file_location) != 0 );
+    #else
+    struct stat sb;
+    return file_location && (stat (file_location, &sb) == 0 ;
+    #endif
+}
 void test_func()
 {
-	char filename[256];
+	char* pct_data_dir = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct";
+	char* object_name = "object_name";
+	char* run_date = "DDMMYYYY"; 
+	char* run_number  = "run_number";
+	char run_dir[256];
+
+	//char* file_location = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\config_testing.txt";
+
+	//cout << file_exists( "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\config_testing.txt") << endl;
+
+	//int j = add_run_directory(pct_data_dir, object_name, run_date, run_number, DATA_TYPE );
+	//cout << j << endl;
+	//add_run_directory(pct_data_dir, object_name, run_date, run_number, DATA_TYPE );
+	//sprintf(run_dir, "%s_%d", run_number, j );
+	//puts(run_dir);
+	//int i = add_pCT_Images_dir(pct_data_dir, object_name, run_date, run_dir, DATA_TYPE );
+
+	//export_configuration_parameters();
+	//set_configs_2_defines();
+	//char* pCT_Images_directory;
+	//strcpy(pCT_Images_directory, add_pCT_Images_dir(pct_data_dir, object_name, run_date, run_number, EXPERIMENTAL ));
+	//puts(pCT_Images_directory);
+	//system(strcat("mkdir ", pCT_Images_directory ));
+	//strcpy(pCT_Images_directory, add_pCT_Images_dir(pct_data_dir, object_name, run_date, run_number, EXPERIMENTAL ));
+	//puts("Read config file");
+	//read_config_file();
+	//char pCT_Images_date[9];
+	//strcpy(pCT_Images_date, current_MMDDYYYY(pCT_Images_date));
+	//puts(current_MMDDYYYY(pCT_Images_date));
+	//configuration p;
+	//cout << p.LAMBDA << endl;
+	//p.LAMBDA = 1.5;
+	//p.rows = 3;
+	////ROWS = p.rows;
+	//cout << p.rows << " " << ROWS << endl;
+	//cout << p.LAMBDA << endl;
+	//char date_MMDD[5];
+	//create_unique_dir( current_MMDD(date_MMDD) );
+
+
+
+
+	//struct test_struct
+	//{
+	//	test_struct(): a(1), b('b'), c(0.0) {};
+	//	int a;
+	//	char b;
+	//	double c;
+	//};
+	//test_struct tested;
+	//cout << tested[0] << " " << tested[1] << " " << tested[2] << endl;
+	/*
 	char* name = "FBP_med7";
 	sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, name, ".bin" );
 	float* image = (float*)calloc( NUM_VOXELS, sizeof(float));
 	import_image( image, filename );
 	array_2_disk( name, OUTPUT_DIRECTORY, OUTPUT_FOLDER, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	*/
 	//read_config_file();
 	//double voxels[4] = {1,2,3,4};
 	//std::copy( x_hull_h, x_hull_h + NUM_VOXELS, x_h );
