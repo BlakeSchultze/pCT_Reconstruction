@@ -1,13 +1,18 @@
-pCT Image Reconstruction Program
 =========================================================================
-This program accepts information about the proton tracks and energy measurements acquired from various gantry angles and:
+Proton Computed Tomography (pCT) Preprocessing/Image Reconstruction Program
+=========================================================================
+This program expects proton tracker coordinate and Water Equivalent Path Length (WEPL) measurements acquired from various gantry angles and:
 
-(1) Extracts execution configuration, settings, options, and parameters from config file "config.cfg" and ART parameters are extracted from command line execution tags  
-(2) Removes irrelevant and statistical outliers from data set  
+Phase 1:
+(1) Extracts execution settings, options, and parameters from configuration file "config.cfg" and its location (if in non-default location) passed as command line argument  
+(2) Removes statistical outliers and irrelevant histories from data set  
 (3) Performs hull-detection  
 (4) Performs MLP  
-(5) Reconstructs a pCT image via iterative projection methods  
+(5) Write preprocessing data to disk: system matrix A (MLP path info), vector x0 (initial iterate/guess), vector b (WEPL measurements), and hull detected  
 
-Note: Currently ART is the only image reconstruction algorithm that has been implemented and it is performed completely sequentially on the host (i.e. no GPU/CPU parallelism exploited).  Total variation and superiorization is also not currently implemented.  The remainder of the program (except for MLP) makes use of the GPU with nearly all calculations performed on the GPU and the host used only for allocating/destroying GPU memory for reconstruction data, transferring data and results to/from the GPU, and configuring/launching GPU kernels.  Specifying the appropriate input data and execution configuration, parameters, and settings is specified with a config file and the location of the desired config file is specified as a command line arguments added as flags when executing the program.  The relaxation parameter LAMBDA and scale factors to apply to the update of the first N voxels are also specified as flags upon program execution.  Running the program and specifying these options is accomplished via the command line structure:
+Phase 2:
+(1) Reconstructs a pCT image via iterative projection methods  
+
+Currently implemented iterative projection method algorithms are ART, DROP, and 2 variations of a robust approach to DROP in development (total variation/superiorization has not been implemented yet).  The data/task parallelism is inherent in nearly every aspect of preprocessing and reconstruction and has been exploited (except for MLP and image reconstruction) using GPGPU programming (CUDA).  The host is primarily used only for allocating/freeing GPU memory,  transferring data to/from the GPU, and configuring/launching GPU kernels.  SAll options/parameters affecting program behavior are specified via key/value pairs config file and the location of the desired config file is specified as a command line arguments added as flags when executing the program.  The relaxation parameter LAMBDA and scale factors to apply to the update of the first N voxels are also specified as flags upon program execution.  Running the program and specifying these options is accomplished via the command line structure:
 
 ./pct_reconstruction [.cfg file address] [LAMBDA] [C1, C2, C3, ..., CN]

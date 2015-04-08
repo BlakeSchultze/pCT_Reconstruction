@@ -15,28 +15,36 @@ char RECONSTRUCTION_DIR_NAME[]	= "Reconstruction";
 char PCT_IMAGES_DIR_NAME[]		= "Images";
 char REF_IMAGES_DIR_NAME[]		= "Reference_Images";
 
-char CONFIG_FILENAME[]			= "export_testing.cfg";
-char INPUT_DATA_BASENAME[]		= "projection";							// Prefix of the input data set BASENAME
-char FILE_EXTENSION[]			= ".bin";								// File extension for the input data
-char SC_HULL_BASENAME[]			= "hull_SC";
-char MSC_HULL_BASENAME[]		= "hull_MSC";
-char SM_HULL_BASENAME[]			= "hull_SM";
-char FBP_HULL_BASENAME[]		= "hull_FBP";
-char HULL_BASENAME[]			= "hull";
-char FBP_BASENAME[]				= "FBP";
-char X_0_BASENAME[]				= "x_0";
-char MLP_BASENAME[]				= "MLP";
-char RECON_HISTORIES_BASENAME[]	= "histories";
+char CONFIG_FILENAME[]			= "settings.cfg";						// Name of the file used to control the program options/parameters as key=value pairs
+char LOG_FILENAME[]				= "log.txt";							// Name of the file logging the execution information associated with each data set generated
+char PROJECTION_DATA_BASENAME[]	= "projection";							// Prefix of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+
+char RADIOGRAPHS_RAW_BASENAME[]	= "radiographs_raw";					// Prefix of the file containing the radiograph images from each projection angle prior to performing cuts 
+char RADIOGRAPHS_BASENAME[]		= "radiographs";						// Prefix of the file containing the radiograph images from each projection angle after performing cuts (i.e. rearranged sinogram)
+char WEPL_DISTS_RAW_BASENAME[]	= "WEPL_distributions_raw";				// Prefix of the file containing the WEPL distribution images from each projection angle prior to performing cuts 
+char WEPL_DISTS_BASENAME[]		= "WEPL_distributions";					// Prefix of the file containing the WEPL distribution images each projection angle after performing cuts 
+char SC_HULL_BASENAME[]			= "hull_SC";							// Prefix of the file containing the SC hull image
+char MSC_HULL_BASENAME[]		= "hull_MSC";							// Prefix of the file containing the MSC hull image 
+char SM_HULL_BASENAME[]			= "hull_SM";							// Prefix of the file containing the SM hull image 
+char FBP_HULL_BASENAME[]		= "hull_FBP";							// Prefix of the file containing the FBP hull image 
+char HULL_BASENAME[]			= "hull";								// Prefix of the file containing the SC, MSC, SM, or FBP hull image as specified by the settings.cfg file 
+char FBP_BASENAME[]				= "FBP";								// Prefix of the file containing the FBP image
+char X_0_BASENAME[]				= "x_0";								// Prefix of the file containing the FBP, hull, or FBP/hull hybrid initial iterate image as specified by the settings.cfg file
+char MLP_BASENAME[]				= "MLP";								// Prefix of the file containing the MLP path data
+char RECON_HISTORIES_BASENAME[]	= "histories";							// Prefix of the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
 char FBP_MEDIAN_BASENAME[]		= "FBPmed";
 char FBP_AVERAGE_BASENAME[]		= "FBP_avg";
-char X_BASENAME[]				= "x";
+char X_BASENAME[]				= "x";									// Prefix of the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
 
-char HULL_FILE_EXTENSION[]		= ".txt";
-char FBP_FILE_EXTENSION[]		= ".txt";
-char X_0_FILE_EXTENSION[]		= ".txt";
-char MLP_FILE_EXTENSION[]		= ".bin";
-char HISTORIES_FILE_EXTENSION[] = ".bin";
-char X_FILE_EXTENSION[]			= ".txt";
+char PROJECTION_DATA_FILE_EXTENSION[]	= ".bin";						// File extension of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+char RADIOGRAPHS_FILE_EXTENSION[]		= ".txt";						// File extension of the files containing the radiograph images from each projection angle before/after performing cuts
+char WEPL_DISTS_FILE_EXTENSION[]		= ".txt";						// File extension of the files containing the WEPL distribution images from each projection angle before/after performing cuts
+char HULL_FILE_EXTENSION[]				= ".txt";						// File extension of the file containing the SC, MSC, SM, or FBP hull image as specified by the settings.cfg file 
+char FBP_FILE_EXTENSION[]				= ".txt";						// File extension of the file containing the FBP image
+char X_0_FILE_EXTENSION[]				= ".txt";						// File extension of the file containing the FBP, hull, or FBP/hull hybrid initial iterate image as specified by the settings.cfg file
+char MLP_FILE_EXTENSION[]				= ".bin";						// File extension of the file containing the MLP path data
+char HISTORIES_FILE_EXTENSION[]			= ".bin";						// File extension of the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
+char X_FILE_EXTENSION[]					= ".txt";						// File extension of the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------- MLP Parameters ----------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -115,3 +123,12 @@ char X_FILE_EXTENSION[]			= ".txt";
 #define INTEGER					2
 #define DOUBLE					3
 #define STRING					4
+#define CONSOLE_WINDOW_WIDTH	80
+
+#define copyright_notice	"Copyright (C) 2015: Blake Schultze"
+#define header_statement	"This program reconstructs Proton Computed Tomography (pCT) images from scan measurements (e.g. proton gantry angle, proton tracker coordinates, and Water Equivalent Path Length (WEPL) data) acquired from experiments or simulations.  The program operates in two distinct phases: (1) preprocessing of data to remove problematic/unnecessary data and generate the object's hull and each valid proton's hull entry/exit coordinates/angles and the image reconstruction (Ax = b) parameters A (MLP path data), x0 (initial iterate/guess), and b (WEPL measurements) and (2) performs image reconstruction using an iterative projection method algorithm (e.g., ART, DROP, SAP, BIP, etc.).  These 2 phases of image reconstruction can be performed separately, allowing one to use the same preprocessed data previously generated to perform multiple image reconstructions as this aspect of pCT is the primary area of interest for numerous research groups and most of these have no tools for generating the requisite preprocessed data.  This program thus serves a dual purpose: (1) as a tool to continue researching the optimal methods for processing measurement data while (2) providing a tool to generate the data required for image reconstruction so groups researching data acquisition can analyze the effects modifications to the scanner system and data calibration have on reconstructed images and provide image reconstruction researchers with a tool to generate the input data needed to perform and analyze their reconstruction algorithms without either of these groups needing to spend the time to understand the details of preprocessing or generate programs to generate it themselves. This also establishes a standardized data format and organization scheme and provides a common framework/collection of tools, allowing various groups to operate independently while still being able to assess the merit/suitability of proposed improvements directly since the accuracy/quality of results can be compared directly when using the same input data.  There are numerous instances where GPGPU programming can be applied to exploit the inherent data/task parallelism to improve computational efficiency and reduce execution time.  The portions of the program where parallel programming has been implemented and/or the complexity of the programming used to exploit it as much as possible both continue to increase, but to make the program operable by a larger portion of the research community (including those with limited sequential/parallel programming), the program's underlying programming code and its compilation/execution are abstracted from its operation.  The code can be accessed by users and can be downloaded and modified on their local machine, but all options/parameters a user may want to modify were identified and their values are specified as key/value pairs in an external text file.  The program repository includes this configuration file (\"settings.cfg\") with the key for all of these options/parameters and their default value along with an explanation of what each means/controls.  The program does not need to be recompiled each time the value of an option/parameter is changed since the program's source code is not modified, thus, users do not need to know how to program/compile code nor do they need to understand every option/parameter, they need only change the value of the keys they wish to modify inside the configuration text file and launch the program's .exe file and it will import these option/parameter values and generate the generate the resulting data/images.  The program must know the name and location of all input data and given that preprocessed data generated by the program can later be used as input to this or another researchers' program, an extremely important aspect of operating the program solely through an external text file and sharing data/results is the naming/format of all input/output data/image files and the structure of the hierarchy of directories where they are stored.  The location of a file/folder in the hierarchy of pCT data directories transparently encodes information like for which object, type of scan (experimental/simulated), date of scan/calibration/preprocessing/reconstruction, etc. is data associated, not only making it easier to find data/images and share data/results, but also reducing the required information that must be specified by the user to operate the program since any information that cannot be inferred by the program automatically must be specified as a parameter in the configuration file.  Thus, the program adheres to and enforces the established data format and organizational scheme and automatically creates the files/folders required to maintain this with the appropriate names.  Although file names are strictly enforced, there is some flexibility in the location of input data by providing a key which can be used to specify the path to where it is located.  However, the program was designed so that its .exe and config file be placed in the same folder as the input tracker/WEPL data and upon execution, the program parses the path to the executable to determine the scan information and automatically read the associated data and create/write to the appropriate locations.  Ideally, all users would adhere to the standardized data format and organizational scheme, making it possible for users to regularly synchronize their local data storage with the main server so they always have up-to-date software and data, but to prevent situations where a user that cannot follow this recommendation is unable to use the program, some paths can be specified explicitly, but the output data and subdirectories created to house it still follows the format.  A significant amount of time was spent developing the file/folder naming scheme and organizational hierarchy that would balance the desire to easily locate data with the indivudal needs of researchers that generate this data and the ease to which they can conform to it, both its programmatic simplicity and with consideration to the format/structure to which they have established for their own use and are accustomed.  In cases where a choice between programming simplicity and ease of use had to be made, user experience was given higher importance, hopefully making it possible for all those interested to use this and other pCT programs.  Please direct all issues/complications with pCT programs and any comments/suggestions to the developer of that program and Reinhard Schulte."
+#define blake_contact		"Blake Schultze (Blake_Schultze@baylor.edu)"
+#define reinhard_contact	"Reinhard Schulte (rschulte@llu.edu)"
+#define keith_contact		"Keith Schubert (Keith_Schubert@baylor.edu)"
+#define paniz_contact		"Paniz Karbasi (Paniz_Karbasi@baylor.edu)"
+#define header_length		strlen(copyright_notice) + strlen(header_statement) + strlen(blake_contact) + strlen(reinhard_contact) + strlen(keith_contact) + strlen(paniz_contact)

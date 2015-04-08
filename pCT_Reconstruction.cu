@@ -40,7 +40,8 @@ template<typename T> void add_ellipse( T*&, int, double, double, double, double,
 template<typename T> void add_circle( T*&, int, double, double, double, T );
 
 // Preprocessing setup and initializations 
-void apply_execution_arguments();
+//void apply_execution_arguments();
+void apply_execution_arguments(unsigned int, char**);
 void assign_SSD_positions();
 void initializations();
 void count_histories();	
@@ -92,7 +93,7 @@ double EffectiveChordLength(double, double);
 
 
 // Image Reconstruction
-void define_initial_iterate();
+void define_X_0_TYPES();
 void create_hull_image_hybrid();
 void image_reconstruction();
 template< typename T, typename L, typename R> T discrete_dot_product( L*&, R*&, unsigned int*&, unsigned int );
@@ -150,21 +151,38 @@ template< typename T, typename T2> T max_n( int, T2, ...);
 template< typename T, typename T2> T min_n( int, T2, ...);
 template<typename T> T* sequential_numbers( int, int );
 void bin_2_indexes( int, int&, int&, int& );
+void print_section_separator(char );
+void print_section_header( char*, char );
 const char * bool_2_string( bool b ){ return b ? "true" : "false"; }
-char(&current_MMDD( char(&)[5]))[5];
-char(&current_MMDDYYYY( char(&)[9]))[9];
+
+/***********************************************************************************************************************************************************************************************************************/
+/************************************************************************************************* IO Helper Functions *************************************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
+template<typename T> T cin_until_valid( T*, int, char* );
+char((&current_MMDD( char(&)[5]))[5]);
+char((&current_MMDDYYYY( char(&)[9]))[9]);
+template<typename T> char((&minimize_trailing_zeros( T, char(&)[64]) )[64]);
+std::string terminal_response(char*);
+char((&terminal_response( char*, char(&)[256]))[256]);
+bool directory_exists(char* );
+unsigned int create_unique_dir( char* );
+bool file_exists (const char* file_location) { return (bool)std::ifstream(file_location); };
+bool file_exists2 (const char* file_location) { return std::ifstream(file_location).good(); };
+bool file_exists3 (const char*);
+bool blank_line( char c ) { return (c != '\n') && (c!= '\t') && (c != ' '); };
+void fgets_validated(char *line, int buf_size, FILE*);
+struct generic_IO_container read_key_value_pair( FILE* );
+void print_copyright_notice();
 
 // New routine test functions
-void import_initial_iterate();
+void import_X_0_TYPES();
 void generate_history_sequence(ULL, ULL, ULL* );
 void verify_history_sequence(ULL, ULL, ULL* );
 
 void read_configuration_parameters();
-struct generic_IO_container read_key_value_pair( FILE* );
-template<typename T> T cin_until_valid( T*, int, char* );
 void write_reconstruction_settings();
-unsigned int create_unique_dir( char* );
 void set_parameter( generic_IO_container &);
+void set_execution_date();
 
 void write_MLP_path( FILE*, unsigned int*&, unsigned int);
 void write_MLP_endpoints();
@@ -174,6 +192,9 @@ void export_hull();
 void import_hull();
 template<typename O> void import_image( O*&, char*, char*, DISK_WRITE_MODE );
 
+void read_config_file();			
+void set_dependent_parameters();
+void set_IO_paths();
 void parameters_2_GPU();
 void test_func();
 void test_func2( std::vector<int>&, std::vector<double>&);
@@ -247,14 +268,21 @@ __global__ void test_func_device( configurations*, double*, double*, double* );
 /***********************************************************************************************************************************************************************************************************************/
 /***************************************************************************************************** Program Main ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-int main(unsigned int num_run_arguments, char** run_arguments)
+int main(unsigned int num_arguments, char** arguments)
 {
+	set_execution_date();
+	apply_execution_arguments( num_arguments, arguments );
 	if( RUN_ON )
 	{
-		if( PREPROCESSING_REQUIRED )
+		print_copyright_notice();
+		read_config_file();			
+		set_dependent_parameters();
+		set_IO_paths();
+		parameters_2_GPU();
+		puts("\nFinished reading configurations and setting program options and parameters\n");
+		//pause_execution();
+		if( !parameters.IMPORT_PREPROCESSED_DATA_D )
 		{
-			apply_execution_arguments();
-			//pause_execution();
 			/********************************************************************************************************************************************************/
 			/* Start the execution timing clock																														*/
 			/********************************************************************************************************************************************************/
@@ -402,31 +430,39 @@ int main(unsigned int num_run_arguments, char** run_arguments)
 			if( FBP_ON )
 				FBP();
 			exit_program_if( EXIT_AFTER_FBP );
-						hull_selection();
-			define_initial_iterate();
+			hull_selection();
+			define_X_0_TYPES();
+			puts("-------------------------------------------------------------------------------");
+			puts("---------------------------- Preprocessing complete ---------------------------");
+			puts("-------------------------------------------------------------------------------\n");
 		}
-		else 
+		if( parameters.PERFORM_RECONSTRUCTION_D )  
 		{
 
 			import_hull();
-			import_initial_iterate();
+			import_X_0_TYPES();
 			puts("Reading hull entry/exit coordinates from disk...");
 			reconstruction_histories = read_MLP_endpoints();
 		}
 		image_reconstruction();
 		array_2_disk("x", RECONSTRUCTION_DIR, TEXT, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		puts("-------------------------------------------------------------------------------");
+		puts("---------------------------- Reconstruction complete --------------------------");
+		puts("-------------------------------------------------------------------------------\n");
 	}
 	else
 	{
 		//binary_2_ASCII();
 		test_func();
 		//combine_data_sets();
-		puts("finished program");
+		//puts("finished program");
 	}
 	/************************************************************************************************************************************************************/
 	/* Program has finished execution. Require the user to hit enter to terminate the program and close the terminal/console window								*/ 															
 	/************************************************************************************************************************************************************/
-	puts("Preprocessing complete.  Press enter to close the console window...");
+	puts("-------------------------------------------------------------------------------");
+	puts("----------------------- Program has finished executing ------------------------");
+	puts("-------------------------------------------------------------------------------\n");
 	exit_program_if(true);
 }
 /***********************************************************************************************************************************************************************************************************************/
@@ -451,15 +487,31 @@ void read_energy_responses( const int num_histories, const int start_file_num, c
 
 	//puts("Reading energy detector responses and performing energy response calibration...");
 	////printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
-	//sprintf(data_filename, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_FOLDER, INPUT_DATA_BASENAME, gantry_angle, FILE_EXTENSION );
+	//sprintf(data_filename, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_FOLDER, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION );
 }
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************** Read and set execution arguments, preprocessing/reconstruction configurations, settings, and parameters ****************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void apply_execution_arguments()
+void apply_execution_arguments(unsigned int num_arguments, char** arguments)
 {
-	//num_run_arguments = num_arguments;
-	//run_arguments = arguments; 
+	num_run_arguments = num_arguments;
+	run_arguments = arguments; 
+	//cout << num_run_arguments << endl << endl;
+	//for( unsigned int i = 0; i < num_run_arguments; i++ )
+		//cout << run_arguments[i] << endl;
+	if( num_run_arguments > 1 )
+	{
+		PROJECTION_DATA_DIR = (char*) calloc( strlen(run_arguments[1])+1, sizeof(char));
+		std::copy( run_arguments[1], &run_arguments[1][strlen(run_arguments[1])], PROJECTION_DATA_DIR );
+		puts("*******************************************************************************");
+		puts("****** Config file location passed as command line argument and set to : ******");		
+		puts("*******************************************************************************");
+		puts("-------------------------------------------------------------------------------");
+		printf("%s\n", PROJECTION_DATA_DIR );
+		puts("-------------------------------------------------------------------------------");
+		CONFIG_PATH_PASSED = true;
+	}
+	//if(num_arguments == 4)
 	//if(num_arguments == 4)
 	//{
 	//  
@@ -719,8 +771,8 @@ void count_histories_v0()
 	{
 		for( unsigned int scan_number = 1; scan_number <= parameters.NUM_SCANS_D; scan_number++, file_number++ )
 		{
-			sprintf(data_filename, "%s/%s_%03d%s", PREPROCESSING_DIR, INPUT_DATA_BASENAME, gantry_angle, FILE_EXTENSION  );
-			//sprintf(data_filename, "%s/%s_%03d%s", PREPROCESSING_DIR, INPUT_DATA_BASENAME, gantry_position_number, FILE_EXTENSION  );
+			sprintf(data_filename, "%s/%s_%03d%s", PREPROCESSING_DIR, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION  );
+			//sprintf(data_filename, "%s/%s_%03d%s", PREPROCESSING_DIR, PROJECTION_DATA_BASENAME, gantry_position_number, PROJECTION_DATA_FILE_EXTENSION  );
 			/*
 			Contains the following headers:
 				Magic number identifier: "PCTD" (4-byte string)
@@ -1001,11 +1053,11 @@ void read_data_chunk_v0( const uint num_histories, const uint start_file_num, co
 		scan_number = file_num % parameters.NUM_SCANS_D + 1;
 		file_histories = histories_per_file[file_num];
 		
-		//sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_DATA_BASENAME, gantry_angle, FILE_EXTENSION );
-		sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_DATA_BASENAME, gantry_position, FILE_EXTENSION );
-		if( strcmp(FILE_EXTENSION, ".bin") == 0 )
+		//sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION );
+		sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, PROJECTION_DATA_BASENAME, gantry_position, PROJECTION_DATA_FILE_EXTENSION );
+		if( strcmp(PROJECTION_DATA_FILE_EXTENSION, ".bin") == 0 )
 			data_file = fopen(data_filename, "rb");
-		else if( strcmp(FILE_EXTENSION, ".txt") == 0 )
+		else if( strcmp(PROJECTION_DATA_FILE_EXTENSION, ".txt") == 0 )
 			data_file = fopen(data_filename, "r");
 		if( data_file == NULL )
 		{
@@ -1111,14 +1163,14 @@ void read_data_chunk_v02( const uint num_histories, const uint start_file_num, c
 		int scan_number = file_num % parameters.NUM_SCANS_D + 1;
 
 		printf("Reading File for Gantry Angle %d from Scan Number %d...\n", gantry_angle, scan_number );
-		//sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_DATA_BASENAME, gantry_angle, FILE_EXTENSION );
-		sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_DATA_BASENAME, gantry_position, FILE_EXTENSION );
-		if( strcmp(FILE_EXTENSION, ".bin") == 0 )
+		//sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION );
+		sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, PROJECTION_DATA_BASENAME, gantry_position, PROJECTION_DATA_FILE_EXTENSION );
+		if( strcmp(PROJECTION_DATA_FILE_EXTENSION, ".bin") == 0 )
 			data_file.open(data_filename, std::ios::binary);
-		else if( strcmp(FILE_EXTENSION, ".txt") == 0 )
+		else if( strcmp(PROJECTION_DATA_FILE_EXTENSION, ".txt") == 0 )
 			data_file.open(data_filename);
 
-		//sprintf(data_filename, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_FOLDER, INPUT_DATA_BASENAME, gantry_angle, FILE_EXTENSION );	
+		//sprintf(data_filename, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_FOLDER, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION );	
 		//std::ifstream data_file(data_filename, std::ios::binary);
 		if( data_file == NULL )
 		{
@@ -2200,7 +2252,7 @@ __global__ void filter_GPU( configurations* parameters, float* sinogram, float* 
 		t_bin_sep = t_bin - t_bin_ref;
 		// scale_factor = r . path = cos(theta_{r,path})
 		scale_factor = SOURCE_RADIUS / sqrt( SOURCE_RADIUS * SOURCE_RADIUS + t * t + v * v );
-		switch( FBP_FILTER )
+		switch( parameters->FBP_FILTER )
 		{
 			case NONE: 
 				break;
@@ -2336,15 +2388,15 @@ __global__ void backprojection_GPU( configurations* parameters, float* sinogram_
 				// Project to find the detector number
 				detector_number_t = ( t - u *( t / ( SOURCE_RADIUS + u ) ) ) / T_BIN_SIZE + T_BINS/2.0;
 				t_bin = int( detector_number_t);
-				if( t_bin > detector_number_t )
-					t_bin -= 1;
+				//if( t_bin > detector_number_t )
+				//	t_bin -= 1;
 				eta = detector_number_t - t_bin;
 
 				// Now project v to get detector number in v axis
 				detector_number_v = ( v - u * ( v / ( SOURCE_RADIUS + u ) ) ) / V_BIN_SIZE + V_BINS/2.0;
 				v_bin = int( detector_number_v);
-				if( v_bin > detector_number_v )
-					v_bin -= 1;
+				//if( v_bin > detector_number_v )
+				//	v_bin -= 1;
 				epsilon = detector_number_v - v_bin;
 
 				// Calculate the fan beam scaling factor
@@ -3904,7 +3956,7 @@ void import_hull()
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************* Image Reconstruction (host) *********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void export_initial_iterate()
+void export_X_0_TYPES()
 {
 //	puts("Writing image reconstruction hull to disk...");
 //	char input_hull_filename[256];
@@ -3914,7 +3966,7 @@ void export_initial_iterate()
 //	fclose(write_input_hull);
 //	puts("Finished writing image reconstruction hull to disk.");
 }
-void import_initial_iterate()
+void import_X_0_TYPES()
 {
 //	puts("Reading image reconstruction hull from disk...");
 //	char input_hull_filename[256];
@@ -3925,7 +3977,7 @@ void import_initial_iterate()
 //	fclose(read_input_hull);
 //	puts("Finished reading image reconstruction hull from disk.");
 }
-void define_initial_iterate()
+void define_X_0_TYPES()
 {
 	x_h = (float*) calloc( NUM_VOXELS, sizeof(float) );
 
@@ -3986,45 +4038,6 @@ void print_history_sequence(ULL* history_sequence, ULL print_start, ULL print_en
 {
     for( ULL i = print_start; i < print_end; i++ )
 		printf("history_sequence[i] = %llu\n", history_sequence[i]);
-}
-void write_reconstruction_settings()
-{
-	FILE* settings_file = fopen("reconstruction_settings.txt", "w");
-	time_t rawtime;
-	struct tm * timeinfo;
-
-	time (&rawtime);
-	timeinfo = localtime (&rawtime);
-	fprintf (settings_file, "Current local time and date: %s", asctime(timeinfo));
-	fprintf(settings_file, "PRIME_OFFSET = %d \n",  PRIME_OFFSET);
-	fprintf(settings_file, "AVG_FILTER_HULL = %s \n",  bool_2_string(AVG_FILTER_HULL));
-	
-	fprintf(settings_file, "HULL_FILTER_RADIUS = %d \n",  HULL_FILTER_RADIUS);
-	fprintf(settings_file, "HULL_FILTER_THRESHOLD = %d \n",  HULL_FILTER_THRESHOLD);
-	fprintf(settings_file, "LAMBDA = %d \n",  LAMBDA);
-	switch( X_0 )
-	{
-		case X_HULL:		fprintf(settings_file, "x_0 = X_HULL\n");		break;
-		case X_FBP:		fprintf(settings_file, "x_0 = x_FBP\n");	break;
-		case HYBRID:		fprintf(settings_file, "x_0 = HYBRID\n");		break;
-		case ZEROS:			fprintf(settings_file, "x_0 = ZEROS\n");		break;
-		case IMPORT_X_0:		fprintf(settings_file, "x_0 = IMPORT\n");		break;
-	}
-	fprintf(settings_file, "IMPORT_FILTERED_FBP = %d \n", bool_2_string(IMPORT_FILTERED_FBP) );
-	if( IMPORT_FILTERED_FBP )
-	{
-		fprintf(settings_file, "FILTERED_FBP_PATH = %d \n",  FBP_PATH);
-	}
-	switch( RECONSTRUCTION )
-	{
-		case ART:		fprintf(settings_file, "PROJECTION_ALGORITHM = ART\n");		break;
-		case BIP:		fprintf(settings_file, "PROJECTION_ALGORITHM = BIP\n");	break;
-		case DROP:		fprintf(settings_file, "PROJECTION_ALGORITHM = DROP\n");	break;
-		case SAP:		fprintf(settings_file, "PROJECTION_ALGORITHM = SAP\n");	break;
-		case ROBUST1:			fprintf(settings_file, "PROJECTION_ALGORITHM = ROBUST1\n");		break;
-		case ROBUST2:		fprintf(settings_file, "PROJECTION_ALGORITHM = ROBUST\n");		break;
-	}
-	fclose(settings_file);
 }
 double mean_chord_length2( double x_entry, double y_entry, double z_entry, double x_exit, double y_exit, double z_exit, double xy_dim, double z_dim )
 {
@@ -4185,7 +4198,7 @@ void image_reconstruction()
 	sprintf(MLP_filename, "%s/%s%s", PREPROCESSING_DIR, MLP_BASENAME,".bin" );
 	unsigned int start_history = 0, end_history = reconstruction_histories;
 	ULL i;	
-	if( !MLP_FILE_EXISTS )
+	if( !file_exists(MLP_filename) )
 	{
 		puts("Precalculating MLP paths and writing them to disk...");
 		FILE* write_MLP_paths = fopen(MLP_filename, "wb");
@@ -4992,7 +5005,7 @@ void binary_2_ASCII()
 	{
 		histories_to_process = histories_per_file[gantry_position];
 		read_data_chunk( histories_to_process, gantry_position, gantry_position + 1 );
-		sprintf( filename, "%s/%s%s%03d%s", PREPROCESSING_DIR, INPUT_DATA_BASENAME, "_", gantry_position, ".txt" );
+		sprintf( filename, "%s/%s%s%03d%s", PREPROCESSING_DIR, PROJECTION_DATA_BASENAME, "_", gantry_position, ".txt" );
 		output_file = fopen (filename, "w");
 
 		for( unsigned int i = 0; i < histories_to_process; i++ )
@@ -5366,9 +5379,9 @@ void combine_data_sets()
 	for( unsigned int gantry_angle = 0; gantry_angle < 360; gantry_angle += int(GANTRY_ANGLE_INTERVAL) )
 	{	
 		cout << gantry_angle << endl;
-		sprintf(input_filename1, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_FOLDER1, INPUT_DATA_BASENAME, gantry_angle, FILE_EXTENSION );
-		sprintf(input_filename2, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_FOLDER2, INPUT_DATA_BASENAME, gantry_angle, FILE_EXTENSION );
-		sprintf(output_filename, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, MERGED_FOLDER, INPUT_DATA_BASENAME, gantry_angle, FILE_EXTENSION );
+		sprintf(input_filename1, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_FOLDER1, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION );
+		sprintf(input_filename2, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_FOLDER2, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION );
+		sprintf(output_filename, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, MERGED_FOLDER, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION );
 
 		printf("%s\n", input_filename1 );
 		printf("%s\n", input_filename2 );
@@ -5619,7 +5632,9 @@ void timer( bool start, clock_t start_time, clock_t end_time)
 		end_time = clock();
 		clock_t execution_clock_cycles = (end_time - start_time) - pause_cycles;
 		double execution_time = double( execution_clock_cycles) / CLOCKS_PER_SEC;
-		printf( "Total execution time : %3f [seconds]\n", execution_time );	
+		puts("-------------------------------------------------------------------------------");
+		printf( "----------------- Total execution time : %3f [seconds] -------------------\n", execution_time );	
+		puts("-------------------------------------------------------------------------------");
 	}
 }
 void pause_execution()
@@ -5639,9 +5654,12 @@ void exit_program_if( bool early_exit)
 {
 	if( early_exit )
 	{
-		char user_response[20];
+		char user_response[20];		
 		timer( STOP, program_start, program_end );
-		puts("Hit enter to stop...");
+		//puts("*******************************************************************************");
+		//puts("************** Press enter to exit and close the console window ***************");
+		//puts("*******************************************************************************");
+		print_section_header( "Press 'ENTER' to exit program and close console window", '*' );
 		fgets(user_response, sizeof(user_response), stdin);
 		exit(1);
 	}
@@ -5668,6 +5686,90 @@ void bin_2_indexes( int& bin_num, int& t_bin, int& v_bin, int& angular_bin )
 	}
 	// => bin = t_bin > 0
 	t_bin = bin_num;
+}
+void print_section_separator(char separation_char )
+{
+	char section_separator[CONSOLE_WINDOW_WIDTH];
+	for( int n = 0; n < CONSOLE_WINDOW_WIDTH; n++ )
+		section_separator[n] = separation_char;
+	section_separator[CONSOLE_WINDOW_WIDTH - 1] = '\0';
+	puts(section_separator);
+}
+void construct_header_line( char* statement, char separation_char, char* header )
+{
+	int length = strlen(statement), max_line_length = 70;
+	int num_dashes = CONSOLE_WINDOW_WIDTH - length - 2;
+	int leading_dashes = num_dashes / 2;
+	int trailing_dashes = num_dashes - leading_dashes;
+	int i = 0, line_length, index = 0;
+
+	line_length = min(length - index, max_line_length);
+	if( line_length < length - index )
+		while( statement[index + line_length] != ' ' )
+			line_length--;
+	num_dashes = CONSOLE_WINDOW_WIDTH - line_length - 2;
+	leading_dashes = num_dashes / 2;		
+	trailing_dashes = num_dashes - leading_dashes;
+
+	for( ; i < leading_dashes; i++ )
+		header[i] = separation_char;
+	if( statement[index] != ' ' )
+		header[i++] = ' ';
+	else
+		header[i++] = separation_char;
+	for( int j = 0; j < line_length; j++)
+		header[i++] = statement[index++];
+	header[i++] = ' ';
+	for( int j = 0; j < trailing_dashes; j++)
+		header[i++] = separation_char;
+	header[CONSOLE_WINDOW_WIDTH - 1] = '\0';
+}
+void print_section_header( char* statement, char separation_char )
+{
+	print_section_separator(separation_char);
+	char header[CONSOLE_WINDOW_WIDTH];
+	int length = strlen(statement), max_line_length = 70;
+	int num_dashes = CONSOLE_WINDOW_WIDTH - length - 2;
+	int leading_dashes = num_dashes / 2;
+	int trailing_dashes = num_dashes - leading_dashes;
+	int i, line_length, index = 0;
+
+	while( index < length )
+	{
+		i = 0;
+		line_length = min(length - index, max_line_length);
+		if( line_length < length - index )
+			while( statement[index + line_length] != ' ' )
+				line_length--;
+		num_dashes = CONSOLE_WINDOW_WIDTH - line_length - 2;
+		leading_dashes = num_dashes / 2;		
+		trailing_dashes = num_dashes - leading_dashes;
+
+		for( ; i < leading_dashes; i++ )
+			header[i] = separation_char;
+		if( statement[index] != ' ' )
+			header[i++] = ' ';
+		else
+			header[i++] = separation_char;
+		for( int j = 0; j < line_length; j++)
+			header[i++] = statement[index++];
+		header[i++] = ' ';
+		for( int j = 0; j < trailing_dashes; j++)
+			header[i++] = separation_char;
+		header[CONSOLE_WINDOW_WIDTH - 1] = '\0';
+		puts(header);		
+	}
+	print_section_separator(separation_char);
+	puts("");
+}
+void print_copyright_notice()
+{
+	//char notice[1024] = "";	
+	const int string_length = strlen(copyright_notice) + strlen(header_statement) + strlen(blake_contact) + strlen(reinhard_contact) + strlen(keith_contact) + strlen(paniz_contact);
+	//char program_header[string_length + 6];
+	char* program_header = (char*)calloc(string_length + 6, sizeof(char) );
+	sprintf(program_header, "%s\n%s\n%s\n%s\n%s\n%s\n", copyright_notice, header_statement, blake_contact, reinhard_contact, keith_contact, paniz_contact );
+	puts(program_header);
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************************* IO Helper Functions *************************************************************************************************/
@@ -5769,15 +5871,18 @@ bool directory_exists(char* dir_name )
 unsigned int create_unique_dir( char* dir_name )
 {
 	unsigned int i = 0;
-	char mkdir_command[256]= "mkdir ";
-	strcat( mkdir_command, dir_name);
+	char mkdir_command[256];//= "mkdir ";
+	//strcat( mkdir_command, dir_name);
+	sprintf(mkdir_command, "mkdir \"%s\"", dir_name);
 	while( system(mkdir_command) )
-		sprintf(mkdir_command, "mkdir %s_%d", dir_name, ++i);
-	sprintf(dir_name, "%s_%d", dir_name, i);
+	{
+		printf("---->");
+		sprintf(mkdir_command, "mkdir \"%s_%d\"", dir_name, ++i);
+	}
+	if( i != 0 )
+		sprintf(dir_name, "%s_%d", dir_name, i);
 	return i;
 }
-bool file_exists (const char* file_location) { return (bool)std::ifstream(file_location); }
-bool file_exists2 (const char* file_location) { return std::ifstream(file_location).good(); }
 bool file_exists3 (const char* file_location) 
 {
     #if defined(_WIN32) || defined(_WIN64)
@@ -5787,8 +5892,7 @@ bool file_exists3 (const char* file_location)
     return file_location && (stat (file_location, &sb) == 0 ;
     #endif
 } 
-bool blank_line( char c ) { return (c != '\n') && (c!= '\t') && (c != ' '); }
-void fgets_validated(FILE *input_file, char *line, int buf_size)
+void fgets_validated(char *line, int buf_size, FILE* input_file)
 {
     bool done = false;
     while(!done)
@@ -5814,7 +5918,7 @@ struct generic_IO_container read_key_value_pair( FILE* input_file )
 	int string_length;
 	generic_IO_container input_value;
 	// Remove leading spaces/tabs and return first line which does not begin with comment command "//" and is not blank
-	fgets_validated(input_file, line, buf_size);	
+	fgets_validated(line, buf_size, input_file);	
 	
 	// Having now read a non comment/blank line and removed leading spaces/tabs, parse it into {key}{=}{value}//{comments} format
 	sscanf (line, " %s %s %s //%s", &key, &equal_sign, &value, &comments);
@@ -5844,7 +5948,11 @@ struct generic_IO_container read_key_value_pair( FILE* input_file )
 				sscanf( value, "%d", &input_value.integer_input );
 				input_value.double_input = (double)input_value.integer_input;
 				input_value.boolean_input = (bool)input_value.integer_input;
-				printf( "is an integer with value = %d\n",input_value.integer_input );				
+				input_value.string_input = (char*) calloc( 10, sizeof(char) );
+				//itoa(input_value.integer_input, input_value.string_input, 10);
+				sprintf(input_value.string_input,"%d",input_value.integer_input);
+				printf( "is an integer with value = %d\n",input_value.integer_input );
+				//printf( "is an integer with value = %s\n",input_value.string_input );	
 			}
 			else
 			{
@@ -5852,7 +5960,11 @@ struct generic_IO_container read_key_value_pair( FILE* input_file )
 				sscanf( value, "%lf", &input_value.double_input );
 				input_value.integer_input = (int)input_value.double_input;
 				input_value.boolean_input = (bool)input_value.integer_input;
+				input_value.string_input = (char*) calloc( 10, sizeof(char) );
+				//itoa(input_value.double_input, input_value.string_input, 10);
+				sprintf(input_value.string_input,"%lf",input_value.double_input);
 				printf("is floating point with value %s\n", minimize_trailing_zeros( input_value.double_input,buf) );
+				//printf("is floating point with value %s\n", input_value.string_input);
 			}
 		}
 		else
@@ -5967,19 +6079,67 @@ int add_pCT_Images_dir(char* pct_data_dir, char* object_name, char* run_date, ch
 	return create_unique_dir( pCT_Images_directory );
 }
 
+void write_reconstruction_settings() 
+{
+	FILE* settings_file = fopen("reconstruction_settings.txt", "w");
+	time_t rawtime;
+	struct tm * timeinfo;
+
+	time (&rawtime);
+	timeinfo = localtime (&rawtime);
+	fprintf (settings_file, "Current local time and date: %s", asctime(timeinfo));
+	fprintf(settings_file, "PRIME_OFFSET = %d \n",  PRIME_OFFSET);
+	fprintf(settings_file, "AVG_FILTER_HULL = %s \n",  bool_2_string(AVG_FILTER_HULL));
+	
+	fprintf(settings_file, "HULL_FILTER_RADIUS = %d \n",  HULL_FILTER_RADIUS);
+	fprintf(settings_file, "HULL_FILTER_THRESHOLD = %d \n",  HULL_FILTER_THRESHOLD);
+	fprintf(settings_file, "LAMBDA = %d \n",  LAMBDA);
+
+	// fwrite( &reconstruction_histories, sizeof(unsigned int), 1, write_MLP_endpoints );
+	switch( X_0 )
+	{
+		case X_HULL:		fprintf(settings_file, "x_0 = X_HULL\n");		break;
+		case X_FBP:		fprintf(settings_file, "x_0 = x_FBP\n");	break;
+		case HYBRID:		fprintf(settings_file, "x_0 = HYBRID\n");		break;
+		case ZEROS:			fprintf(settings_file, "x_0 = ZEROS\n");		break;
+		case IMPORT_X_0:		fprintf(settings_file, "x_0 = IMPORT\n");		break;
+	}
+	fprintf(settings_file, "IMPORT_FILTERED_FBP = %d \n", bool_2_string(IMPORT_FILTERED_FBP) );
+	if( IMPORT_FILTERED_FBP )
+	{
+		fprintf(settings_file, "FILTERED_FBP_PATH = %d \n",  FBP_PATH);
+	}
+	switch( RECONSTRUCTION )
+	{
+		case ART:		fprintf(settings_file, "RECON_ALGORITHM = ART\n");		break;
+		case BIP:		fprintf(settings_file, "RECON_ALGORITHM = BIP\n");	break;
+		case DROP:		fprintf(settings_file, "RECON_ALGORITHM = DROP\n");	break;
+		case SAP:		fprintf(settings_file, "RECON_ALGORITHM = SAP\n");	break;
+		case ROBUST1:			fprintf(settings_file, "RECON_ALGORITHM = ROBUST1\n");		break;
+		case ROBUST2:		fprintf(settings_file, "RECON_ALGORITHM = ROBUST2\n");		break;
+	}
+	fclose(settings_file);
+}
 void read_config_file()
 {		
 	// Extract current directory (executable path) terminal response from system command "chdir" 
 	//cout <<  terminal_response("echo %cd%") << endl;
-	std::string str =  terminal_response("chdir");
-	const char* cstr = str.c_str();
-	PROJECTION_DATA_DIR = (char*) calloc( strlen(cstr), sizeof(char));
-	std::copy( cstr, &cstr[strlen(cstr)-1], PROJECTION_DATA_DIR );
-	
+	if( !CONFIG_PATH_PASSED )
+	{
+		std::string str =  terminal_response("chdir");
+		const char* cstr = str.c_str();
+		PROJECTION_DATA_DIR = (char*) calloc( strlen(cstr), sizeof(char));
+		std::copy( cstr, &cstr[strlen(cstr)-1], PROJECTION_DATA_DIR );
+		print_section_header( "Config file location set to current execution directory :", '*' );	
+		print_section_separator('-');
+		printf("%s\n", PROJECTION_DATA_DIR );
+		print_section_separator('-');
+	}
+
 	char* config_file_path  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
 	sprintf(config_file_path, "%s\\%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
 	FILE* input_file = fopen(config_file_path, "r" );
-	printf("Reading configuration file from the current working directory:\n\n%s\n\n", config_file_path );
+	print_section_header( "Reading key/value pairs from configuration file and setting corresponding execution parameters", '*' );
 	while( !feof(input_file) )
 	{		
 		generic_IO_container input_value = read_key_value_pair(input_file);
@@ -5988,90 +6148,539 @@ void read_config_file()
 			puts("invalid type_ID");
 	}
 	fclose(input_file);
-	//parameters_2_GPU();
+	print_section_header( "Finished reading configuration file and setting execution parameters", '-' );
 }
-void set_parameter( generic_IO_container &value )
+bool key_is_string_parameter( char* key )
 {
-	char buf[64];
-	printf("----> %s was ", value.key);
+	if
+	( 
+			strcmp (key, "PROJECTION_DATA_DIR") == 0 
+		||	strcmp (key, "PREPROCESSING_DIR") == 0 
+		||	strcmp (key, "RECONSTRUCTION_DIR") == 0 
+		||	strcmp (key, "PATH_2_PCT_DATA_DIR") == 0 
+		||	strcmp (key, "OBJECT") == 0 
+		||	strcmp (key, "RUN_DATE") == 0 
+		||	strcmp (key, "RUN_NUMBER") == 0 
+		||	strcmp (key, "PROJECTION_DATA_DATE") == 0 
+		||	strcmp (key, "PREPROCESS_DATE") == 0 
+		||	strcmp (key, "RECONSTRUCTION_DATE") == 0 
+	)
+		return true;
+	else
+		return false;
+}
+bool key_is_floating_point_parameter( char* key )
+{
+	if
+	( 
+			strcmp (key, "GANTRY_ANGLE_INTERVAL") == 0 
+		||	strcmp (key, "SSD_T_SIZE") == 0 
+		||	strcmp (key, "SSD_V_SIZE") == 0 
+		||	strcmp (key, "T_SHIFT") == 0 
+		||	strcmp (key, "U_SHIFT") == 0 
+		||	strcmp (key, "V_SHIFT") == 0 
+		||	strcmp (key, "T_BIN_SIZE") == 0 
+		||	strcmp (key, "V_BIN_SIZE") == 0 
+		||	strcmp (key, "ANGULAR_BIN_SIZE") == 0 
+		||	strcmp (key, "RECON_CYL_RADIUS") == 0 
+		||	strcmp (key, "RECON_CYL_HEIGHT") == 0 
+		||	strcmp (key, "IMAGE_WIDTH") == 0 
+		||	strcmp (key, "IMAGE_HEIGHT") == 0 
+		||	strcmp (key, "IMAGE_THICKNESS") == 0 
+		||	strcmp (key, "VOXEL_WIDTH") == 0 
+		||	strcmp (key, "VOXEL_HEIGHT") == 0 
+		||	strcmp (key, "VOXEL_THICKNESS") == 0 
+		||	strcmp (key, "SLICE_THICKNESS") == 0 
+		||	strcmp (key, "LAMBDA") == 0 
+		||	strcmp (key, "ETA") == 0 
+		||	strcmp (key, "HULL_FILTER_THRESHOLD") == 0 
+		||	strcmp (key, "FBP_AVG_THRESHOLD") == 0 
+		||	strcmp (key, "X_0_FILTER_THRESHOLD") == 0 
+		||	strcmp (key, "SC_THRESHOLD") == 0 
+		||	strcmp (key, "MSC_THRESHOLD") == 0 
+		||	strcmp (key, "SM_LOWER_THRESHOLD") == 0 
+		||	strcmp (key, "SM_UPPER_THRESHOLD") == 0 
+		||	strcmp (key, "SM_SCALE_THRESHOLD") == 0  
+	)
+		return true;
+	else
+		return false;
+}
+bool key_is_integer_parameter( char* key )
+{
+	if
+	( 
+			strcmp (key, "DATA_TYPE") == 0
+		|| 	strcmp (key, "HULL_TYPE") == 0
+		||	strcmp (key, "FBP_FILTER") == 0
+		||	strcmp (key, "X_0_TYPE") == 0
+		||	strcmp (key, "RECON_ALGORITHM") == 0
+		||	strcmp (key, "NUM_SCANS") == 0
+		||	strcmp (key, "MAX_GPU_HISTORIES") == 0
+		||	strcmp (key, "MAX_CUTS_HISTORIES") == 0
+		||	strcmp (key, "T_BINS") == 0
+		||	strcmp (key, "V_BINS") == 0
+		||	strcmp (key, "SIGMAS_2_KEEP") == 0
+		||	strcmp (key, "COLUMNS") == 0
+		||	strcmp (key, "ROWS") == 0
+		||	strcmp (key, "SLICES") == 0
+		||	strcmp (key, "ITERATIONS") == 0
+		||	strcmp (key, "BLOCK_SIZE") == 0
+		||	strcmp (key, "HULL_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_0_FILTER_RADIUS") == 0
+		||	strcmp (key, "FBP_AVG_RADIUS") == 0
+		||	strcmp (key, "FBP_MEDIAN_RADIUS") == 0
+		||	strcmp (key, "PSI_SIGN") == 0
+		||	strcmp (key, "MSC_DIFF_THRESH") == 0
+	)
+		return true;
+	else
+		return false;
+}
+bool key_is_boolean_parameter( char* key )
+{
+	if
+	( 
+			strcmp (key, "IMPORT_PREPROCESSED_DATA") == 0
+		||	strcmp (key, "PERFORM_RECONSTRUCTION") == 0
+		||	strcmp (key, "PREPROCESS_OVERWRITE_OK") == 0
+		||	strcmp (key, "RECON_OVERWRITE_OK") == 0
+		||	strcmp (key, "FBP_ON") == 0
+		||	strcmp (key, "AVG_FILTER_FBP") == 0
+		||	strcmp (key, "MEDIAN_FILTER_FBP") == 0
+		||	strcmp (key, "IMPORT_FILTERED_FBP") == 0
+		||	strcmp (key, "SC_ON") == 0
+		||	strcmp (key, "MSC_ON") == 0
+		||	strcmp (key, "SM_ON") == 0
+		||	strcmp (key, "AVG_FILTER_HULL") == 0
+		||	strcmp (key, "AVG_FILTER_ITERATE") == 0
+		||	strcmp (key, "WRITE_MSC_COUNTS") == 0
+		||	strcmp (key, "WRITE_SM_COUNTS") == 0
+		||	strcmp (key, "WRITE_X_FBP") == 0
+		||	strcmp (key, "WRITE_FBP_HULL") == 0
+		||	strcmp (key, "WRITE_AVG_FBP") == 0
+		||	strcmp (key, "WRITE_MEDIAN_FBP") == 0
+		||	strcmp (key, "WRITE_BIN_WEPLS") == 0
+		||	strcmp (key, "WRITE_WEPL_DISTS") == 0
+		||	strcmp (key, "WRITE_SSD_ANGLES") == 0 
+	)
+		return true;
+	else
+		return false;
+}
+void set_string_parameter( generic_IO_container &value )
+{
+	printf("set to \"%s\"\n", value.string_input);
 	if( strcmp (value.key, "PROJECTION_DATA_DIR") == 0 )
-	{
-		printf("set to \"%s\"\n", value.string_input);
+	{		
+		//print_section_separator('-');
+		puts("");
 		PROJECTION_DATA_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PROJECTION_DATA_DIR );
-		//strcpy(PROJECTION_DATA_DIR,value.string_input);
+		PROJECTION_DATA_DIR_SET = true;
 	}
 	else if( strcmp (value.key, "PREPROCESSING_DIR") == 0 )
 	{
-		printf("set to \"%s\"\n", value.string_input);
+		puts("");
+		//print_section_separator('-');
 		PREPROCESSING_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PREPROCESSING_DIR );
+		PREPROCESSING_DIR_SET = true;
 	}
 	else if( strcmp (value.key, "RECONSTRUCTION_DIR") == 0 )
 	{
-		printf("set to \"%s\"\n", value.string_input);
+		puts("");
+		//print_section_separator('-');
 		RECONSTRUCTION_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RECONSTRUCTION_DIR );
+		RECONSTRUCTION_DIR_SET = true;
+	}
+	else if( strcmp (value.key, "PATH_2_PCT_DATA_DIR") == 0 )
+	{
+		PATH_2_PCT_DATA_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PATH_2_PCT_DATA_DIR );
+		PATH_2_PCT_DATA_DIR_SET = true;
 	}
 	else if( strcmp (value.key, "OBJECT") == 0 )
 	{
-		printf("set to \"%s\"\n", value.string_input);
 		OBJECT = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], OBJECT );
+		OBJECT_SET = true;
 	}
 	else if( strcmp (value.key, "RUN_DATE") == 0 )
 	{
-		printf("set to \"%s\"\n", value.string_input);
 		RUN_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RUN_DATE );
+		RUN_DATE_SET = true;
 	}
 	else if( strcmp (value.key, "RUN_NUMBER") == 0 )
 	{
-		printf("set to \"%s\"\n", value.string_input);
 		RUN_NUMBER = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RUN_NUMBER );
+		RUN_NUMBER_SET = true;
 	}
 	else if( strcmp (value.key, "PROJECTION_DATA_DATE") == 0 )
 	{
-		printf("set to \"%s\"\n", value.string_input);
 		PROJECTION_DATA_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PROJECTION_DATA_DATE );
+		PROJECTION_DATA_DATE_SET = true;
 	}
 	else if( strcmp (value.key, "PREPROCESS_DATE") == 0 )
 	{
-		printf("set to \"%s\"\n", value.string_input);
 		PREPROCESS_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PREPROCESS_DATE );
+		PREPROCESS_DATE_SET = true;
 	}
 	else if( strcmp (value.key, "RECONSTRUCTION_DATE") == 0 )
 	{
-		printf("set to \"%s\"\n", value.string_input);
 		RECONSTRUCTION_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RECONSTRUCTION_DATE );
+		RECONSTRUCTION_DATE_SET = true;
+	}
+	else
+	{
+		puts("ERROR: Procedure for setting this key is undefined");
+		exit_program_if(true);
+	}
+}
+void set_floating_point_parameter( generic_IO_container &value )
+{
+	char buf[64];
+	if( value.input_type_ID == INTEGER )
+			printf("converted to a double and ");
+	//printf("set to %s\n", minimize_trailing_zeros(value.double_input, buf));
+	printf("set to %s\n", minimize_trailing_zeros(value.double_input, buf));
+	if( strcmp (value.key, "GANTRY_ANGLE_INTERVAL") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//GANTRY_ANGLE_INTERVAL = value.double_input;
+		parameters.GANTRY_ANGLE_INTERVAL_D = value.double_input;
+	}
+	else if( strcmp (value.key, "SSD_T_SIZE") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//SSD_T_SIZE = value.double_input;
+		parameters.SSD_T_SIZE_D = value.double_input;
+	}
+	else if( strcmp (value.key, "SSD_V_SIZE") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//SSD_V_SIZE = value.double_input;
+		parameters.SSD_V_SIZE_D = value.double_input;
+	}
+	else if( strcmp (value.key, "T_SHIFT") == 0 )
+	{
+		//T_SHIFT = value.double_input;
+		parameters.T_SHIFT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "U_SHIFT") == 0 )
+	{
+		//U_SHIFT = value.double_input;
+		parameters.U_SHIFT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "V_SHIFT") == 0 )
+	{
+		//V_SHIFT = value.double_input;
+		parameters.V_SHIFT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "T_BIN_SIZE") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//T_BIN_SIZE = value.double_input;
+		parameters.T_BIN_SIZE_D = value.double_input;
+	}
+	else if( strcmp (value.key, "V_BIN_SIZE") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//V_BIN_SIZE = value.double_input;
+		parameters.V_BIN_SIZE_D = value.double_input;
+	}
+	else if( strcmp (value.key, "ANGULAR_BIN_SIZE") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//ANGULAR_BIN_SIZE = value.double_input;
+		parameters.ANGULAR_BIN_SIZE_D = value.double_input;
+	}
+	else if( strcmp (value.key, "RECON_CYL_RADIUS") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//RECON_CYL_RADIUS = value.double_input;
+		parameters.RECON_CYL_RADIUS_D = value.double_input;
+	}
+	else if( strcmp (value.key, "RECON_CYL_HEIGHT") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//RECON_CYL_HEIGHT = value.double_input;
+		parameters.RECON_CYL_HEIGHT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "IMAGE_WIDTH") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//IMAGE_WIDTH = value.double_input;
+		parameters.IMAGE_WIDTH_D = value.double_input;
+	}
+	else if( strcmp (value.key, "IMAGE_HEIGHT") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//IMAGE_HEIGHT = value.double_input;
+		parameters.IMAGE_HEIGHT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "IMAGE_THICKNESS") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//IMAGE_THICKNESS = value.double_input;
+		parameters.IMAGE_THICKNESS_D = value.double_input;
+	}
+	else if( strcmp (value.key, "VOXEL_WIDTH") == 0 )
+	{
+		//VOXEL_WIDTH = value.double_input;
+		parameters.VOXEL_WIDTH_D = value.double_input;
+	}
+	else if( strcmp (value.key, "VOXEL_HEIGHT") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//VOXEL_HEIGHT = value.double_input;
+		parameters.VOXEL_HEIGHT_D = value.double_input;
+	}
+	else if( strcmp (value.key, "VOXEL_THICKNESS") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//VOXEL_THICKNESS = value.double_input;
+		parameters.VOXEL_THICKNESS_D =  value.double_input;
+		//SLICE_THICKNESS = value.double_input;
+		//parameters.SLICE_THICKNESS_D =  value.double_input;
+	}
+	else if( strcmp (value.key, "SLICE_THICKNESS") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//SLICE_THICKNESS = value.double_input;
+		parameters.SLICE_THICKNESS_D =  value.double_input;
+	}
+	
+	else if( strcmp (value.key, "LAMBDA") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//LAMBDA = value.double_input;
+		parameters.LAMBDA = value.double_input;
+		parameters.LAMBDA_D = value.double_input;
+	}
+	else if( strcmp (value.key, "ETA") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//ETA = value.double_input;
+		parameters.ETA_D = value.double_input;
+	}
+	else if( strcmp (value.key, "HULL_FILTER_THRESHOLD") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//HULL_FILTER_THRESHOLD = value.double_input;
+		parameters.HULL_FILTER_THRESHOLD_D = value.double_input;
+	}
+	else if( strcmp (value.key, "FBP_AVG_THRESHOLD") == 0 )
+	{
+		//FBP_AVG_THRESHOLD = value.double_input;
+		parameters.FBP_AVG_THRESHOLD_D = value.double_input;
+	}
+	else if( strcmp (value.key, "X_0_FILTER_THRESHOLD") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//X_0_FILTER_THRESHOLD = value.double_input;
+		parameters.X_0_FILTER_THRESHOLD_D = value.double_input;
 	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
-	else if( strcmp (value.key, "parameters->NUM_SCANS_D") == 0 )
+	else if( strcmp (value.key, "SC_THRESHOLD") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
+		//SC_THRESHOLD = value.double_input;
+		parameters.SC_THRESHOLD_D = value.double_input;
+	}
+	else if( strcmp (value.key, "MSC_THRESHOLD") == 0 )
+	{
+		//MSC_THRESHOLD = value.double_input;
+		parameters.MSC_THRESHOLD_D = value.double_input;
+	}
+	else if( strcmp (value.key, "SM_LOWER_THRESHOLD") == 0 )
+	{
+		//SM_LOWER_THRESHOLD = value.double_input;
+		parameters.SM_LOWER_THRESHOLD_D = value.double_input;
+	}
+	else if( strcmp (value.key, "SM_UPPER_THRESHOLD") == 0 )
+	{
+		//SM_UPPER_THRESHOLD = value.double_input;
+		parameters.SM_UPPER_THRESHOLD_D = value.double_input;
+	}
+	else if( strcmp (value.key, "SM_SCALE_THRESHOLD") == 0 )
+	{
+		if( value.double_input < 0 )
+		{
+			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		//SM_SCALE_THRESHOLD = value.double_input;
+		parameters.SM_SCALE_THRESHOLD_D = value.double_input;
+	}
+	else
+	{
+		puts("ERROR: Procedure for setting this key is undefined");
+		exit_program_if(true);
+	}
+}
+void set_integer_parameter( generic_IO_container &value )
+{
+	if( value.input_type_ID == DOUBLE )
+		printf("converted to an integer and ");
+	if( strcmp (value.key, "DATA_TYPE") == 0 )
+	{	
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		exit_program_if(print_scan_type(value.integer_input));
+		// EXPERIMENTAL = 0, GEANT4 = 1, TOPAS = 2
+		parameters.DATA_TYPE = SCAN_TYPES(value.integer_input);
+		DATA_TYPE = SCAN_TYPES(value.integer_input);
+	}
+	else if( strcmp (value.key, "HULL_TYPE") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		exit_program_if(print_hull_type(value.integer_input));
+		// IMPORT = 0, SC = 1, MSC = 2, SM = 3, FBP = 4
+		parameters.HULL = HULL_TYPES(value.integer_input);
+		HULL = HULL_TYPES(value.integer_input);
+	}
+	else if( strcmp (value.key, "FBP_FILTER") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		exit_program_if(print_filter_type(value.integer_input));
+		// RAM_LAK = 0, SHEPP_LOGAN = 1, NONE = 2
+		parameters.FBP_FILTER = FILTER_TYPES(value.integer_input);
+		FBP_FILTER = FILTER_TYPES(value.integer_input);
+	}
+	else if( strcmp (value.key, "X_0_TYPE") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		exit_program_if(print_x_0_type(value.integer_input));
+		// IMPORT = 0, HULL = 1, FBP = 2, HYBRID = 3, ZEROS = 4
+		parameters.X_0 = X_0_TYPES(value.integer_input);
+		X_0 = X_0_TYPES(value.integer_input);
+	}
+	else if( strcmp (value.key, "RECON_ALGORITHM") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}	
+		exit_program_if(print_recon_algorithm(value.integer_input));
+		// ART = 0, DROP = 1, BIP = 2, SAP = 3, ROBUST1 = 4, ROBUST2 = 5 
+		parameters.RECONSTRUCTION = RECON_ALGORITHMS(value.integer_input);
+		RECONSTRUCTION = RECON_ALGORITHMS(value.integer_input);
+	}
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	else if( strcmp (value.key, "NUM_SCANS") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
-		//parameters->NUM_SCANS_D = value.integer_input;
+		//NUM_SCANS = value.integer_input;
 		parameters.NUM_SCANS_D = value.integer_input;
 	}
 	else if( strcmp (value.key, "MAX_GPU_HISTORIES") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
@@ -6080,230 +6689,53 @@ void set_parameter( generic_IO_container &value )
 	}
 	else if( strcmp (value.key, "MAX_CUTS_HISTORIES") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
 		//MAX_CUTS_HISTORIES = value.integer_input;
 		parameters.MAX_CUTS_HISTORIES_D = value.integer_input;
 	}
-	else if( strcmp (value.key, "GANTRY_ANGLE_INTERVAL") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//GANTRY_ANGLE_INTERVAL = value.double_input;
-		parameters.GANTRY_ANGLE_INTERVAL_D = value.double_input;
-	}
-	else if( strcmp (value.key, "SSD_T_SIZE") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//SSD_T_SIZE = value.double_input;
-		parameters.SSD_T_SIZE_D = value.double_input;
-	}
-	else if( strcmp (value.key, "SSD_V_SIZE") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//SSD_V_SIZE = value.double_input;
-		parameters.SSD_V_SIZE_D = value.double_input;
-	}
-	else if( strcmp (value.key, "T_SHIFT") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//T_SHIFT = value.double_input;
-		parameters.T_SHIFT_D = value.double_input;
-	}
-	else if( strcmp (value.key, "U_SHIFT") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//U_SHIFT = value.double_input;
-		parameters.U_SHIFT_D = value.double_input;
-	}
-	else if( strcmp (value.key, "V_SHIFT") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//V_SHIFT = value.double_input;
-		parameters.V_SHIFT_D = value.double_input;
-	}
-	else if( strcmp (value.key, "T_BIN_SIZE") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//T_BIN_SIZE = value.double_input;
-		parameters.T_BIN_SIZE_D = value.double_input;
-	}
 	else if( strcmp (value.key, "T_BINS") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
 		//T_BINS = value.integer_input;
 		parameters.T_BINS_D = value.integer_input;
 	}
-	else if( strcmp (value.key, "V_BIN_SIZE") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//V_BIN_SIZE = value.double_input;
-		parameters.V_BIN_SIZE_D = value.double_input;
-	}
 	else if( strcmp (value.key, "V_BINS") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
 		//V_BINS = value.integer_input;
 		parameters.V_BINS_D = value.integer_input;
 	}
-	else if( strcmp (value.key, "ANGULAR_BIN_SIZE") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//ANGULAR_BIN_SIZE = value.double_input;
-		parameters.ANGULAR_BIN_SIZE_D = value.double_input;
-	}
 	else if( strcmp (value.key, "SIGMAS_2_KEEP") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
 		//SIGMAS_2_KEEP = value.integer_input;
 		parameters.SIGMAS_2_KEEP_D = value.integer_input;
 	}
-	else if( strcmp (value.key, "RECON_CYL_RADIUS") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//RECON_CYL_RADIUS = value.double_input;
-		parameters.RECON_CYL_RADIUS_D = value.double_input;
-	}
-	else if( strcmp (value.key, "RECON_CYL_HEIGHT") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//RECON_CYL_HEIGHT = value.double_input;
-		parameters.RECON_CYL_HEIGHT_D = value.double_input;
-	}
-	else if( strcmp (value.key, "IMAGE_WIDTH") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//IMAGE_WIDTH = value.double_input;
-		parameters.IMAGE_WIDTH_D = value.double_input;
-	}
-	else if( strcmp (value.key, "IMAGE_HEIGHT") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//IMAGE_HEIGHT = value.double_input;
-		parameters.IMAGE_HEIGHT_D = value.double_input;
-	}
-	else if( strcmp (value.key, "IMAGE_THICKNESS") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//IMAGE_THICKNESS = value.double_input;
-		parameters.IMAGE_THICKNESS_D = value.double_input;
-	}
 	else if( strcmp (value.key, "COLUMNS") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
@@ -6312,11 +6744,9 @@ void set_parameter( generic_IO_container &value )
 	}
 	else if( strcmp (value.key, "ROWS") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
@@ -6325,61 +6755,23 @@ void set_parameter( generic_IO_container &value )
 	}
 	else if( strcmp (value.key, "SLICES") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
 		//SLICES = value.integer_input;
 		parameters.SLICES_D = value.integer_input;
 	}
-	else if( strcmp (value.key, "VOXEL_WIDTH") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//VOXEL_WIDTH = value.double_input;
-		parameters.VOXEL_WIDTH_D = value.double_input;
-	}
-	else if( strcmp (value.key, "VOXEL_HEIGHT") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//VOXEL_HEIGHT = value.double_input;
-		parameters.VOXEL_HEIGHT_D = value.double_input;
-	}
-	else if( strcmp (value.key, "VOXEL_THICKNESS") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//VOXEL_THICKNESS = value.double_input;
-		parameters.VOXEL_THICKNESS_D =  value.double_input;
-	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "ITERATIONS") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
@@ -6388,11 +6780,9 @@ void set_parameter( generic_IO_container &value )
 	}
 	else if( strcmp (value.key, "BLOCK_SIZE") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
@@ -6401,19 +6791,15 @@ void set_parameter( generic_IO_container &value )
 	}
 	else if( strcmp (value.key, "HULL_FILTER_RADIUS") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		printf("set to %d\n", value.integer_input);
 		//HULL_FILTER_RADIUS = value.double_input;
 		parameters.HULL_FILTER_RADIUS_D =  value.integer_input;
 	}
 	else if( strcmp (value.key, "X_0_FILTER_RADIUS") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
@@ -6422,11 +6808,9 @@ void set_parameter( generic_IO_container &value )
 	}
 	else if( strcmp (value.key, "FBP_AVG_RADIUS") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
@@ -6435,11 +6819,9 @@ void set_parameter( generic_IO_container &value )
 	}
 	else if( strcmp (value.key, "FBP_MEDIAN_RADIUS") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
@@ -6448,553 +6830,988 @@ void set_parameter( generic_IO_container &value )
 	}
 	else if( strcmp (value.key, "PSI_SIGN") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		printf("set to %d\n", value.integer_input);
 		//PSI_SIGN = value.double_input;
 		parameters.PSI_SIGN_D = value.integer_input;
-	}
-	else if( strcmp (value.key, "LAMBDA") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//LAMBDA = value.double_input;
-		parameters.LAMBDA = value.double_input;
-		parameters.LAMBDA_D = value.double_input;
-	}
-	else if( strcmp (value.key, "ETA") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//ETA = value.double_input;
-		parameters.ETA_D = value.double_input;
-	}
-	else if( strcmp (value.key, "HULL_FILTER_THRESHOLD") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.double_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//HULL_FILTER_THRESHOLD = value.double_input;
-		parameters.HULL_FILTER_THRESHOLD_D = value.double_input;
-	}
-	else if( strcmp (value.key, "FBP_AVG_THRESHOLD") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//FBP_AVG_THRESHOLD = value.double_input;
-		parameters.FBP_AVG_THRESHOLD_D = value.double_input;
-	}
-	else if( strcmp (value.key, "X_0_FILTER_THRESHOLD") == 0 )
-	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//X_0_FILTER_THRESHOLD = value.double_input;
-		parameters.X_0_FILTER_THRESHOLD_D = value.double_input;
 	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "MSC_DIFF_THRESH") == 0 )
 	{
-		if( value.input_type_ID == DOUBLE )
-			printf("converted to an integer and ");
 		if( value.integer_input < 0 )
 		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
 		//MSC_DIFF_THRESH = value.double_input;
 		parameters.MSC_DIFF_THRESH_D = value.integer_input;
 	}
-	else if( strcmp (value.key, "SC_THRESHOLD") == 0 )
+	else
 	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//SC_THRESHOLD = value.double_input;
-		parameters.SC_THRESHOLD_D = value.double_input;
+		puts("ERROR: Procedure for setting this key is undefined");
+		exit_program_if(true);
 	}
-	else if( strcmp (value.key, "MSC_THRESHOLD") == 0 )
+}
+void set_boolean_parameter( generic_IO_container &value )
+{
+	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+		printf("converted to a boolean and ");
+	printf("set to %s\n", value.string_input );
+
+	if( strcmp (value.key, "IMPORT_PREPROCESSED_DATA") == 0 )
 	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//MSC_THRESHOLD = value.double_input;
-		parameters.MSC_THRESHOLD_D = value.double_input;
+		//IMPORT_PREPROCESSED_DATA = value.boolean_input;
+		parameters.IMPORT_PREPROCESSED_DATA_D = value.boolean_input;
 	}
-	else if( strcmp (value.key, "SM_LOWER_THRESHOLD") == 0 )
+	else if( strcmp (value.key, "PERFORM_RECONSTRUCTION") == 0 )
 	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//SM_LOWER_THRESHOLD = value.double_input;
-		parameters.SM_LOWER_THRESHOLD_D = value.double_input;
+		//PERFORM_RECONSTRUCTION = value.boolean_input;
+		parameters.PERFORM_RECONSTRUCTION_D = value.boolean_input;
 	}
-	else if( strcmp (value.key, "SM_UPPER_THRESHOLD") == 0 )
+	else if( strcmp (value.key, "PREPROCESS_OVERWRITE_OK") == 0 )
 	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//SM_UPPER_THRESHOLD = value.double_input;
-		parameters.SM_UPPER_THRESHOLD_D = value.double_input;
+		//PREPROCESS_OVERWRITE_OK = value.boolean_input;
+		parameters.PREPROCESS_OVERWRITE_OK_D = value.boolean_input;
 	}
-	else if( strcmp (value.key, "SM_SCALE_THRESHOLD") == 0 )
+	else if( strcmp (value.key, "RECON_OVERWRITE_OK") == 0 )
 	{
-		if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
-		if( value.integer_input < 0 )
-		{
-			perror("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
-		//SM_SCALE_THRESHOLD = value.double_input;
-		parameters.SM_SCALE_THRESHOLD_D = value.double_input;
+		//RECON_OVERWRITE_OK = value.boolean_input;
+		parameters.RECON_OVERWRITE_OK_D = value.boolean_input;
 	}
-	//------------------------------------------------------------------------------//
-	//------------------------------------------------------------------------------//
-	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "FBP_ON") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//FBP_ON = value.boolean_input;
 		parameters.FBP_ON_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "AVG_FILTER_FBP") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//AVG_FILTER_FBP = value.boolean_input;
 		parameters.AVG_FILTER_FBP_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "MEDIAN_FILTER_FBP") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//MEDIAN_FILTER_FBP = value.boolean_input;
 		parameters.MEDIAN_FILTER_FBP_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "IMPORT_FILTERED_FBP") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//IMPORT_FILTERED_FBP = value.boolean_input;
 		parameters.IMPORT_FILTERED_FBP_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "SC_ON") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//SC_ON = value.boolean_input;
 		parameters.SC_ON_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "MSC_ON") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//MSC_ON = value.boolean_input;
 		parameters.MSC_ON_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "SM_ON") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//SM_ON = value.boolean_input;
 		parameters.SM_ON_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "AVG_FILTER_HULL") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//AVG_FILTER_HULL = value.boolean_input;
 		parameters.AVG_FILTER_HULL_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "AVG_FILTER_ITERATE") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//AVG_FILTER_ITERATE = value.boolean_input;
 		parameters.AVG_FILTER_ITERATE_D = value.boolean_input;
-	}
-	else if( strcmp (value.key, "MLP_FILE_EXISTS") == 0 )
-	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
-		//MLP_FILE_EXISTS = value.boolean_input;
-		parameters.MLP_FILE_EXISTS_D = value.boolean_input;
-	}
-	else if( strcmp (value.key, "HISTORIES_FILE_EXISTS") == 0 )
-	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
-		//HISTORIES_FILE_EXISTS = value.boolean_input;
-		parameters.HISTORIES_FILE_EXISTS_D = value.boolean_input;
-	}
-	else if( strcmp (value.key, "REPERFORM_PREPROCESSING") == 0 )
-	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
-		//REPERFORM_PREPROCESSING = value.boolean_input;
-		parameters.REPERFORM_PREPROCESSING_D = value.boolean_input;
-	}
-	else if( strcmp (value.key, "PREPROCESSING_REQUIRED") == 0 )
-	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
-		//PREPROCESSING_REQUIRED = value.boolean_input;
-		parameters.PREPROCESSING_REQUIRED_D = value.boolean_input;
 	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "WRITE_MSC_COUNTS") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//WRITE_MSC_COUNTS = value.boolean_input;
 		parameters.WRITE_MSC_COUNTS_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "WRITE_SM_COUNTS") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//WRITE_SM_COUNTS = value.boolean_input;
 		parameters.WRITE_SM_COUNTS_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "WRITE_X_FBP") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//WRITE_X_FBP = value.boolean_input;
 		parameters.WRITE_X_FBP_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "WRITE_FBP_HULL") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//WRITE_FBP_HULL = value.boolean_input;
 		parameters.WRITE_FBP_HULL_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "WRITE_AVG_FBP") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//WRITE_AVG_FBP = value.boolean_input;
 		parameters.WRITE_AVG_FBP_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "WRITE_MEDIAN_FBP") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//WRITE_MEDIAN_FBP = value.boolean_input;
 		parameters.WRITE_MEDIAN_FBP_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "WRITE_BIN_WEPLS") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//WRITE_BIN_WEPLS = value.boolean_input;
 		parameters.WRITE_BIN_WEPLS_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "WRITE_WEPL_DISTS") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//WRITE_WEPL_DISTS = value.boolean_input;
 		parameters.WRITE_WEPL_DISTS_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "WRITE_SSD_ANGLES") == 0 )
 	{
-		if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
-			printf("converted to a boolean and ");
-		printf("set to %s\n", value.string_input );
 		//WRITE_SSD_ANGLES = value.boolean_input;
 		parameters.WRITE_SSD_ANGLES_D = value.boolean_input;
 	}
 	else
+	{
+		puts("ERROR: Procedure for setting this key is undefined");
+		exit_program_if(true);
+	}
+}
+void set_parameter( generic_IO_container &value )
+{
+	char buf[64];
+	printf("----> %s was ", value.key);
+	if( key_is_string_parameter(value.key) )
+		set_string_parameter(value);
+	else if( key_is_floating_point_parameter(value.key) )
+		set_floating_point_parameter(value);
+	else if( key_is_integer_parameter(value.key) )
+		set_integer_parameter(value);
+	else if( key_is_boolean_parameter(value.key) )
+		set_boolean_parameter(value);
+	else
 		puts("\nNo match for this key");
+	////-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+	////----------------------------------------------------------------------- Output option parameters ------------------------------------------------------------------------//
+	////-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//if( strcmp (value.key, "DATA_TYPE") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	exit_program_if(print_scan_type(value.integer_input));
+	//	// EXPERIMENTAL = 0, GEANT4 = 1, TOPAS = 2
+	//	parameters.DATA_TYPE = SCAN_TYPES(value.integer_input);
+	//	DATA_TYPE = SCAN_TYPES(value.integer_input);
+	//}
+	//else if( strcmp (value.key, "HULL_TYPE") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	exit_program_if(print_hull_type(value.integer_input));
+	//	// IMPORT = 0, SC = 1, MSC = 2, SM = 3, FBP = 4
+	//	parameters.HULL = HULL_TYPES(value.integer_input);
+	//	HULL = HULL_TYPES(value.integer_input);
+	//}
+	//else if( strcmp (value.key, "FBP_FILTER") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	exit_program_if(print_filter_type(value.integer_input));
+	//	// RAM_LAK = 0, SHEPP_LOGAN = 1, NONE = 2
+	//	parameters.FBP_FILTER = FILTER_TYPES(value.integer_input);
+	//	FBP_FILTER = FILTER_TYPES(value.integer_input);
+	//}
+	//else if( strcmp (value.key, "X_0_TYPE") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	exit_program_if(print_x_0_type(value.integer_input));
+	//	// IMPORT = 0, HULL = 1, FBP = 2, HYBRID = 3, ZEROS = 4
+	//	parameters.X_0 = X_0_TYPES(value.integer_input);
+	//	X_0 = X_0_TYPES(value.integer_input);
+	//}
+	//else if( strcmp (value.key, "RECON_ALGORITHM") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}	
+	//	exit_program_if(print_recon_algorithm(value.integer_input));
+	//	// ART = 0, DROP = 1, BIP = 2, SAP = 3, ROBUST1 = 4, ROBUST2 = 5 
+	//	parameters.RECONSTRUCTION = RECON_ALGORITHMS(value.integer_input);
+	//	RECONSTRUCTION = RECON_ALGORITHMS(value.integer_input);
+	//}
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	//else if( strcmp (value.key, "NUM_SCANS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//NUM_SCANS = value.integer_input;
+	//	parameters.NUM_SCANS_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "MAX_GPU_HISTORIES") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//MAX_GPU_HISTORIES = value.integer_input;
+	//	parameters.MAX_GPU_HISTORIES_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "MAX_CUTS_HISTORIES") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//MAX_CUTS_HISTORIES = value.integer_input;
+	//	parameters.MAX_CUTS_HISTORIES_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "GANTRY_ANGLE_INTERVAL") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//GANTRY_ANGLE_INTERVAL = value.double_input;
+	//	parameters.GANTRY_ANGLE_INTERVAL_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "SSD_T_SIZE") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//SSD_T_SIZE = value.double_input;
+	//	parameters.SSD_T_SIZE_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "SSD_V_SIZE") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//SSD_V_SIZE = value.double_input;
+	//	parameters.SSD_V_SIZE_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "T_SHIFT") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//T_SHIFT = value.double_input;
+	//	parameters.T_SHIFT_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "U_SHIFT") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//U_SHIFT = value.double_input;
+	//	parameters.U_SHIFT_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "V_SHIFT") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//V_SHIFT = value.double_input;
+	//	parameters.V_SHIFT_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "T_BIN_SIZE") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//T_BIN_SIZE = value.double_input;
+	//	parameters.T_BIN_SIZE_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "T_BINS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//T_BINS = value.integer_input;
+	//	parameters.T_BINS_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "V_BIN_SIZE") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//V_BIN_SIZE = value.double_input;
+	//	parameters.V_BIN_SIZE_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "V_BINS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//V_BINS = value.integer_input;
+	//	parameters.V_BINS_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "ANGULAR_BIN_SIZE") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//ANGULAR_BIN_SIZE = value.double_input;
+	//	parameters.ANGULAR_BIN_SIZE_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "SIGMAS_2_KEEP") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//SIGMAS_2_KEEP = value.integer_input;
+	//	parameters.SIGMAS_2_KEEP_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "RECON_CYL_RADIUS") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//RECON_CYL_RADIUS = value.double_input;
+	//	parameters.RECON_CYL_RADIUS_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "RECON_CYL_HEIGHT") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//RECON_CYL_HEIGHT = value.double_input;
+	//	parameters.RECON_CYL_HEIGHT_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "IMAGE_WIDTH") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//IMAGE_WIDTH = value.double_input;
+	//	parameters.IMAGE_WIDTH_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "IMAGE_HEIGHT") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//IMAGE_HEIGHT = value.double_input;
+	//	parameters.IMAGE_HEIGHT_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "IMAGE_THICKNESS") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//IMAGE_THICKNESS = value.double_input;
+	//	parameters.IMAGE_THICKNESS_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "COLUMNS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//COLUMNS = value.integer_input;
+	//	parameters.COLUMNS_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "ROWS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//ROWS = value.integer_input;
+	//	parameters.ROWS_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "SLICES") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//SLICES = value.integer_input;
+	//	parameters.SLICES_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "VOXEL_WIDTH") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//VOXEL_WIDTH = value.double_input;
+	//	parameters.VOXEL_WIDTH_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "VOXEL_HEIGHT") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//VOXEL_HEIGHT = value.double_input;
+	//	parameters.VOXEL_HEIGHT_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "VOXEL_THICKNESS") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//VOXEL_THICKNESS = value.double_input;
+	//	parameters.VOXEL_THICKNESS_D =  value.double_input;
+	//	//SLICE_THICKNESS = value.double_input;
+	//	parameters.SLICE_THICKNESS_D =  value.double_input;
+	//}
+	////else if( strcmp (value.key, "SLICE_THICKNESS") == 0 )
+	////{
+	////	if( value.input_type_ID == INTEGER )
+	////		printf("converted to a double and ");
+	////	if( value.double_input < 0 )
+	////	{
+	////		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	////		exit_program_if(true);
+	////	}
+	////	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	////	//SLICE_THICKNESS = value.double_input;
+	////	parameters.SLICE_THICKNESS_D =  value.double_input;
+	////}
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	//else if( strcmp (value.key, "ITERATIONS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//ITERATIONS = value.double_input;
+	//	parameters.ITERATIONS_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "BLOCK_SIZE") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//BLOCK_SIZE = value.double_input;
+	//	parameters.BLOCK_SIZE_D =  value.integer_input;
+	//}
+	//else if( strcmp (value.key, "HULL_FILTER_RADIUS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	printf("set to %d\n", value.integer_input);
+	//	//HULL_FILTER_RADIUS = value.double_input;
+	//	parameters.HULL_FILTER_RADIUS_D =  value.integer_input;
+	//}
+	//else if( strcmp (value.key, "X_0_FILTER_RADIUS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//X_0_FILTER_RADIUS = value.double_input;
+	//	parameters.X_0_FILTER_RADIUS_D =  value.integer_input;
+	//}
+	//else if( strcmp (value.key, "FBP_AVG_RADIUS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//FBP_AVG_RADIUS = value.double_input;
+	//	parameters.FBP_AVG_RADIUS_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "FBP_MEDIAN_RADIUS") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//FBP_MEDIAN_RADIUS = value.double_input;
+	//	parameters.FBP_MEDIAN_RADIUS_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "PSI_SIGN") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	printf("set to %d\n", value.integer_input);
+	//	//PSI_SIGN = value.double_input;
+	//	parameters.PSI_SIGN_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "LAMBDA") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//LAMBDA = value.double_input;
+	//	parameters.LAMBDA = value.double_input;
+	//	parameters.LAMBDA_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "ETA") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//ETA = value.double_input;
+	//	parameters.ETA_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "HULL_FILTER_THRESHOLD") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.double_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//HULL_FILTER_THRESHOLD = value.double_input;
+	//	parameters.HULL_FILTER_THRESHOLD_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "FBP_AVG_THRESHOLD") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//FBP_AVG_THRESHOLD = value.double_input;
+	//	parameters.FBP_AVG_THRESHOLD_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "X_0_FILTER_THRESHOLD") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//X_0_FILTER_THRESHOLD = value.double_input;
+	//	parameters.X_0_FILTER_THRESHOLD_D = value.double_input;
+	//}
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	//else if( strcmp (value.key, "MSC_DIFF_THRESH") == 0 )
+	//{
+	//	if( value.input_type_ID == DOUBLE )
+	//		printf("converted to an integer and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %d\n", value.integer_input);
+	//	//MSC_DIFF_THRESH = value.double_input;
+	//	parameters.MSC_DIFF_THRESH_D = value.integer_input;
+	//}
+	//else if( strcmp (value.key, "SC_THRESHOLD") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//SC_THRESHOLD = value.double_input;
+	//	parameters.SC_THRESHOLD_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "MSC_THRESHOLD") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//MSC_THRESHOLD = value.double_input;
+	//	parameters.MSC_THRESHOLD_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "SM_LOWER_THRESHOLD") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//SM_LOWER_THRESHOLD = value.double_input;
+	//	parameters.SM_LOWER_THRESHOLD_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "SM_UPPER_THRESHOLD") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//SM_UPPER_THRESHOLD = value.double_input;
+	//	parameters.SM_UPPER_THRESHOLD_D = value.double_input;
+	//}
+	//else if( strcmp (value.key, "SM_SCALE_THRESHOLD") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER )
+	//		printf("converted to a double and ");
+	//	if( value.integer_input < 0 )
+	//	{
+	//		puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+	//		exit_program_if(true);
+	//	}
+	//	printf("set to %s\n", minimize_trailing_zeros(value.double_input,buf));
+	//	//SM_SCALE_THRESHOLD = value.double_input;
+	//	parameters.SM_SCALE_THRESHOLD_D = value.double_input;
+	//}
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	//else if( strcmp (value.key, "IMPORT_PREPROCESSED_DATA") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//IMPORT_PREPROCESSED_DATA = value.boolean_input;
+	//	parameters.IMPORT_PREPROCESSED_DATA_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "PERFORM_RECONSTRUCTION") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//PERFORM_RECONSTRUCTION = value.boolean_input;
+	//	parameters.PERFORM_RECONSTRUCTION_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "PREPROCESS_OVERWRITE_OK") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//PREPROCESS_OVERWRITE_OK = value.boolean_input;
+	//	parameters.PREPROCESS_OVERWRITE_OK_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "RECON_OVERWRITE_OK") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//RECON_OVERWRITE_OK = value.boolean_input;
+	//	parameters.RECON_OVERWRITE_OK_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "FBP_ON") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//FBP_ON = value.boolean_input;
+	//	parameters.FBP_ON_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "AVG_FILTER_FBP") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//AVG_FILTER_FBP = value.boolean_input;
+	//	parameters.AVG_FILTER_FBP_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "MEDIAN_FILTER_FBP") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//MEDIAN_FILTER_FBP = value.boolean_input;
+	//	parameters.MEDIAN_FILTER_FBP_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "IMPORT_FILTERED_FBP") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//IMPORT_FILTERED_FBP = value.boolean_input;
+	//	parameters.IMPORT_FILTERED_FBP_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "SC_ON") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//SC_ON = value.boolean_input;
+	//	parameters.SC_ON_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "MSC_ON") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//MSC_ON = value.boolean_input;
+	//	parameters.MSC_ON_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "SM_ON") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//SM_ON = value.boolean_input;
+	//	parameters.SM_ON_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "AVG_FILTER_HULL") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//AVG_FILTER_HULL = value.boolean_input;
+	//	parameters.AVG_FILTER_HULL_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "AVG_FILTER_ITERATE") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//AVG_FILTER_ITERATE = value.boolean_input;
+	//	parameters.AVG_FILTER_ITERATE_D = value.boolean_input;
+	//}
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	////------------------------------------------------------------------------------//
+	//else if( strcmp (value.key, "WRITE_MSC_COUNTS") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//WRITE_MSC_COUNTS = value.boolean_input;
+	//	parameters.WRITE_MSC_COUNTS_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "WRITE_SM_COUNTS") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//WRITE_SM_COUNTS = value.boolean_input;
+	//	parameters.WRITE_SM_COUNTS_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "WRITE_X_FBP") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//WRITE_X_FBP = value.boolean_input;
+	//	parameters.WRITE_X_FBP_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "WRITE_FBP_HULL") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//WRITE_FBP_HULL = value.boolean_input;
+	//	parameters.WRITE_FBP_HULL_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "WRITE_AVG_FBP") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//WRITE_AVG_FBP = value.boolean_input;
+	//	parameters.WRITE_AVG_FBP_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "WRITE_MEDIAN_FBP") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//WRITE_MEDIAN_FBP = value.boolean_input;
+	//	parameters.WRITE_MEDIAN_FBP_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "WRITE_BIN_WEPLS") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//WRITE_BIN_WEPLS = value.boolean_input;
+	//	parameters.WRITE_BIN_WEPLS_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "WRITE_WEPL_DISTS") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//WRITE_WEPL_DISTS = value.boolean_input;
+	//	parameters.WRITE_WEPL_DISTS_D = value.boolean_input;
+	//}
+	//else if( strcmp (value.key, "WRITE_SSD_ANGLES") == 0 )
+	//{
+	//	if( value.input_type_ID == INTEGER || value.input_type_ID == DOUBLE )
+	//		printf("converted to a boolean and ");
+	//	printf("set to %s\n", value.string_input );
+	//	//WRITE_SSD_ANGLES = value.boolean_input;
+	//	parameters.WRITE_SSD_ANGLES_D = value.boolean_input;
+	//}
+	//else
+	//{
+	//	if( !key_is_string_parameter(value.key) )
+	//		puts("\nNo match for this key");
+	//}
 }
-void set_configs_2_defines()
+void set_execution_date()
 {
-	/*strcpy(parameter_container.PROJECTION_DATA_DIR, PROJECTION_DATA_DIR );
-	strcpy(parameter_container.PREPROCESSING_DIR_D, PREPROCESSING_DIR );
-	strcpy(parameter_container.RECONSTRUCTION_DIR_D, RECONSTRUCTION_DIR );
-	strcpy(parameter_container.OBJECT_D, OBJECT );
-	strcpy(parameter_container.RUN_DATE_D, RUN_DATE );
-	strcpy(parameter_container.RUN_NUMBER_D, RUN_NUMBER );
-	strcpy(parameter_container.PROJECTION_DATA_DATE_D, PROJECTION_DATA_DATE );
-	strcpy(parameter_container.PREPROCESS_DATE_D, PREPROCESS_DATE );
-	strcpy(parameter_container.RECONSTRUCTION_DATE_D, RECONSTRUCTION_DATE );
+	current_MMDDYYYY( EXECUTION_DATE);
 
-	puts(parameter_container.PROJECTION_DATA_DIR);
-	puts(parameter_container.PREPROCESSING_DIR_D);
-	puts(parameter_container.RECONSTRUCTION_DIR_D);
-	puts(parameter_container.OBJECT_D);
-	puts(parameter_container.RUN_DATE_D);
-	puts(parameter_container.RUN_NUMBER_D);
-	puts(parameter_container.PROJECTION_DATA_DATE_D);
-	puts(parameter_container.PREPROCESS_DATE_D);
-	puts(parameter_container.RECONSTRUCTION_DATE_D);*/
+	char* preprocess_date = EXECUTION_DATE;
+	PREPROCESS_DATE = (char*) calloc( strlen(preprocess_date) + 1, sizeof(char) ); 
+	std::copy( preprocess_date, preprocess_date + strlen(preprocess_date), PREPROCESS_DATE );	
 
-	parameter_container.NUM_SCANS_D = NUM_SCANS;
-	parameter_container.GANTRY_ANGLE_INTERVAL_D = GANTRY_ANGLE_INTERVAL;
-	parameter_container.SSD_T_SIZE_D = SSD_T_SIZE;
-	parameter_container.SSD_V_SIZE_D = SSD_V_SIZE;
-	parameter_container.T_SHIFT_D = T_SHIFT;
-	parameter_container.U_SHIFT_D = U_SHIFT;
-	parameter_container.T_BIN_SIZE_D = T_BIN_SIZE;
-	parameter_container.T_BINS_D = T_BINS;
-	parameter_container.V_BIN_SIZE_D = V_BIN_SIZE;
-	parameter_container.V_BINS_D = V_BINS;
-	parameter_container.ANGULAR_BIN_SIZE_D = ANGULAR_BIN_SIZE;
-	parameter_container.SIGMAS_2_KEEP_D = SIGMAS_2_KEEP;
-	parameter_container.RECON_CYL_RADIUS_D = RECON_CYL_RADIUS;
-	parameter_container.RECON_CYL_HEIGHT_D = RECON_CYL_HEIGHT;
-	parameter_container.IMAGE_WIDTH_D = IMAGE_WIDTH;
-	parameter_container.IMAGE_HEIGHT_D = IMAGE_HEIGHT;
-	parameter_container.IMAGE_THICKNESS_D = IMAGE_THICKNESS;
-	parameter_container.COLUMNS_D = COLUMNS;
-	parameter_container.ROWS_D = ROWS;
-	parameter_container.SLICES_D = SLICES;
-	parameter_container.VOXEL_WIDTH_D = VOXEL_WIDTH;
-	parameter_container.VOXEL_HEIGHT_D = VOXEL_HEIGHT;
-	parameter_container.VOXEL_THICKNESS_D = VOXEL_THICKNESS;
-	parameter_container.LAMBDA_D = LAMBDA;
-	parameter_container.LAMBDA = LAMBDA;
-}
-void set_defines_2_configs()
-{
-	//PROJECTION_DATA_DIR = parameter_container.PROJECTION_DATA_DIR;
-	//OUTPUT_DIRECTORY = parameter_container.OUTPUT_DIRECTORY_D;
-	//INPUT_FOLDER = parameter_container.INPUT_FOLDER_D;
-	//OUTPUT_FOLDER = parameter_container.OUTPUT_FOLDER_D;
-	//INPUT_DATA_BASENAME = parameter_container.INPUT_DATA_BASENAME_D;
-	//FILE_EXTENSION = parameter_container.FILE_EXTENSION_D;
-	//parameters->NUM_SCANS_D = parameter_container.parameters->NUM_SCANS_D_D;
-	//GANTRY_ANGLE_INTERVAL = parameter_container.GANTRY_ANGLE_INTERVAL_D;
-	//SSD_T_SIZE = parameter_container.SSD_T_SIZE_D;
-	//SSD_V_SIZE = parameter_container.SSD_V_SIZE_D;
-	//T_SHIFT = parameter_container.T_SHIFT_D;
-	//U_SHIFT = parameter_container.U_SHIFT_D;
-	//T_BIN_SIZE = parameter_container.T_BIN_SIZE_D;
-	//T_BINS = parameter_container.T_BINS_D;
-	//V_BIN_SIZE = parameter_container.V_BIN_SIZE_D;
-	//V_BINS = parameter_container.V_BINS_D;
-	//ANGULAR_BIN_SIZE = parameter_container.ANGULAR_BIN_SIZE_D;
-	//SIGMAS_2_KEEP = parameter_container.SIGMAS_2_KEEP_D;
-	//RECON_CYL_RADIUS = parameter_container.RECON_CYL_RADIUS_D;
-	//RECON_CYL_HEIGHT = parameter_container.RECON_CYL_HEIGHT_D;
-	//IMAGE_WIDTH = parameter_container.IMAGE_WIDTH_D;
-	//IMAGE_HEIGHT = parameter_container.IMAGE_HEIGHT_D;
-	//IMAGE_THICKNESS = parameter_container.IMAGE_THICKNESS_D;
-	//COLUMNS = parameter_container.COLUMNS_D;
-	//ROWS = parameter_container.ROWS_D;
-	//SLICES = parameter_container.SLICES_D;
-	//VOXEL_WIDTH = parameter_container.VOXEL_WIDTH_D;
-	//VOXEL_HEIGHT = parameter_container.VOXEL_HEIGHT_D;
-	//VOXEL_THICKNESS = parameter_container.VOXEL_THICKNESS_D;
-	LAMBDA = parameter_container.LAMBDA_D;
-}
-void parameters_2_GPU()
-{
-	cudaMalloc((void**) &parameters_d, sizeof(parameters) );
-	cudaMemcpy( parameters_d, parameters_h,	sizeof(parameters),	cudaMemcpyHostToDevice );
-}
-void export_D_configuration_parameters()
-{
-	char run_settings_filename[512];
-	puts("Writing configuration_parameters struct elements to disk...");
-
-	sprintf(run_settings_filename, "%s\\%s", PREPROCESSING_DIR, CONFIG_FILENAME);
-
-	std::ofstream run_settings_file(run_settings_filename);		
-	if( !run_settings_file.is_open() ) {
-		printf("ERROR: run settings file not created properly %s!\n", run_settings_filename);	
-		exit_program_if(true);
-	}
-	char buf[64];
-	run_settings_file.setf (std::ios_base::showpoint);
-	/*run_settings_file << "PROJECTION_DATA_DIR = "		<<  "\""	<< parameters.PROJECTION_DATA_DIR						<< "\"" << std::endl;
-	run_settings_file << "PREPROCESSING_DIR_D = "		<<  "\""	<< parameters.PREPROCESSING_DIR_D						<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DIR_D = "		<<  "\""	<< parameters.RECONSTRUCTION_DIR_D						<< "\"" << std::endl;
-	run_settings_file << "OBJECT_D = "					<<  "\""	<< parameters.OBJECT_D									<< "\"" << std::endl;
-	run_settings_file << "RUN_DATE_D = "				<<  "\""	<< parameters.RUN_DATE_D								<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER_D = "				<<  "\""	<< parameters.RUN_NUMBER_D								<< "\"" << std::endl;
-	run_settings_file << "PROJECTION_DATA_DATE_D = "	<<  "\""	<< parameters.PROJECTION_DATA_DATE_D					<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER_D = "				<<  "\""	<< parameters.RUN_NUMBER_D								<< "\"" << std::endl;
-	run_settings_file << "PREPROCESS_DATE_D = "			<<  "\""	<< parameters.PREPROCESS_DATE_D							<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DATE_D = "		<<  "\""	<< parameters.RECONSTRUCTION_DATE_D						<< "\"" << std::endl;*/
-
-	run_settings_file << "PROJECTION_DATA_DIR = "	<<  "\""	<< PROJECTION_DATA_DIR								<< "\"" << std::endl;
-	run_settings_file << "PREPROCESSING_DIR = "		<<  "\""	<< PREPROCESSING_DIR								<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DIR = "	<<  "\""	<< RECONSTRUCTION_DIR								<< "\"" << std::endl;
-	run_settings_file << "OBJECT = "				<<  "\""	<< OBJECT											<< "\"" << std::endl;
-	run_settings_file << "RUN_DATE = "				<<  "\""	<< RUN_DATE											<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
-	run_settings_file << "PROJECTION_DATA_DATE = "	<<  "\""	<< PROJECTION_DATA_DATE								<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
-	run_settings_file << "PREPROCESS_DATE = "		<<  "\""	<< PREPROCESS_DATE									<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DATE = "	<<  "\""	<< RECONSTRUCTION_DATE								<< "\"" << std::endl;
-
-	run_settings_file << "NUM_SCANS = "				<< parameters.NUM_SCANS_D												<< std::endl;
-	run_settings_file << "T_BINS = "				<< parameters.T_BINS_D													<< std::endl;
-	run_settings_file << "V_BINS = "				<< parameters.V_BINS_D													<< std::endl;
-	run_settings_file << "COLUMNS = "				<< parameters.COLUMNS_D													<< std::endl;
-	run_settings_file << "ROWS = "					<< parameters.ROWS_D													<< std::endl;
-	run_settings_file << "SLICES = "				<< parameters.SLICES_D													<< std::endl;
-	run_settings_file << "SIGMAS_2_KEEP = "			<< parameters.SIGMAS_2_KEEP_D											<< std::endl;
-	run_settings_file << "GANTRY_ANGLE_INTERVAL = "	<< minimize_trailing_zeros( parameters.GANTRY_ANGLE_INTERVAL_D, buf	)	<< std::endl;
-	run_settings_file << "ANGULAR_BIN_SIZE = "		<< minimize_trailing_zeros( parameters.ANGULAR_BIN_SIZE_D, buf )		<< std::endl;
-	run_settings_file << "SSD_T_SIZE = "			<< minimize_trailing_zeros( parameters.SSD_T_SIZE_D, buf )				<< std::endl;
-	run_settings_file << "SSD_V_SIZE = "			<< minimize_trailing_zeros( parameters.SSD_V_SIZE_D, buf )				<< std::endl;
-	run_settings_file << "T_SHIFT = "				<< minimize_trailing_zeros( parameters.T_SHIFT_D, buf )					<< std::endl;
-	run_settings_file << "U_SHIFT = "				<< minimize_trailing_zeros( parameters.U_SHIFT_D, buf )					<< std::endl;
-	run_settings_file << "T_BIN_SIZE = "			<< minimize_trailing_zeros( parameters.T_BIN_SIZE_D, buf )				<< std::endl;	
-	run_settings_file << "V_BIN_SIZE = "			<< minimize_trailing_zeros( parameters.V_BIN_SIZE_D, buf )				<< std::endl;		
-	run_settings_file << "RECON_CYL_RADIUS = "		<< minimize_trailing_zeros( parameters.RECON_CYL_RADIUS_D, buf )		<< std::endl;
-	run_settings_file << "RECON_CYL_HEIGHT = "		<< minimize_trailing_zeros( parameters.RECON_CYL_HEIGHT_D, buf )		<< std::endl;
-	run_settings_file << "IMAGE_WIDTH = "			<< minimize_trailing_zeros( parameters.IMAGE_WIDTH_D, buf )				<< std::endl;
-	run_settings_file << "IMAGE_HEIGHT = "			<< minimize_trailing_zeros( parameters.IMAGE_HEIGHT_D, buf )			<< std::endl;
-	run_settings_file << "IMAGE_THICKNESS = "		<< minimize_trailing_zeros( parameters.IMAGE_THICKNESS_D, buf )			<< std::endl;
-	run_settings_file << "VOXEL_WIDTH = "			<< minimize_trailing_zeros( parameters.VOXEL_WIDTH_D, buf )				<< std::endl;
-	run_settings_file << "VOXEL_HEIGHT = "			<< minimize_trailing_zeros( parameters.VOXEL_HEIGHT_D, buf )			<< std::endl;
-	run_settings_file << "VOXEL_THICKNESS = "		<< minimize_trailing_zeros( parameters.VOXEL_THICKNESS_D, buf )			<< std::endl;
-	run_settings_file << "LAMBDA = "				<< minimize_trailing_zeros( parameters.LAMBDA_D, buf )					<< std::endl;
-	run_settings_file << "LAMBDA = "				<< minimize_trailing_zeros( parameters.LAMBDA, buf )					<< std::endl;
-	run_settings_file.close();	
-}
-void export_configuration_parameters()
-{
-	char run_settings_filename[512];
-	puts("Writing configuration_parameters struct elements to disk...");
-
-	sprintf(run_settings_filename, "%s\\%s", PREPROCESSING_DIR, CONFIG_FILENAME);
-
-	std::ofstream run_settings_file(run_settings_filename);		
-	if( !run_settings_file.is_open() ) {
-		printf("ERROR: run settings file not created properly %s!\n", run_settings_filename);	
-		exit_program_if(true);
-	}
-	char buf[64];
-	run_settings_file.setf (std::ios_base::showpoint);
-	run_settings_file << "PROJECTION_DATA_DIR = "	<<  "\""	<< PROJECTION_DATA_DIR								<< "\"" << std::endl;
-	run_settings_file << "PREPROCESSING_DIR = "		<<  "\""	<< PREPROCESSING_DIR								<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DIR = "	<<  "\""	<< RECONSTRUCTION_DIR								<< "\"" << std::endl;
-	run_settings_file << "OBJECT = "				<<  "\""	<< OBJECT											<< "\"" << std::endl;
-	run_settings_file << "RUN_DATE = "				<<  "\""	<< RUN_DATE											<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
-	run_settings_file << "PROJECTION_DATA_DATE = "	<<  "\""	<< PROJECTION_DATA_DATE								<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
-	run_settings_file << "PREPROCESS_DATE = "		<<  "\""	<< PREPROCESS_DATE									<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DATE = "	<<  "\""	<< RECONSTRUCTION_DATE								<< "\"" << std::endl;
-	run_settings_file << "NUM_SCANS = "							<<  NUM_SCANS												<< std::endl;
-	run_settings_file << "T_BINS = "							<<  T_BINS													<< std::endl;
-	run_settings_file << "V_BINS = "							<<  V_BINS													<< std::endl;
-	run_settings_file << "COLUMNS = "							<<  COLUMNS													<< std::endl;
-	run_settings_file << "ROWS = "								<<  ROWS													<< std::endl;
-	run_settings_file << "SLICES = "							<<  SLICES													<< std::endl;
-	run_settings_file << "SIGMAS_2_KEEP = "						<<  SIGMAS_2_KEEP											<< std::endl;
-	run_settings_file << "GANTRY_ANGLE_INTERVAL = "				<< minimize_trailing_zeros( GANTRY_ANGLE_INTERVAL, buf )	<< std::endl;
-	run_settings_file << "ANGULAR_BIN_SIZE = "					<< minimize_trailing_zeros( ANGULAR_BIN_SIZE, buf )			<< std::endl;
-	run_settings_file << "SSD_T_SIZE = "						<< minimize_trailing_zeros( SSD_T_SIZE, buf )				<< std::endl;
-	run_settings_file << "SSD_V_SIZE = "						<< minimize_trailing_zeros( SSD_V_SIZE, buf )				<< std::endl;
-	run_settings_file << "T_SHIFT = "							<< minimize_trailing_zeros( T_SHIFT, buf )					<< std::endl;
-	run_settings_file << "U_SHIFT = "							<< minimize_trailing_zeros( U_SHIFT, buf )					<< std::endl;
-	run_settings_file << "T_BIN_SIZE = "						<< minimize_trailing_zeros( T_BIN_SIZE, buf )				<< std::endl;	
-	run_settings_file << "V_BIN_SIZE = "						<< minimize_trailing_zeros( V_BIN_SIZE, buf )				<< std::endl;		
-	run_settings_file << "RECON_CYL_RADIUS = "					<< minimize_trailing_zeros( RECON_CYL_RADIUS, buf )			<< std::endl;
-	run_settings_file << "RECON_CYL_HEIGHT = "					<< minimize_trailing_zeros( RECON_CYL_HEIGHT, buf )			<< std::endl;
-	run_settings_file << "IMAGE_WIDTH = "						<< minimize_trailing_zeros( IMAGE_WIDTH, buf )				<< std::endl;
-	run_settings_file << "IMAGE_HEIGHT = "						<< minimize_trailing_zeros( IMAGE_HEIGHT, buf )				<< std::endl;
-	run_settings_file << "IMAGE_THICKNESS = "					<< minimize_trailing_zeros( IMAGE_THICKNESS, buf )			<< std::endl;
-	run_settings_file << "VOXEL_WIDTH = "						<< minimize_trailing_zeros( VOXEL_WIDTH, buf )				<< std::endl;
-	run_settings_file << "VOXEL_HEIGHT = "						<< minimize_trailing_zeros( VOXEL_HEIGHT, buf )				<< std::endl;
-	run_settings_file << "VOXEL_THICKNESS = "					<< minimize_trailing_zeros( VOXEL_THICKNESS, buf )			<< std::endl;
-	run_settings_file << "LAMBDA = "							<< minimize_trailing_zeros( LAMBDA, buf )					<< std::endl;
-	run_settings_file.close();
-}
-void set_data_info( char * path)
-{
-	//char OBJECT[]					= "Object";
-	//char* DATA_TYPE_DIR;
-	//char RUN_DATE[]					= "MMDDYYYY";
-	//char RUN_NUMBER[]				= "Run";
-	//char PREPROCESS_DATE[]			= "MMDDYYYY";
-	//char RECONSTRUCTION_DIR[]		= "Reconstruction";
-	//char RECONSTRUCTION_DATE[]				= "MMDDYYYY";
-	//char PCT_IMAGES[]				= "Images";
-	//char REFERENCE_IMAGES[]			= "Reference_Images";
-	//char TEST_OUTPUT_FILE[]			= "export_testing.cfg";
-	char * pch = strtok (path,  "\\ : \n");
-	  while (pch != NULL)
-	  {
-		printf ("%s\n",pch);
-		pch = strtok (NULL, "\\ : \n");
-		if( strcmp(pch, "pCT_Data") == 0) 
-			break;
-	  }
-	pch = strtok (NULL, "\\ : \n");
-	if(pch != NULL)
-		if( strcmp(pch, "object_name") == 0)
-			cout << "object_name found" << endl;
-	pch = strtok (NULL, "\\ : \n");
-	if(pch != NULL)
-		if( strcmp(pch, "Experimental") == 0)
-			cout << "Experimental found" << endl;
-	pch = strtok (NULL, "\\ : \n");
-	if(pch != NULL)
-		if( strcmp(pch, "DDMMYYYY") == 0)
-			cout << "DDMMYYYY found" << endl;
-}
-bool preprocessing_data_exists()
-{
-	return true;
+	char* reconstruction_date = EXECUTION_DATE;
+	RECONSTRUCTION_DATE = (char*) calloc( strlen(reconstruction_date) + 1, sizeof(char) ); 
+	std::copy( reconstruction_date, reconstruction_date + strlen(reconstruction_date), RECONSTRUCTION_DATE );
 }
 void set_IO_paths()
 {
-	DATA_TYPE = EXPERIMENTAL;
+	print_section_header( "Setting I/O path parameters and creating directories", '*' );
+	char mkdir_command[256];
+	char print_statement[CONSOLE_WINDOW_WIDTH];
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//------------------ Set the data type directory to "Experimental" or "Simulated" depending on value of DATA_TYPE specified in config file -----------------//
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//	
+	//DATA_TYPE = EXPERIMENTAL;
 	switch( DATA_TYPE )
 	{
 		case EXPERIMENTAL	: 	DATA_TYPE_DIR = EXPERIMENTAL_DIR_NAME;	break;
@@ -7004,108 +7821,157 @@ void set_IO_paths()
 								exit(1);
 
 	};
-	puts(DATA_TYPE_DIR);
-	//********************* Can be determined from current directory or overwritten by config file ****************************************
-	char preprocessing_dir[] = "C:/Users/Blake/Documents/pCT_Data/object_name/Experimental/MMDDYYYY/run_number/Output/MMDDYYYY";
-	PREPROCESSING_DIR = (char*) calloc( strlen(preprocessing_dir) + 1, sizeof(char) ); 
-	std::copy( preprocessing_dir, preprocessing_dir + strlen(preprocessing_dir), PREPROCESSING_DIR );	
-	//************ Automatically set to the date the program was executed but can be specified explicitly as a config file parameter ****************************************	
-	current_MMDDYYYY( EXECUTION_DATE);
+	//print_section_separator('-');
+	printf("\nPreprocessing/reconstruction is being performed on %s data.\n", DATA_TYPE_DIR);
+	//sprintf( print_statement, "Preprocessing/reconstruction is being performed on %s data.", DATA_TYPE_DIR );
+	//print_section_header( print_statement, '^' );
+	//print_section_header( "Setting I/O path parameters and creating directories", '*' );
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//-------------------- Determine if the individual key/value pairs associated with data directories can be combined to set their paths ---------------------//
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	PROJECTION_DATA_DIR_CONSTRUCTABLE = PATH_2_PCT_DATA_DIR_SET && OBJECT_SET && RUN_DATE_SET  && RUN_NUMBER_SET  && PROJECTION_DATA_DATE_SET;
+	PREPROCESSING_DIR_CONSTRUCTABLE = ( PROJECTION_DATA_DIR_CONSTRUCTABLE || PROJECTION_DATA_DIR_SET ) && PREPROCESS_DATE_SET;
+	RECONSTRUCTION_DIR_CONSTRUCTABLE = ( PREPROCESSING_DIR_CONSTRUCTABLE || PREPROCESSING_DIR_SET ) && RECONSTRUCTION_DATE_SET;
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//---------------- Set projection data directory based on option (1) explicit path in config file, (2) individual object/run properties --------------------//
+	//--------------------- specified in config file, or (3) automatically based on current execution directory or command line argument -----------------------//
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	if( PROJECTION_DATA_DIR_SET )
+	{
+		char* h1 = strstr(PROJECTION_DATA_DIR, PCT_DATA_DIR_NAME );
+		PATH_2_PCT_DATA_DIR = (char*) calloc( (int)(h1 - PROJECTION_DATA_DIR) , sizeof(char) ); 
+		std::copy( PROJECTION_DATA_DIR, h1 - 1, PATH_2_PCT_DATA_DIR );	
+		char* h2 = strstr(h1, "/" ) +1;
+
+		char* h3 = strstr(h2+1, "/" ) + 1;	
+		OBJECT = (char*) calloc( (int)(h3 - h2 + 1) , sizeof(char) ); 
+		std::copy( h2, h3 - 1, OBJECT );
+
+		char* h4 = strstr(h3+1, "/" ) + 1;
+		SCAN_TYPE = (char*) calloc( (int)(h4 - h3 + 1) , sizeof(char) ); 
+		std::copy( h3, h4 - 1, SCAN_TYPE );
 	
-	char* preprocess_date = EXECUTION_DATE;
-	PREPROCESS_DATE = (char*) calloc( strlen(preprocess_date) + 1, sizeof(char) ); 
-	std::copy( preprocess_date, preprocess_date + strlen(preprocess_date), PREPROCESS_DATE );	
+		char* h5 = strstr(h4+1, "/" ) + 1;
+		RUN_DATE = (char*) calloc( (int)(h5 - h4 + 1) , sizeof(char) ); 
+		std::copy( h4, h5 - 1, RUN_DATE );
 
-	char* reconstruction_date = EXECUTION_DATE;
-	RECONSTRUCTION_DATE = (char*) calloc( strlen(reconstruction_date) + 1, sizeof(char) ); 
-	std::copy( reconstruction_date, reconstruction_date + strlen(reconstruction_date), RECONSTRUCTION_DATE );
-	//*****************************************************************************************
+		char* h6 = strstr(h5+1, "/" ) + 1;
+		RUN_NUMBER = (char*) calloc( (int)(h6 - h5 + 1) , sizeof(char) ); 
+		std::copy( h5, h6 - 1, RUN_NUMBER );
 
-	char* h1 = strstr(PREPROCESSING_DIR, PCT_DATA_DIR_NAME );
-	PATH_2_PCT_DATA_DIR = (char*) calloc( (int)(h1 - PREPROCESSING_DIR) , sizeof(char) ); 
-	std::copy( PREPROCESSING_DIR, h1 - 1, PATH_2_PCT_DATA_DIR );	
-	char* h2 = strstr(h1, "/" ) +1;
+		//char* h7 = strstr(h6+1, "/" ) + 1;
+		//PROJECTION_DATA_DATE = (char*) calloc( strlen(h7) + 1 , sizeof(char) ); 
+		//std::copy( h7, h7 + strlen(h7), PROJECTION_DATA_DATE );
+		//PROJECTION_DATA_DATE = h7;//strstr(h6+1, "/" ) + 1;
+		PROJECTION_DATA_DATE = strstr( h6 + 1, "/" ) + 1;
 
-	char* h3 = strstr(h2+1, "/" ) + 1;	
-	OBJECT = (char*) calloc( (int)(h3 - h2 + 1) , sizeof(char) ); 
-	std::copy( h2, h3 - 1, OBJECT );
-
-	char* h4 = strstr(h3+1, "/" ) + 1;
-	SCAN_TYPE = (char*) calloc( (int)(h4 - h3 + 1) , sizeof(char) ); 
-	std::copy( h3, h4 - 1, SCAN_TYPE );
+		//print_section_header( "Remaining after each iteration of data property extraction from path :", '-' );
+		//puts(PROJECTION_DATA_DIR);
+		//puts(h1);
+		//puts(h2);
+		//puts(h3);
+		//puts(h4);
+		//puts(h5);
+		//puts(h6);
+		//puts(h7);
+		//puts(h8);
+	}
+	else if( PROJECTION_DATA_DIR_CONSTRUCTABLE )
+	{		
+		uint length = strlen(PATH_2_PCT_DATA_DIR) + strlen(PCT_DATA_DIR_NAME) + strlen(OBJECT) + strlen(SCAN_TYPE) + strlen(RUN_DATE) + strlen(RUN_NUMBER) + strlen(PROJECTION_DATA_DIR_NAME) + strlen(PROJECTION_DATA_DATE);
+		PROJECTION_DATA_DIR = (char*) calloc( length + 1, sizeof(char) ); 
+		sprintf(PROJECTION_DATA_DIR,"%s/%s/%s/%s/%s/%s/%s/%s", PATH_2_PCT_DATA_DIR, PCT_DATA_DIR_NAME, OBJECT, SCAN_TYPE, RUN_DATE, RUN_NUMBER, PROJECTION_DATA_DIR_NAME, PROJECTION_DATA_DATE );		
+	}
+	else
+		puts("Projection data directory was not (properly) specified in settings.cfg and is being set based on current execution directory and date to\n");
 	
-	char* h5 = strstr(h4+1, "/" ) + 1;
-	RUN_DATE = (char*) calloc( (int)(h5 - h4 + 1) , sizeof(char) ); 
-	std::copy( h4, h5 - 1, RUN_DATE );
-
-	char* h6 = strstr(h5+1, "/" ) + 1;
-	RUN_NUMBER = (char*) calloc( (int)(h6 - h5 + 1) , sizeof(char) ); 
-	std::copy( h5, h6 - 1, RUN_NUMBER );
-
-	//char* h7 = strstr(h6+1, "/" ) + 1;
-	//PROJECTION_DATA_DATE = (char*) calloc( strlen(h7) + 1 , sizeof(char) ); 
-	//std::copy( h7, h7 + strlen(h7), PROJECTION_DATA_DATE );
-	//PROJECTION_DATA_DATE = h7;//strstr(h6+1, "/" ) + 1;
-	PROJECTION_DATA_DATE = strstr( h6 + 1, "/" ) + 1;
-
-	
-	puts("\nRemaining after each iteration : \n");
-	puts(PREPROCESSING_DIR);
-	puts(h1);
-	puts(h2);
-	puts(h3);
-	puts(h4);
-	puts(h5);
-	puts(h6);
-	//puts(h7);
-	//puts(h8);
-
-	puts("\nExtracted directory names : \n");
+	print_section_header( "Extracted directory names", '-' );	
 	printf("PATH_2_PCT_DATA_DIR = %s\n", PATH_2_PCT_DATA_DIR);
 	printf("OBJECT = %s\n", OBJECT);
 	printf("SCAN_TYPE =  %s\n", SCAN_TYPE);
 	printf("RUN_DATE = %s\n", RUN_DATE);
 	printf("RUN_NUMBER = %s\n", RUN_NUMBER);
 	printf("PROJECTION_DATA_DATE = %s\n", PROJECTION_DATA_DATE);
-	//printf("RUN_DATE = %s\n", RUN_DATE);
-
-	uint length = strlen(PATH_2_PCT_DATA_DIR) + strlen(PCT_DATA_DIR_NAME) + strlen(OBJECT) + strlen(SCAN_TYPE) + strlen(RUN_DATE) + strlen(RUN_NUMBER) + strlen(PROJECTION_DATA_DIR_NAME) + strlen(PROJECTION_DATA_DATE);
-	PROJECTION_DATA_DIR = (char*) calloc( length + 1, sizeof(char) ); 
-	sprintf(PROJECTION_DATA_DIR,"%s/%s/%s/%s/%s/%s/%s/%s", PATH_2_PCT_DATA_DIR, PCT_DATA_DIR_NAME, OBJECT, SCAN_TYPE, RUN_DATE, RUN_NUMBER, PROJECTION_DATA_DIR_NAME, PROJECTION_DATA_DATE );
-	puts(PROJECTION_DATA_DIR);
-	
-	//puts(PREPROCESSING_DIR);
-	PREPROCESSING_DIR = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(RECONSTRUCTION_DIR_NAME) + strlen(PREPROCESS_DATE) + 1, sizeof(char) ); 
-	sprintf(PREPROCESSING_DIR,"%s/%s/%s", PROJECTION_DATA_DIR, RECONSTRUCTION_DIR_NAME, PREPROCESS_DATE);
-	puts(PREPROCESSING_DIR);
-
-	RECONSTRUCTION_DIR = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(PCT_IMAGES_DIR_NAME) + strlen(RECONSTRUCTION_DATE) + 1, sizeof(char) ); 
-	sprintf(RECONSTRUCTION_DIR,"%s/%s/%s", PREPROCESSING_DIR, PCT_IMAGES_DIR_NAME, RECONSTRUCTION_DATE);
-	puts(RECONSTRUCTION_DIR);
-
+	//print_section_separator('-');
+	print_section_header( "Path to input/output data directories", '*' );	
+	printf("\nPROJECTION_DATA_DIR = %s\n", PROJECTION_DATA_DIR );
+	print_section_separator('~');
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//---- Set path parameter for preprocessing data using explicit name from config file or based on projection data directory and current execution date. ----// 
+	//---------- Create this directory if it doesn't exist, otherwise overwrite any existing data or create new directory with _i appended to its name  --------//
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	if( !PREPROCESSING_DIR_SET )
+	{
+		PREPROCESSING_DIR = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(RECONSTRUCTION_DIR_NAME) + strlen(PREPROCESS_DATE) + 1, sizeof(char) ); 
+		sprintf(PREPROCESSING_DIR,"%s/%s/%s", PROJECTION_DATA_DIR, RECONSTRUCTION_DIR_NAME, PREPROCESS_DATE);		
+	}		
+	if( parameters.PREPROCESS_OVERWRITE_OK_D )
+	{
+		sprintf(mkdir_command, "mkdir \"%s\"", PREPROCESSING_DIR );
+		if( system( mkdir_command ) )
+			puts("\nNOTE: Any existing data in this directory will be overwritten");
+	}
+	else
+		create_unique_dir( PREPROCESSING_DIR );
+	//print_section_separator('~');
+	printf("\nPREPROCESSING_DIR = %s\n", PREPROCESSING_DIR );
+	print_section_separator('~');
+	//puts("");
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//---- Set path parameter for reconstruction data using explicit name from config file or based on projection data directory and current execution date. ---// 
+	//---------- Create this directory if it doesn't exist, otherwise overwrite any existing data or create new directory with _i appended to its name  --------//
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	if( !RECONSTRUCTION_DIR_SET )
+	{
+		RECONSTRUCTION_DIR = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(PCT_IMAGES_DIR_NAME) + strlen(RECONSTRUCTION_DATE) + 1, sizeof(char) ); 
+		sprintf(RECONSTRUCTION_DIR,"%s/%s/%s", PREPROCESSING_DIR, PCT_IMAGES_DIR_NAME, RECONSTRUCTION_DATE);		
+	}
+	if( parameters.RECON_OVERWRITE_OK_D )
+	{
+		sprintf(mkdir_command, "mkdir \"%s\"", RECONSTRUCTION_DIR );
+		if( system( mkdir_command ) )
+			puts("\nNOTE: Any existing data in this directory will be overwritten");
+	}
+	else
+		create_unique_dir( RECONSTRUCTION_DIR );
+	//print_section_separator('~');
+	printf("\nRECONSTRUCTION_DIR = %s\n", RECONSTRUCTION_DIR );
+	print_section_separator('~');
+	//puts("");
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//----------------------------- Set paths to preprocessing and reconstruction data using associated directory and file names -------------------------------//
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	print_section_header( "Preprocessing and reconstruction data/images generated will be written to and/or read from the following paths", '*' );
 	HULL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_BASENAME) + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
 	sprintf( HULL_PATH,"%s/%s%s", PREPROCESSING_DIR, HULL_BASENAME, HULL_FILE_EXTENSION );
-	puts(HULL_PATH);
-
+	printf("\nHULL_PATH = %s\n", HULL_PATH );
+	//print_section_separator('~');
+	
 	FBP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_BASENAME) + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
 	sprintf( FBP_PATH,"%s/%s%s", PREPROCESSING_DIR, FBP_BASENAME, FBP_FILE_EXTENSION );
-	puts(FBP_PATH);
+	printf("\nFBP_PATH = %s\n", FBP_PATH );
+	//print_section_separator('~');
 	
 	X_0_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_BASENAME) + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
 	sprintf( X_0_PATH, "%s/%s%s", PREPROCESSING_DIR, X_0_BASENAME, X_0_FILE_EXTENSION );
-	puts(X_0_PATH);
+	printf("\nX_0_PATH = %s\n", X_0_PATH );
+	//print_section_separator('~');
 	
 	MLP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(MLP_BASENAME) + strlen(MLP_FILE_EXTENSION) + 1, sizeof(char) );
 	sprintf(MLP_PATH,"%s/%s%s", PREPROCESSING_DIR, MLP_BASENAME, MLP_FILE_EXTENSION );
-	puts(MLP_PATH);
+	printf("\nMLP_PATH = %s\n", MLP_PATH );
+	//print_section_separator('~');
 	
 	RECON_HISTORIES_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(RECON_HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION) + 1, sizeof(char) );
 	sprintf(RECON_HISTORIES_PATH,"%s/%s%s", PREPROCESSING_DIR, RECON_HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION);
-	puts(RECON_HISTORIES_PATH);
+	printf("\nRECON_HISTORIES_PATH = %s\n", RECON_HISTORIES_PATH );
+	//print_section_separator('~');
 	
 	X_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_BASENAME) + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
 	sprintf(X_PATH,"%s/%s%s", RECONSTRUCTION_DIR, X_BASENAME, X_FILE_EXTENSION);
-	puts(X_PATH);
+	printf("\nX_PATH = %s\n", X_PATH );
+	//print_section_separator('~');
+	print_section_header( "Finished setting I/O path parameters and creating directories", '-' );	
 }
 void view_config_file()
 {
@@ -7120,7 +7986,7 @@ void view_config_file()
     #endif
 	
 }
-void update_config_dependencies()
+void set_dependent_parameters()
 {
 	parameters.GANTRY_ANGLES_D		= uint( 360 / parameters.GANTRY_ANGLE_INTERVAL_D );								// [#] Total number of projection angles
 	parameters.NUM_FILES_D			= parameters.NUM_SCANS_D * parameters.GANTRY_ANGLES_D;							// [#] 1 file per gantry angle per translation
@@ -7164,19 +8030,31 @@ void update_config_dependencies()
 	parameters.CONSTANT_CHORD_NORM_D	= pow(parameters.VOXEL_WIDTH_D, 2.0);
 	parameters.CONSTANT_LAMBDA_SCALE_D	= parameters.VOXEL_WIDTH_D * parameters.LAMBDA_D;
 }
+void parameters_2_GPU()
+{
+	cudaMalloc((void**) &parameters_d, sizeof(parameters) );
+	cudaMemcpy( parameters_d, parameters_h,	sizeof(parameters),	cudaMemcpyHostToDevice );
+}
+void create_directories()
+{
+	
+}
 void test_func()
 {
+	//print_copyright_notice();
+	//apply_execution_arguments();
+	//apply_execution_arguments(unsigned int num_run_arguments, char** run_arguments)
 	//view_config_file();
-	cout << sizeof(bool) << sizeof(double) << sizeof(uint) << sizeof(parameters) << endl;
-	//printf("%lf\n",parameters.RECON_CYL_RADIUS_D );
-	//printf("%lf\n",parameters.RECON_CYL_DIAMETER_D );
+	set_execution_date();
 	read_config_file();
 	set_IO_paths();
-	cout << sizeof(parameters) << endl;
-	update_config_dependencies();
+	set_dependent_parameters();
 	parameters_2_GPU();
-	//printf("%lf\n",parameters.RECON_CYL_RADIUS_D );
-	//printf("%lf\n",parameters.RECON_CYL_DIAMETER_D );
+
+	//puts("Hello");
+	//char header[CONSOLE_WINDOW_WIDTH];
+	//construct_header_line( "Extracted directory names", '-', header );
+	//puts(header);
 	////cout << terminal_response("chdir", result2) << endl;
 	////cout <<  terminal_response("echo C:\\Users\\Blake\\Documents\\pCT_Data\\object_name\\Experimental\\DDMMYYYY") << endl;
 	//terminal_response("echo C:\\Users\\Blake\\Documents\\pCT_Data\\object_name\\Experimental\\DDMMYYYY", result2);
@@ -7212,30 +8090,8 @@ void test_func()
 	//create_unique_dir( current_MMDD(date_MMDD) );
 
 
-
-
-	//struct test_struct
-	//{
-	//	test_struct(): a(1), b('b'), c(0.0) {};
-	//	int a;
-	//	char b;
-	//	double c;
-	//};
-	//test_struct tested;
-	//cout << tested[0] << " " << tested[1] << " " << tested[2] << endl;
-	/*
-	char* name = "FBP_med7";
-	sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, name, ".bin" );
-	float* image = (float*)calloc( NUM_VOXELS, sizeof(float));
-	import_image( image, filename );
-	array_2_disk( name, OUTPUT_DIRECTORY, OUTPUT_FOLDER, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	*/
-	//read_config_file();
-	//double voxels[4] = {1,2,3,4};
-	//std::copy( hull_h, hull_h + NUM_VOXELS, x_h );
 	//std::function<double(int, int)> fn1 = my_divide;                    // function
-	//int x = 2;
-	//int y = 3;
+
 	//cout << func_pass_test(x,y, fn1) << endl;
 	//std::function<double(double, double)> fn2 = my_divide2;                    // function
 	//double x2 = 2;
@@ -7245,41 +8101,9 @@ void test_func()
 	//std::function<int(int)> fn3 = third_t();               // function object
 	//std::function<int(int)> fn4 = [](int x){return x/4;};  // lambda expression
 	//std::function<int(int)> fn5 = std::negate<int>();      // standard function object
-	//create_MLP_test_image();
-	//array_2_disk( "MLP_image_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_test_image_h, MLP_IMAGE_COLUMNS, MLP_IMAGE_ROWS, MLP_IMAGE_SLICES, MLP_IMAGE_VOXELS, true );
-	//MLP_test();
-	//array_2_disk( "MLP_image", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_test_image_h, MLP_IMAGE_COLUMNS, MLP_IMAGE_ROWS, MLP_IMAGE_SLICES, MLP_IMAGE_VOXELS, true );
-	double* x = (double*) calloc(4, sizeof(double) );
-	double* y = (double*) calloc(4, sizeof(double) );
-	double* z = (double*) calloc(4, sizeof(double) );
 
-	double* x_d, *y_d, *z_d;
-	//sinogram_filtered_h = (float*) calloc( NUM_BINS, sizeof(float) );
-	cudaMalloc((void**) &x_d, 4*sizeof(double));
-	cudaMalloc((void**) &y_d, 4*sizeof(double));
-	cudaMalloc((void**) &z_d, 4*sizeof(double));
-
-	cudaMemcpy( x_d, x, 4*sizeof(double), cudaMemcpyHostToDevice);
-	cudaMemcpy( y_d, y, 4*sizeof(double), cudaMemcpyHostToDevice);
-	cudaMemcpy( z_d, z, 4*sizeof(double), cudaMemcpyHostToDevice);
-
-	dim3 dimBlock( 1 );
-	dim3 dimGrid( 1 );   	
-	test_func_device<<< dimGrid, dimBlock >>>( parameters_d, x_d, y_d, z_d );
-
-	cudaMemcpy( x, x_d, 4*sizeof(double), cudaMemcpyDeviceToHost);
-	cudaMemcpy( y, y_d, 4*sizeof(double), cudaMemcpyDeviceToHost);
-	cudaMemcpy( z, z_d, 4*sizeof(double), cudaMemcpyDeviceToHost);
-
-	//for( unsigned int i = 0; i < 4; i++)
-	//{
-	//	printf("%3f\n", x[i] );
-	//	printf("%3f\n", y[i] );
-	//	printf("%3f\n", z[i] );
-	//	//cout << x[i] << endl; // -8.0
-	//	//cout << y[i] << endl;
-	//	//cout << z[i] << endl;
-	//}
+	//test_transfer();
+	//add_log_entry();
 }
 void test_func2( std::vector<int>& bin_numbers, std::vector<double>& data )
 {
@@ -7681,6 +8505,312 @@ __global__ void test_func_GPU( configurations* parameters, int* a)
 	//test_func_device( x, y, z );
 	//image[voxel] = x * y * z;
 }
+void set_configs_2_defines()
+{
+	/*strcpy(parameter_container.PROJECTION_DATA_DIR, PROJECTION_DATA_DIR );
+	strcpy(parameter_container.PREPROCESSING_DIR_D, PREPROCESSING_DIR );
+	strcpy(parameter_container.RECONSTRUCTION_DIR_D, RECONSTRUCTION_DIR );
+	strcpy(parameter_container.OBJECT_D, OBJECT );
+	strcpy(parameter_container.RUN_DATE_D, RUN_DATE );
+	strcpy(parameter_container.RUN_NUMBER_D, RUN_NUMBER );
+	strcpy(parameter_container.PROJECTION_DATA_DATE_D, PROJECTION_DATA_DATE );
+	strcpy(parameter_container.PREPROCESS_DATE_D, PREPROCESS_DATE );
+	strcpy(parameter_container.RECONSTRUCTION_DATE_D, RECONSTRUCTION_DATE );
+
+	puts(parameter_container.PROJECTION_DATA_DIR);
+	puts(parameter_container.PREPROCESSING_DIR_D);
+	puts(parameter_container.RECONSTRUCTION_DIR_D);
+	puts(parameter_container.OBJECT_D);
+	puts(parameter_container.RUN_DATE_D);
+	puts(parameter_container.RUN_NUMBER_D);
+	puts(parameter_container.PROJECTION_DATA_DATE_D);
+	puts(parameter_container.PREPROCESS_DATE_D);
+	puts(parameter_container.RECONSTRUCTION_DATE_D);*/
+
+	parameter_container.NUM_SCANS_D = NUM_SCANS;
+	parameter_container.GANTRY_ANGLE_INTERVAL_D = GANTRY_ANGLE_INTERVAL;
+	parameter_container.SSD_T_SIZE_D = SSD_T_SIZE;
+	parameter_container.SSD_V_SIZE_D = SSD_V_SIZE;
+	parameter_container.T_SHIFT_D = T_SHIFT;
+	parameter_container.U_SHIFT_D = U_SHIFT;
+	parameter_container.T_BIN_SIZE_D = T_BIN_SIZE;
+	parameter_container.T_BINS_D = T_BINS;
+	parameter_container.V_BIN_SIZE_D = V_BIN_SIZE;
+	parameter_container.V_BINS_D = V_BINS;
+	parameter_container.ANGULAR_BIN_SIZE_D = ANGULAR_BIN_SIZE;
+	parameter_container.SIGMAS_2_KEEP_D = SIGMAS_2_KEEP;
+	parameter_container.RECON_CYL_RADIUS_D = RECON_CYL_RADIUS;
+	parameter_container.RECON_CYL_HEIGHT_D = RECON_CYL_HEIGHT;
+	parameter_container.IMAGE_WIDTH_D = IMAGE_WIDTH;
+	parameter_container.IMAGE_HEIGHT_D = IMAGE_HEIGHT;
+	parameter_container.IMAGE_THICKNESS_D = IMAGE_THICKNESS;
+	parameter_container.COLUMNS_D = COLUMNS;
+	parameter_container.ROWS_D = ROWS;
+	parameter_container.SLICES_D = SLICES;
+	parameter_container.VOXEL_WIDTH_D = VOXEL_WIDTH;
+	parameter_container.VOXEL_HEIGHT_D = VOXEL_HEIGHT;
+	parameter_container.VOXEL_THICKNESS_D = VOXEL_THICKNESS;
+	parameter_container.LAMBDA_D = LAMBDA;
+	parameter_container.LAMBDA = LAMBDA;
+}
+void set_defines_2_configs()
+{
+	//PROJECTION_DATA_DIR = parameter_container.PROJECTION_DATA_DIR;
+	//OUTPUT_DIRECTORY = parameter_container.OUTPUT_DIRECTORY_D;
+	//INPUT_FOLDER = parameter_container.INPUT_FOLDER_D;
+	//OUTPUT_FOLDER = parameter_container.OUTPUT_FOLDER_D;
+	//PROJECTION_DATA_BASENAME = parameter_container.PROJECTION_DATA_BASENAME_D;
+	//PROJECTION_DATA_FILE_EXTENSION = parameter_container.PROJECTION_DATA_FILE_EXTENSION_D;
+	//parameters->NUM_SCANS_D = parameter_container.parameters->NUM_SCANS_D_D;
+	//GANTRY_ANGLE_INTERVAL = parameter_container.GANTRY_ANGLE_INTERVAL_D;
+	//SSD_T_SIZE = parameter_container.SSD_T_SIZE_D;
+	//SSD_V_SIZE = parameter_container.SSD_V_SIZE_D;
+	//T_SHIFT = parameter_container.T_SHIFT_D;
+	//U_SHIFT = parameter_container.U_SHIFT_D;
+	//T_BIN_SIZE = parameter_container.T_BIN_SIZE_D;
+	//T_BINS = parameter_container.T_BINS_D;
+	//V_BIN_SIZE = parameter_container.V_BIN_SIZE_D;
+	//V_BINS = parameter_container.V_BINS_D;
+	//ANGULAR_BIN_SIZE = parameter_container.ANGULAR_BIN_SIZE_D;
+	//SIGMAS_2_KEEP = parameter_container.SIGMAS_2_KEEP_D;
+	//RECON_CYL_RADIUS = parameter_container.RECON_CYL_RADIUS_D;
+	//RECON_CYL_HEIGHT = parameter_container.RECON_CYL_HEIGHT_D;
+	//IMAGE_WIDTH = parameter_container.IMAGE_WIDTH_D;
+	//IMAGE_HEIGHT = parameter_container.IMAGE_HEIGHT_D;
+	//IMAGE_THICKNESS = parameter_container.IMAGE_THICKNESS_D;
+	//COLUMNS = parameter_container.COLUMNS_D;
+	//ROWS = parameter_container.ROWS_D;
+	//SLICES = parameter_container.SLICES_D;
+	//VOXEL_WIDTH = parameter_container.VOXEL_WIDTH_D;
+	//VOXEL_HEIGHT = parameter_container.VOXEL_HEIGHT_D;
+	//VOXEL_THICKNESS = parameter_container.VOXEL_THICKNESS_D;
+	LAMBDA = parameter_container.LAMBDA_D;
+}
+
+void export_D_configuration_parameters()
+{
+	char run_settings_filename[512];
+	puts("Writing configuration_parameters struct elements to disk...");
+
+	sprintf(run_settings_filename, "%s\\%s", PREPROCESSING_DIR, CONFIG_FILENAME);
+
+	std::ofstream run_settings_file(run_settings_filename);		
+	if( !run_settings_file.is_open() ) {
+		printf("ERROR: run settings file not created properly %s!\n", run_settings_filename);	
+		exit_program_if(true);
+	}
+	char buf[64];
+	run_settings_file.setf (std::ios_base::showpoint);
+	/*run_settings_file << "PROJECTION_DATA_DIR = "		<<  "\""	<< parameters.PROJECTION_DATA_DIR						<< "\"" << std::endl;
+	run_settings_file << "PREPROCESSING_DIR_D = "		<<  "\""	<< parameters.PREPROCESSING_DIR_D						<< "\"" << std::endl;
+	run_settings_file << "RECONSTRUCTION_DIR_D = "		<<  "\""	<< parameters.RECONSTRUCTION_DIR_D						<< "\"" << std::endl;
+	run_settings_file << "OBJECT_D = "					<<  "\""	<< parameters.OBJECT_D									<< "\"" << std::endl;
+	run_settings_file << "RUN_DATE_D = "				<<  "\""	<< parameters.RUN_DATE_D								<< "\"" << std::endl;
+	run_settings_file << "RUN_NUMBER_D = "				<<  "\""	<< parameters.RUN_NUMBER_D								<< "\"" << std::endl;
+	run_settings_file << "PROJECTION_DATA_DATE_D = "	<<  "\""	<< parameters.PROJECTION_DATA_DATE_D					<< "\"" << std::endl;
+	run_settings_file << "RUN_NUMBER_D = "				<<  "\""	<< parameters.RUN_NUMBER_D								<< "\"" << std::endl;
+	run_settings_file << "PREPROCESS_DATE_D = "			<<  "\""	<< parameters.PREPROCESS_DATE_D							<< "\"" << std::endl;
+	run_settings_file << "RECONSTRUCTION_DATE_D = "		<<  "\""	<< parameters.RECONSTRUCTION_DATE_D						<< "\"" << std::endl;*/
+
+	run_settings_file << "PROJECTION_DATA_DIR = "	<<  "\""	<< PROJECTION_DATA_DIR								<< "\"" << std::endl;
+	run_settings_file << "PREPROCESSING_DIR = "		<<  "\""	<< PREPROCESSING_DIR								<< "\"" << std::endl;
+	run_settings_file << "RECONSTRUCTION_DIR = "	<<  "\""	<< RECONSTRUCTION_DIR								<< "\"" << std::endl;
+	run_settings_file << "OBJECT = "				<<  "\""	<< OBJECT											<< "\"" << std::endl;
+	run_settings_file << "RUN_DATE = "				<<  "\""	<< RUN_DATE											<< "\"" << std::endl;
+	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
+	run_settings_file << "PROJECTION_DATA_DATE = "	<<  "\""	<< PROJECTION_DATA_DATE								<< "\"" << std::endl;
+	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
+	run_settings_file << "PREPROCESS_DATE = "		<<  "\""	<< PREPROCESS_DATE									<< "\"" << std::endl;
+	run_settings_file << "RECONSTRUCTION_DATE = "	<<  "\""	<< RECONSTRUCTION_DATE								<< "\"" << std::endl;
+
+	run_settings_file << "NUM_SCANS = "				<< parameters.NUM_SCANS_D												<< std::endl;
+	run_settings_file << "T_BINS = "				<< parameters.T_BINS_D													<< std::endl;
+	run_settings_file << "V_BINS = "				<< parameters.V_BINS_D													<< std::endl;
+	run_settings_file << "COLUMNS = "				<< parameters.COLUMNS_D													<< std::endl;
+	run_settings_file << "ROWS = "					<< parameters.ROWS_D													<< std::endl;
+	run_settings_file << "SLICES = "				<< parameters.SLICES_D													<< std::endl;
+	run_settings_file << "SIGMAS_2_KEEP = "			<< parameters.SIGMAS_2_KEEP_D											<< std::endl;
+	run_settings_file << "GANTRY_ANGLE_INTERVAL = "	<< minimize_trailing_zeros( parameters.GANTRY_ANGLE_INTERVAL_D, buf	)	<< std::endl;
+	run_settings_file << "ANGULAR_BIN_SIZE = "		<< minimize_trailing_zeros( parameters.ANGULAR_BIN_SIZE_D, buf )		<< std::endl;
+	run_settings_file << "SSD_T_SIZE = "			<< minimize_trailing_zeros( parameters.SSD_T_SIZE_D, buf )				<< std::endl;
+	run_settings_file << "SSD_V_SIZE = "			<< minimize_trailing_zeros( parameters.SSD_V_SIZE_D, buf )				<< std::endl;
+	run_settings_file << "T_SHIFT = "				<< minimize_trailing_zeros( parameters.T_SHIFT_D, buf )					<< std::endl;
+	run_settings_file << "U_SHIFT = "				<< minimize_trailing_zeros( parameters.U_SHIFT_D, buf )					<< std::endl;
+	run_settings_file << "T_BIN_SIZE = "			<< minimize_trailing_zeros( parameters.T_BIN_SIZE_D, buf )				<< std::endl;	
+	run_settings_file << "V_BIN_SIZE = "			<< minimize_trailing_zeros( parameters.V_BIN_SIZE_D, buf )				<< std::endl;		
+	run_settings_file << "RECON_CYL_RADIUS = "		<< minimize_trailing_zeros( parameters.RECON_CYL_RADIUS_D, buf )		<< std::endl;
+	run_settings_file << "RECON_CYL_HEIGHT = "		<< minimize_trailing_zeros( parameters.RECON_CYL_HEIGHT_D, buf )		<< std::endl;
+	run_settings_file << "IMAGE_WIDTH = "			<< minimize_trailing_zeros( parameters.IMAGE_WIDTH_D, buf )				<< std::endl;
+	run_settings_file << "IMAGE_HEIGHT = "			<< minimize_trailing_zeros( parameters.IMAGE_HEIGHT_D, buf )			<< std::endl;
+	run_settings_file << "IMAGE_THICKNESS = "		<< minimize_trailing_zeros( parameters.IMAGE_THICKNESS_D, buf )			<< std::endl;
+	run_settings_file << "VOXEL_WIDTH = "			<< minimize_trailing_zeros( parameters.VOXEL_WIDTH_D, buf )				<< std::endl;
+	run_settings_file << "VOXEL_HEIGHT = "			<< minimize_trailing_zeros( parameters.VOXEL_HEIGHT_D, buf )			<< std::endl;
+	run_settings_file << "VOXEL_THICKNESS = "		<< minimize_trailing_zeros( parameters.VOXEL_THICKNESS_D, buf )			<< std::endl;
+	run_settings_file << "LAMBDA = "				<< minimize_trailing_zeros( parameters.LAMBDA_D, buf )					<< std::endl;
+	run_settings_file << "LAMBDA = "				<< minimize_trailing_zeros( parameters.LAMBDA, buf )					<< std::endl;
+	run_settings_file.close();	
+}
+void export_configuration_parameters()
+{
+	char run_settings_filename[512];
+	puts("Writing configuration_parameters struct elements to disk...");
+
+	sprintf(run_settings_filename, "%s\\%s", PREPROCESSING_DIR, CONFIG_FILENAME);
+
+	std::ofstream run_settings_file(run_settings_filename);		
+	if( !run_settings_file.is_open() ) {
+		printf("ERROR: run settings file not created properly %s!\n", run_settings_filename);	
+		exit_program_if(true);
+	}
+	char buf[64];
+	run_settings_file.setf (std::ios_base::showpoint);
+	run_settings_file << "PROJECTION_DATA_DIR = "	<<  "\""	<< PROJECTION_DATA_DIR								<< "\"" << std::endl;
+	run_settings_file << "PREPROCESSING_DIR = "		<<  "\""	<< PREPROCESSING_DIR								<< "\"" << std::endl;
+	run_settings_file << "RECONSTRUCTION_DIR = "	<<  "\""	<< RECONSTRUCTION_DIR								<< "\"" << std::endl;
+	run_settings_file << "OBJECT = "				<<  "\""	<< OBJECT											<< "\"" << std::endl;
+	run_settings_file << "RUN_DATE = "				<<  "\""	<< RUN_DATE											<< "\"" << std::endl;
+	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
+	run_settings_file << "PROJECTION_DATA_DATE = "	<<  "\""	<< PROJECTION_DATA_DATE								<< "\"" << std::endl;
+	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
+	run_settings_file << "PREPROCESS_DATE = "		<<  "\""	<< PREPROCESS_DATE									<< "\"" << std::endl;
+	run_settings_file << "RECONSTRUCTION_DATE = "	<<  "\""	<< RECONSTRUCTION_DATE								<< "\"" << std::endl;
+	run_settings_file << "NUM_SCANS = "							<<  NUM_SCANS												<< std::endl;
+	run_settings_file << "T_BINS = "							<<  T_BINS													<< std::endl;
+	run_settings_file << "V_BINS = "							<<  V_BINS													<< std::endl;
+	run_settings_file << "COLUMNS = "							<<  COLUMNS													<< std::endl;
+	run_settings_file << "ROWS = "								<<  ROWS													<< std::endl;
+	run_settings_file << "SLICES = "							<<  SLICES													<< std::endl;
+	run_settings_file << "SIGMAS_2_KEEP = "						<<  SIGMAS_2_KEEP											<< std::endl;
+	run_settings_file << "GANTRY_ANGLE_INTERVAL = "				<< minimize_trailing_zeros( GANTRY_ANGLE_INTERVAL, buf )	<< std::endl;
+	run_settings_file << "ANGULAR_BIN_SIZE = "					<< minimize_trailing_zeros( ANGULAR_BIN_SIZE, buf )			<< std::endl;
+	run_settings_file << "SSD_T_SIZE = "						<< minimize_trailing_zeros( SSD_T_SIZE, buf )				<< std::endl;
+	run_settings_file << "SSD_V_SIZE = "						<< minimize_trailing_zeros( SSD_V_SIZE, buf )				<< std::endl;
+	run_settings_file << "T_SHIFT = "							<< minimize_trailing_zeros( T_SHIFT, buf )					<< std::endl;
+	run_settings_file << "U_SHIFT = "							<< minimize_trailing_zeros( U_SHIFT, buf )					<< std::endl;
+	run_settings_file << "T_BIN_SIZE = "						<< minimize_trailing_zeros( T_BIN_SIZE, buf )				<< std::endl;	
+	run_settings_file << "V_BIN_SIZE = "						<< minimize_trailing_zeros( V_BIN_SIZE, buf )				<< std::endl;		
+	run_settings_file << "RECON_CYL_RADIUS = "					<< minimize_trailing_zeros( RECON_CYL_RADIUS, buf )			<< std::endl;
+	run_settings_file << "RECON_CYL_HEIGHT = "					<< minimize_trailing_zeros( RECON_CYL_HEIGHT, buf )			<< std::endl;
+	run_settings_file << "IMAGE_WIDTH = "						<< minimize_trailing_zeros( IMAGE_WIDTH, buf )				<< std::endl;
+	run_settings_file << "IMAGE_HEIGHT = "						<< minimize_trailing_zeros( IMAGE_HEIGHT, buf )				<< std::endl;
+	run_settings_file << "IMAGE_THICKNESS = "					<< minimize_trailing_zeros( IMAGE_THICKNESS, buf )			<< std::endl;
+	run_settings_file << "VOXEL_WIDTH = "						<< minimize_trailing_zeros( VOXEL_WIDTH, buf )				<< std::endl;
+	run_settings_file << "VOXEL_HEIGHT = "						<< minimize_trailing_zeros( VOXEL_HEIGHT, buf )				<< std::endl;
+	run_settings_file << "VOXEL_THICKNESS = "					<< minimize_trailing_zeros( VOXEL_THICKNESS, buf )			<< std::endl;
+	run_settings_file << "LAMBDA = "							<< minimize_trailing_zeros( LAMBDA, buf )					<< std::endl;
+	run_settings_file.close();
+}
+void set_data_info( char * path)
+{
+	//char OBJECT[]					= "Object";
+	//char* DATA_TYPE_DIR;
+	//char RUN_DATE[]					= "MMDDYYYY";
+	//char RUN_NUMBER[]				= "Run";
+	//char PREPROCESS_DATE[]			= "MMDDYYYY";
+	//char RECONSTRUCTION_DIR[]		= "Reconstruction";
+	//char RECONSTRUCTION_DATE[]				= "MMDDYYYY";
+	//char PCT_IMAGES[]				= "Images";
+	//char REFERENCE_IMAGES[]			= "Reference_Images";
+	//char TEST_OUTPUT_FILE[]			= "export_testing.cfg";
+	char * pch = strtok (path,  "\\ : \n");
+	  while (pch != NULL)
+	  {
+		printf ("%s\n",pch);
+		pch = strtok (NULL, "\\ : \n");
+		if( strcmp(pch, "pCT_Data") == 0) 
+			break;
+	  }
+	pch = strtok (NULL, "\\ : \n");
+	if(pch != NULL)
+		if( strcmp(pch, "object_name") == 0)
+			cout << "object_name found" << endl;
+	pch = strtok (NULL, "\\ : \n");
+	if(pch != NULL)
+		if( strcmp(pch, "Experimental") == 0)
+			cout << "Experimental found" << endl;
+	pch = strtok (NULL, "\\ : \n");
+	if(pch != NULL)
+		if( strcmp(pch, "DDMMYYYY") == 0)
+			cout << "DDMMYYYY found" << endl;
+}
+bool preprocessing_data_exists()
+{
+	return true;
+}
+//void add_log_entry()
+//{
+//	// PATH_2_PCT_DATA_DIR/LOG_FILENAME
+//	char buf[64];	
+//	//char* open_quote_pos;
+//	const uint buf_size = 1024;
+//	char log_path[256];
+//	sprintf( log_path, "%s/%s", PATH_2_PCT_DATA_DIR, LOG_FILENAME );
+//	FILE* log_file = fopen(log_path, "r+" );
+//	char line[buf_size];
+//	//int string_leng5th;
+//	//generic_IO_container input_value;
+//	// Remove leading spaces/tabs and return first line which does not begin with comment command "//" and is not blank
+//	char item[256], item_name[256], remainder[256];
+//	char object[256], scan_type[256], run_date[256], run_num[256], proj_date[256], pre_date[256], recon_date[256];
+//	
+//	fgets_validated(line, buf_size, log_file);
+//	sscanf (line, "%s: %s", &item, &object );
+//	//while( strcmp( object, OBJECT ) != 0 )
+//	printf("%s = %s\n", line, object );
+//	while( strcmp( item, "Object" ) != 0 )
+//	{
+//		fgets_validated(line, buf_size, log_file);
+//		sscanf (line, "%s: %s", &item, &object );
+//		printf("%s = %s\n", line, object );
+//		if( feof(log_file) )
+//		{
+//			return;
+//			puts("Return");
+//		}
+//	}
+//	//if( strcmp( object, "object_name" ) < 0)
+//
+//	//else
+//
+//	fgets_validated(line, buf_size, log_file);
+//	sscanf (line, "Object: %s", &object );
+//	fprintf(log_file, "Hello");
+//	//sscanf (line, " %s = %s %s", &item, &item_name, &remainder );idated(log_file, line, buf_size);
+//	//if( strcmp( line, OBJECT ) == 0 )
+//	//{
+//	//	fgets_validated(log_file, line, buf_size);
+//	//	fprintf (log_file, "\n" );
+//	//}
+//	//else
+//	//	fprintf (log_file, "Object = %s\n", OBJECT);
+//	//puts("Hello");
+//	//fprintf( log_file, "\tScan Type = %s : %s %s %s %s %s ", SCAN_TYPE, RUN_DATE, RUN_NUMBER, PROJECTION_DATA_DATE, PREPROCESS_DATE, RECONSTRUCTION_DATE);
+//	////fwrite( &reconstruction_histories, sizeof(unsigned int), 1, log_file );
+//	fclose(log_file);
+//}
+//bool find_log_item( FILE* log_file, char* log_item, char* log_item_name )
+//{
+//	char buf[64];	
+//	//char* open_quote_pos;
+//	const uint buf_size = 1024;
+//	char key_value_pair[256];
+//	char item[256], item_name[256], remainder[256];
+//	sprintf( key_value_pair, "%s = %s", log_item, log_item_name );
+//	char line[buf_size];
+//
+//	fgets_validated(log_file, line, buf_size);
+//	sscanf (line, " %s = %s %s", &item, &item_name, &remainder );
+//	while( strcmp( line, item ) < 0 )
+//	{
+//		fgets_validated(log_file, line, buf_size);
+//		sscanf (line, " %s = %s %s", &item, &item_name, &remainder );
+//	}
+//	if( strcmp( line, log_item ) == 0 )
+//		fprintf (log_file, "\nObject: %s\n", log_item );
+//	else
+//		fprintf (log_file, "\n" );
+//	return true;
+//}
 void findANumber()
 {
 	std::vector<std::vector< ULL > > pages(10, std::vector< ULL >(0));

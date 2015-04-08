@@ -12,6 +12,7 @@ typedef unsigned int uint;
 /*--------------------------------------------- Preprocessing and reconstruction configuration/parameter container definitions --------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char EXECUTION_DATE[9];
+bool CONFIG_PATH_PASSED = false;			// [T/F] Path to "settings.cfg" passed as command line argument [T] or inferred from current directory [F]
 unsigned int num_run_arguments;
 char** run_arguments;
 
