@@ -101,7 +101,9 @@ int* SM_counts_h, * SM_counts_d;
 int* MLP_test_image_h, * MLP_test_image_d;
 float* x_FBP_h, * x_FBP_d;
 float* x_FBP_filtered_h, * x_FBP_filtered_d;
-float* FBP_median_filtered_h, * FBP_median_filtered_d;
+float* FBP_median_filtered_2D_h, * FBP_median_filtered_2D_d;
+float* FBP_median_filtered_3D_h, * FBP_median_filtered_3D_d;
+
 double* x_update_h, * x_update_d;
 unsigned int* num_voxel_intersections_h, * num_voxel_intersections_d;
 unsigned int* intersection_counts_h, * intersection_counts_d;
