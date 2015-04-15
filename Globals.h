@@ -15,6 +15,7 @@ char EXECUTION_DATE[9];
 bool CONFIG_PATH_PASSED = false;			// [T/F] Path to "settings.cfg" passed as command line argument [T] or inferred from current directory [F]
 unsigned int num_run_arguments;
 char** run_arguments;
+std::stringstream buffer;
 
 uint PHANTOM_NAME_SIZE, DATA_SOURCE_SIZE, PREPARED_BY_SIZE, SKIP_2_DATA_SIZE, VERSION_ID, PROJECTION_INTERVAL;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/

@@ -7,6 +7,7 @@
 typedef unsigned long long ULL;
 typedef unsigned int uint;
 struct configurations;
+enum LOG_ENTRIES;
 
 // 32 uint (128), 1 int (4), 38 double (304), 22 bool (22) = 458 + padding = 464
 struct configurations
@@ -38,6 +39,7 @@ struct configurations
 	X_0_TYPES	X_0_TYPE;									// Specify which of the HULL_TYPES to use in this run's MLP calculations
 	RECON_ALGORITHMS RECONSTRUCTION_METHOD; 				// Specify which of the projection algorithms to use for image reconstruction
 	
+	bool LOG_2_TEXT_FILE;
 	bool IMPORT_PREPROCESSED_DATA_D, PERFORM_RECONSTRUCTION_D, PREPROCESS_OVERWRITE_OK_D, RECON_OVERWRITE_OK_D;
 	bool FBP_ON_D, AVG_FILTER_FBP_D, MEDIAN_FILTER_FBP_D, IMPORT_FILTERED_FBP_D, SC_ON_D, MSC_ON_D, SM_ON_D;
 	bool AVG_FILTER_HULL_D, AVG_FILTER_ITERATE_D;//, MLP_FILE_EXISTS_D, HISTORIES_FILE_EXISTS_D;
@@ -109,6 +111,7 @@ struct configurations
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		//------------------------------------------------------------ Program execution behavior options/parameters ----------------------------------------------------------//
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+		bool log_2_text_file_p			= true,
 		bool import_preprocessed_data_p	= true,								// [T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
 		bool perform_reconstruction_p	= true,								// [T/F] Perform reconstruction (T) or not (F)
 		bool preprocess_overwrite_ok_p	= false,							// [T/F] Allow preprocessing data to be overwritten (T) or not (F)
@@ -246,6 +249,7 @@ struct configurations
 	//*************************************************************************************************************************************************************************//
 	//*********************************************************************** Preprocessing control options *******************************************************************//
 	//*************************************************************************************************************************************************************************//
+	LOG_2_TEXT_FILE(log_2_text_file_p),
 	IMPORT_PREPROCESSED_DATA_D(import_preprocessed_data_p),					// *[T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
 	PERFORM_RECONSTRUCTION_D(perform_reconstruction_p),						// *[T/F] Perform reconstruction (T) or not (F)
 	PREPROCESS_OVERWRITE_OK_D(preprocess_overwrite_ok_p),					// *[T/F] Allow preprocessing data to be overwritten (T) or not (F)
@@ -305,6 +309,7 @@ template<typename T> void initialize_host_image( T*& );
 template<typename T> void add_ellipse( T*&, int, double, double, double, double, T );
 template<typename T> void add_circle( T*&, int, double, double, double, T );
 template<typename O> void import_image( O*&, char*, char*, DISK_WRITE_MODE );
+template<typename T> void binary_2_txt_images( char*, char*, T*& );
 
 // Preprocessing setup and initializations 
 //void apply_execution_arguments();
@@ -348,10 +353,17 @@ void SM( const uint );
 void SM_edge_detection();
 void SM_edge_detection_2();
 void hull_selection();
-template<typename T, typename T2> void averaging_filter( T*&, T2*&, int, bool, double );
-//template<typename H, typename D> void median_filter_2D( H*&, D*&, unsigned int );
-template<typename T> void median_filter_2D( T*& input_image, unsigned int radius );
-template<typename T> void median_filter_3D( T*& input_image, unsigned int radius );
+
+// Image filtering functions
+template<typename H, typename D> void averaging_filter( H*&, D*&, int, bool, double );
+template<typename D> __global__ void averaging_filter_GPU( configurations*, D*, D*, int, bool, double );
+template<typename T> void median_filter_2D( T*&, unsigned int );
+template<typename T> void median_filter_2D( T*&, T*&, unsigned int );
+template<typename D> __global__ void median_filter_GPU( configurations*, D*, D*, int, bool, double );
+template<typename T> void median_filter_3D( T*&, T*&, unsigned int );
+template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( configurations*, T*, T2* );
+void median_filter_FBP_2D( float*&, uint );
+void median_filter_FBP_3D( float*&, uint );
 
 // MLP
 void MLP();
@@ -463,7 +475,6 @@ void export_D_configuration_parameters();
 void export_configuration_parameters();
 void set_data_info( char *);
 bool preprocessing_data_exists();
-void add_log_entry();
 void add_object_directory(char*, char*);
 int add_run_directory(char*, char*, char*, char*, SCAN_TYPES );
 int add_pCT_Images_dir(char*, char*, char*, char*, SCAN_TYPES );
@@ -485,10 +496,25 @@ void view_config_file();
 void set_dependent_parameters();
 void parameters_2_GPU();
 
+// Log file functions
+LOG_OBJECT read_log();
+std::vector<int> scan_log_4_matches( LOG_OBJECT );
+std::string format_log_entry(char*, uint  );
+LOG_LINE construct_log_entry();
+void new_log_entry( LOG_OBJECT );
+void add_log_entry( LOG_ENTRIES );
+void log_add_entry( LOG_ENTRIES );
+void print_log( LOG_OBJECT );
+void write_log( LOG_OBJECT);
+void log_write_test();
+void log_write_test2();
+void log_write_test3();
+
 // Test functions
 void test_func();
 void test_func2( std::vector<int>&, std::vector<double>&);
-
+void test_transfer();
+void test_transfer_GPU(double*, double*, double*);
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Device (GPU) function forward declarations *************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -1064,9 +1090,9 @@ bool key_is_integer_parameter( char* key )
 	( 
 			strcmp (key, "DATA_TYPE") == 0
 		|| 	strcmp (key, "HULL_TYPE") == 0
-		||	strcmp (key, "FBP_FILTER") == 0
+		||	strcmp (key, "FBP_FILTER_TYPE") == 0
 		||	strcmp (key, "X_0_TYPE") == 0
-		||	strcmp (key, "RECON_ALGORITHM") == 0
+		||	strcmp (key, "RECONSTRUCTION_METHOD") == 0
 		||	strcmp (key, "NUM_SCANS") == 0
 		||	strcmp (key, "MAX_GPU_HISTORIES") == 0
 		||	strcmp (key, "MAX_CUTS_HISTORIES") == 0
@@ -1093,7 +1119,8 @@ bool key_is_boolean_parameter( char* key )
 {
 	if
 	( 
-			strcmp (key, "IMPORT_PREPROCESSED_DATA") == 0
+			strcmp (key, "LOG_2_TEXT_FILE") == 0
+		||	strcmp (key, "IMPORT_PREPROCESSED_DATA") == 0
 		||	strcmp (key, "PERFORM_RECONSTRUCTION") == 0
 		||	strcmp (key, "PREPROCESS_OVERWRITE_OK") == 0
 		||	strcmp (key, "RECON_OVERWRITE_OK") == 0
@@ -1478,7 +1505,7 @@ void set_integer_parameter( generic_IO_container &value )
 		parameters.HULL_TYPE = HULL_TYPES(value.integer_input);
 		//HULL = HULL_TYPES(value.integer_input);
 	}
-	else if( strcmp (value.key, "FBP_FILTER") == 0 )
+	else if( strcmp (value.key, "FBP_FILTER_TYPE") == 0 )
 	{
 		if( value.integer_input < 0 )
 		{
@@ -1502,7 +1529,7 @@ void set_integer_parameter( generic_IO_container &value )
 		parameters.X_0_TYPE = X_0_TYPES(value.integer_input);
 		//X_0 = X_0_TYPES(value.integer_input);
 	}
-	else if( strcmp (value.key, "RECON_ALGORITHM") == 0 )
+	else if( strcmp (value.key, "RECONSTRUCTION_METHOD") == 0 )
 	{
 		if( value.integer_input < 0 )
 		{
@@ -1712,7 +1739,12 @@ void set_boolean_parameter( generic_IO_container &value )
 		printf("converted to a boolean and ");
 	printf("set to %s\n", value.string_input );
 
-	if( strcmp (value.key, "IMPORT_PREPROCESSED_DATA") == 0 )
+	if( strcmp (value.key, "LOG_2_TEXT_FILE") == 0 )
+	{
+		//LOG_2_TEXT_FILE = value.boolean_input;
+		parameters.LOG_2_TEXT_FILE = value.boolean_input;
+	}
+	else if( strcmp (value.key, "IMPORT_PREPROCESSED_DATA") == 0 )
 	{
 		//IMPORT_PREPROCESSED_DATA = value.boolean_input;
 		parameters.IMPORT_PREPROCESSED_DATA_D = value.boolean_input;
@@ -1934,6 +1966,9 @@ void set_IO_paths()
 		sprintf(mkdir_command, "mkdir \"%s\"", PREPROCESSING_DIR );
 		if( system( mkdir_command ) )
 			puts("\nNOTE: Any existing data in this directory will be overwritten");
+		//std::string text = buffer.str();
+		////std::cout << text << endl;
+		//printf( "Hello %s\n", text );
 	}
 	else
 		create_unique_dir( PREPROCESSING_DIR );
@@ -1954,6 +1989,8 @@ void set_IO_paths()
 		sprintf(mkdir_command, "mkdir \"%s\"", RECONSTRUCTION_DIR );
 		if( system( mkdir_command ) )
 			puts("\nNOTE: Any existing data in this directory will be overwritten");
+		//std::string text = buffer.str();
+		//printf( "Hello %s\n", text );
 	}
 	else
 		create_unique_dir( RECONSTRUCTION_DIR );
@@ -1970,8 +2007,8 @@ void set_IO_paths()
 	
 	HULL_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
 	FBP_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
-	FBP_MEDIAN_2D_FILENAME = (char*) calloc( strlen(FBP_MEDIAN_BASENAME) + 3 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
-	FBP_MEDIAN_3D_FILENAME = (char*) calloc( strlen(FBP_MEDIAN_BASENAME) + 3 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_MEDIAN_2D_FILENAME = (char*) calloc( strlen(FBP_MEDIAN_2D_BASENAME) + 3 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_MEDIAN_3D_FILENAME = (char*) calloc( strlen(FBP_MEDIAN_3D_BASENAME) + 3 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
 	X_0_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
 	MLP_FILENAME = (char*) calloc( strlen(MLP_BASENAME) + strlen(MLP_FILE_EXTENSION) + 1, sizeof(char) );
 	RECON_HISTORIES_FILENAME = (char*) calloc( strlen(RECON_HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION) + 1, sizeof(char) );
@@ -1979,8 +2016,8 @@ void set_IO_paths()
 
 	sprintf( HULL_FILENAME,"%s%s", HULL_BASENAME, HULL_FILE_EXTENSION );
 	sprintf( FBP_FILENAME,"%s%s", FBP_BASENAME, FBP_FILE_EXTENSION );
-	sprintf( FBP_MEDIAN_2D_FILENAME,"%s_2D%d%s", FBP_MEDIAN_BASENAME, 2 * parameters.FBP_MEDIAN_RADIUS_D + 1, FBP_MEDIANS_FILE_EXTENSION);
-	sprintf( FBP_MEDIAN_3D_FILENAME,"%s_3D%d%s", FBP_MEDIAN_BASENAME, 2 * parameters.FBP_MEDIAN_RADIUS_D + 1, FBP_MEDIANS_FILE_EXTENSION);
+	sprintf( FBP_MEDIAN_2D_FILENAME,"%s_2D%d%s", FBP_MEDIAN_2D_BASENAME, 2 * parameters.FBP_MEDIAN_RADIUS_D + 1, FBP_MEDIANS_FILE_EXTENSION);
+	sprintf( FBP_MEDIAN_3D_FILENAME,"%s_3D%d%s", FBP_MEDIAN_3D_BASENAME, 2 * parameters.FBP_MEDIAN_RADIUS_D + 1, FBP_MEDIANS_FILE_EXTENSION);
 	sprintf( X_0_FILENAME, "%s%s", X_0_BASENAME, X_0_FILE_EXTENSION );
 	sprintf( MLP_FILENAME,"%s%s", MLP_BASENAME, MLP_FILE_EXTENSION );
 	sprintf( RECON_HISTORIES_FILENAME,"%s%s", RECON_HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION);

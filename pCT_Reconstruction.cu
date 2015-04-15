@@ -18,8 +18,36 @@
 /***********************************************************************************************************************************************************************************************************************/
 /***************************************************************************************************** Program Main ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
+//void printf_logged(char* output )
+//{
+//
+//}
+//puts_logged(char* output)
+//{
+//
+//}
 int main(unsigned int num_arguments, char** arguments)
 {
+	//system("robust_pct 2>& test.txt");
+	//std::stringstream buffer;
+	//std::streambuf * old = std::cout.rdbuf(buffer.rdbuf());
+	//std::streambuf * old = std::cin.rdbuf(buffer.rdbuf());
+	//std::streambuf * old2 = std::cerr.rdbuf(buffer.rdbuf());
+	//freopen("out.txt","a+",stdin);
+	//freopen("out.txt","w",stderr);
+	//system("mkdir 2>& out.txt");
+	//int file = open("myfile.txt", O_APPEND | O_WRONLY);
+    //if(file < 0)    return 1;
+ 
+    //Now we redirect standard output to the file using dup2
+    //if(dup2(file,1) < 0)    return 1;
+
+	//if( parameters.LOG_2_TEXT_FILE )
+		//freopen("out.txt","w+",stdout);
+	//freopen("out.txt","w+",stdin);
+	//freopen("out.txt","w+",stderr);
+	//system("script out.txt");
+	//system("script C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct/out.txt");
 	set_execution_date();
 	apply_execution_arguments( num_arguments, arguments );
 	if( RUN_ON )
@@ -218,6 +246,8 @@ int main(unsigned int num_arguments, char** arguments)
 	//puts("-------------------------------------------------------------------------------\n");
 	print_section_header("Program has finished executing", '-' );
 	exit_program_if(true);
+	//std::string text = buffer.str();
+	//cout << text << endl;
 }
 /***********************************************************************************************************************************************************************************************************************/
 /**************************************************************************************** t/v conversions and energy calibrations **************************************************************************************/
@@ -677,6 +707,14 @@ template<typename O> void import_image( O*& import_into, char* directory, char* 
 						fread(import_into, sizeof(O), parameters.NUM_VOXELS_D, input_file );
 						fclose(input_file);
 	}
+}
+template<typename T> void binary_2_txt_images( char* path, char* filename, T*& image )
+{
+	print_section_header( "Importing binary image and writing a copy to disk in text format...", '*' );	
+	image = (T*) calloc( parameters.NUM_VOXELS_D, sizeof(T) );
+	import_image( image, path, filename, BINARY );
+	array_2_disk(filename, path, TEXT, image, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	puts("Binary image has been imported and a text image has been generated and written to disk with the same filename.");
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Data importation, initial cuts, and binning ************************************************************************************/
@@ -2929,6 +2967,8 @@ void hull_selection()
 	puts("Hull selection complete."); 
 }
 /***********************************************************************************************************************************************************************************************************************/
+/*********************************************************************************************** Image filtering functions *********************************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
 template<typename H, typename D> void averaging_filter( H*& image_h, D*& image_d, int radius, bool perform_threshold, double threshold_value )
 {
 	//bool is_hull = ( typeid(bool) == typeid(D) );
@@ -3151,6 +3191,73 @@ template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( co
 	int voxel = voxel_x + voxel_y * parameters->COLUMNS_D + voxel_z * parameters->COLUMNS_D * parameters->ROWS_D;
 	image[voxel] = new_value[voxel];
 }
+void median_filter_FBP_2D(float*& FBP, uint radius)
+{			
+	FBP_median_filtered_2D_h = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
+	median_filter_2D( FBP, FBP_median_filtered_2D_h, radius );
+	puts("FBP image 2D median filtered");
+	char FBP_basename_w_radius[256];
+	
+	sprintf(FBP_basename_w_radius, "%s_%d", FBP_MEDIAN_2D_BASENAME,  2 * parameters.FBP_MEDIAN_RADIUS_D + 1 );
+	if( strcmp( FBP_MEDIANS_FILE_EXTENSION, ".txt" ) == 0 )
+		array_2_disk(FBP_basename_w_radius, PREPROCESSING_DIR, TEXT, FBP_median_filtered_2D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	else if( strcmp( FBP_MEDIANS_FILE_EXTENSION, ".bin" ) == 0 )
+		array_2_disk(FBP_basename_w_radius, PREPROCESSING_DIR, BINARY, FBP_median_filtered_2D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	else
+	{
+		puts("ERROR: Invalid file extension specified for median filtered FBP images"); 
+		exit_program_if(true);
+	}
+}
+void median_filter_FBP_3D(float*& FBP, uint radius)
+{
+	FBP_median_filtered_3D_h = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
+	median_filter_3D( FBP, FBP_median_filtered_3D_h, radius );
+	puts("FBP image 3D median filtered");
+	char FBP_basename_w_radius[256];
+	sprintf(FBP_basename_w_radius, "%s_%d", FBP_MEDIAN_3D_BASENAME,  2 * parameters.FBP_MEDIAN_RADIUS_D + 1 );
+	if( strcmp( FBP_MEDIANS_FILE_EXTENSION, ".txt" ) == 0 )
+		array_2_disk(FBP_basename_w_radius, PREPROCESSING_DIR, TEXT, FBP_median_filtered_3D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	else if( strcmp( FBP_MEDIANS_FILE_EXTENSION, ".bin" ) == 0 )
+		array_2_disk(FBP_basename_w_radius, PREPROCESSING_DIR, BINARY, FBP_median_filtered_3D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	else
+	{
+		puts("ERROR: Invalid file extension specified for median filtered FBP images"); 
+		exit_program_if(true);
+	}
+}
+template<typename T> void apply_all_median_filters(T*& image, char* output_basename )
+{
+	float* median_filtered_2D_h = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );	
+	float* median_filtered_3D_h = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );	
+	char basename2D_w_radius[256];
+	char basename3D_w_radius[256];
+	uint widths[] = {3,5,7};
+	std::vector<uint> filter_widths(widths, widths + sizeof(widths) / sizeof(uint) );
+
+	for( int i = 0; i < filter_widths.size(); i++ )
+	{
+		printf("Generating all possible median filtered images for filter width %d...\n", filter_widths[i]);
+		median_filter_2D( image, median_filtered_2D_h, filter_widths[i] );
+		puts("FBP image 2D median filtered");
+		median_filter_3D( image, median_filtered_3D_h, filter_widths[i] );
+		puts("FBP image 3D median filtered");
+		sprintf(basename2D_w_radius, "%s_2D_%d", output_basename,  filter_widths[i] );
+		sprintf(basename3D_w_radius, "%s_3D_%d", output_basename,  filter_widths[i] );
+		array_2_disk(basename2D_w_radius, PREPROCESSING_DIR, TEXT, median_filtered_2D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+		array_2_disk(basename2D_w_radius, PREPROCESSING_DIR, BINARY, median_filtered_2D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+		array_2_disk(basename3D_w_radius, PREPROCESSING_DIR, TEXT, median_filtered_3D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+		array_2_disk(basename3D_w_radius, PREPROCESSING_DIR, BINARY, median_filtered_3D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+		printf("All median filtered images for filter width %d written to disk as .txt and .bin\n", filter_widths[i]);
+	}
+	//char check_bin_convert[256];
+	//sprintf(check_bin_convert, "FBP_median_3D_7" );
+	//binary_2_txt_images( PREPROCESSING_DIR, check_bin_convert, median_filtered_3D_h );
+	free(median_filtered_2D_h);
+	free(median_filtered_3D_h);
+	//binary_2_txt_images( PREPROCESSING_DIR, basename2D_w_radius, median_filtered_2D_h );
+}
+/***********************************************************************************************************************************************************************************************************************/
 /****************************************************************************************************** MLP (host) *****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
 template<typename O> bool find_MLP_endpoints
@@ -4871,8 +4978,10 @@ template<typename T> void array_2_disk( char* filename_base, char* filepath, DIS
 		switch( format )
 		{
 			case TEXT	:	sprintf( filename, "%s.txt", filename );	
+							puts("writing text format");
 							output_file.open(filename);					break;
 			case BINARY	:	sprintf( filename, "%s.bin", filepath );
+							puts("writing binary format");
 							output_file.open(filename, std::ofstream::binary);
 		}
 		//output_file.open(filename);		
@@ -5618,15 +5727,26 @@ unsigned int create_unique_dir( char* dir_name )
 {
 	unsigned int i = 0;
 	char mkdir_command[256];//= "mkdir ";
+	char error_response[256];
 	char* statement_beginning = "A subirectory or file ";
 	char* statement_ending = " already exists";
 	sprintf(mkdir_command, "mkdir \"%s\"", dir_name);
+	//freopen("out.txt","a+",stdin);
 	while( system(mkdir_command) )
 	{
+		//std::string text = buffer.str();
+		//std::cout << "-> " << text << "<- " << endl;
+		//printf( "-> %s <-\n", text );
+		if( parameters.LOG_2_TEXT_FILE )
+		{
+			sprintf(error_response, "%s %s_%d %s\n", statement_beginning, dir_name, i, statement_ending );
+			puts(error_response);
+		}
 		if( (strlen(mkdir_command) + strlen(statement_beginning) + strlen(statement_ending) - 6) % CONSOLE_WINDOW_WIDTH != 0 )
-			puts("");
+			puts("");	
 		sprintf(mkdir_command, "mkdir \"%s_%d\"", dir_name, ++i);
 	}
+	//fclose("out.txt");
 	if( i != 0 )
 		sprintf(dir_name, "%s_%d", dir_name, i);
 	return i;
@@ -5878,45 +5998,419 @@ void print_copyright_notice()
 	puts(program_header);
 }
 /***********************************************************************************************************************************************************************************************************************/
+/****************************************************************************** Log Maintaining Functions and Functions in Development *********************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
+LOG_OBJECT read_log()
+{
+	char entry_item[64];
+	std::vector<std::string> log_entry;
+	LOG_OBJECT log;
+
+	std::fstream log_file(LOG_FILENAME, std::fstream::in | std::fstream::out);
+	
+	if( !log_file.is_open() )
+		log_file.open(LOG_FILENAME);
+	else
+	{
+		log_file << std::skipws;
+		while( !log_file.eof() )
+		{		
+			log_entry.clear();
+			for( int i = 0; i < NUM_LOG_ENTRIES; i++ )
+			{
+				log_file.getline(entry_item, 64, ',');
+				log_entry.push_back(std::string(entry_item));
+				puts(entry_item);
+			}
+			log.push_back(log_entry);
+			log_file.get();			
+		}
+	}
+	log_file.close();
+	return log;
+}
+std::vector<int> scan_log_4_matches( LOG_OBJECT log )
+{
+	uint entry_number = 0;
+	std::vector<int> match_info;
+	bool object_match, scan_match, run_date_match, run_num_match, proj_date_match, preprocess_date_match, recon_date_match;
+	bool projection_data_entry, preprocessing_data_entry, recon_data_entry;
+	
+	bool complete_match = true;
+	//bool projection_match = true;
+	bool empty_preprocessing, empty_reconstruction;
+	//bool partial_match;
+	bool incomplete;
+	//char* empty_preprocess_date = (char*)calloc(DATE_ENTRIES_SIZE, sizeof(char) );
+	//char* empty_recon_date = (char*)calloc(DATE_ENTRIES_SIZE, sizeof(char) );
+	for( ; entry_number < log.size(); entry_number++ )
+	{
+		printf("Reading Log Entry %d : \n", entry_number  + 1 );
+
+		object_match = ( (log[entry_number][0]).compare(std::string(OBJECT)) == 0);
+		scan_match = ( (log[entry_number][1]).compare(std::string(SCAN_TYPE)) == 0);
+		run_date_match = ( (log[entry_number][2]).compare(std::string(RUN_DATE)) == 0);
+		run_num_match = ( (log[entry_number][3]).compare(std::string(RUN_NUMBER)) == 0);
+		proj_date_match = ( (log[entry_number][4]).compare(std::string(PROJECTION_DATA_DATE)) == 0);
+		
+		empty_preprocessing = ( (log[entry_number][5]).compare(std::string("")) == 0);
+		preprocess_date_match = ( (log[entry_number][5]).compare(std::string(PREPROCESS_DATE)) == 0);
+
+		empty_reconstruction = ( (log[entry_number][6]).compare(std::string("")) == 0);
+		recon_date_match = ( (log[entry_number][6]).compare(std::string(RECONSTRUCTION_DATE)) == 0);
+		
+		projection_data_entry = object_match && scan_match && run_date_match && run_num_match && proj_date_match;
+		preprocessing_data_entry = projection_data_entry && preprocess_date_match;
+		recon_data_entry = preprocessing_data_entry && recon_date_match;
+		
+		printf("object_match = %d\n", object_match );
+		printf("scan_match = %d\n", scan_match );
+		printf("run_date_match = %d\n", run_date_match );
+		printf("run_num_match = %d\n", run_num_match );
+		printf("proj_date_match = %d\n", proj_date_match );
+		printf("preprocess_date_match = %d\n", preprocess_date_match );
+		printf("recon_date_match = %d\n", recon_date_match );
+
+		printf("projection_data_entry = %d\n", projection_data_entry );
+		printf("empty_preprocessing = %d\n", empty_preprocessing );		
+		printf("empty_reconstruction = %d\n", empty_reconstruction );
+		puts("");
+		incomplete = projection_data_entry & ( empty_preprocessing || empty_reconstruction );
+		complete_match = projection_data_entry && preprocess_date_match && recon_date_match;
+			
+		if( incomplete || complete_match )
+		{
+			printf("Match found at %d\n", entry_number + 1 );
+			match_info.push_back(complete_match);
+			match_info.push_back(entry_number);
+			match_info.push_back(empty_preprocessing);
+			match_info.push_back(empty_reconstruction);
+		}
+	}
+	//match_info.push_back(0);
+	//match_info.push_back(entry_number);
+	//match_info.push_back(0 );
+	//match_info.push_back(0 );
+	return match_info;
+}
+std::string format_log_entry(char* entry_array, uint length  )
+{
+	std::string entry_string(entry_array);
+	entry_string.resize(length, ' ');
+	if( strlen(entry_array) > length )
+	{
+		puts("ERROR: length of string to be written is larger than container"); 
+		exit_program_if(true);
+	}
+	return entry_string;
+}
+LOG_LINE construct_log_entry()
+{
+	LOG_LINE current_run_entry;
+	current_run_entry.push_back( format_log_entry( OBJECT, OBJECT_ENTRIES_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( SCAN_TYPE, TYPE_ENTRIES_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( RUN_DATE, DATE_ENTRIES_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( RUN_NUMBER, RUN_NUM_ENTRIES_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( PROJECTION_DATA_DATE, DATE_ENTRIES_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( PREPROCESS_DATE, DATE_ENTRIES_SIZE  )  );
+	if( parameters.PERFORM_RECONSTRUCTION_D )
+		current_run_entry.push_back( format_log_entry( RECONSTRUCTION_DATE, DATE_ENTRIES_SIZE  )  );
+	else
+		current_run_entry.push_back( format_log_entry( "", DATE_ENTRIES_SIZE  )  );
+	return current_run_entry;
+}
+void new_log_entry( LOG_OBJECT log_object )
+{
+	
+	LOG_LINE new_entry = construct_log_entry();
+	/*LOG_LINE new_entry;
+	new_entry.push_back( "aab" );
+	new_entry.push_back( "aab" );
+	new_entry.push_back( "aab" );
+	new_entry.push_back( "aab" );
+	new_entry.push_back( "aab" );
+	new_entry.push_back( "aab"  );
+	new_entry.push_back( "aab" );*/
+
+	int start_row = 0, end_row = (int)log_object.size()-1;
+	int start_item= 0, end_item = NUM_LOG_ENTRIES, log_item = 0;
+	while( (log_item < NUM_LOG_ENTRIES) && (start_row <= end_row) )
+	{
+		while( ((new_entry[log_item]).compare(std::string(log_object[start_row][log_item])) > 0) && (start_row < end_row) )
+			start_row++;
+		while( ((new_entry[log_item]).compare(std::string(log_object[end_row][log_item])) < 0) && (start_row < end_row) ) 
+			end_row--;			
+		log_item++;
+	}
+	printf("Added as log entry = %d\n", start_row );
+	log_object.insert(log_object.begin() + start_row, new_entry );
+	write_log( log_object);
+
+	//printf("%s\n", new_entry[j]);
+	//printf("%s\n", std::string(log_object[start_row][j]));
+	//printf("%s\n", std::string(log_object[end_row][j]));
+}
+void add_log_entry( LOG_ENTRIES entry )
+{	
+	LOG_OBJECT log_o = read_log();
+	//print_log(log_o);
+	std::string new_entry;
+	std::vector<std::string> log_entry;
+	std::vector<int> log_entry_info = scan_log_4_matches( log_o );
+	uint index, num_matches = log_entry_info.size() / 4;
+	int complete_match_index = -1, incomplete_match_index = -1;	
+	bool entry_present = false, incomplete_entry = false;
+	bool empty_preprocessing, empty_reconstruction;
+	
+	cout << "Complete/incomplete matches = " << num_matches << endl;
+	for( int i = 0; i < num_matches; i++ )
+	{
+		index = 4 * i;
+		if( log_entry_info[index] )
+		{		
+			entry_present = true;
+			complete_match_index = log_entry_info[index + 1];
+			printf("Complete match found at entry %d\n", complete_match_index + 1 );
+		}
+		else 
+		{
+			incomplete_entry = true;
+			incomplete_match_index = log_entry_info[index + 1];
+			empty_preprocessing = log_entry_info[index + 2];
+			empty_reconstruction = log_entry_info[index + 3];
+			printf("Incomplete match found at entry %d\n", incomplete_match_index + 1 );
+		}
+	}
+	
+	if( incomplete_entry )
+	{
+		log_entry = log_o[incomplete_match_index];
+		new_entry = format_log_entry(PREPROCESS_DATE, DATE_ENTRIES_SIZE  );
+		if( empty_preprocessing )
+			log_entry[PREPROCESS_DATE_L] = new_entry;
+		new_entry = format_log_entry(RECONSTRUCTION_DATE, DATE_ENTRIES_SIZE  );
+		if( empty_reconstruction )
+			log_entry[RECONSTRUCTION_DATE_L] = new_entry;
+		log_o[incomplete_match_index] = log_entry;
+		write_log( log_o);
+	}
+	else if( !entry_present )
+		new_log_entry( log_o );
+	else
+		puts("Entry already existed so either output data was overwritten or configurations were improperly specified.");
+	
+}
+void log_add_entry( LOG_ENTRIES entry )
+{
+	char object_l[OBJECT_ENTRIES_SIZE], scan_type_l[TYPE_ENTRIES_SIZE];
+	char run_date_l[DATE_ENTRIES_SIZE], run_number_l[RUN_NUM_ENTRIES_SIZE];
+	char projection_data_date_l[DATE_ENTRIES_SIZE], preprocess_date_l[DATE_ENTRIES_SIZE];
+	char reconstruction_date_l[DATE_ENTRIES_SIZE];
+	char c;
+	std::vector<char*> log_entry;
+	std::vector<std::vector<char*> > log;
+	char object_next[64], scan_type_next[64], run_date_next[64], run_number_next[64];
+	char projection_data_date_next[64], preprocess_date_next[64], reconstruction_date_next[64];
+	char line[1024];
+	char output_entry[64];
+	int in_pos, out_pos;
+	std::fstream log_file(LOG_FILENAME, std::fstream::in | std::fstream::out);
+	
+	if( !log_file.is_open() )
+		log_file.open(LOG_FILENAME);
+	else
+	{
+		puts("Is open");
+		log_file << std::skipws;
+		while( !log_file.eof() )
+		{		
+			log_entry.clear();
+			in_pos = log_file.tellg();
+			log_file.getline(object_l, 64, ',');
+			log_entry.push_back(object_l);
+			puts("object_l= ");
+			puts(object_l);
+
+			//in_pos = log_file.tellg();
+			log_file.getline(scan_type_l, 64, ',');
+			log_entry.push_back(scan_type_l);
+			puts("scan_type_l= ");
+			puts(scan_type_l);
+
+			//in_pos = log_file.tellg();
+			log_file.getline(run_date_l, 64, ',');
+			log_entry.push_back(run_date_l);
+			puts("run_date_l= ");
+			puts(run_date_l);
+
+			//in_pos = log_file.tellg();
+			log_file.getline(run_number_l, 64, ',');
+			log_entry.push_back(run_number_l);
+			puts("run_number_l= ");
+			puts(run_number_l);
+
+			//in_pos = log_file.tellg();
+			log_file.getline(projection_data_date_l, 64, ',');
+			log_entry.push_back(projection_data_date_l);
+			puts("projection_data_date_l= ");
+			puts(projection_data_date_l);
+
+			//in_pos = log_file.tellg();
+			log_file.getline(preprocess_date_l, 64, ',');
+			log_entry.push_back(preprocess_date_l);
+			puts("preprocess_date_l= ");
+			puts(preprocess_date_l);
+
+			//in_pos = log_file.tellg();
+			log_file.getline(reconstruction_date_l, 64, ',');
+			log_entry.push_back(reconstruction_date_l);
+			puts("reconstruction_date_l= ");
+			puts(reconstruction_date_l);
+			/*if( strcmp(reconstruction_date_l, RECONSTRUCTION_DATE ) == 0 )
+			{
+				puts("rewriting");
+				log_file.seekp (in_pos, log_file.beg);
+				sprintf(output_entry, "%s_1", reconstruction_date_l);
+				log_file.write (output_entry,10);
+			}*/
+			out_pos = in_pos;
+			in_pos = log_file.tellg();
+			log_file.get();
+			//log_file.get();
+			//if( strcmp(preprocess_date_l, PREPROCESS_DATE ) == 0 )
+			//{
+			//	//out_pos = in_pos;
+			//	//in_pos = log_file.tellg();
+			//	puts("rewriting");
+			//	log_file.seekp (out_pos, log_file.beg);
+			//	sprintf(output_entry, "%s_1234", PREPROCESS_DATE);
+			//	while( !log_file.eof() )
+			//	{
+			//		log_file << object_l <<"," << scan_type_l <<"," << run_date_l<<"," << run_number_l<<"," << projection_data_date_l<<"," << output_entry<<"," << reconstruction_date_l << "," << endl ;
+			//	}
+			//	log_file << object_l <<"," << scan_type_l <<"," << run_date_l<<"," << run_number_l<<"," << projection_data_date_l<<"," << output_entry<<"," << reconstruction_date_l << "," << endl ;
+			//	out_pos = log_file.tellp();
+			//	//in_pos = out_pos;
+			//	//log_file.write (output_entry,11);
+			//	//in_pos = log_file.tellp();
+			//	log_file.seekg (out_pos, log_file.beg);
+			//	//log_file.seekp(in_pos, log_file.beg);
+			//	pause_execution();
+			//}
+
+			log.push_back(log_entry);
+			
+			//pos = is.tellg();
+			
+			//ios_base::beg	beginning of the stream
+			//ios_base::cur	
+			//log_file << 
+		}
+	}
+	log_file.close();
+	for( int i = 0; i < log.size(); i++ )
+	{
+		for( int j = 0; j < (log[i]).size(); j++ )
+		{
+			printf("%s\n", (log[i])[j] );
+		}
+		puts("");
+	}
+}
+void print_log( LOG_OBJECT log )
+{
+	for( int i = 0; i < log.size(); i++ )
+	{
+		printf("Log Entry %d : \n", i );
+		for( int j = 0; j < NUM_LOG_ENTRIES; j++ )
+		{
+			printf("%s\n", log[i][j] );
+		}
+		puts("");
+	}
+}
+void write_log( LOG_OBJECT log_object)
+{
+	std::ofstream log_file(LOG_FILENAME);
+	
+	if( !log_file.is_open() )
+		log_file.open(LOG_FILENAME);
+	else
+	{
+		for( int i = 0; i < log_object.size(); i++ )
+		{
+			log_file << std::noskipws;		
+			for( int j = 0; j < NUM_LOG_ENTRIES; j++ )
+			{
+				log_file <<  log_object[i][j] << ",";
+			}
+			log_file << endl;
+		}
+	}
+	log_file.close();
+}
+void log_write_test()
+{
+	std::ofstream log_file(LOG_FILENAME);
+	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE		<< ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<","  << SCAN_TYPE << "1,"  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << "," << RECONSTRUCTION_DATE << "," << endl;
+	log_file << OBJECT <<","  << SCAN_TYPE << "1," << RUN_DATE << ","  << RUN_NUMBER << "," << PROJECTION_DATA_DATE << "," << PREPROCESS_DATE << "," << RECONSTRUCTION_DATE << "," << endl;
+	log_file << OBJECT <<"1,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<"2,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << "," << PREPROCESS_DATE << "," << RECONSTRUCTION_DATE << "," << endl;
+	log_file << OBJECT <<"2,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<"3,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<"3," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << PROJECTION_DATA_DATE << "," << PREPROCESS_DATE << "," << RECONSTRUCTION_DATE	  << ",";
+	log_file.close();
+}
+void log_write_test2()
+{
+	std::ofstream log_file(LOG_FILENAME);
+	log_file << OBJECT <<","  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<","  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<","  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<","  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<","  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<","  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << "a,"  << PROJECTION_DATA_DATE << "a,"  << PREPROCESS_DATE << "a,"  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<","  << SCAN_TYPE << "a,"  << RUN_DATE << "a,"  << RUN_NUMBER << "a,"  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<","  << SCAN_TYPE << "a,"  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<"a,"  << SCAN_TYPE << "b,"  << RUN_DATE << "a,"  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<"a,"  << SCAN_TYPE << "c,"  << RUN_DATE << "a,"  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<"b,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<"b,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+	log_file << OBJECT <<"b,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
+
+	log_file.close();
+}
+void log_write_test3()
+{
+	std::ofstream log_file(LOG_FILENAME);
+	log_file << "aaa" <<","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	log_file << "aaa" <<","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	log_file << "aaa" <<","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	log_file << "aaa" <<","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	log_file << "aaa" <<","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	log_file << "aab" <<","  << "aab" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	log_file << "aab" <<","  << "aab" << ","  << "aab" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	log_file << "aab" <<","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	log_file << "aab" <<","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	/**/
+	log_file << "aab" <<","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aac" << ","  << endl;
+	log_file << "aab" <<","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aac" << ","  << endl;
+	log_file << "aab" <<","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aac" << ","  << "aaa" << ","  << "aab" << ","  << endl;
+	log_file << "aab" <<","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << "aac" << ","  << "aab" << ","  << "aab" << ","  << endl;
+	log_file << "aab" <<","  << "aab" << ","  << "aab" << ","  << "aac" << ","  << "aab" << ","  << "aab" << ","  << "aab" << ","  << endl;
+	log_file << "aac" <<","  << "aac" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << endl;
+	log_file << "aac" <<","  << "aac" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << ","  << "aaa" << "," ;
+
+	log_file.close();
+}
+/***********************************************************************************************************************************************************************************************************************/
 /*********************************************************************************************** Device Helper Functions ***********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
 
 /***********************************************************************************************************************************************************************************************************************/
-/************************************************************************************ Testing Functions and Functions in Development ***********************************************************************************/
+/********************************************************************************* Testing Host Functions and Functions in Development *********************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void median_filter_FBP_2D(float*& FBP, uint radius)
-{			
-	FBP_median_filtered_2D_h = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
-	median_filter_2D( FBP, FBP_median_filtered_2D_h, radius );
-	puts("FBP image 2D median filtered");
-	array_2_disk(FBP_MEDIAN_2D_FILENAME, PREPROCESSING_DIR, TEXT, FBP_median_filtered_2D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
-}
-void median_filter_FBP_3D(float*& FBP, uint radius)
-{
-	FBP_median_filtered_3D_h = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
-	median_filter_3D( FBP, FBP_median_filtered_3D_h, radius );
-	puts("FBP image 3D median filtered");
-	array_2_disk(FBP_MEDIAN_3D_FILENAME, PREPROCESSING_DIR, TEXT, FBP_median_filtered_3D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
-}
-template<typename T> void binary_2_txt_images( char* path, char* filename, T*& image )
-{
-	print_section_header( "Importing binary image and writing a copy to disk in text format...", '*' );	
-	
-	/*if( strcmp(import_typecase, "int" ))
-		int* image = (int*) calloc( parameters.NUM_VOXELS_D, sizeof(int) );
-	else if( strcmp(import_typecase, "float" ) )
-		float* image = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
-	else if( strcmp(import_typecase, "double" ))
-		double* image = (double*) calloc( parameters.NUM_VOXELS_D, sizeof(double) );
-	else if( strcmp(import_typecase, "bool" ))
-		bool* image = (bool*) calloc( parameters.NUM_VOXELS_D, sizeof(bool) );
-	else
-		puts("No procedure written for given type of type is invalid"); exit(1);*/
-	image = (T*) calloc( parameters.NUM_VOXELS_D, sizeof(T) );
-	import_image( image, path, filename, BINARY );
-	array_2_disk(filename, path, TEXT, image, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
-	puts("Binary image has been imported and a text image has been generated and written to disk with the same filename.");
-}
 void test_func()
 {
 	//print_copyright_notice();
@@ -5928,19 +6422,37 @@ void test_func()
 	set_IO_paths();
 	set_dependent_parameters();
 	parameters_2_GPU();
-
-
-	char* FBP_path = "C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct";
-	char* filename = "FBP_image_h";
+	std::string left = "object_name1";
+	std::string right = "object_name";
+	std::string right2 = "object_namd";
+	cout << "comprison = " << left.compare(right)  << endl;//1 >
+	cout << "comprison = " << left.compare(right2) << endl;//1 >
+	cout << "comprison = " << right.compare(right2) << endl;//1 >
+	cout << "comprison = " << right2.compare(right) << endl;//-1 <
+	cout << "comprison = " << right.compare(right) << endl;//0 =
+	log_write_test();
+	//log_write_test2();
+	//log_write_test3();
+	LOG_OBJECT log_o = read_log();
+	new_log_entry( log_o );
+	//print_log(log_o);
+	//add_log_entry( OBJECT_L );
+	//LOG_OBJECT log_object = read_log();
+	//new_log_entry( log_object );
+	//std::vector<int> log_entry_info = scan_log_4_matches( log_o );
+	//write_log(log_o);
+	//char* FBP_path = "C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct";
+	//char* filename = "FBP_image_h";
+	//char* FBP_median_basename = "FBP_median";
 	//char* filename = "FBP_med_new7";
-	float* FBP = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
-	import_image( FBP, FBP_path, filename, TEXT );
+	//float* FBP = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
+	//import_image( FBP, FBP_path, filename, TEXT );
 
 	//binary_2_txt_images( FBP_path, filename, FBP );
 	//binary_2_txt_images( PREPROCESSING_DIR, filename, FBP );
-
-	median_filter_FBP_2D(FBP, parameters.FBP_MEDIAN_RADIUS_D);
-	median_filter_FBP_3D(FBP, parameters.FBP_MEDIAN_RADIUS_D);
+	//apply_all_median_filters(FBP, FBP_median_basename );
+	//median_filter_FBP_2D(FBP, parameters.FBP_MEDIAN_RADIUS_D);
+	//median_filter_FBP_3D(FBP, parameters.FBP_MEDIAN_RADIUS_D);
 	//puts("FBP image filtered");
 
 	//char* FBP_path = "C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct";
@@ -6361,6 +6873,9 @@ void test_transfer_GPU(double* x, double* y, double* z)
 	//y = 3;
 	//z = 4;
 }
+/***********************************************************************************************************************************************************************************************************************/
+/********************************************************************************** Testing GPU Functions and Functions in Development *********************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
 __global__ void test_func_device( configurations* parameters, double* x, double* y, double* z )
 {
 	//x = 2;
@@ -6430,39 +6945,4 @@ __global__ void test_func_GPU( configurations* parameters, int* a)
 	//int x = 0, y = 0, z = 0;
 	//test_func_device( x, y, z );
 	//image[voxel] = x * y * z;
-}
-
-void findANumber()
-{
-	std::vector<std::vector< ULL > > pages(10, std::vector< ULL >(0));
-	for( ULL i = 0; i <= 1024; i++ )
-	{
-		std::bitset<10> buffer(i);
-		for( int j = 0; j < 10; j++)
-			if( buffer[j] == 1 )
-				pages[j].push_back(i);
-	}
-
-	char* file_name_base = "Page_";
-	char file_name[256];
-	FILE* output_file;
-	for( int i = 0; i < 10; i++)
-	{
-		sprintf(file_name, "%s%d.txt", file_name_base, i + 1 );
-		output_file = fopen(file_name,"w" );
-		for( int j = 0; j < pages[i].size(); j++ )
-		{
-			if( pages[i][j] < 10 )
-				fprintf( output_file, "   %llu   ", pages[i][j] );
-			else if( pages[i][j] < 100 )
-				fprintf( output_file, "  %llu  ", pages[i][j] );
-			else if( pages[i][j] < 1000 )
-				fprintf( output_file, " %llu ", pages[i][j] );
-			else
-				fprintf( output_file, "%llu ", pages[i][j] );
-			if( (j+1) % 19 == 0 )
-				fprintf( output_file, "\n", pages[i][j] );
-		}
-		fclose(output_file);
-	}
 }

@@ -25,7 +25,8 @@
 #include <cstdarg>		// va_list, va_arg, va_start, va_end, va_copy
 #include <cstdio>		// printf, sprintf,  
 #include <cstdlib>		// rand, srand
-#include <ctime>		// clock(), time() 
+#include <ctime>		// clock(), time()
+#include <fcntl.h>
 #include <fstream>
 #include <functional>	// std::multiplies, std::plus, std::function, std::negate
 #include <initializer_list>
@@ -35,6 +36,7 @@
 #include <new>			 
 #include <numeric>		// inner_product, partial_sum, adjacent_difference, accumulate
 //#include <omp.h>		// OpenMP
+#include <process.h>
 #include <sstream>
 #include <stdexcept>
 #include <string>
@@ -43,6 +45,7 @@
 #include <tuple>
 #include <typeinfo>		//operator typeid
 #include <type_traits>	// is_pod
+//#include <unistd.h>
 #include <utility>		// for std::move
 #include <vector>
 #if defined(_WIN32) || defined(_WIN64)
@@ -58,6 +61,9 @@ using std::cout;
 using std::endl;
 typedef unsigned long long ULL;
 typedef unsigned int uint;
+typedef std::vector<std::vector<std::string> > LOG_OBJECT;
+typedef std::vector<std::string> LOG_LINE;
+//typedef std::vector<std::vector<char*> > log_object;
 /***************************************************************************************************************************************************************************/
 /************************************************************************ User defined data types **********************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -84,11 +90,14 @@ enum HULL_TYPES {IMPORT_HULL, SC_HULL, MSC_HULL, SM_HULL, FBP_HULL, HT_END};// D
 enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE, FT_END};						// Define the types of filters that are available for use in FBP
 enum X_0_TYPES { IMPORT_X_0, X_HULL, X_FBP, HYBRID, ZEROS, X0_END };		// Define valid choices for which hull to use in MLP calculations
 enum RECON_ALGORITHMS { ART, DROP, BIP, SAP, ROBUST1, ROBUST2, RA_END };	// Define valid choices for iterative projection algorithm to use
+enum LOG_ENTRIES {OBJECT_L, SCAN_TYPE_L, RUN_DATE_L, RUN_NUMBER_L, 
+	PROJECTION_DATA_DATE_L, PREPROCESS_DATE_L, RECONSTRUCTION_DATE_L};
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------- Preprocessing option parameters -------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char* OBJECT, *SCAN_TYPE, *RUN_DATE, *RUN_NUMBER, *PROJECTION_DATA_DATE, *PREPROCESS_DATE, *RECONSTRUCTION_DATE;
 char* PATH_2_PCT_DATA_DIR, *DATA_TYPE_DIR, *PROJECTION_DATA_DIR, *PREPROCESSING_DIR, *RECONSTRUCTION_DIR;
+//char* OVERWRITING_PREPROCESS_DATE, OVERWRITING_RECON_DATE;
 
 char* HULL_FILENAME, *FBP_FILENAME, *X_0_FILENAME, *MLP_FILENAME, *RECON_HISTORIES_FILENAME, *X_FILENAME, *FBP_MEDIAN_2D_FILENAME, *FBP_MEDIAN_3D_FILENAME;
 char* HULL_PATH, *FBP_PATH, *X_0_PATH, *MLP_PATH, *RECON_HISTORIES_PATH, *X_PATH, *FBP_MEDIAN_2D_PATH, *FBP_MEDIAN_3D_PATH;
