@@ -14,6 +14,7 @@ typedef unsigned int uint;
 char EXECUTION_DATE[9];
 bool CONFIG_PATH_PASSED = false;			// [T/F] Path to "settings.cfg" passed as command line argument [T] or inferred from current directory [F]
 unsigned int num_run_arguments;
+int num_parameters_2_change; 
 char** run_arguments;
 std::stringstream buffer;
 

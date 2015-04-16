@@ -18,14 +18,6 @@
 /***********************************************************************************************************************************************************************************************************************/
 /***************************************************************************************************** Program Main ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-//void printf_logged(char* output )
-//{
-//
-//}
-//puts_logged(char* output)
-//{
-//
-//}
 int main(unsigned int num_arguments, char** arguments)
 {
 	//system("robust_pct 2>& test.txt");
@@ -211,9 +203,6 @@ int main(unsigned int num_arguments, char** arguments)
 			exit_program_if( EXIT_AFTER_FBP );
 			hull_selection();
 			define_X_0_TYPES();
-			//puts("-------------------------------------------------------------------------------");
-			//puts("---------------------------- Preprocessing complete ---------------------------");
-			//puts("-------------------------------------------------------------------------------\n");
 			print_section_exit("Preprocessing complete", "====>" );
 		}
 		if( parameters.PERFORM_RECONSTRUCTION_D )  
@@ -226,9 +215,6 @@ int main(unsigned int num_arguments, char** arguments)
 		}
 		image_reconstruction();
 		array_2_disk("x", RECONSTRUCTION_DIR, TEXT, x_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
-		//puts("-------------------------------------------------------------------------------");
-		//puts("---------------------------- Reconstruction complete --------------------------");
-		//puts("-------------------------------------------------------------------------------\n");
 		print_section_exit("Reconstruction complete", "====>" );
 	}
 	else
@@ -280,69 +266,35 @@ void apply_execution_arguments(unsigned int num_arguments, char** arguments)
 {
 	num_run_arguments = num_arguments;
 	run_arguments = arguments; 
-	//cout << num_run_arguments << endl << endl;
-	//for( unsigned int i = 0; i < num_run_arguments; i++ )
-		//cout << run_arguments[i] << endl;
-	if( num_run_arguments > 1 )
+	int config_path_index, i = 1;
+	if( num_run_arguments % 2 == 0 )
 	{
-		PROJECTION_DATA_DIR = (char*) calloc( strlen(run_arguments[1])+1, sizeof(char));
-		std::copy( run_arguments[1], &run_arguments[1][strlen(run_arguments[1])], PROJECTION_DATA_DIR );
-		puts("*******************************************************************************");
-		puts("****** Config file location passed as command line argument and set to : ******");		
-		puts("*******************************************************************************");
-		puts("-------------------------------------------------------------------------------");
-		printf("%s\n", PROJECTION_DATA_DIR );
-		puts("-------------------------------------------------------------------------------");
 		CONFIG_PATH_PASSED = true;
+		num_parameters_2_change = (num_run_arguments / 2) - 1;	
 	}
-	//if(num_arguments == 4)
-	//if(num_arguments == 4)
-	//{
-	//  
-	//  METHOD = atoi(run_arguments[1]);
-	//  parameters.ETA_D = atof(run_arguments[2]);
-	//  parameters.PSI_SIGN_D = atoi(run_arguments[3]);	  
-	//}
-	//printf("num_arguments = %d\n", num_arguments);
-	//printf("num_run_arguments = %d\n", num_run_arguments);
-	//printf("chars = %s\n", run_arguments[2]);
-	//printf("atof = %3f\n", atof(run_arguments[2]));
-	/*if( num_arguments > 1 )
-		PREPROCESSING_DIR = arguments[1];
-	if( num_run_arguments > 2 )
+	else
 	{
-		parameters.LAMBDA = atof(run_arguments[2]); 
-		parameters.LAMBDA_D = atof(run_arguments[2]);
-		parameters.CONSTANT_LAMBDA_SCALE_D = parameters.VOXEL_WIDTH_D * parameters.LAMBDA_D;
+		CONFIG_PATH_PASSED = false;
+		num_parameters_2_change = num_run_arguments / 2;
 	}
-	if( num_run_arguments > 3 )
+	for( ; i <= num_parameters_2_change; i++ );
+	for( unsigned int j = 1; j < num_run_arguments; j++ )
+		cout << run_arguments[j] << endl;
+	
+	//		1			  2			 3			4			5		  6			 7	   ...    2n
+	// [program name][parameter1][new val1][parameter2][new val2][parameter3][new val3]...[cfg path]
+	//"C:\Users\Blake\Documents\Visual Studio 2010\Projects\robust_pct\robust_pct\settings.cfg"
+	//"C:\Users\Blake\Documents\pCT_Data\object_name\Experimental\MMDDYYYY\run_number\Output\MMDDYYYY\Reconstruction\MMDDYYYY\settings.cfg"
+	if( CONFIG_PATH_PASSED )
 	{
-		num_voxel_scales =  num_run_arguments - 3;
-		voxel_scales = (double*)calloc( num_voxel_scales, sizeof(double) ); 
-		for( unsigned int i = 3; i < num_run_arguments; i++ )
-			voxel_scales[i-3] = atof(run_arguments[i]);
-	}*/	
-	//			  1				   2		   3	 4	  5    6   ...  N + 3  
-	// ./pCT_Reconstruction [.cfg address] [parameters.LAMBDA_D] [C1] [C2] [C3] ... [CN]
-	//switch( true )
-	//{
-	//	case (num_arguments >= 4): 
-	//		num_voxel_scales =  num_run_arguments - 3;
-	//		voxel_scales = (double*)calloc( num_voxel_scales, sizeof(double) ); 
-	//		for( unsigned int i = 3; i < num_run_arguments; i++ )
-	//			voxel_scales[i-3] = atof(run_arguments[i]);
-	//	case (num_arguments >= 3): 
-	//		parameters.LAMBDA = atof(run_arguments[2]); 
-	//		parameters.LAMBDA_D = atof(run_arguments[2]);
-	//	case (num_arguments >= 2): 
-	//		PREPROCESSING_DIR = arguments[1];
-	//	case default: break;
-	//}
-	//printf("LAMBDA = %3f\n", parameters.LAMBDA_D);
-	//
-	//cout << "voxels to be scaled = " << num_voxel_scales << endl;
-	//for( unsigned int i = 0; i < num_voxel_scales; i++ )
-	//	printf("voxel_scale[%d] = %3f\n", i, voxel_scales[i] );
+		config_path_index = 2 * i - 1;
+		PROJECTION_DATA_DIR = (char*) calloc( strlen(run_arguments[config_path_index])+1, sizeof(char));
+		std::copy( run_arguments[config_path_index], &run_arguments[config_path_index][strlen(run_arguments[config_path_index])], PROJECTION_DATA_DIR );
+		print_section_header("Config file location passed as command line argument and set to : ",'*');
+		print_section_separator('-');
+		printf("%s\n", PROJECTION_DATA_DIR );
+		print_section_separator('-');
+	}
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Memory Transfers, Maintenance, and Cleaning ************************************************************************************/
@@ -5764,15 +5716,15 @@ unsigned int create_unique_dir( char* dir_name )
 		sprintf(dir_name, "%s_%d", dir_name, i);
 	return i;
 }
-bool file_exists3 (const char* file_location) 
-{
-    #if defined(_WIN32) || defined(_WIN64)
-    return file_location && ( PathFileExists (file_location) != 0 );
-    #else
-    struct stat sb;
-    return file_location && (stat (file_location, &sb) == 0 ;
-    #endif
-} 
+//bool file_exists3 (const char* file_location) 
+//{
+//    #if defined(_WIN32) || defined(_WIN64)
+//    return file_location && ( PathFileExists (file_location) != 0 );
+//    #else
+//    struct stat sb;
+//    return file_location && (stat (file_location, &sb) == 0 ;
+//    #endif
+//} 
 void fgets_validated(char *line, int buf_size, FILE* input_file)
 {
     bool done = false;
@@ -5792,6 +5744,7 @@ void fgets_validated(char *line, int buf_size, FILE* input_file)
 }
 struct generic_IO_container read_key_value_pair( FILE* input_file )
 {
+	//puts("pair");
 	char key[128], equal_sign[128], value[256], comments[512], buf[64];	
 	char* open_quote_pos;
 	const uint buf_size = 1024;
@@ -5800,7 +5753,7 @@ struct generic_IO_container read_key_value_pair( FILE* input_file )
 	generic_IO_container input_value;
 	// Remove leading spaces/tabs and return first line which does not begin with comment command "//" and is not blank
 	fgets_validated(line, buf_size, input_file);	
-
+	//puts("after fgets");
 	// Having now read a non comment/blank line and removed leading spaces/tabs, parse it into {key}{=}{value}//{comments} format
 	sscanf (line, " %s %s %s //%s", &key, &equal_sign, &value, &comments);
 	input_value.key = (char*) calloc( strlen(key) + 1, sizeof(char));
@@ -6453,13 +6406,14 @@ CONFIG_LINE split_config_comments(char* comment_line)
 {
 	std::string entry_string(comment_line);
 	entry_string.pop_back(); // Pop off endline character
-	for( int i = 0; i <= strlen(comment_line); i++)
+	for( int i = 0; i < (int)entry_string.length(); i++)
 	{
 		if(entry_string[i] == '\t' )
 		{
 			entry_string[i] = ' ';
 			entry_string.insert(i, 3, ' ');
 		}
+		
 	}
 	entry_string.resize(CONFIG_LINE_WIDTH, ' ');
 	CONFIG_LINE parsed_comment;
@@ -6529,7 +6483,7 @@ bool parse_config_file_line( FILE* input_file, CONFIG_OBJECT& config_object, cha
 	bool parameter_found = false;
 	double lambda_new = 0.005;
 	char* parameter = "LAMBDA";
-
+	
 	// Remove leading spaces/tabs and return first line which does not begin with comment command "//" and is not blank
 	fgets_config(line, buf_size, input_file, config_object);	
 	
@@ -6612,13 +6566,8 @@ CONFIG_OBJECT config_file_2_object(char* parameter_2_change, std::string new_val
 	sprintf(CONFIG_FILE_PATH, "%s/%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
 	FILE* input_file = fopen(CONFIG_FILE_PATH, "r" );
 	print_section_header( "Reading key/value pairs from configuration file and setting corresponding execution parameters", '*' );
-	//double lambda_new = 0.005;
-	//char* parameter = "LAMBDA";
-	////std::string new_value_string(parameter);
-	//std::string new_value_string("0.005");
-	//std::string value_string = std::to_string(static_cast<long double>(lambda_new));
+
 	while( !feof(input_file) )	
-		//value_change |= parse_config_file_line(input_file, config_object, parameter, new_value_string);
 		value_change |= parse_config_file_line(input_file, config_object, parameter_2_change, new_value);
 	fclose(input_file);
 	print_section_exit( "Finished reading configuration file and setting execution parameters", "====>" );
@@ -6628,11 +6577,6 @@ CONFIG_OBJECT config_file_2_object(char* parameter_2_change, std::string new_val
 	else
 		puts("No key for the specfied parameter to change was found");
 	return config_object;
-}
-
-void modify_config_value()
-{
-
 }
 /***********************************************************************************************************************************************************************************************************************/
 /*********************************************************************************************** Device Helper Functions ***********************************************************************************************/
@@ -6644,49 +6588,20 @@ void modify_config_value()
 void test_func()
 {
 	//print_copyright_notice();
-	//apply_execution_arguments();
-	//apply_execution_arguments(unsigned int num_run_arguments, char** run_arguments)
 	//view_config_file();
 	set_execution_date();
-	//read_config_file();
-	//set_IO_paths();
-	//set_dependent_parameters();
-	//parameters_2_GPU();
-	
-	//char* comments = "// Choose ONLY ONE option below and comment out key/value pairs associated with other options";
-	//CONFIG_LINE split_comment = split_config_comments(comments);
-	/*for( int i = 0; i < (int)split_comment.size(); i++ )
-	{
-		cout << "-"<< split_comment[i] << "-" << endl;
-	}*/
+	read_config_file();
+	set_IO_paths();
+	set_dependent_parameters();
+	parameters_2_GPU();
+		
 	double lambda_new = 0.005;
-	char* parameter = "LAMBDA";
-	//std::string new_value_string(parameter);
-	std::string new_value_string("0.005");
-	std::string value_string = std::to_string(static_cast<long double>(lambda_new));
+	char* parameter = run_arguments[1];
+	std::string value_string(run_arguments[2]);
 	CONFIG_OBJECT config_object = config_file_2_object(parameter, value_string );
-	//pause_execution();
-	// write_config( config_object);
-	//int k = 0;
-	//for( int i = 0; i < 10; i++ )
-	//{
-	//	k = 0;
-	//	for( int j = 0; j < NUM_CONFIG_FIELDS; j++ )
-	//	{
-	//		cout << "Object " << i << endl << "*"<< config_object[i][j] << "*" << endl << endl;
-	//		k +=  (config_object[i])[j].size();
-	//	}
-	//	cout << "Comment line length = " << (config_object[i])[3].size() << endl;
-	//	cout << "Total line length = " << k << endl;
-	//	cout << endl;
-	//}
 
-	//cout << "Preprp line length = " << (config_object[6])[0].size() << endl;
-	//puts(CONFIG_FILE_PATH);
 	//initializations();
 	//count_histories_v0();
-	//log_write_test();
-	//puts("Hello");
 	//log_write_test();
 	//log_write_test2();
 	//log_write_test3();

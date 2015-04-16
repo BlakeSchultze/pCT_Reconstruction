@@ -1015,7 +1015,6 @@ void read_config_file()
 		printf("%s\n", PROJECTION_DATA_DIR );
 		print_section_separator('-');
 	}
-
 	CONFIG_FILE_PATH  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
 	sprintf(CONFIG_FILE_PATH, "%s/%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
 	FILE* input_file = fopen(CONFIG_FILE_PATH, "r" );
