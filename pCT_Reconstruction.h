@@ -64,6 +64,8 @@ typedef unsigned int uint;
 typedef std::vector<std::vector<std::string> > LOG_OBJECT;
 typedef std::vector<std::string> LOG_LINE;
 //typedef std::vector<std::vector<char*> > log_object;
+typedef std::vector<std::vector<std::string> > CONFIG_OBJECT;
+typedef std::vector<std::string> CONFIG_LINE;
 /***************************************************************************************************************************************************************************/
 /************************************************************************ User defined data types **********************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -91,18 +93,21 @@ enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE, FT_END};						// Define the types
 enum X_0_TYPES { IMPORT_X_0, X_HULL, X_FBP, HYBRID, ZEROS, X0_END };		// Define valid choices for which hull to use in MLP calculations
 enum RECON_ALGORITHMS { ART, DROP, BIP, SAP, ROBUST1, ROBUST2, RA_END };	// Define valid choices for iterative projection algorithm to use
 enum LOG_ENTRIES {OBJECT_L, SCAN_TYPE_L, RUN_DATE_L, RUN_NUMBER_L, 
-	PROJECTION_DATA_DATE_L, PREPROCESS_DATE_L, RECONSTRUCTION_DATE_L};
+	ACQUIRED_BY_L, PROJECTION_DATA_DATE_L, CALIBRATED_BY_L, 
+	PREPROCESS_DATE_L, PREPROCESSED_BY_L, RECONSTRUCTION_DATE_L, 
+	RECONSTRUCTED_BY_L, COMMENTS_L};
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------- Preprocessing option parameters -------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char* OBJECT, *SCAN_TYPE, *RUN_DATE, *RUN_NUMBER, *PROJECTION_DATA_DATE, *PREPROCESS_DATE, *RECONSTRUCTION_DATE;
+char* USER_NAME;
 char* PATH_2_PCT_DATA_DIR, *DATA_TYPE_DIR, *PROJECTION_DATA_DIR, *PREPROCESSING_DIR, *RECONSTRUCTION_DIR;
 //char* OVERWRITING_PREPROCESS_DATE, OVERWRITING_RECON_DATE;
 
 char* HULL_FILENAME, *FBP_FILENAME, *X_0_FILENAME, *MLP_FILENAME, *RECON_HISTORIES_FILENAME, *X_FILENAME, *FBP_MEDIAN_2D_FILENAME, *FBP_MEDIAN_3D_FILENAME;
-char* HULL_PATH, *FBP_PATH, *X_0_PATH, *MLP_PATH, *RECON_HISTORIES_PATH, *X_PATH, *FBP_MEDIAN_2D_PATH, *FBP_MEDIAN_3D_PATH;
+char* CONFIG_FILE_PATH, *HULL_PATH, *FBP_PATH, *X_0_PATH, *MLP_PATH, *RECON_HISTORIES_PATH, *X_PATH, *FBP_MEDIAN_2D_PATH, *FBP_MEDIAN_3D_PATH;
 
-bool OBJECT_SET = false, RUN_DATE_SET = false, RUN_NUMBER_SET = false;
+bool OBJECT_SET = false, RUN_DATE_SET = false, RUN_NUMBER_SET = false, USER_NAME_SET = false;
 bool PROJECTION_DATA_DATE_SET = false, PREPROCESS_DATE_SET = false, RECONSTRUCTION_DATE_SET = false;
 bool PROJECTION_DATA_DIR_SET = false, PREPROCESSING_DIR_SET = false, RECONSTRUCTION_DIR_SET = false;
 

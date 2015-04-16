@@ -42,7 +42,7 @@ int main(unsigned int num_arguments, char** arguments)
     //Now we redirect standard output to the file using dup2
     //if(dup2(file,1) < 0)    return 1;
 
-	//if( parameters.LOG_2_TEXT_FILE )
+	//if( parameters.ADD_DATA_LOG_ENTRY )
 		//freopen("out.txt","w+",stdout);
 	//freopen("out.txt","w+",stdin);
 	//freopen("out.txt","w+",stderr);
@@ -60,7 +60,7 @@ int main(unsigned int num_arguments, char** arguments)
 		//puts("\nFinished reading configurations and setting program options and parameters\n");
 		print_section_exit("Finished reading configurations and setting program options and parameters", "====>" );
 		//pause_execution();
-		if( !parameters.IMPORT_PREPROCESSED_DATA_D )
+		if( !parameters.IMPORT_PREPROCESSING_D )
 		{
 			/********************************************************************************************************************************************************/
 			/* Start the execution timing clock																														*/
@@ -351,7 +351,11 @@ void initializations()
 {
 	puts("Allocating statistical analysis arrays on host/GPU...");
 
-	histories_per_scan		= (int*)	calloc( parameters.NUM_SCANS_D,	sizeof(int)	);
+	histories_per_scan					= (int*) calloc( parameters.NUM_SCANS_D,	 sizeof(int)	);
+	histories_per_file					= (int*) calloc( parameters.NUM_FILES_D,	 sizeof(int) );
+	histories_per_gantry_angle			= (int*) calloc( parameters.GANTRY_ANGLES_D, sizeof(int) );
+	recon_vol_histories_per_projection	= (int*) calloc( parameters.GANTRY_ANGLES_D, sizeof(int) );
+
 	bin_counts_h			= (int*)	calloc( parameters.NUM_BINS_D,	sizeof(int)	);
 	mean_WEPL_h				= (float*)	calloc( parameters.NUM_BINS_D,	sizeof(float) );
 	mean_rel_ut_angle_h		= (float*)	calloc( parameters.NUM_BINS_D,	sizeof(float) );
@@ -551,13 +555,14 @@ void count_histories_v0()
 {
 	char data_filename[256];
 	float projection_angle;
+	 
 	unsigned int magic_number, num_histories, file_number = 0, gantry_position_number = 0;
 	for( unsigned int gantry_angle = 0; gantry_angle < 360; gantry_angle += int(parameters.GANTRY_ANGLE_INTERVAL_D), gantry_position_number++ )
 	{
 		for( unsigned int scan_number = 1; scan_number <= parameters.NUM_SCANS_D; scan_number++, file_number++ )
 		{
-			sprintf(data_filename, "%s/%s_%03d%s", PREPROCESSING_DIR, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION  );
-			//sprintf(data_filename, "%s/%s_%03d%s", PREPROCESSING_DIR, PROJECTION_DATA_BASENAME, gantry_position_number, PROJECTION_DATA_FILE_EXTENSION  );
+			sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION  );
+			//sprintf(data_filename, "%s/%s_%03d%s", PROJECTION_DATA_DIR, PROJECTION_DATA_BASENAME, gantry_position_number, PROJECTION_DATA_FILE_EXTENSION  );
 			/*
 			Contains the following headers:
 				Magic number identifier: "PCTD" (4-byte string)
@@ -576,6 +581,7 @@ void count_histories_v0()
 			if( data_file == NULL )
 			{
 				fputs( "Error Opening Data File:  Check that the directories are properly named.", stderr ); 
+				log_write_test();
 				exit_program_if(true);
 			}
 			
@@ -598,22 +604,29 @@ void count_histories_v0()
 				histories_per_scan[scan_number-1] += num_histories;
 				total_histories += num_histories;
 			
-				fread(&projection_angle, sizeof(float), 1, data_file );
-				projection_angles.push_back(projection_angle);
+				fread(&PROJECTION_ANGLE, sizeof(float), 1, data_file );
+				projection_angles.push_back(PROJECTION_ANGLE);
+				fread(&BEAM_ENERGY_IN, sizeof(float), 1, data_file );
+				fread(&GENERATION_DATE, sizeof(int), 1, data_file );
+				fread(&CALIBRATION_DATE, sizeof(int), 1, data_file );
 
-				fseek( data_file, 2 * sizeof(int) + sizeof(float), SEEK_CUR );
 				fread(&PHANTOM_NAME_SIZE, sizeof(int), 1, data_file );
-
-				fseek( data_file, PHANTOM_NAME_SIZE, SEEK_CUR );
+				PHANTOM_NAME = (char*)malloc(PHANTOM_NAME_SIZE );
+				fread(PHANTOM_NAME,  PHANTOM_NAME_SIZE, 1, data_file );
+				//char* ACQUIRED_BY, * CALIBRATED_BY, * PREPROCESSED_BY, * RECONSTRUCTED_BY, * COMMENTS;
 				fread(&DATA_SOURCE_SIZE, sizeof(int), 1, data_file );
+				DATA_SOURCE = (char*)malloc(DATA_SOURCE_SIZE );
+				fread(DATA_SOURCE, DATA_SOURCE_SIZE, 1, data_file );
 
-				fseek( data_file, DATA_SOURCE_SIZE, SEEK_CUR );
-				fread(&PREPARED_BY_SIZE, sizeof(int), 1, data_file );
+				fread(&CALIBRATED_BY_SIZE, sizeof(int), 1, data_file );
+				CALIBRATED_BY = (char*)malloc(ACQUIRED_BY_SIZE );
+				fread(CALIBRATED_BY, CALIBRATED_BY_SIZE, 1, data_file );
 
-				fseek( data_file, PREPARED_BY_SIZE, SEEK_CUR );
 				fclose(data_file);
-				SKIP_2_DATA_SIZE = 4 + 7 * sizeof(int) + 2 * sizeof(float) + PHANTOM_NAME_SIZE + DATA_SOURCE_SIZE + PREPARED_BY_SIZE;
-				//pause_execution();
+				SKIP_2_DATA_SIZE = sizeof(magic_number) + sizeof(VERSION_ID) + sizeof(num_histories) + sizeof(PROJECTION_ANGLE) + sizeof(BEAM_ENERGY_IN) + sizeof(GENERATION_DATE) + sizeof(CALIBRATION_DATE) + sizeof(PHANTOM_NAME_SIZE) + PHANTOM_NAME_SIZE + sizeof(DATA_SOURCE_SIZE) + DATA_SOURCE_SIZE + sizeof(CALIBRATED_BY_SIZE) + CALIBRATED_BY_SIZE;
+				//printf("%d\n", SKIP_2_DATA_SIZE);
+				//SKIP_2_DATA_SIZE = 4 + 7 * sizeof(int) + 2 * sizeof(float) + PHANTOM_NAME_SIZE + DATA_SOURCE_SIZE + CALIBRATED_BY_SIZE;
+				//printf("%d\n", SKIP_2_DATA_SIZE);
 			}
 			else if( VERSION_ID == 1 )
 			{
@@ -636,11 +649,11 @@ void count_histories_v0()
 				fread(&DATA_SOURCE_SIZE, sizeof(int), 1, data_file );
 
 				fseek( data_file, DATA_SOURCE_SIZE, SEEK_CUR );
-				fread(&PREPARED_BY_SIZE, sizeof(int), 1, data_file );
+				fread(&CALIBRATED_BY_SIZE, sizeof(int), 1, data_file );
 
-				fseek( data_file, PREPARED_BY_SIZE, SEEK_CUR );
+				fseek( data_file, CALIBRATED_BY_SIZE, SEEK_CUR );
 				fclose(data_file);
-				SKIP_2_DATA_SIZE = 4 + 7 * sizeof(int) + 2 * sizeof(float) + PHANTOM_NAME_SIZE + DATA_SOURCE_SIZE + PREPARED_BY_SIZE;
+				SKIP_2_DATA_SIZE = 4 + 7 * sizeof(int) + 2 * sizeof(float) + PHANTOM_NAME_SIZE + DATA_SOURCE_SIZE + CALIBRATED_BY_SIZE;
 				//pause_execution();
 			}
 			else 
@@ -5737,7 +5750,7 @@ unsigned int create_unique_dir( char* dir_name )
 		//std::string text = buffer.str();
 		//std::cout << "-> " << text << "<- " << endl;
 		//printf( "-> %s <-\n", text );
-		if( parameters.LOG_2_TEXT_FILE )
+		if( parameters.CONSOLE_OUTPUT_2_DISK_D )
 		{
 			sprintf(error_response, "%s %s_%d %s\n", statement_beginning, dir_name, i, statement_ending );
 			puts(error_response);
@@ -5787,28 +5800,9 @@ struct generic_IO_container read_key_value_pair( FILE* input_file )
 	generic_IO_container input_value;
 	// Remove leading spaces/tabs and return first line which does not begin with comment command "//" and is not blank
 	fgets_validated(line, buf_size, input_file);	
-	//long pos_b4_read = ftell(input_file);
-	//fpos_t start_pos, end_pos;
-	//fgetpos( input_file, &start_pos );
-	//char* new_line;
+
 	// Having now read a non comment/blank line and removed leading spaces/tabs, parse it into {key}{=}{value}//{comments} format
 	sscanf (line, " %s %s %s //%s", &key, &equal_sign, &value, &comments);
-	//if( strcmp(key, "DATA_TYPE" ))
-	//{
-	//	
-	//	fgetpos( input_file, &end_pos );
-	//	new_line = (char*)calloc( strlen(key)+strlen(equal_sign)+strlen(value)+strlen(comments), sizeof(char) );
-	//	puts(line);
-	//	long pos_after_read = ftell(input_file);
-	//	sprintf(new_line, " %s %s %s //%s", &key, &equal_sign, "1", &comments );
-	//	fsetpos( input_file, &start_pos );
-	//	//fseek(input_file, pos_after_read - pos_b4_read, SEEK_CUR);
-	//	fwrite(new_line, sizeof(char), strlen(new_line), input_file );
-	//	fsetpos( input_file, &end_pos );
-
-	//	puts(line);
-
-	//}
 	input_value.key = (char*) calloc( strlen(key) + 1, sizeof(char));
 	std::copy( key, &key[strlen(key)], input_value.key  );
 	printf("key = %s ", input_value.key);
@@ -6002,8 +5996,8 @@ void print_copyright_notice()
 /***********************************************************************************************************************************************************************************************************************/
 LOG_OBJECT read_log()
 {
-	char entry_item[64];
-	std::vector<std::string> log_entry;
+	char entry_item[LOG_READ_BUFFER];
+	LOG_LINE log_entry;
 	LOG_OBJECT log;
 
 	std::fstream log_file(LOG_FILENAME, std::fstream::in | std::fstream::out);
@@ -6016,9 +6010,9 @@ LOG_OBJECT read_log()
 		while( !log_file.eof() )
 		{		
 			log_entry.clear();
-			for( int i = 0; i < NUM_LOG_ENTRIES; i++ )
+			for( int i = 0; i < NUM_LOG_FIELDS; i++ )
 			{
-				log_file.getline(entry_item, 64, ',');
+				log_file.getline(entry_item, LOG_READ_BUFFER, ',');
 				log_entry.push_back(std::string(entry_item));
 				puts(entry_item);
 			}
@@ -6031,7 +6025,7 @@ LOG_OBJECT read_log()
 }
 std::vector<int> scan_log_4_matches( LOG_OBJECT log )
 {
-	uint entry_number = 0;
+	uint entry_number = LOG_FIRST_LINE;
 	std::vector<int> match_info;
 	bool object_match, scan_match, run_date_match, run_num_match, proj_date_match, preprocess_date_match, recon_date_match;
 	bool projection_data_entry, preprocessing_data_entry, recon_data_entry;
@@ -6093,7 +6087,7 @@ std::vector<int> scan_log_4_matches( LOG_OBJECT log )
 	//match_info.push_back(0 );
 	return match_info;
 }
-std::string format_log_entry(char* entry_array, uint length  )
+std::string format_log_entry(const char* entry_array, uint length  )
 {
 	std::string entry_string(entry_array);
 	entry_string.resize(length, ' ');
@@ -6104,19 +6098,44 @@ std::string format_log_entry(char* entry_array, uint length  )
 	}
 	return entry_string;
 }
+LOG_LINE construct_log_field_names( )
+{
+	LOG_LINE log_field_names;
+	for( int i = 0; i < NUM_LOG_FIELDS; i++ )
+		log_field_names.push_back( format_log_entry( LOG_ITEMS[i], LOG_FIELD_WIDTHS[i]  )  );
+	return log_field_names;
+}
 LOG_LINE construct_log_entry()
 {
 	LOG_LINE current_run_entry;
+
+	PREPROCESSED_BY = (char*) calloc(AUTHOR_ENTRIES_SIZE, sizeof(char) );
+	RECONSTRUCTED_BY = (char*) calloc(AUTHOR_ENTRIES_SIZE, sizeof(char) );
+	COMMENTS = (char*) calloc(COMMENT_ENTRIES_SIZE, sizeof(char) );
+	CONFIG_LINK = (char*) calloc(CONFIG_LINK_SIZE, sizeof(char) );
+	sprintf(PREPROCESSED_BY, "%s", "Blake Schultze" );
+	sprintf(RECONSTRUCTED_BY, "%s", "Blake Schultze" );
+	sprintf(CONFIG_LINK, "file:///%s/%s", PREPROCESSING_DIR, CONFIG_FILENAME );
+	sprintf(COMMENTS, "%s", "Insert Comments Here" );
+
 	current_run_entry.push_back( format_log_entry( OBJECT, OBJECT_ENTRIES_SIZE  )  );
 	current_run_entry.push_back( format_log_entry( SCAN_TYPE, TYPE_ENTRIES_SIZE  )  );
 	current_run_entry.push_back( format_log_entry( RUN_DATE, DATE_ENTRIES_SIZE  )  );
 	current_run_entry.push_back( format_log_entry( RUN_NUMBER, RUN_NUM_ENTRIES_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( ACQUIRED_BY, AUTHOR_ENTRIES_SIZE  )  );
 	current_run_entry.push_back( format_log_entry( PROJECTION_DATA_DATE, DATE_ENTRIES_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( CALIBRATED_BY, AUTHOR_ENTRIES_SIZE  )  );
 	current_run_entry.push_back( format_log_entry( PREPROCESS_DATE, DATE_ENTRIES_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( PREPROCESSED_BY, AUTHOR_ENTRIES_SIZE  )  );
+
 	if( parameters.PERFORM_RECONSTRUCTION_D )
 		current_run_entry.push_back( format_log_entry( RECONSTRUCTION_DATE, DATE_ENTRIES_SIZE  )  );
 	else
 		current_run_entry.push_back( format_log_entry( "", DATE_ENTRIES_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( RECONSTRUCTED_BY, AUTHOR_ENTRIES_SIZE  )  );
+
+	current_run_entry.push_back( format_log_entry( CONFIG_LINK, CONFIG_LINK_SIZE  )  );
+	current_run_entry.push_back( format_log_entry( COMMENTS, COMMENT_ENTRIES_SIZE  )  );
 	return current_run_entry;
 }
 void new_log_entry( LOG_OBJECT log_object )
@@ -6132,9 +6151,8 @@ void new_log_entry( LOG_OBJECT log_object )
 	new_entry.push_back( "aab"  );
 	new_entry.push_back( "aab" );*/
 
-	int start_row = 0, end_row = (int)log_object.size()-1;
-	int start_item= 0, end_item = NUM_LOG_ENTRIES, log_item = 0;
-	while( (log_item < NUM_LOG_ENTRIES) && (start_row <= end_row) )
+	int start_row = LOG_FIRST_LINE, end_row = (int)log_object.size() - 1, log_item = 0;
+	while( (log_item < NUM_LOG_FIELDS) && (start_row <= end_row) )
 	{
 		while( ((new_entry[log_item]).compare(std::string(log_object[start_row][log_item])) > 0) && (start_row < end_row) )
 			start_row++;
@@ -6322,7 +6340,7 @@ void print_log( LOG_OBJECT log )
 	for( int i = 0; i < log.size(); i++ )
 	{
 		printf("Log Entry %d : \n", i );
-		for( int j = 0; j < NUM_LOG_ENTRIES; j++ )
+		for( int j = 0; j < NUM_LOG_FIELDS; j++ )
 		{
 			printf("%s\n", log[i][j] );
 		}
@@ -6340,7 +6358,7 @@ void write_log( LOG_OBJECT log_object)
 		for( int i = 0; i < log_object.size(); i++ )
 		{
 			log_file << std::noskipws;		
-			for( int j = 0; j < NUM_LOG_ENTRIES; j++ )
+			for( int j = 0; j < NUM_LOG_FIELDS; j++ )
 			{
 				log_file <<  log_object[i][j] << ",";
 			}
@@ -6352,14 +6370,38 @@ void write_log( LOG_OBJECT log_object)
 void log_write_test()
 {
 	std::ofstream log_file(LOG_FILENAME);
-	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE		<< ","  << RECONSTRUCTION_DATE << ","  << endl;
-	log_file << OBJECT <<","  << SCAN_TYPE << "1,"  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << "," << RECONSTRUCTION_DATE << "," << endl;
-	log_file << OBJECT <<","  << SCAN_TYPE << "1," << RUN_DATE << ","  << RUN_NUMBER << "," << PROJECTION_DATA_DATE << "," << PREPROCESS_DATE << "," << RECONSTRUCTION_DATE << "," << endl;
-	log_file << OBJECT <<"1,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
-	log_file << OBJECT <<"2,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << "," << PREPROCESS_DATE << "," << RECONSTRUCTION_DATE << "," << endl;
-	log_file << OBJECT <<"2,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
-	log_file << OBJECT <<"3,"  << SCAN_TYPE << ","  << RUN_DATE << ","  << RUN_NUMBER << ","  << PROJECTION_DATA_DATE << ","  << PREPROCESS_DATE << ","  << RECONSTRUCTION_DATE << ","  << endl;
-	log_file << OBJECT <<"3," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << PROJECTION_DATA_DATE << "," << PREPROCESS_DATE << "," << RECONSTRUCTION_DATE	  << ",";
+	LOG_LINE log_field_names = construct_log_field_names();
+	for( int i = 0; i < NUM_LOG_FIELDS; i++ )
+		log_file << log_field_names[i] <<",";
+	log_file << endl;
+
+	ACQUIRED_BY = (char*)calloc( AUTHOR_ENTRIES_SIZE, sizeof(char) );
+	PREPROCESSED_BY = (char*)calloc( AUTHOR_ENTRIES_SIZE, sizeof(char) );
+	RECONSTRUCTED_BY = (char*)calloc( AUTHOR_ENTRIES_SIZE, sizeof(char) );
+	COMMENTS = (char*)calloc( AUTHOR_ENTRIES_SIZE, sizeof(char) );
+	CONFIG_LINK = (char*) calloc(CONFIG_LINK_SIZE, sizeof(char) );
+
+	if( parameters.DATA_TYPE == EXPERIMENTAL )
+		sprintf(ACQUIRED_BY, "%s", "UCSC" );
+	else if( parameters.DATA_TYPE == SIMULATED_G )
+		sprintf(ACQUIRED_BY, "%s", "Valentina Giacometti" );
+	else if( parameters.DATA_TYPE == SIMULATED_T )
+		sprintf(ACQUIRED_BY, "%s", "Tai Dou" );
+	else
+		sprintf(ACQUIRED_BY, "%s", "" );
+	sprintf(PREPROCESSED_BY, "%s", "Blake Schultze" );
+	sprintf(RECONSTRUCTED_BY, "%s", "Blake Schultze" );
+	sprintf(CONFIG_LINK, "file:///%s/%s", PREPROCESSING_DIR, CONFIG_FILENAME );
+	sprintf(COMMENTS, "%s", "Insert Comments Here" );
+
+	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << ACQUIRED_BY << "," << PROJECTION_DATA_DATE << ","  << CALIBRATED_BY << ","  << PREPROCESS_DATE << ","  << PREPROCESSED_BY << "," << RECONSTRUCTION_DATE << "," << RECONSTRUCTED_BY << "," << CONFIG_LINK << "," << COMMENTS << ","<< endl;
+	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << ACQUIRED_BY << "," << PROJECTION_DATA_DATE << ","  << CALIBRATED_BY << ","  << PREPROCESS_DATE << ","  << PREPROCESSED_BY << "," << RECONSTRUCTION_DATE << "," << RECONSTRUCTED_BY << "," << CONFIG_LINK << "," << COMMENTS << ","<< endl;
+	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << ACQUIRED_BY << "," << PROJECTION_DATA_DATE << ","  << CALIBRATED_BY << ","  << PREPROCESS_DATE << ","  << PREPROCESSED_BY << "," << RECONSTRUCTION_DATE << "," << RECONSTRUCTED_BY << "," << CONFIG_LINK << "," << COMMENTS << ","<< endl;
+	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << ACQUIRED_BY << "," << PROJECTION_DATA_DATE << ","  << CALIBRATED_BY << ","  << PREPROCESS_DATE << ","  << PREPROCESSED_BY << "," << RECONSTRUCTION_DATE << "," << RECONSTRUCTED_BY << "," << CONFIG_LINK << "," << COMMENTS << ","<< endl;
+	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << ACQUIRED_BY << "," << PROJECTION_DATA_DATE << ","  << CALIBRATED_BY << ","  << PREPROCESS_DATE << ","  << PREPROCESSED_BY << "," << RECONSTRUCTION_DATE << "," << RECONSTRUCTED_BY << "," << CONFIG_LINK << "," << COMMENTS << ","<< endl;
+	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << ACQUIRED_BY << "," << PROJECTION_DATA_DATE << ","  << CALIBRATED_BY << ","  << PREPROCESS_DATE << ","  << PREPROCESSED_BY << "," << RECONSTRUCTION_DATE << "," << RECONSTRUCTED_BY << "," << CONFIG_LINK << "," << COMMENTS << ","<< endl;
+	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << ACQUIRED_BY << "," << PROJECTION_DATA_DATE << ","  << CALIBRATED_BY << ","  << PREPROCESS_DATE << ","  << PREPROCESSED_BY << "," << RECONSTRUCTION_DATE << "," << RECONSTRUCTED_BY << "," << CONFIG_LINK << "," << COMMENTS << ","<< endl;
+	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << ACQUIRED_BY << "," << PROJECTION_DATA_DATE << ","  << CALIBRATED_BY << ","  << PREPROCESS_DATE << ","  << PREPROCESSED_BY << "," << RECONSTRUCTION_DATE << "," << RECONSTRUCTED_BY << "," << CONFIG_LINK << "," << COMMENTS << ",";
 	log_file.close();
 }
 void log_write_test2()
@@ -6405,6 +6447,194 @@ void log_write_test3()
 	log_file.close();
 }
 /***********************************************************************************************************************************************************************************************************************/
+/************************************************************************** Config File Maintaining Functions and Functions in Development *****************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
+CONFIG_LINE split_config_comments(char* comment_line)
+{
+	std::string entry_string(comment_line);
+	entry_string.pop_back(); // Pop off endline character
+	for( int i = 0; i <= strlen(comment_line); i++)
+	{
+		if(entry_string[i] == '\t' )
+		{
+			entry_string[i] = ' ';
+			entry_string.insert(i, 3, ' ');
+		}
+	}
+	entry_string.resize(CONFIG_LINE_WIDTH, ' ');
+	CONFIG_LINE parsed_comment;
+	std::string temp;
+	size_t comment_position = 0, temp_length = 0;
+	for( int i = 0; i < NUM_CONFIG_FIELDS; i++ )
+	{
+		temp_length = CONFIG_FIELD_WIDTHS[i];
+		temp = entry_string.substr(comment_position, temp_length );
+		parsed_comment.push_back(temp);
+		comment_position += temp_length;
+	}
+	return parsed_comment;
+}
+void write_config( CONFIG_OBJECT config_object)
+{
+	std::ofstream config_file("config_test.cfg");
+	
+	if( !config_file.is_open() )
+		config_file.open("config_test.cfg");
+	else
+	{
+		for( int i = 0; i < config_object.size(); i++ )
+		{
+			config_file << std::noskipws;		
+			for( int j = 0; j < NUM_CONFIG_FIELDS; j++ )
+			{
+				config_file <<  config_object[i][j];
+			}
+			config_file << endl;
+		}
+	}
+	config_file.close();
+}
+void fgets_config(char *line, int buf_size, FILE* input_file, CONFIG_OBJECT& config_object)
+{
+    bool done = false;
+	char* line_copy = line;
+    while(!done)
+    {
+        if( fgets(line, buf_size, input_file ) == NULL )										// Read a line from the file
+            return;		
+		line_copy = line;
+		while( *line == ' ' || *line == '\t' )
+			line++;
+        if( std::find_if(line, &line[strlen(line)], blank_line ) == ( &line[strlen(line)] ) )	// Skip lines with only "\n", "\t", and/or " "
+		{
+			config_object.push_back(split_config_comments(line_copy));
+			continue;
+		}
+        else if( strncmp( line, "//", 2 ) == 0 )												// Skip any comment lines
+        {
+			config_object.push_back(split_config_comments(line_copy));
+			continue;
+		}
+        else																					// Got a valid data line so return with this line
+			done = true;    
+    }
+}
+bool parse_config_file_line( FILE* input_file, CONFIG_OBJECT& config_object, char* parameter_2_change, std::string new_value )
+{
+	char key[128], equal_sign[128], value[256], comments[512];	
+	const uint buf_size = 1024;
+	char line[buf_size];
+	std::size_t found;
+	CONFIG_LINE config_line;
+	bool parameter_found = false;
+	double lambda_new = 0.005;
+	char* parameter = "LAMBDA";
+
+	// Remove leading spaces/tabs and return first line which does not begin with comment command "//" and is not blank
+	fgets_config(line, buf_size, input_file, config_object);	
+	
+	// Having now read a non comment/blank line and removed leading spaces/tabs, parse it into {key}{=}{value}//{comments} format
+	int filled = sscanf (line, "%s %s %s // %s", &key, &equal_sign, &value, &comments);
+
+	std::string line_string(line), key_string(key), equal_string(equal_sign), value_string(value), comment_string(comments);
+	
+	//if( strcmp(key, parameter_2_change ) == 0 )
+	//{
+	//	if( key_is_string_parameter( parameter_2_change ) )
+	//		value_string = std::string(parameter_2_change);
+	//	else if( key_is_floating_point_parameter( parameter_2_change ) )
+	//		value_string = std::to_string(static_cast<long double>(lambda_new));
+	//	else if( key_is_integer_parameter( parameter_2_change ) )
+	//		value_string = std::to_string(static_cast<long long>(lambda_new));
+	//	else if( key_is_boolean_parameter( parameter_2_change ) )
+	//	{
+	//		//if( )
+	//			value_string = std::string(parameter_2_change);
+	//		//else
+	//		//	value_string = std::to_string(static_cast<long double>(lambda_new));
+	//	}
+	//	else
+	//		puts("No match found for key of parameter to be changed.");
+	//}
+	if( strcmp(key, parameter_2_change ) == 0 )
+	{
+		if(		key_is_string_parameter( parameter_2_change )
+			||	key_is_floating_point_parameter( parameter_2_change )
+			|| key_is_integer_parameter( parameter_2_change )
+			|| key_is_boolean_parameter( parameter_2_change ) 
+		)
+		{
+			value_string = new_value;
+			parameter_found = true;
+		}
+	}
+	if( filled <= 3 )
+		comment_string = "";
+	else
+	{
+		found = line_string.find("//");
+		comment_string = line_string.substr(found, std::string::npos);
+		comment_string.pop_back();
+	}
+	if( (int)value_string.length() > VALUE_FIELD_WIDTH )
+		comment_string.insert(0, value_string.substr(VALUE_FIELD_WIDTH, std::string::npos ) );	
+
+	key_string.resize(KEY_FIELD_WIDTH, ' ');
+	equal_string.resize(EQUALS_FIELD_WIDTH, ' ');
+	value_string.resize(VALUE_FIELD_WIDTH, ' ');		
+	comment_string.resize(COMMENT_FIELD_WIDTH, ' ');
+
+	config_line.push_back(key_string);
+	config_line.push_back(equal_string);
+	config_line.push_back(value_string);
+	config_line.push_back(comment_string);
+	config_object.push_back(config_line);
+
+	return parameter_found;
+}
+CONFIG_OBJECT config_file_2_object(char* parameter_2_change, std::string new_value)
+{		
+	// Extract current directory (executable path) terminal response from system command "chdir" 
+	CONFIG_OBJECT config_object;
+	bool value_change = false;
+	if( !CONFIG_PATH_PASSED )
+	{
+		std::string str =  terminal_response("chdir");
+		const char* cstr = str.c_str();
+		PROJECTION_DATA_DIR = (char*) calloc( strlen(cstr), sizeof(char));
+		std::copy( cstr, &cstr[strlen(cstr)-1], PROJECTION_DATA_DIR );
+		print_section_header( "Config file location set to current execution directory :", '*' );	
+		print_section_separator('-');
+		printf("%s\n", PROJECTION_DATA_DIR );
+		print_section_separator('-');
+	}
+	CONFIG_FILE_PATH  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
+	sprintf(CONFIG_FILE_PATH, "%s/%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
+	FILE* input_file = fopen(CONFIG_FILE_PATH, "r" );
+	print_section_header( "Reading key/value pairs from configuration file and setting corresponding execution parameters", '*' );
+	//double lambda_new = 0.005;
+	//char* parameter = "LAMBDA";
+	////std::string new_value_string(parameter);
+	//std::string new_value_string("0.005");
+	//std::string value_string = std::to_string(static_cast<long double>(lambda_new));
+	while( !feof(input_file) )	
+		//value_change |= parse_config_file_line(input_file, config_object, parameter, new_value_string);
+		value_change |= parse_config_file_line(input_file, config_object, parameter_2_change, new_value);
+	fclose(input_file);
+	print_section_exit( "Finished reading configuration file and setting execution parameters", "====>" );
+	write_config( config_object);
+	if( value_change )
+		puts("Value successfully changed");
+	else
+		puts("No key for the specfied parameter to change was found");
+	return config_object;
+}
+
+void modify_config_value()
+{
+
+}
+/***********************************************************************************************************************************************************************************************************************/
 /*********************************************************************************************** Device Helper Functions ***********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
 
@@ -6418,23 +6648,53 @@ void test_func()
 	//apply_execution_arguments(unsigned int num_run_arguments, char** run_arguments)
 	//view_config_file();
 	set_execution_date();
-	read_config_file();
-	set_IO_paths();
-	set_dependent_parameters();
-	parameters_2_GPU();
-	std::string left = "object_name1";
-	std::string right = "object_name";
-	std::string right2 = "object_namd";
-	cout << "comprison = " << left.compare(right)  << endl;//1 >
-	cout << "comprison = " << left.compare(right2) << endl;//1 >
-	cout << "comprison = " << right.compare(right2) << endl;//1 >
-	cout << "comprison = " << right2.compare(right) << endl;//-1 <
-	cout << "comprison = " << right.compare(right) << endl;//0 =
-	log_write_test();
+	//read_config_file();
+	//set_IO_paths();
+	//set_dependent_parameters();
+	//parameters_2_GPU();
+	
+	//char* comments = "// Choose ONLY ONE option below and comment out key/value pairs associated with other options";
+	//CONFIG_LINE split_comment = split_config_comments(comments);
+	/*for( int i = 0; i < (int)split_comment.size(); i++ )
+	{
+		cout << "-"<< split_comment[i] << "-" << endl;
+	}*/
+	double lambda_new = 0.005;
+	char* parameter = "LAMBDA";
+	//std::string new_value_string(parameter);
+	std::string new_value_string("0.005");
+	std::string value_string = std::to_string(static_cast<long double>(lambda_new));
+	CONFIG_OBJECT config_object = config_file_2_object(parameter, value_string );
+	//pause_execution();
+	// write_config( config_object);
+	//int k = 0;
+	//for( int i = 0; i < 10; i++ )
+	//{
+	//	k = 0;
+	//	for( int j = 0; j < NUM_CONFIG_FIELDS; j++ )
+	//	{
+	//		cout << "Object " << i << endl << "*"<< config_object[i][j] << "*" << endl << endl;
+	//		k +=  (config_object[i])[j].size();
+	//	}
+	//	cout << "Comment line length = " << (config_object[i])[3].size() << endl;
+	//	cout << "Total line length = " << k << endl;
+	//	cout << endl;
+	//}
+
+	//cout << "Preprp line length = " << (config_object[6])[0].size() << endl;
+	//puts(CONFIG_FILE_PATH);
+	//initializations();
+	//count_histories_v0();
+	//log_write_test();
+	//puts("Hello");
+	//log_write_test();
 	//log_write_test2();
 	//log_write_test3();
-	LOG_OBJECT log_o = read_log();
-	new_log_entry( log_o );
+	//LOG_OBJECT log_o = read_log();
+	//new_log_entry( log_o );
+	//print_log( log_o );
+	//write_log(log_o);
+	
 	//print_log(log_o);
 	//add_log_entry( OBJECT_L );
 	//LOG_OBJECT log_object = read_log();

@@ -39,8 +39,8 @@ struct configurations
 	X_0_TYPES	X_0_TYPE;									// Specify which of the HULL_TYPES to use in this run's MLP calculations
 	RECON_ALGORITHMS RECONSTRUCTION_METHOD; 				// Specify which of the projection algorithms to use for image reconstruction
 	
-	bool LOG_2_TEXT_FILE;
-	bool IMPORT_PREPROCESSED_DATA_D, PERFORM_RECONSTRUCTION_D, PREPROCESS_OVERWRITE_OK_D, RECON_OVERWRITE_OK_D;
+	bool ADD_DATA_LOG_ENTRY_D, CONSOLE_OUTPUT_2_DISK_D;
+	bool IMPORT_PREPROCESSING_D, PERFORM_RECONSTRUCTION_D, PREPROCESS_OVERWRITE_OK_D, RECON_OVERWRITE_OK_D;
 	bool FBP_ON_D, AVG_FILTER_FBP_D, MEDIAN_FILTER_FBP_D, IMPORT_FILTERED_FBP_D, SC_ON_D, MSC_ON_D, SM_ON_D;
 	bool AVG_FILTER_HULL_D, AVG_FILTER_ITERATE_D;//, MLP_FILE_EXISTS_D, HISTORIES_FILE_EXISTS_D;
 	bool WRITE_MSC_COUNTS_D, WRITE_SM_COUNTS_D, WRITE_X_FBP_D, WRITE_FBP_HULL_D, WRITE_AVG_FBP_D, WRITE_MEDIAN_FBP_D, WRITE_BIN_WEPLS_D, WRITE_WEPL_DISTS_D, WRITE_SSD_ANGLES_D;	
@@ -111,8 +111,9 @@ struct configurations
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		//------------------------------------------------------------ Program execution behavior options/parameters ----------------------------------------------------------//
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
-		bool log_2_text_file_p			= true,
-		bool import_preprocessed_data_p	= true,								// [T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
+		bool add_data_log_entry_p		= true,								// [T/F] Add log entry for data generated during execution (T) or not (F)
+		bool console_output_2_disk_p	= false,							// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)
+		bool import_preprocessing_p		= true,								// [T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
 		bool perform_reconstruction_p	= true,								// [T/F] Perform reconstruction (T) or not (F)
 		bool preprocess_overwrite_ok_p	= false,							// [T/F] Allow preprocessing data to be overwritten (T) or not (F)
 		bool recon_overwrite_ok_p 		= false,							// [T/F] Allow reconstruction data to be overwritten (T) or not (F)
@@ -249,8 +250,9 @@ struct configurations
 	//*************************************************************************************************************************************************************************//
 	//*********************************************************************** Preprocessing control options *******************************************************************//
 	//*************************************************************************************************************************************************************************//
-	LOG_2_TEXT_FILE(log_2_text_file_p),
-	IMPORT_PREPROCESSED_DATA_D(import_preprocessed_data_p),					// *[T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
+	CONSOLE_OUTPUT_2_DISK_D(console_output_2_disk_p	),						// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)	
+	ADD_DATA_LOG_ENTRY_D(add_data_log_entry_p),								// *[T/F] Add log entry for data generated during execution (T) or not (F)
+	IMPORT_PREPROCESSING_D(import_preprocessing_p),							// *[T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
 	PERFORM_RECONSTRUCTION_D(perform_reconstruction_p),						// *[T/F] Perform reconstruction (T) or not (F)
 	PREPROCESS_OVERWRITE_OK_D(preprocess_overwrite_ok_p),					// *[T/F] Allow preprocessing data to be overwritten (T) or not (F)
 	RECON_OVERWRITE_OK_D(recon_overwrite_ok_p),								// *[T/F] Allow reconstruction data to be overwritten (T) or not (F)
@@ -499,7 +501,7 @@ void parameters_2_GPU();
 // Log file functions
 LOG_OBJECT read_log();
 std::vector<int> scan_log_4_matches( LOG_OBJECT );
-std::string format_log_entry(char*, uint  );
+std::string format_log_entry(const char*, uint  );
 LOG_LINE construct_log_entry();
 void new_log_entry( LOG_OBJECT );
 void add_log_entry( LOG_ENTRIES );
@@ -1014,9 +1016,9 @@ void read_config_file()
 		print_section_separator('-');
 	}
 
-	char* config_file_path  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
-	sprintf(config_file_path, "%s\\%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
-	FILE* input_file = fopen(config_file_path, "r" );
+	CONFIG_FILE_PATH  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
+	sprintf(CONFIG_FILE_PATH, "%s/%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
+	FILE* input_file = fopen(CONFIG_FILE_PATH, "r" );
 	print_section_header( "Reading key/value pairs from configuration file and setting corresponding execution parameters", '*' );
 	while( !feof(input_file) )
 	{		
@@ -1042,6 +1044,7 @@ bool key_is_string_parameter( char* key )
 		||	strcmp (key, "PROJECTION_DATA_DATE") == 0 
 		||	strcmp (key, "PREPROCESS_DATE") == 0 
 		||	strcmp (key, "RECONSTRUCTION_DATE") == 0 
+		||	strcmp (key, "USER_NAME") == 0
 	)
 		return true;
 	else
@@ -1119,8 +1122,9 @@ bool key_is_boolean_parameter( char* key )
 {
 	if
 	( 
-			strcmp (key, "LOG_2_TEXT_FILE") == 0
-		||	strcmp (key, "IMPORT_PREPROCESSED_DATA") == 0
+			strcmp (key, "ADD_DATA_LOG_ENTRY") == 0
+		||	strcmp (key, "CONSOLE_OUTPUT_2_DISK") == 0
+		||	strcmp (key, "IMPORT_PREPROCESSING") == 0
 		||	strcmp (key, "PERFORM_RECONSTRUCTION") == 0
 		||	strcmp (key, "PREPROCESS_OVERWRITE_OK") == 0
 		||	strcmp (key, "RECON_OVERWRITE_OK") == 0
@@ -1215,6 +1219,12 @@ void set_string_parameter( generic_IO_container &value )
 		RECONSTRUCTION_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RECONSTRUCTION_DATE );
 		RECONSTRUCTION_DATE_SET = true;
+	}
+	else if( strcmp (value.key, "USER_NAME") == 0 )
+	{
+		USER_NAME = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], USER_NAME );
+		USER_NAME_SET = true;
 	}
 	else
 	{
@@ -1739,15 +1749,20 @@ void set_boolean_parameter( generic_IO_container &value )
 		printf("converted to a boolean and ");
 	printf("set to %s\n", value.string_input );
 
-	if( strcmp (value.key, "LOG_2_TEXT_FILE") == 0 )
+	if( strcmp (value.key, "ADD_DATA_LOG_ENTRY") == 0 )
 	{
-		//LOG_2_TEXT_FILE = value.boolean_input;
-		parameters.LOG_2_TEXT_FILE = value.boolean_input;
+		//ADD_DATA_LOG_ENTRY = value.boolean_input;
+		parameters.ADD_DATA_LOG_ENTRY_D = value.boolean_input;
 	}
-	else if( strcmp (value.key, "IMPORT_PREPROCESSED_DATA") == 0 )
+	else if( strcmp (value.key, "CONSOLE_OUTPUT_2_DISK") == 0 )
 	{
-		//IMPORT_PREPROCESSED_DATA = value.boolean_input;
-		parameters.IMPORT_PREPROCESSED_DATA_D = value.boolean_input;
+		//CONSOLE_OUTPUT_2_DISK = value.boolean_input;
+		parameters.CONSOLE_OUTPUT_2_DISK_D = value.boolean_input;
+	}
+	else if( strcmp (value.key, "IMPORT_PREPROCESSING") == 0 )
+	{
+		//IMPORT_PREPROCESSING = value.boolean_input;
+		parameters.IMPORT_PREPROCESSING_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "PERFORM_RECONSTRUCTION") == 0 )
 	{

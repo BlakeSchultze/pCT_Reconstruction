@@ -17,7 +17,10 @@ unsigned int num_run_arguments;
 char** run_arguments;
 std::stringstream buffer;
 
-uint PHANTOM_NAME_SIZE, DATA_SOURCE_SIZE, PREPARED_BY_SIZE, SKIP_2_DATA_SIZE, VERSION_ID, PROJECTION_INTERVAL;
+int GENERATION_DATE, CALIBRATION_DATE;
+uint PHANTOM_NAME_SIZE, DATA_SOURCE_SIZE, ACQUIRED_BY_SIZE, CALIBRATED_BY_SIZE, SKIP_2_DATA_SIZE, VERSION_ID, PROJECTION_INTERVAL;
+float PROJECTION_ANGLE, BEAM_ENERGY_IN;
+char* PHANTOM_NAME, * DATA_SOURCE, * ACQUIRED_BY, * CALIBRATED_BY, * PREPROCESSED_BY, * RECONSTRUCTED_BY, * CONFIG_LINK, * COMMENTS;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*------------------------------------------------------ Reconstruction history ordering and iterate update parameters ----------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
