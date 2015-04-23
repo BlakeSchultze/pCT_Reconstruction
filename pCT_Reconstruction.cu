@@ -216,15 +216,15 @@ int main(unsigned int num_arguments, char** arguments)
 			if( parameters.FBP_ON_D )
 				FBP();
 			exit_program_if( EXIT_AFTER_FBP );
-			hull_selection();
-			define_X_0_TYPES();
+			define_hull();
+			define_x_0();
 			print_section_exit("Preprocessing complete", "====>" );
 		}
 		if( parameters.PERFORM_RECONSTRUCTION_D )  
 		{
 
 			import_hull();
-			import_X_0_TYPES();
+			import_x_0();
 			puts("Reading hull entry/exit coordinates from disk...");
 			reconstruction_histories = import_histories();
 		}
@@ -2917,7 +2917,7 @@ void hull_detection_finish()
 		}
 	}
 }
-void hull_selection()
+void define_hull()
 {
 	puts("Performing hull selection...");
 
@@ -3554,6 +3554,7 @@ void collect_MLP_endpoints()
 			voxel_y_vector.push_back(voxel_y);
 			voxel_z_vector.push_back(voxel_z);
 			bin_number_vector[reconstruction_histories] = bin_number_vector[i];
+			gantry_angle_vector[reconstruction_histories] = gantry_angle_vector[i];
 			WEPL_vector[reconstruction_histories] = WEPL_vector[i];
 			x_entry_vector[reconstruction_histories] = x_in_object;
 			y_entry_vector[reconstruction_histories] = y_in_object;
@@ -3782,7 +3783,7 @@ void export_hull()
 //	fclose(write_input_hull);
 //	puts("Finished writing image reconstruction hull to disk.");
 }
-void export_X_0_TYPES()
+void export_x_0()
 {
 //	puts("Writing image reconstruction hull to disk...");
 //	char input_hull_filename[256];
@@ -3795,10 +3796,11 @@ void export_X_0_TYPES()
 void export_WEPL()
 {
 	puts("Writing WEPL data to disk...");
-	char WEPL_filename[256];
-	sprintf(WEPL_filename, "%s/%s%s", PREPROCESSING_DIR, WEPL_BASENAME, WEPL_FILE_EXTENSION );
+	//char WEPL_filename[256];
+	//sprintf(WEPL_filename, "%s/%s%s", PREPROCESSING_DIR, WEPL_BASENAME, WEPL_FILE_EXTENSION );
 	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
-	FILE* WEPL_file = fopen(WEPL_filename, "wb");
+	//FILE* WEPL_file = fopen(WEPL_filename, "wb");
+	FILE* WEPL_file = fopen(WEPL_PATH, "wb");
 	fwrite( &reconstruction_histories, sizeof(unsigned int), 1, WEPL_file );
 	fwrite( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), WEPL_file );
 	fclose(WEPL_file);
@@ -3807,28 +3809,30 @@ void export_WEPL()
 void export_histories()
 {
 	puts("Writing MLP endpoints to disk...");
-	char endpoints_filename[256];
-	sprintf(endpoints_filename, "%s/%s%s", PREPROCESSING_DIR, HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION );
-	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
-	FILE* export_histories = fopen(endpoints_filename, "wb");
-	fwrite( &reconstruction_histories, sizeof(unsigned int), 1, export_histories );
-	fwrite( &voxel_x_vector[0], sizeof(int), voxel_x_vector.size(), export_histories );
-	fwrite( &voxel_y_vector[0], sizeof(int), voxel_y_vector.size(), export_histories);
-	fwrite( &voxel_z_vector[0], sizeof(int), voxel_z_vector.size(), export_histories );
-	fwrite( &bin_number_vector[0], sizeof(int), bin_number_vector.size(), export_histories );
-	fwrite( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), export_histories );
-	fwrite( &x_entry_vector[0], sizeof(float), x_entry_vector.size(), export_histories);
-	fwrite( &y_entry_vector[0], sizeof(float), y_entry_vector.size(), export_histories);
-	fwrite( &z_entry_vector[0], sizeof(float), z_entry_vector.size(), export_histories);
-	fwrite( &x_exit_vector[0], sizeof(float), x_exit_vector.size(), export_histories );
-	fwrite( &y_exit_vector[0], sizeof(float), y_exit_vector.size(), export_histories );
-	fwrite( &z_exit_vector[0], sizeof(float), z_exit_vector.size(), export_histories );
-	fwrite( &xy_entry_angle_vector[0], sizeof(float), xy_entry_angle_vector.size(), export_histories );
-	fwrite( &xz_entry_angle_vector[0], sizeof(float), xz_entry_angle_vector.size(), export_histories );
-	fwrite( &xy_exit_angle_vector[0], sizeof(float), xy_exit_angle_vector.size(), export_histories );
-	fwrite( &xz_exit_angle_vector[0], sizeof(float), xz_exit_angle_vector.size(), export_histories );
-	fclose(export_histories);
-	print_section_exit("Finished writing MLP endpoints to disk.", "====>");
+	//char histories_filename[256];
+	//sprintf(histories_filename, "%s/%s%s", PREPROCESSING_DIR, HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION );
+	//sprintf(histories_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
+	//FILE* histories_file = fopen(histories_filename, "wb");
+	FILE* histories_file = fopen(HISTORIES_PATH, "wb");
+	fwrite( &reconstruction_histories, sizeof(unsigned int), 1, histories_file );
+	fwrite( &voxel_x_vector[0], sizeof(int), voxel_x_vector.size(), histories_file );
+	fwrite( &voxel_y_vector[0], sizeof(int), voxel_y_vector.size(), histories_file);
+	fwrite( &voxel_z_vector[0], sizeof(int), voxel_z_vector.size(), histories_file );
+	fwrite( &bin_number_vector[0], sizeof(int), bin_number_vector.size(), histories_file );
+	fwrite( &gantry_angle_vector[0], sizeof(int), gantry_angle_vector.size(), histories_file );
+	//fwrite( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), histories_file );
+	fwrite( &x_entry_vector[0], sizeof(float), x_entry_vector.size(), histories_file);
+	fwrite( &y_entry_vector[0], sizeof(float), y_entry_vector.size(), histories_file);
+	fwrite( &z_entry_vector[0], sizeof(float), z_entry_vector.size(), histories_file);
+	fwrite( &x_exit_vector[0], sizeof(float), x_exit_vector.size(), histories_file );
+	fwrite( &y_exit_vector[0], sizeof(float), y_exit_vector.size(), histories_file );
+	fwrite( &z_exit_vector[0], sizeof(float), z_exit_vector.size(), histories_file );
+	fwrite( &xy_entry_angle_vector[0], sizeof(float), xy_entry_angle_vector.size(), histories_file );
+	fwrite( &xz_entry_angle_vector[0], sizeof(float), xz_entry_angle_vector.size(), histories_file );
+	fwrite( &xy_exit_angle_vector[0], sizeof(float), xy_exit_angle_vector.size(), histories_file );
+	fwrite( &xz_exit_angle_vector[0], sizeof(float), xz_exit_angle_vector.size(), histories_file );
+	fclose(histories_file);
+	print_section_exit("Finished writing histories to disk.", "====>");
 }
 void export_MLP_intersections()
 {
@@ -3861,7 +3865,7 @@ void import_hull()
 //	fclose(read_input_hull);
 //	puts("Finished reading image reconstruction hull from disk.");
 }
-void import_X_0_TYPES()
+void import_x_0()
 {
 //	puts("Reading image reconstruction hull from disk...");
 //	char input_hull_filename[256];
@@ -3874,9 +3878,10 @@ void import_X_0_TYPES()
 }
 unsigned int import_WEPL()
 {
-	char WEPL_filename[256];
-	sprintf(WEPL_filename, "%s/%s%s", PREPROCESSING_DIR, WEPL_BASENAME, WEPL_FILE_EXTENSION );
-	FILE* WEPL_file = fopen(WEPL_filename, "rb");
+	//char WEPL_filename[256];
+	//sprintf(WEPL_filename, "%s/%s%s", PREPROCESSING_DIR, WEPL_BASENAME, WEPL_FILE_EXTENSION );
+	//FILE* WEPL_file = fopen(WEPL_filename, "rb");
+	FILE* WEPL_file = fopen(WEPL_PATH, "rb");
 	unsigned int histories;
 	fread( &histories, sizeof(unsigned int), 1, WEPL_file );
 	//fread( &reconstruction_histories, sizeof(unsigned int), 1, import_histories );
@@ -3888,8 +3893,9 @@ unsigned int import_WEPL()
 unsigned int import_histories()
 {
 	char histories_filename[256];
-	sprintf(histories_filename, "%s/%s%s", PREPROCESSING_DIR, HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION );
-	FILE* histories_file = fopen(histories_filename, "rb");
+	//sprintf(histories_filename, "%s/%s%s", PREPROCESSING_DIR, HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION );
+	//FILE* histories_file = fopen(histories_filename, "rb");
+	FILE* histories_file = fopen(HISTORIES_PATH, "rb");
 	unsigned int histories;
 	fread( &histories, sizeof(unsigned int), 1, histories_file );
 	
@@ -3904,6 +3910,8 @@ unsigned int import_histories()
 	fread( &voxel_y_vector[0], sizeof(int), voxel_y_vector.size(), histories_file);
 	fread( &voxel_z_vector[0], sizeof(int), voxel_z_vector.size(), histories_file );
 	fread( &bin_number_vector[0], sizeof(int), bin_number_vector.size(), histories_file );
+	fread( &gantry_angle_vector[0], sizeof(int), gantry_angle_vector.size(), histories_file );
+	//fread( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), histories_file );
 	fread( &x_entry_vector[0], sizeof(float), x_entry_vector.size(), histories_file);
 	fread( &y_entry_vector[0], sizeof(float), y_entry_vector.size(), histories_file);
 	fread( &z_entry_vector[0], sizeof(float), z_entry_vector.size(), histories_file);
@@ -3945,7 +3953,7 @@ void import_MLP_path(FILE* path_file, unsigned int*& path, unsigned int &num_int
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************** Image Reconstruction (host) ********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void define_X_0_TYPES()
+void define_x_0()
 {
 	x_h = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
 

@@ -378,7 +378,7 @@ void MSC_edge_detection();
 void SM( const uint );
 void SM_edge_detection();
 void SM_edge_detection_2();
-void hull_selection();
+void define_hull();
 
 // Image filtering functions
 template<typename H, typename D> void averaging_filter( H*&, D*&, int, bool, double );
@@ -409,12 +409,12 @@ void export_hull();
 void import_hull();
 
 // New routine test functions
-void import_X_0_TYPES();
+void import_x_0();
 void generate_history_sequence(ULL, ULL, ULL* );
 void verify_history_sequence(ULL, ULL, ULL* );
 
 // Image Reconstruction
-void define_X_0_TYPES();
+void define_x_0();
 void create_hull_image_hybrid();
 void image_reconstruction();
 template< typename T, typename L, typename R> T discrete_dot_product( L*&, R*&, unsigned int*&, unsigned int );
@@ -2311,7 +2311,7 @@ void set_IO_filenames()
 	//FBP_MEDIAN_3D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
 	//X_0_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
 	//MLP_FILENAME = (char*) calloc( strlen(MLP_BASENAME) + strlen(MLP_FILE_EXTENSION) + 1, sizeof(char) );
-	//RECON_HISTORIES_FILENAME = (char*) calloc( strlen(HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION) + 1, sizeof(char) );
+	//HISTORIES_FILENAME = (char*) calloc( strlen(HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION) + 1, sizeof(char) );
 	//X_FILENAME = (char*) calloc( strlen(X_BASENAME) + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
 	
 	HULL_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(HULL_FILE_EXTENSION), sizeof(char) );
@@ -2351,7 +2351,7 @@ void set_IO_filenames()
 
 	MLP_FILENAME = (char*) calloc( strlen(MLP_BASENAME) + strlen(MLP_FILE_EXTENSION), sizeof(char) );
 	WEPL_FILENAME = (char*) calloc( strlen(WEPL_BASENAME) + strlen(WEPL_FILE_EXTENSION), sizeof(char) );
-	RECON_HISTORIES_FILENAME = (char*) calloc( strlen(HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION), sizeof(char) );
+	HISTORIES_FILENAME = (char*) calloc( strlen(HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION), sizeof(char) );
 	
 	sprintf( HULL_FILENAME,"%s%s", HULL_BASENAME, HULL_FILE_EXTENSION );
 	sprintf( FBP_FILENAME,"%s%s", FBP_BASENAME, FBP_FILE_EXTENSION );
@@ -2390,7 +2390,7 @@ void set_IO_filenames()
 	
 	sprintf( MLP_FILENAME,"%s%s", MLP_BASENAME, MLP_FILE_EXTENSION );
 	sprintf( WEPL_FILENAME,"%s%s", WEPL_BASENAME, WEPL_FILE_EXTENSION );
-	sprintf( RECON_HISTORIES_FILENAME,"%s%s", HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION);
+	sprintf( HISTORIES_FILENAME,"%s%s", HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION);
 	
 	printf("HULL_FILENAME = %s\n\n", HULL_FILENAME );	
 	printf("FBP_FILENAME = %s\n\n", FBP_FILENAME );
@@ -2429,7 +2429,7 @@ void set_IO_filenames()
 
 	printf("MLP_FILENAME = %s\n\n", MLP_FILENAME );	
 	printf("WEPL_FILENAME = %s\n\n", WEPL_FILENAME );	
-	printf("RECON_HISTORIES_FILENAME = %s\n", RECON_HISTORIES_FILENAME );	
+	printf("HISTORIES_FILENAME = %s\n", HISTORIES_FILENAME );	
 	
 	print_section_exit("Finished setting file names of input/output data files", "====>" );
 }
@@ -2483,7 +2483,7 @@ void set_IO_filepaths()
 
 	MLP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(MLP_FILENAME) + 1, sizeof(char) );
 	WEPL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(WEPL_FILENAME) + 1, sizeof(char) );
-	HISTORIES_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(RECON_HISTORIES_FILENAME) + 1, sizeof(char) );
+	HISTORIES_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HISTORIES_FILENAME) + 1, sizeof(char) );
 	
 	sprintf( HULL_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_FILENAME );
 	sprintf( FBP_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_FILENAME );
@@ -2527,7 +2527,7 @@ void set_IO_filepaths()
 	
 	sprintf(MLP_PATH,"%s\\%s", PREPROCESSING_DIR, MLP_FILENAME );
 	sprintf(WEPL_PATH,"%s\\%s", PREPROCESSING_DIR, WEPL_FILENAME );
-	sprintf(HISTORIES_PATH,"%s\\%s", PREPROCESSING_DIR, RECON_HISTORIES_FILENAME );
+	sprintf(HISTORIES_PATH,"%s\\%s", PREPROCESSING_DIR, HISTORIES_FILENAME );
 	
 	printf("HULL_PATH = %s\n\n", HULL_PATH );	
 	printf("FBP_PATH = %s\n\n", FBP_PATH );
