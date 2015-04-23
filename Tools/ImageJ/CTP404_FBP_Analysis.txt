@@ -1,0 +1,77 @@
+macro "CTP404_FBP_Analysis [n1]" {
+// Close any open images/windows and clear any results/measurements from previous analyses 
+run("Close All");
+run("Clear Results");
+
+// Definition of parameters for image analysis 
+r= 3.5;						// radius of circular selection region
+d= 7;						// diameter of circular selection region
+filterwidth = 3;					// Width of filter used in median filtering FBP image
+profile_length= 12;				// Set line profile length using diameter of insert 
+profile_radius = profile_length/2;		// Set distance to extend profile line left/right from insert centers
+iterations = 12;				// # of iterations to analyze from image reconstruction
+num_inserts = 8;
+
+// Coordinates of the center of inserts in middle slice for CTP404 phantom
+centersx =  newArray(100,129.5,158,129.5,100,70,41,70);
+centersy = newArray(3158.5,3150.5,3100,3050,3041.5,3050.5,3100,3150.5);
+
+// Define path to reconstructed images and FBP image
+directory_path = "C:\\Users\\Blake\\Documents\\pCT_Data\\object_name\\Experimental\\MMDDYYYY\\run_number\\Output\\MMDDYYYY\\Reconstruction\\MMDDYYYY\\";
+//FBP_basename= "FBP_median_2D_" + d2s(filterwidth,0 );
+FBP_basename= "FBP_image_h"
+FBP_filename = FBP_basename + ".txt";
+
+//x_basename= "x_" + d2s(iteration,0 );
+
+// Define filenames where analysis results are to be written
+profile_filename = directory_path  + "Line_Profiles_FBP.csv";
+regions_filename = directory_path  + "Region_Statistics_FBP.csv";
+run("Text Image... ", "open="+ directory_path + FBP_filename );
+
+// *************************************************************************************************************************************************************************************************//
+//' Plot profile analysis: define a line across the diameter of inserts through their center, extract profile along this line, and write profile values to disk
+// *************************************************************************************************************************************************************************************************//
+
+run("Set Measurements...", "redirect=None decimal=4");
+
+// Repeat for each insert
+for (i=0; i < num_inserts; i++)
+{
+	makeLine(centersx[i] - profile_radius,centersy[i] ,centersx[i] + profile_radius,centersy[i] );
+	profile = getProfile();
+	for (j=0; j < profile.length; j++)
+		setResult(j+1, i, profile[j]);
+}
+
+//updateResults;
+saveAs("Measurements", profile_filename);
+
+// *************************************************************************************************************************************************************************************************//
+// Select circular region inside each insert, calculate its area and the mean, min, max, and standard deviation of RSP values inside this region and write results to disk
+// *************************************************************************************************************************************************************************************************//
+setTool("oval");
+run("Set Measurements...", "area mean standard min redirect=None decimal=4");
+run("Clear Results");
+
+// Repeat for each insert
+for (i=0; i < num_inserts; i++)
+{
+	makeOval(centersx[i]-r, centersy[i]-r, d, d);
+	run("Measure");
+}
+
+saveAs("Results", regions_filename);
+
+// *************************************************************************************************************************************************************************************************//
+// Extract center slice of image and write it to disk as PNG before and after contrast enhancement
+// *************************************************************************************************************************************************************************************************//
+//setTool("rectangle");
+makeRectangle(0, 3000,200, 200);
+//imageCalculator("Copy create", FBP_filename ,FBP_filename );
+run("Enhance Contrast", "saturated=0.35");
+run("Duplicate...", "title="+FBP_basename+".png");
+//saveAs("PNG", directory_path + FBP_basename+"pre.png");
+saveAs("PNG", directory_path + FBP_basename+".png");
+//exit();
+}

@@ -22,6 +22,8 @@ int GENERATION_DATE, CALIBRATION_DATE;
 uint PHANTOM_NAME_SIZE, DATA_SOURCE_SIZE, ACQUIRED_BY_SIZE, CALIBRATED_BY_SIZE, SKIP_2_DATA_SIZE, VERSION_ID, PROJECTION_INTERVAL;
 float PROJECTION_ANGLE, BEAM_ENERGY_IN;
 char* PHANTOM_NAME, * DATA_SOURCE, * ACQUIRED_BY, * CALIBRATED_BY, * PREPROCESSED_BY, * RECONSTRUCTED_BY, * CONFIG_LINK, * COMMENTS;
+
+bool HULL_EXISTS, FBP_EXISTS, X_0_EXISTS, X_K_EXISTS, MLP_EXISTS, WEPL_EXISTS, HISTORIES_EXISTS;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*------------------------------------------------------ Reconstruction history ordering and iterate update parameters ----------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -138,6 +140,7 @@ std::vector<float>	xz_exit_angle_vector;
 std::vector<int> voxel_x_vector;
 std::vector<int> voxel_y_vector;
 std::vector<int> voxel_z_vector;
+std::vector<int> MLP_path_voxels;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------- Execution timer variables ------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/

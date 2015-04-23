@@ -1,0 +1,346 @@
+macro "CTP404_Full_Analysis"
+{
+// Image and reconstruction parameters
+iterations = 12;						// # of iterations to analyze from image reconstruction
+rows = 200;								// # of rows in images
+columns = 200;							// # of columns in images
+slices = 32;							// # of slices in images
+slice_focus = 16;						// Slice # (starting from 0) we are interested in analyzing
+num_inserts = 8;						// # of inserts in CTP404
+insert_d = 12.2;						// diameter of inserts
+insert_r = insert_d/2;;					// radius of inserts
+							
+
+// Profile parameters
+r_beyond_insert = 8;					// radius of circular selection region
+profile_r = insert_r + r_beyond_insert;	// Set distance to extend profile line left/right from insert centers
+M_profile = 2;
+
+// Circular selection region parameters
+r= 3.5;									// radius of circular selection region
+d= 7;									// diameter of circular selection region
+filterwidth = 3;						// Width of filter used in median filtering FBP image
+
+// Parameters of PNG image generated for specified slice of x
+x_magnification = 5;
+x_rows = x_magnification * rows;
+x_columns = x_magnification * columns;
+y_upper_LHS = (slice_focus - 1) * rows;// y-coordinate of upper left corner of slice to be analyzed
+
+// Name and predicted RSP for each insert and array where the mean measured RSPs are to be stored
+insert_names = newArray("Air (bottom)", "Air (top)", "PMP", "LDPE", "Polystyrene", "Acrylic", "Delrin", "Teflon");
+true_RSPs = newArray(0.0014, 0.0014, 0.869, 0.9973, 1.0386, 1.155, 1.354, 1.838);
+all_means = newArray();
+
+// Coordinates of the center of inserts in specified slice for CTP404 phantom
+centersx =  newArray(100, 100, 70, 41, 70, 129.5, 158, 129.5);
+centersy_offsets = newArray(158.5,041.5,150.5,100,050.5,050,100,150.5);
+centersy = Array.copy(centersy_offsets);
+for (i=0; i < centersy.length; i++)
+	centersy[i] = centersy[i] + y_upper_LHS;
+
+// Define path to reconstructed images and base name of the files where analysis results are to be written
+directory_path = getArgument();
+image_directory = "Images\\x_Slices\\"
+//setBatchMode(false);
+setBatchMode(true);
+//directory_path = getArgument();
+generate_all_slices_PNGs = true;
+lower_limits_scale = 0.95;
+upper_limits_scale = 1.05;
+if( directory_path == "" )
+{
+	directory_path = getDirectory("Choose a Directory");
+	setBatchMode(false);
+}
+profile_basename = directory_path  + "Line_Profiles_";
+profile_plot_basename = directory_path  + "Line_Profile_Plot_";
+regions_basename = directory_path  + "Region_Statistics_";
+RSP_comparison_basename = directory_path + "Comparison_";
+RSP_convergence_basename = directory_path + "Convergence_";
+RSP_error_basename = directory_path + "Error_";
+convergences_basename = directory_path + "Convergence";
+errors_basename = directory_path + "Error";
+gradient_basename = directory_path + "Gradient_";
+gradient_plot_basename = directory_path + "Gradient_Plot_";
+
+run("Input/Output...", "jpeg=85 gif=-1 file=.csv copy_column copy_row save_column save_row");
+for (iteration=0; iteration <= iterations; iteration++)
+{
+	// Close any open images/windows, clear any results/measurements from previous analyses, and set global options
+	run("Close All");
+	run("Clear Results");
+	
+	iteration_string = d2s(iteration,0 );
+	basename= "x_" + iteration_string;
+	filename = basename + ".txt";
+	run("Text Image... ", "open="+ directory_path + filename );
+	run("Set Measurements...", "area mean standard min redirect=None decimal=4");
+	// *************************************************************************************************************************************************************************************************//
+	// Plot profile analysis: define a line across the diameter of inserts through their center, extract profile along this line, and write profile values to disk
+	// *************************************************************************************************************************************************************************************************//
+	for (i=0; i < num_inserts; i++)
+	{
+		makeLine(centersx[i] - profile_r,centersy[i] ,centersx[i] + profile_r, centersy[i] );
+		profile_plot_filename = profile_plot_basename + insert_names[i] + "_" + basename + ".png";		
+		profile = getProfile();
+		true_RSP = true_RSPs[i];
+		true_line = newArray(profile.length);
+		Array.fill(true_line, true_RSP);
+		max_RSP = 0;
+		min_RSP = true_RSP;
+		for (j=0; j < profile.length; j++)
+		{
+			setResult(j+1, i, profile[j]);
+			max_RSP = maxOf(max_RSP, profile[j]);
+			min_RSP = minOf(min_RSP, profile[j]);
+		}
+		ref_line_x = newArray(0, r_beyond_insert, r_beyond_insert, profile.length-1-r_beyond_insert, profile.length-1-r_beyond_insert, profile.length-1);
+		ref_line_y = newArray(1.0, 1.0, true_RSP, true_RSP, 1.0, 1.0);
+		
+		title = "Line profile for " + insert_names[i] + " after " + iteration_string + " iterations";
+		Plot.create(title, "Pixels from Left Edge",  "RSP", profile);
+		Plot.setLimits(0, profile.length-1,  minOf(true_RSP, min_RSP)*lower_limits_scale, maxOf(true_RSP,max_RSP)*upper_limits_scale);
+		Plot.setFrameSize(900, 400);
+		Plot.setLineWidth(2);
+		Plot.addText(title, 0.5, 0);
+		//Plot.setFrameSize(900, 400);
+		Plot.setColor("green");
+		//Plot.add("line", true_line);
+		Plot.add("line", ref_line_x, ref_line_y);
+		Plot.setColor("red"); Plot.setJustification("center");
+		Plot.show();
+		saveAs( profile_plot_filename);
+		close();
+	}
+	profile_filename = profile_basename + basename + ".csv";
+	saveAs("Measurements", profile_filename);
+	//saveAs("Results", profile_plot_filename);
+	run("Clear Results");
+	// *************************************************************************************************************************************************************************************************//
+	// Select circular region inside each insert, calculate its area and the mean, min, max, and standard deviation of RSP values inside this region and write results to disk
+	// *************************************************************************************************************************************************************************************************//
+	means = newArray();
+	for (i=0; i < num_inserts; i++)
+	{
+		makeOval(centersx[i]-r, centersy[i]-r, d, d);
+		run("Measure");
+		List.setMeasurements;
+		mean_val = List.getValue("Mean");
+		means = Array.concat(means, mean_val );		
+	}
+	all_means = Array.concat(all_means, means );
+	regions_filename = regions_basename + basename + ".csv";
+	//saveAs("Results", regions_filename);
+	saveAs("Measurements", regions_filename);
+	run("Clear Results");
+	
+	//run("Convolve...", "text1=[-1 -2 -1\n0 0 0\n1 2 1\n]"); // Sobel in y
+	//run("Convolve...", "text1=[-1 0 1\n-2 0 2\n-1 0 1\n]"); // Sobel in x
+	//run("Convolve...", "text1=[-1 0 1\n-2 0 2\n-1 0 1\n] normalize");
+	// *************************************************************************************************************************************************************************************************//
+	// Plot true vs. measured RSP and write the resulting image to disk as PNG
+	// *************************************************************************************************************************************************************************************************//
+	title = "True vs. Measured RSP after " + iteration_string + " iterations";
+	Plot.create(title, "Measured RSP",  "True RSP", means, true_RSPs );
+	Plot.setLimits(0, true_RSPs[7], 0, true_RSPs[7]);
+	Plot.setFrameSize(900, 400);
+	Plot.setLineWidth(2);
+	Plot.addText(title, 0.5, 0);
+	Plot.setFrameSize(900, 400);
+	Plot.setColor("green");
+	Plot.add("line", true_RSPs, true_RSPs);
+	Plot.setColor("red");
+	Plot.setJustification("center");
+	Plot.show();
+	RSP_comparison_filename = RSP_comparison_basename + basename + ".png";
+	saveAs( RSP_comparison_filename);
+	close();
+	// *************************************************************************************************************************************************************************************************//
+	// Extract and save PNG of the slice of x being analysed
+	// *************************************************************************************************************************************************************************************************//
+	makeRectangle( 0, y_upper_LHS, columns, rows);
+	//imageCalculator("Copy create", filename ,filename );
+	run("Enhance Contrast", "saturated=0.35");
+	run("Duplicate...", "title=" + basename + ".png");
+	run("Size...", "width=x_columns height=x_rows constrain average interpolation=Bilinear");
+	//saveAs("PNG", directory_path + basename + "pre.png");
+	saveAs("PNG", directory_path + basename + ".png");
+	
+	//run("Convolve...", "text1=[-1 -2 -1\n0 0 0\n1 2 1\n]");
+	//run("Convolve...", "text1=[-1 0 1\n-2 0 2\n-1 0 1\n] normalize");
+	close();
+	// *************************************************************************************************************************************************************************************************//
+	// Optionally extract and save PNG of each slice of x
+	// *************************************************************************************************************************************************************************************************//
+	if( generate_all_slices_PNGs)
+	{
+		for( slice = 0; slice < slices; slice++)
+		{
+			upper_left_pos = slice * rows;
+			makeRectangle( 0, upper_left_pos, columns, rows);
+			run("Duplicate...", "title=" + basename + ".png");
+			run("Enhance Contrast", "saturated=0.35");
+			run("Size...", "width=x_columns height=x_rows constrain average interpolation=Bilinear");
+			//saveAs("PNG", directory_path + basename + "pre.png");
+			saveAs("PNG", directory_path + image_directory + basename + "_Slice_" + d2s(slice+1, 0) + ".png");
+			close();
+		}
+	}
+}
+// *************************************************************************************************************************************************************************************************//
+// Plots of the convergence of RSP values as a function of iteration
+// *************************************************************************************************************************************************************************************************//
+run("Clear Results");
+
+convergences = newArray();
+errors = newArray();
+for (i=0; i < num_inserts; i++)
+{
+	// Create arrays for convergence/error plots and the true RSP/zero error lines these should approach
+	convergence = newArray();
+	error = newArray();
+	true_RSP = true_RSPs[i];
+	true_line = newArray(iterations + 1);
+	Array.fill(true_line, true_RSP);
+	zero_line = newArray(iterations + 1);
+	Array.fill(zero_line, 0 );
+	
+	// Determine bounds of RSPs to aid in defining the plot bounds
+	max_RSP = 0;
+	min_RSP = true_RSP;
+	max_error = 0;
+	min_error = -true_RSP;
+	for (j=0; j <= iterations; j++)
+	{
+		mean = all_means[num_inserts * j + i];
+		convergence = Array.concat(convergence, mean );
+		error = Array.concat(error, mean - true_RSP );
+		max_RSP = maxOf(max_RSP, mean);
+		min_RSP = minOf(min_RSP, mean);
+		max_error = maxOf(max_error, abs(mean - true_RSP));
+		min_error = minOf(min_RSP, mean - true_RSP);
+	}
+	// Accumulate convergence and error as a function of iteration for each insert into single array
+	convergences = Array.concat(convergences, convergence );
+	errors = Array.concat(errors, error );
+	// *************************************************************************************************************************************************************************************************//
+	// Plots of (1) the convergence of RSP values and (2) the error between predicted and reconstructed RSPs, both as a function of iteration
+	// *************************************************************************************************************************************************************************************************//
+	title = "Convergence of RSP as a function of iteration for " + insert_names[i];
+	Plot.create(title, "RSP",  "Iteration #", convergence );
+	//Plot.getValues(xpoints, ypoints);
+	Plot.setLimits(0, iterations, minOf(true_RSP, min_RSP)*lower_limits_scale, maxOf(true_RSP, max_RSP)*upper_limits_scale);
+	Plot.setFrameSize(900, 400);
+	Plot.setLineWidth(2);
+	Plot.addText(title, 0.5, 0);
+	Plot.setFrameSize(900, 400);
+	Plot.setColor("green");
+	Plot.add("line", true_line);
+	Plot.setColor("red");
+	Plot.setJustification("center");
+	Plot.show();
+	RSP_convergence_filename = RSP_convergence_basename + insert_names[i] + ".png";
+	saveAs( RSP_convergence_filename);	
+	close();
+	// *************************************************************************************************************************************************************************************************//
+	// Plots of the error between predicted and reconstructed RSPs as a function of iteration
+	// *************************************************************************************************************************************************************************************************//
+	title = "Difference between predicted and true RSP as a function of iteration for " + insert_names[i];
+	Plot.create(title, "RSP",  "Iteration #", error) ;
+	//Plot.setLimits(0, iterations+1, (true_RSP - min_RSP)*0.95, (true_RSP - max_RSP)*1.05);
+	Plot.setLimits(0, iterations, -max_error*lower_limits_scale, max_error*upper_limits_scale);
+	Plot.setFrameSize(900, 400);
+	Plot.setLineWidth(2);
+	Plot.addText(title, 0.5, 0);
+	Plot.setColor("green");
+	Plot.add("line", zero_line);
+	Plot.setColor("red");
+	Plot.setJustification("center");
+	Plot.show();
+	RSP_error_filename = RSP_error_basename + insert_names[i] + ".png";
+	saveAs( RSP_error_filename);
+	close();
+}
+
+// *************************************************************************************************************************************************************************************************//
+// Write mean RSP as a function of iteration to separate rows of a CSV file
+// *************************************************************************************************************************************************************************************************//
+convergences_filename = convergences_basename + ".csv";
+for( i = 0; i < num_inserts; i++)
+	for (j=0; j<=iterations; j+=1)
+		 setResult(j, i, convergences[i*iterations + j]);
+saveAs("Measurements", convergences_filename);
+run("Clear Results");
+// *************************************************************************************************************************************************************************************************//
+// Write difference between true and calculated mean RSP as a function of iteration to separate rows of a CSV file
+// *************************************************************************************************************************************************************************************************//
+errors_filename = errors_basename + ".csv";
+for( i = 0; i < num_inserts; i++)
+	for (j=0; j<=iterations; j+=1)
+		 setResult(j, i, errors[i*iterations + j]);
+saveAs("Measurements", errors_filename);
+run("Clear Results");
+
+// *************************************************************************************************************************************************************************************************//
+// Gradient analysis by applying Sobel operator to initial image and extract gradient profile along the same line as initial profile
+// *************************************************************************************************************************************************************************************************//
+for (iteration=0; iteration <= iterations; iteration++)
+{
+	// Close any open images/windows, clear any results/measurements from previous analyses, and set global options
+	run("Close All");
+	run("Clear Results");
+	
+	iteration_string = d2s(iteration,0 );
+	basename= "x_" + iteration_string;
+	filename = basename + ".txt";
+	run("Text Image... ", "open="+ directory_path + filename );
+	run("Set Measurements...", "area mean standard min redirect=None decimal=4");
+	run("Convolve...", "text1=[-1 0 1\n-2 0 2\n-1 0 1\n] normalize");
+	// *************************************************************************************************************************************************************************************************//
+	// Plot profile analysis: define a line across the diameter of inserts through their center, extract profile along this line, and write profile values to disk
+	// *************************************************************************************************************************************************************************************************//
+	for (i=0; i < num_inserts; i++)
+	{
+		//left_edge_x = insert_r;
+		//right_edge_x = profile_r + insert_r - 1;
+		
+		makeLine(centersx[i] - profile_r,centersy[i] ,centersx[i] + profile_r , centersy[i] );
+		gradient_plot_filename = gradient_plot_basename + insert_names[i] + "_" + basename + ".png";		
+		gradient = getProfile();
+		
+		max_gradient = 0;
+		min_gradient = 100;
+		for (j=0; j < gradient.length; j++)
+		{
+			setResult(j+1, i, gradient[j]);
+			max_gradient = maxOf(max_gradient, gradient[j]);
+			min_gradient = minOf(min_gradient, gradient[j]);
+		}
+		left_edge_x = r_beyond_insert;
+		//right_edge_x = left_edge_x + insert_d;
+		right_edge_x = gradient.length - 1 - r_beyond_insert;
+		left_edge_line = newArray(left_edge_x, left_edge_x );
+		right_edge_line = newArray(right_edge_x, right_edge_x );
+		
+		title = "Line gradient for " + insert_names[i] + " after " + iteration_string + " iterations";
+		Plot.create(title, "Pixels from Left Edge",  "RSP", gradient);
+		Plot.setLimits(0, gradient.length-1,  -max_gradient, max_gradient);
+		Plot.setFrameSize(900, 400);
+		Plot.setLineWidth(2);
+		Plot.addText(title, 0.5, 0);
+		//Plot.setFrameSize(900, 400);
+		Plot.setColor("green");
+		Plot.add("line", left_edge_line, newArray(-max_gradient,max_gradient ));
+		Plot.add("line", right_edge_line, newArray(-max_gradient,max_gradient ));
+		Plot.setColor("red"); Plot.setJustification("center");
+		Plot.show();
+		saveAs( gradient_plot_filename);
+		close();
+	}
+	gradient_filename = gradient_basename + basename + ".csv";
+	saveAs("Measurements", gradient_filename);
+	//saveAs("Results", gradient_plot_filename);
+	run("Clear Results");
+	
+}

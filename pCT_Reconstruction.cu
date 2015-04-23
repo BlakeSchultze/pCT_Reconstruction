@@ -20,36 +20,51 @@
 /***********************************************************************************************************************************************************************************************************************/
 int main(unsigned int num_arguments, char** arguments)
 {
-	//system("robust_pct 2>& test.txt");
-	//std::stringstream buffer;
-	//std::streambuf * old = std::cout.rdbuf(buffer.rdbuf());
-	//std::streambuf * old = std::cin.rdbuf(buffer.rdbuf());
-	//std::streambuf * old2 = std::cerr.rdbuf(buffer.rdbuf());
-	//freopen("out.txt","a+",stdin);
-	//freopen("out.txt","w",stderr);
-	//system("mkdir 2>& out.txt");
-	//int file = open("myfile.txt", O_APPEND | O_WRONLY);
-    //if(file < 0)    return 1;
+	//system("C:/Users/Blake/Documents/Visual\" Studio 2010\"/Projects/robust_pct/x64/Debug/robust_pct.exe>log.out 2>&1");
+	//system("CMD.exe 1>&outpt.txt 2>&1");
+	//system("3>&1 4>&2");
+	//system("trap 'exec 2>&4 1>&3' 0 1 2 3");
+	//system("1>log.out 2>&1");
+	//system("2>&1");
+	//freopen(STDOUT_FILENAME,"w",stdout);
+	//freopen(STDERR_FILENAME,"w",stderr);
+	//system("2>& 1");
+	//freopen(STDOUT_FILENAME,"w",stdout);
+	//system("2>& 1");
+	//system("1>log.out 2>&1");
+	if( parameters.STDOUT_2_DISK_D )
+	{
+		//system("rexec 3>&1 4>&2");
+		//system("rtrap 'exec 2>&4 1>&3' 0 1 2 3");
+		//system("rexec 1>log.out 2>&1");
+		//system("robust_pct 2>& test.txt");
+		//std::stringstream buffer;
+		//std::streambuf * old = std::cout.rdbuf(buffer.rdbuf());
+		//std::streambuf * old = std::cin.rdbuf(buffer.rdbuf());
+		//std::streambuf * old2 = std::cerr.rdbuf(buffer.rdbuf());
+		//freopen(STDOUT_FILENAME,"a+",stdin);
+		//freopen(STDOUT_FILENAME,"w",stderr);
+		freopen(STDOUT_FILENAME,"w+",stdout);
+		//system("2>&1");
+		//system("mkdir 2>& out.txt");
+		//int file = open("myfile.txt", O_APPEND | O_WRONLY);
+		//if(file < 0)    return 1;
  
-    //Now we redirect standard output to the file using dup2
-    //if(dup2(file,1) < 0)    return 1;
-
-	//if( parameters.ADD_DATA_LOG_ENTRY )
-		//freopen("out.txt","w+",stdout);
-	//freopen("out.txt","w+",stdin);
-	//freopen("out.txt","w+",stderr);
-	//system("script out.txt");
-	//system("script C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct/out.txt");
+		//Now we redirect standard output to the file using dup2
+		//if(dup2(file,1) < 0)    return 1;
+		//system("script out.txt");
+		//system("script C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct/out.txt");
+	}
 	set_execution_date();
 	apply_execution_arguments( num_arguments, arguments );
 	if( RUN_ON )
 	{
-		print_copyright_notice();
-		read_config_file();			
+		//print_copyright_notice();
+		CONFIG_OBJECT config_object = config_file_2_object();			
 		set_dependent_parameters();
-		set_IO_paths();
+		set_IO_directories();
+		set_IO_filenames();
 		parameters_2_GPU();
-		//puts("\nFinished reading configurations and setting program options and parameters\n");
 		print_section_exit("Finished reading configurations and setting program options and parameters", "====>" );
 		//pause_execution();
 		if( !parameters.IMPORT_PREPROCESSING_D )
@@ -231,7 +246,8 @@ int main(unsigned int num_arguments, char** arguments)
 	//puts("----------------------- Program has finished executing ------------------------");
 	//puts("-------------------------------------------------------------------------------\n");
 	print_section_header("Program has finished executing", '-' );
-	exit_program_if(true);
+	if( !parameters.STDOUT_2_DISK_D || !parameters.USER_INPUT_REQUESTS_OFF_D )
+		exit_program_if(true);
 	//std::string text = buffer.str();
 	//cout << text << endl;
 }
@@ -281,8 +297,9 @@ void apply_execution_arguments(unsigned int num_arguments, char** arguments)
 	for( unsigned int j = 1; j < num_run_arguments; j++ )
 		cout << run_arguments[j] << endl;
 	
-	//		1			  2			 3			4			5		  6			 7	   ...    2n
-	// [program name][parameter1][new val1][parameter2][new val2][parameter3][new val3]...[cfg path]
+	// n =				  1			   1		   2			2		   3		   3	 ...	 n			 n       
+	// i =	 0			  1			   2		   3			4		   5		   6	 ...   2n - 1  		 2n		  2n + 1
+	// [program name][parameter 1][new val 1][parameter 2][new val 2][parameter 3][new val 3]...[parameter n][new val n][cfg path]
 	//"C:\Users\Blake\Documents\Visual Studio 2010\Projects\robust_pct\robust_pct\settings.cfg"
 	//"C:\Users\Blake\Documents\pCT_Data\object_name\Experimental\MMDDYYYY\run_number\Output\MMDDYYYY\Reconstruction\MMDDYYYY\settings.cfg"
 	if( CONFIG_PATH_PASSED )
@@ -1908,18 +1925,18 @@ void FBP()
 	cudaMemcpy( x_FBP_h, x_FBP_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost );
 	array_2_disk( "x_FBP_h", PREPROCESSING_DIR, TEXT, x_FBP_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );	
 
-	if( parameters.IMPORT_FILTERED_FBP_D)
-	{
-		//char filename[256];
-		//char* name = "FBP_med7";		
-		//sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, name, ".bin" );
-		//import_image( image, filename );
-		float* image = (float*)calloc( parameters.NUM_VOXELS_D, sizeof(float));
-		import_image( image, PREPROCESSING_DIR, FBP_BASENAME, TEXT );
-		x_FBP_h = image;
-		array_2_disk( "FBP_after", PREPROCESSING_DIR, TEXT, image, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
-	}
-	else if( parameters.AVG_FILTER_FBP_D )
+	//if( parameters.IMPORT_FILTERED_FBP_D)
+	//{
+	//	//char filename[256];
+	//	//char* name = "FBP_med7";		
+	//	//sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, name, ".bin" );
+	//	//import_image( image, filename );
+	//	float* image = (float*)calloc( parameters.NUM_VOXELS_D, sizeof(float));
+	//	import_image( image, PREPROCESSING_DIR, FBP_BASENAME, TEXT );
+	//	x_FBP_h = image;
+	//	array_2_disk( "FBP_after", PREPROCESSING_DIR, TEXT, image, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	//}
+	if( parameters.AVG_FILTER_FBP_D )
 	{
 		puts("Applying average filter to FBP image...");
 		//cout << x_FBP_d << endl;
@@ -1928,8 +1945,8 @@ void FBP()
 		cudaMalloc((void**) &x_FBP_filtered_d, parameters.SIZE_IMAGE_FLOAT_D );
 		cudaMemcpy( x_FBP_filtered_d, x_FBP_filtered_h, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyHostToDevice );
 
-		//averaging_filter( x_FBP_h, x_FBP_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
-		averaging_filter( x_FBP_filtered_h, x_FBP_filtered_d, parameters.FBP_AVG_RADIUS_D, false, parameters.FBP_AVG_THRESHOLD_D );
+		//averaging_filter( x_FBP_h, x_FBP_filtered_d, FBP_AVG_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
+		//averaging_filter( x_FBP_filtered_h, x_FBP_filtered_d, parameters.FBP_AVG_FILTER_RADIUS_D, false, parameters.FBP_AVG_THRESHOLD_D );
 		puts("FBP Filtering complete");
 		if( parameters.WRITE_AVG_FBP_D )
 		{
@@ -1954,9 +1971,9 @@ void FBP()
 		FBP_median_filtered_2D_h = (float*)calloc(parameters.NUM_VOXELS_D, sizeof(float));
 		FBP_median_filtered_3D_h = (float*)calloc(parameters.NUM_VOXELS_D, sizeof(float));
 		//averaging_filter( x_FBP_h, x_FBP_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
-		//median_filter_2D( x_FBP_h, FBP_median_filtered_2D_h, parameters.FBP_MEDIAN_RADIUS_D );
-		//median_filter_2D( x_FBP_h, FBP_median_filtered_3D_h, parameters.FBP_MEDIAN_RADIUS_D );
-		median_filter_2D( x_FBP_h, parameters.FBP_MEDIAN_RADIUS_D );
+		//median_filter_2D( x_FBP_h, FBP_median_filtered_2D_h, parameters.FBP_MED_FILTER_RADIUS_D );
+		//median_filter_2D( x_FBP_h, FBP_median_filtered_3D_h, parameters.FBP_MED_FILTER_RADIUS_D );
+		median_filter_2D( x_FBP_h, parameters.FBP_MED_FILTER_RADIUS_D );
 		puts("FBP median filtering complete");
 		if( parameters.WRITE_MEDIAN_FBP_D )
 		{
@@ -2924,7 +2941,7 @@ void hull_selection()
 	if( parameters.AVG_FILTER_HULL_D )
 	{
 		puts("Filtering hull...");
-		averaging_filter( hull_h, hull_d, parameters.HULL_FILTER_RADIUS_D, true, parameters.HULL_FILTER_THRESHOLD_D );
+		averaging_filter( hull_h, hull_d, parameters.HULL_AVG_FILTER_RADIUS_D, true, parameters.HULL_RSP_THRESHOLD_D );
 		puts("Hull Filtering complete.  Writing filtered hull to disk...");
 		cudaMemcpy(hull_h, hull_d, parameters.SIZE_IMAGE_BOOL_D, cudaMemcpyDeviceToHost) ;
 		array_2_disk( "x_hull_filtered", PREPROCESSING_DIR, TEXT, hull_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
@@ -3163,7 +3180,7 @@ void median_filter_FBP_2D(float*& FBP, uint radius)
 	puts("FBP image 2D median filtered");
 	char FBP_basename_w_radius[256];
 	
-	sprintf(FBP_basename_w_radius, "%s_%d", FBP_MEDIAN_2D_BASENAME,  2 * parameters.FBP_MEDIAN_RADIUS_D + 1 );
+	sprintf(FBP_basename_w_radius, "%s_%s%d", FBP_BASENAME,  MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1 );
 	if( strcmp( FBP_MEDIANS_FILE_EXTENSION, ".txt" ) == 0 )
 		array_2_disk(FBP_basename_w_radius, PREPROCESSING_DIR, TEXT, FBP_median_filtered_2D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
 	else if( strcmp( FBP_MEDIANS_FILE_EXTENSION, ".bin" ) == 0 )
@@ -3180,7 +3197,7 @@ void median_filter_FBP_3D(float*& FBP, uint radius)
 	median_filter_3D( FBP, FBP_median_filtered_3D_h, radius );
 	puts("FBP image 3D median filtered");
 	char FBP_basename_w_radius[256];
-	sprintf(FBP_basename_w_radius, "%s_%d", FBP_MEDIAN_3D_BASENAME,  2 * parameters.FBP_MEDIAN_RADIUS_D + 1 );
+	sprintf(FBP_basename_w_radius, "%s_%s%d", FBP_BASENAME,  MEDIAN_FILTER_3D_POSTFIX,  2 * parameters.FBP_MED_FILTER_RADIUS_D + 1 );
 	if( strcmp( FBP_MEDIANS_FILE_EXTENSION, ".txt" ) == 0 )
 		array_2_disk(FBP_basename_w_radius, PREPROCESSING_DIR, TEXT, FBP_median_filtered_3D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
 	else if( strcmp( FBP_MEDIANS_FILE_EXTENSION, ".bin" ) == 0 )
@@ -3555,9 +3572,8 @@ void collect_MLP_endpoints()
 	shrink_vectors( reconstruction_histories );
 
 	//if( export_histories )
-	export_histories();
+	//export_histories();
 }
-
 unsigned int find_MLP_path
 ( 
 	unsigned int*& path, double*& chord_lengths, 
@@ -3756,11 +3772,43 @@ unsigned int find_MLP_path
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************************ Preprocessing Data I/O ***********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
+void export_hull()
+{
+//	puts("Writing image reconstruction hull to disk...");
+//	char input_hull_filename[256];
+//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
+//	fwrite( &hull_h, sizeof(bool), parameters.NUM_VOXELS_D, write_input_hull );
+//	fclose(write_input_hull);
+//	puts("Finished writing image reconstruction hull to disk.");
+}
+void export_X_0_TYPES()
+{
+//	puts("Writing image reconstruction hull to disk...");
+//	char input_hull_filename[256];
+//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
+//	fwrite( &hull_h, sizeof(bool), parameters.NUM_VOXELS_D, write_input_hull );
+//	fclose(write_input_hull);
+//	puts("Finished writing image reconstruction hull to disk.");
+}
+void export_WEPL()
+{
+	puts("Writing WEPL data to disk...");
+	char WEPL_filename[256];
+	sprintf(WEPL_filename, "%s/%s%s", PREPROCESSING_DIR, WEPL_BASENAME, WEPL_FILE_EXTENSION );
+	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
+	FILE* WEPL_file = fopen(WEPL_filename, "wb");
+	fwrite( &reconstruction_histories, sizeof(unsigned int), 1, WEPL_file );
+	fwrite( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), WEPL_file );
+	fclose(WEPL_file);
+	print_section_exit("Finished writing WEPL data to disk.", "====>");
+}
 void export_histories()
 {
 	puts("Writing MLP endpoints to disk...");
 	char endpoints_filename[256];
-	sprintf(endpoints_filename, "%s/%s%s", PREPROCESSING_DIR, RECON_HISTORIES_BASENAME, ".bin" );
+	sprintf(endpoints_filename, "%s/%s%s", PREPROCESSING_DIR, HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION );
 	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
 	FILE* export_histories = fopen(endpoints_filename, "wb");
 	fwrite( &reconstruction_histories, sizeof(unsigned int), 1, export_histories );
@@ -3782,65 +3830,21 @@ void export_histories()
 	fclose(export_histories);
 	print_section_exit("Finished writing MLP endpoints to disk.", "====>");
 }
-unsigned int import_histories()
+void export_MLP_intersections()
 {
-	char endpoints_filename[256];
-	sprintf(endpoints_filename, "%s/%s%s", PREPROCESSING_DIR, RECON_HISTORIES_BASENAME, ".bin" );
-	FILE* import_histories = fopen(endpoints_filename, "rb");
-	unsigned int histories;
-	fread( &histories, sizeof(unsigned int), 1, import_histories );
-	
-	resize_vectors( histories );
-	shrink_vectors( histories );
-	voxel_x_vector.resize(histories);
-	voxel_y_vector.resize(histories);
-	voxel_z_vector.resize(histories);
-
-	//fread( &reconstruction_histories, sizeof(unsigned int), 1, import_histories );
-	fread( &voxel_x_vector[0], sizeof(int), voxel_x_vector.size(), import_histories );
-	fread( &voxel_y_vector[0], sizeof(int), voxel_y_vector.size(), import_histories);
-	fread( &voxel_z_vector[0], sizeof(int), voxel_z_vector.size(), import_histories );
-	fread( &bin_number_vector[0], sizeof(int), bin_number_vector.size(), import_histories );
-	fread( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), import_histories );
-	fread( &x_entry_vector[0], sizeof(float), x_entry_vector.size(), import_histories);
-	fread( &y_entry_vector[0], sizeof(float), y_entry_vector.size(), import_histories);
-	fread( &z_entry_vector[0], sizeof(float), z_entry_vector.size(), import_histories);
-	fread( &x_exit_vector[0], sizeof(float), x_exit_vector.size(), import_histories );
-	fread( &y_exit_vector[0], sizeof(float), y_exit_vector.size(), import_histories );
-	fread( &z_exit_vector[0], sizeof(float), z_exit_vector.size(), import_histories );
-	fread( &xy_entry_angle_vector[0], sizeof(float), xy_entry_angle_vector.size(), import_histories );
-	fread( &xz_entry_angle_vector[0], sizeof(float), xz_entry_angle_vector.size(), import_histories );
-	fread( &xy_exit_angle_vector[0], sizeof(float), xy_exit_angle_vector.size(), import_histories );
-	fread( &xz_exit_angle_vector[0], sizeof(float), xz_exit_angle_vector.size(), import_histories );
-	fclose(import_histories);
-	return histories;
+	puts("Writing # of intersections per MLP path to disk...");
+	char intersections_filename[256];
+	sprintf(intersections_filename, "%s/%s%s", PREPROCESSING_DIR, INTERSECTIONS_BASENAME, INTERSECTIONS_FILE_EXTENSION );
+	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
+	FILE* intersections_file = fopen(intersections_filename, "wb");
+	fwrite( &MLP_path_voxels[0], sizeof(float), MLP_path_voxels.size(), intersections_file );
+	fclose(intersections_file);
+	print_section_exit("Finished writing WEPL data to disk.", "====>");
 }
 void export_MLP_path( FILE* path_file, unsigned int*& path, unsigned int num_intersections)
 {
     fwrite(&num_intersections, sizeof(unsigned int), 1, path_file);
     fwrite(path, sizeof(unsigned int), num_intersections, path_file);
-}
-unsigned int import_MLP_path(FILE* path_file, unsigned int*& path )
-{
-    unsigned int num_intersections;
-	fread(&num_intersections, sizeof(unsigned int), 1, path_file);
-    fread(path, sizeof(unsigned int), num_intersections, path_file);
-    return num_intersections;
-}
-void import_MLP_path(FILE* path_file, unsigned int*& path, unsigned int &num_intersections )
-{
-	fread(&num_intersections, sizeof(unsigned int), 1, path_file);
-    fread(path, sizeof(unsigned int), num_intersections, path_file);
-}
-void export_hull()
-{
-//	puts("Writing image reconstruction hull to disk...");
-//	char input_hull_filename[256];
-//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
-//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
-//	fwrite( &hull_h, sizeof(bool), parameters.NUM_VOXELS_D, write_input_hull );
-//	fclose(write_input_hull);
-//	puts("Finished writing image reconstruction hull to disk.");
 }
 void import_hull()
 {
@@ -3857,16 +3861,6 @@ void import_hull()
 //	fclose(read_input_hull);
 //	puts("Finished reading image reconstruction hull from disk.");
 }
-void export_X_0_TYPES()
-{
-//	puts("Writing image reconstruction hull to disk...");
-//	char input_hull_filename[256];
-//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
-//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
-//	fwrite( &hull_h, sizeof(bool), parameters.NUM_VOXELS_D, write_input_hull );
-//	fclose(write_input_hull);
-//	puts("Finished writing image reconstruction hull to disk.");
-}
 void import_X_0_TYPES()
 {
 //	puts("Reading image reconstruction hull from disk...");
@@ -3877,6 +3871,76 @@ void import_X_0_TYPES()
 //	fwrite( &hull_h, sizeof(bool), parameters.NUM_VOXELS_D, read_input_hull );
 //	fclose(read_input_hull);
 //	puts("Finished reading image reconstruction hull from disk.");
+}
+unsigned int import_WEPL()
+{
+	char WEPL_filename[256];
+	sprintf(WEPL_filename, "%s/%s%s", PREPROCESSING_DIR, WEPL_BASENAME, WEPL_FILE_EXTENSION );
+	FILE* WEPL_file = fopen(WEPL_filename, "rb");
+	unsigned int histories;
+	fread( &histories, sizeof(unsigned int), 1, WEPL_file );
+	//fread( &reconstruction_histories, sizeof(unsigned int), 1, import_histories );
+	WEPL_vector.resize(histories);
+	fread( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), WEPL_file );
+	fclose(WEPL_file);
+	return histories;
+}
+unsigned int import_histories()
+{
+	char histories_filename[256];
+	sprintf(histories_filename, "%s/%s%s", PREPROCESSING_DIR, HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION );
+	FILE* histories_file = fopen(histories_filename, "rb");
+	unsigned int histories;
+	fread( &histories, sizeof(unsigned int), 1, histories_file );
+	
+	resize_vectors( histories );
+	shrink_vectors( histories );
+	voxel_x_vector.resize(histories);
+	voxel_y_vector.resize(histories);
+	voxel_z_vector.resize(histories);
+
+	//fread( &reconstruction_histories, sizeof(unsigned int), 1, histories_file );
+	fread( &voxel_x_vector[0], sizeof(int), voxel_x_vector.size(), histories_file );
+	fread( &voxel_y_vector[0], sizeof(int), voxel_y_vector.size(), histories_file);
+	fread( &voxel_z_vector[0], sizeof(int), voxel_z_vector.size(), histories_file );
+	fread( &bin_number_vector[0], sizeof(int), bin_number_vector.size(), histories_file );
+	fread( &x_entry_vector[0], sizeof(float), x_entry_vector.size(), histories_file);
+	fread( &y_entry_vector[0], sizeof(float), y_entry_vector.size(), histories_file);
+	fread( &z_entry_vector[0], sizeof(float), z_entry_vector.size(), histories_file);
+	fread( &x_exit_vector[0], sizeof(float), x_exit_vector.size(), histories_file );
+	fread( &y_exit_vector[0], sizeof(float), y_exit_vector.size(), histories_file );
+	fread( &z_exit_vector[0], sizeof(float), z_exit_vector.size(), histories_file );
+	fread( &xy_entry_angle_vector[0], sizeof(float), xy_entry_angle_vector.size(), histories_file );
+	fread( &xz_entry_angle_vector[0], sizeof(float), xz_entry_angle_vector.size(), histories_file );
+	fread( &xy_exit_angle_vector[0], sizeof(float), xy_exit_angle_vector.size(), histories_file );
+	fread( &xz_exit_angle_vector[0], sizeof(float), xz_exit_angle_vector.size(), histories_file );
+	fclose(histories_file);
+	return histories;
+}
+unsigned int import_MLP_intersections()
+{
+	char intersections_filename[256];
+	sprintf(intersections_filename, "%s/%s%s", PREPROCESSING_DIR, INTERSECTIONS_BASENAME, INTERSECTIONS_FILE_EXTENSION );
+	FILE* intersections_file = fopen(intersections_filename, "rb");
+	unsigned int histories;
+	fread( &histories, sizeof(unsigned int), 1, intersections_file );
+	//fread( &reconstruction_histories, sizeof(unsigned int), 1, intersections_file );
+	WEPL_vector.resize(histories);
+	fread( &MLP_path_voxels[0], sizeof(float), MLP_path_voxels.size(), intersections_file );
+	fclose(intersections_file);
+	return histories;
+}
+unsigned int import_MLP_path(FILE* path_file, unsigned int*& path )
+{
+    unsigned int num_intersections;
+	fread(&num_intersections, sizeof(unsigned int), 1, path_file);
+    fread(path, sizeof(unsigned int), num_intersections, path_file);
+    return num_intersections;
+}
+void import_MLP_path(FILE* path_file, unsigned int*& path, unsigned int &num_intersections )
+{
+	fread(&num_intersections, sizeof(unsigned int), 1, path_file);
+    fread(path, sizeof(unsigned int), num_intersections, path_file);
 }
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************** Image Reconstruction (host) ********************************************************************************************/
@@ -3895,7 +3959,7 @@ void define_X_0_TYPES()
 		default			:	puts("ERROR: Invalid initial iterate selected");
 							exit(1);
 	}
-	array_2_disk( "x_0", PREPROCESSING_DIR, TEXT, x_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	array_2_disk(X_0_BASENAME, PREPROCESSING_DIR, TEXT, x_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
 	cudaMalloc((void**) &x_d, parameters.SIZE_IMAGE_FLOAT_D );
 	cudaMemcpy( x_d, x_h, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyHostToDevice );
 
@@ -4111,8 +4175,12 @@ void image_reconstruction()
 		{		
 			i = history_sequence[n];			
 			path_intersections = find_MLP_path( path_voxels, chord_lengths, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], voxel_x_vector[i], voxel_y_vector[i], voxel_z_vector[i]);
+			MLP_path_voxels.push_back(path_intersections);
 			export_MLP_path( export_MLP_paths, path_voxels, path_intersections);
 		}
+		export_MLP_intersections();
+		export_histories();
+		export_WEPL();
 		fclose(export_MLP_paths);
 		puts("MLP paths calculated and written to disk");
 	}
@@ -5497,6 +5565,173 @@ void combine_data_sets()
 	}
 
 }
+void truncate_data_set(uint reduced_num_histories)
+{
+	char input_filename1[256];
+	char output_filename[256];
+	const char INPUT_FOLDER1[]	   = "input_CTP404";
+	const char MERGED_FOLDER[]	   = "my_merged";
+
+	char magic_number1[4];
+	int version_id1;
+	int file_histories1;
+	int histories_per_angle = reduced_num_histories/90;
+
+	float projection_angle1, beam_energy1;
+	int generation_date1, preprocess_date1;
+	int phantom_name_size1, data_source_size1, prepared_by_size1;
+	char *phantom_name1, *data_source1, *prepared_by1;
+
+	float* t_in_1_h1, *t_in_2_h1; 
+	float* t_out_1_h1, * t_out_2_h1;
+	float* v_in_1_h1, * v_in_2_h1;
+	float* v_out_1_h1, * v_out_2_h1;
+	float* u_in_1_h1, * u_in_2_h1;
+	float* u_out_1_h1, * u_out_2_h1;
+	float* WEPL_h1;
+
+	for( unsigned int gantry_angle = 0; gantry_angle < 360; gantry_angle += int(parameters.GANTRY_ANGLE_INTERVAL_D) )
+	{	
+		cout << gantry_angle << endl;
+		sprintf(input_filename1, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, INPUT_FOLDER1, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION );
+		sprintf(output_filename, "%s%s/%s_%03d%s", PROJECTION_DATA_DIR, MERGED_FOLDER, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_FILE_EXTENSION );
+
+		printf("%s\n", input_filename1 );
+		printf("%s\n", output_filename );
+
+		FILE* input_file1 = fopen(input_filename1, "rb");
+		FILE* output_file = fopen(output_filename, "wb");
+
+		if( (input_file1 == NULL) || (output_file == NULL)  )
+		{
+			fputs( "Error Opening Data File:  Check that the directories are properly named.", stderr ); 
+			exit_program_if(true);
+		}
+
+		fread(&magic_number1, sizeof(char), 4, input_file1 );
+		fwrite( &magic_number1, sizeof(char), 4, output_file );
+		//if( magic_number != MAGIC_NUMBER_CHECK ) 
+		//{
+		//	puts("Error: unknown file type (should be PCTD)!\n");
+		//	exit_program_if(true);
+		//}
+
+		fread(&version_id1, sizeof(int), 1, input_file1 );
+		fwrite( &version_id1, sizeof(int), 1, output_file );
+
+		fread(&file_histories1, sizeof(int), 1, input_file1 );
+		fwrite( &total_histories, sizeof(int), 1, output_file );
+
+		puts("Reading headers from files...\n");
+	
+		fread(&projection_angle1, sizeof(float), 1, input_file1 );
+		fwrite( &projection_angle1, sizeof(float), 1, output_file );
+			
+		fread(&beam_energy1, sizeof(float), 1, input_file1 );
+		fwrite( &beam_energy1, sizeof(float), 1, output_file );
+
+		fread(&generation_date1, sizeof(int), 1, input_file1 );
+		fwrite( &generation_date1, sizeof(int), 1, output_file );
+
+		fread(&preprocess_date1, sizeof(int), 1, input_file1 );
+		fwrite( &preprocess_date1, sizeof(int), 1, output_file );
+
+		fread(&phantom_name_size1, sizeof(int), 1, input_file1 );
+		fwrite( &phantom_name_size1, sizeof(int), 1, output_file );
+
+		phantom_name1 = (char*)malloc(phantom_name_size1);
+
+		fread(phantom_name1, phantom_name_size1, 1, input_file1 );
+		fwrite( phantom_name1, phantom_name_size1, 1, output_file );
+
+		fread(&data_source_size1, sizeof(int), 1, input_file1 );
+		fwrite( &data_source_size1, sizeof(int), 1, output_file );
+
+		data_source1 = (char*)malloc(data_source_size1);
+
+		fread(data_source1, data_source_size1, 1, input_file1 );
+		fwrite( &data_source1, data_source_size1, 1, output_file );
+
+		fread(&prepared_by_size1, sizeof(int), 1, input_file1 );
+		fwrite( &prepared_by_size1, sizeof(int), 1, output_file );
+
+		prepared_by1 = (char*)malloc(prepared_by_size1);
+
+		fread(prepared_by1, prepared_by_size1, 1, input_file1 );
+		fwrite( &prepared_by1, prepared_by_size1, 1, output_file );
+
+		puts("Reading data from files...\n");
+
+		t_in_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		t_in_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		t_out_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		t_out_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		v_in_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		v_in_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		v_out_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		v_out_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		u_in_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		u_in_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		u_out_1_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		u_out_2_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		WEPL_h1 = (float*)calloc( file_histories1, sizeof(float ) );
+		
+		fread( t_in_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( t_in_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( t_out_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( t_out_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( v_in_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( v_in_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( v_out_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( v_out_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( u_in_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( u_in_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( u_out_1_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( u_out_2_h1,  sizeof(float), file_histories1, input_file1 );
+		fread( WEPL_h1,  sizeof(float), file_histories1, input_file1 );
+
+		fwrite( t_in_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( t_in_2_h1, sizeof(float), file_histories1, output_file );
+		fwrite( t_out_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( t_out_2_h1, sizeof(float), file_histories1, output_file );
+		
+		fwrite( v_in_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( v_in_2_h1, sizeof(float), file_histories1, output_file );
+		fwrite( v_out_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( v_out_2_h1, sizeof(float), file_histories1, output_file );
+		
+		fwrite( u_in_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( u_in_2_h1, sizeof(float), file_histories1, output_file );
+		fwrite( u_out_1_h1, sizeof(float), file_histories1, output_file );
+		fwrite( u_out_2_h1, sizeof(float), file_histories1, output_file );
+		
+		fwrite( WEPL_h1, sizeof(float), file_histories1, output_file );
+		
+		free( t_in_1_h1 );
+		free( t_in_2_h1 );
+		free( t_out_1_h1 );
+		free( t_out_2_h1 );
+		
+		free( v_in_1_h1 );
+		free( v_in_2_h1 );
+		free( v_out_1_h1 );
+		free( v_out_2_h1 );
+		
+		free( u_in_1_h1 );
+		free( u_in_2_h1 );
+		free( u_out_1_h1 );
+		free( u_out_2_h1 );
+		
+		free( WEPL_h1 );
+		
+		fclose(input_file1);						
+		fclose(output_file);	
+
+		print_section_exit("Finished combining data sets.", "====>");
+		pause_execution();
+	}
+
+}
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************************ Host Helper Functions ************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -5702,7 +5937,7 @@ unsigned int create_unique_dir( char* dir_name )
 		//std::string text = buffer.str();
 		//std::cout << "-> " << text << "<- " << endl;
 		//printf( "-> %s <-\n", text );
-		if( parameters.CONSOLE_OUTPUT_2_DISK_D )
+		if( parameters.STDOUT_2_DISK_D )
 		{
 			sprintf(error_response, "%s %s_%d %s\n", statement_beginning, dir_name, i, statement_ending );
 			puts(error_response);
@@ -5716,15 +5951,15 @@ unsigned int create_unique_dir( char* dir_name )
 		sprintf(dir_name, "%s_%d", dir_name, i);
 	return i;
 }
-//bool file_exists3 (const char* file_location) 
-//{
-//    #if defined(_WIN32) || defined(_WIN64)
-//    return file_location && ( PathFileExists (file_location) != 0 );
-//    #else
-//    struct stat sb;
-//    return file_location && (stat (file_location, &sb) == 0 ;
-//    #endif
-//} 
+bool file_exists3 (const char* file_location) 
+{
+    #if defined(_WIN32) || defined(_WIN64)
+    return file_location && ( PathFileExists (file_location) != 0 );
+    #else
+    struct stat sb;
+    return file_location && (stat (file_location, &sb) == 0 ;
+    #endif
+} 
 void fgets_validated(char *line, int buf_size, FILE* input_file)
 {
     bool done = false;
@@ -6400,185 +6635,6 @@ void log_write_test3()
 	log_file.close();
 }
 /***********************************************************************************************************************************************************************************************************************/
-/************************************************************************** Config File Maintaining Functions and Functions in Development *****************************************************************************/
-/***********************************************************************************************************************************************************************************************************************/
-CONFIG_LINE split_config_comments(char* comment_line)
-{
-	std::string entry_string(comment_line);
-	entry_string.pop_back(); // Pop off endline character
-	for( int i = 0; i < (int)entry_string.length(); i++)
-	{
-		if(entry_string[i] == '\t' )
-		{
-			entry_string[i] = ' ';
-			entry_string.insert(i, 3, ' ');
-		}
-		
-	}
-	entry_string.resize(CONFIG_LINE_WIDTH, ' ');
-	CONFIG_LINE parsed_comment;
-	std::string temp;
-	size_t comment_position = 0, temp_length = 0;
-	for( int i = 0; i < NUM_CONFIG_FIELDS; i++ )
-	{
-		temp_length = CONFIG_FIELD_WIDTHS[i];
-		temp = entry_string.substr(comment_position, temp_length );
-		parsed_comment.push_back(temp);
-		comment_position += temp_length;
-	}
-	return parsed_comment;
-}
-void write_config( CONFIG_OBJECT config_object)
-{
-	std::ofstream config_file("config_test.cfg");
-	
-	if( !config_file.is_open() )
-		config_file.open("config_test.cfg");
-	else
-	{
-		for( int i = 0; i < config_object.size(); i++ )
-		{
-			config_file << std::noskipws;		
-			for( int j = 0; j < NUM_CONFIG_FIELDS; j++ )
-			{
-				config_file <<  config_object[i][j];
-			}
-			config_file << endl;
-		}
-	}
-	config_file.close();
-}
-void fgets_config(char *line, int buf_size, FILE* input_file, CONFIG_OBJECT& config_object)
-{
-    bool done = false;
-	char* line_copy = line;
-    while(!done)
-    {
-        if( fgets(line, buf_size, input_file ) == NULL )										// Read a line from the file
-            return;		
-		line_copy = line;
-		while( *line == ' ' || *line == '\t' )
-			line++;
-        if( std::find_if(line, &line[strlen(line)], blank_line ) == ( &line[strlen(line)] ) )	// Skip lines with only "\n", "\t", and/or " "
-		{
-			config_object.push_back(split_config_comments(line_copy));
-			continue;
-		}
-        else if( strncmp( line, "//", 2 ) == 0 )												// Skip any comment lines
-        {
-			config_object.push_back(split_config_comments(line_copy));
-			continue;
-		}
-        else																					// Got a valid data line so return with this line
-			done = true;    
-    }
-}
-bool parse_config_file_line( FILE* input_file, CONFIG_OBJECT& config_object, char* parameter_2_change, std::string new_value )
-{
-	char key[128], equal_sign[128], value[256], comments[512];	
-	const uint buf_size = 1024;
-	char line[buf_size];
-	std::size_t found;
-	CONFIG_LINE config_line;
-	bool parameter_found = false;
-	double lambda_new = 0.005;
-	char* parameter = "LAMBDA";
-	
-	// Remove leading spaces/tabs and return first line which does not begin with comment command "//" and is not blank
-	fgets_config(line, buf_size, input_file, config_object);	
-	
-	// Having now read a non comment/blank line and removed leading spaces/tabs, parse it into {key}{=}{value}//{comments} format
-	int filled = sscanf (line, "%s %s %s // %s", &key, &equal_sign, &value, &comments);
-
-	std::string line_string(line), key_string(key), equal_string(equal_sign), value_string(value), comment_string(comments);
-	
-	//if( strcmp(key, parameter_2_change ) == 0 )
-	//{
-	//	if( key_is_string_parameter( parameter_2_change ) )
-	//		value_string = std::string(parameter_2_change);
-	//	else if( key_is_floating_point_parameter( parameter_2_change ) )
-	//		value_string = std::to_string(static_cast<long double>(lambda_new));
-	//	else if( key_is_integer_parameter( parameter_2_change ) )
-	//		value_string = std::to_string(static_cast<long long>(lambda_new));
-	//	else if( key_is_boolean_parameter( parameter_2_change ) )
-	//	{
-	//		//if( )
-	//			value_string = std::string(parameter_2_change);
-	//		//else
-	//		//	value_string = std::to_string(static_cast<long double>(lambda_new));
-	//	}
-	//	else
-	//		puts("No match found for key of parameter to be changed.");
-	//}
-	if( strcmp(key, parameter_2_change ) == 0 )
-	{
-		if(		key_is_string_parameter( parameter_2_change )
-			||	key_is_floating_point_parameter( parameter_2_change )
-			|| key_is_integer_parameter( parameter_2_change )
-			|| key_is_boolean_parameter( parameter_2_change ) 
-		)
-		{
-			value_string = new_value;
-			parameter_found = true;
-		}
-	}
-	if( filled <= 3 )
-		comment_string = "";
-	else
-	{
-		found = line_string.find("//");
-		comment_string = line_string.substr(found, std::string::npos);
-		comment_string.pop_back();
-	}
-	if( (int)value_string.length() > VALUE_FIELD_WIDTH )
-		comment_string.insert(0, value_string.substr(VALUE_FIELD_WIDTH, std::string::npos ) );	
-
-	key_string.resize(KEY_FIELD_WIDTH, ' ');
-	equal_string.resize(EQUALS_FIELD_WIDTH, ' ');
-	value_string.resize(VALUE_FIELD_WIDTH, ' ');		
-	comment_string.resize(COMMENT_FIELD_WIDTH, ' ');
-
-	config_line.push_back(key_string);
-	config_line.push_back(equal_string);
-	config_line.push_back(value_string);
-	config_line.push_back(comment_string);
-	config_object.push_back(config_line);
-
-	return parameter_found;
-}
-CONFIG_OBJECT config_file_2_object(char* parameter_2_change, std::string new_value)
-{		
-	// Extract current directory (executable path) terminal response from system command "chdir" 
-	CONFIG_OBJECT config_object;
-	bool value_change = false;
-	if( !CONFIG_PATH_PASSED )
-	{
-		std::string str =  terminal_response("chdir");
-		const char* cstr = str.c_str();
-		PROJECTION_DATA_DIR = (char*) calloc( strlen(cstr), sizeof(char));
-		std::copy( cstr, &cstr[strlen(cstr)-1], PROJECTION_DATA_DIR );
-		print_section_header( "Config file location set to current execution directory :", '*' );	
-		print_section_separator('-');
-		printf("%s\n", PROJECTION_DATA_DIR );
-		print_section_separator('-');
-	}
-	CONFIG_FILE_PATH  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
-	sprintf(CONFIG_FILE_PATH, "%s/%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
-	FILE* input_file = fopen(CONFIG_FILE_PATH, "r" );
-	print_section_header( "Reading key/value pairs from configuration file and setting corresponding execution parameters", '*' );
-
-	while( !feof(input_file) )	
-		value_change |= parse_config_file_line(input_file, config_object, parameter_2_change, new_value);
-	fclose(input_file);
-	print_section_exit( "Finished reading configuration file and setting execution parameters", "====>" );
-	write_config( config_object);
-	if( value_change )
-		puts("Value successfully changed");
-	else
-		puts("No key for the specfied parameter to change was found");
-	return config_object;
-}
-/***********************************************************************************************************************************************************************************************************************/
 /*********************************************************************************************** Device Helper Functions ***********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
 
@@ -6590,16 +6646,32 @@ void test_func()
 	//print_copyright_notice();
 	//view_config_file();
 	set_execution_date();
+	CONFIG_OBJECT config_object = config_file_2_object();
 	read_config_file();
-	set_IO_paths();
+	
 	set_dependent_parameters();
+	set_IO_directories();
+	set_IO_filenames();
+	set_IO_filepaths();
+	
 	parameters_2_GPU();
-		
-	double lambda_new = 0.005;
-	char* parameter = run_arguments[1];
-	std::string value_string(run_arguments[2]);
-	CONFIG_OBJECT config_object = config_file_2_object(parameter, value_string );
+	existing_data_check();
+	/*cout << file_exists3(MLP_PATH) << endl;
+	cout << file_exists3(WEPL_PATH) << endl;
+	cout << file_exists3(HISTORIES_PATH) << endl;*/
 
+	/*cout << file_exists3(MLP_PATH) << endl;
+	cout << file_exists3(WEPL_PATH) << endl;
+	cout << file_exists3(HISTORIES_PATH) << endl;*/
+
+	//bool MLPs =  file_exists3(MLP_PATH);
+	//bool WEPLs =  file_exists3(WEPL_PATH);
+	//bool histories_p =  file_exists3(HISTORIES_PATH);
+	//cout << std::string(MLP_PATH) << endl;
+	//cout << MLPs << endl;
+	//cout << WEPLs << endl;
+	//cout << histories_p << endl;
+		//view_config_file();
 	//initializations();
 	//count_histories_v0();
 	//log_write_test();
@@ -6610,12 +6682,6 @@ void test_func()
 	//print_log( log_o );
 	//write_log(log_o);
 	
-	//print_log(log_o);
-	//add_log_entry( OBJECT_L );
-	//LOG_OBJECT log_object = read_log();
-	//new_log_entry( log_object );
-	//std::vector<int> log_entry_info = scan_log_4_matches( log_o );
-	//write_log(log_o);
 	//char* FBP_path = "C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct";
 	//char* filename = "FBP_image_h";
 	//char* FBP_median_basename = "FBP_median";
@@ -6626,8 +6692,8 @@ void test_func()
 	//binary_2_txt_images( FBP_path, filename, FBP );
 	//binary_2_txt_images( PREPROCESSING_DIR, filename, FBP );
 	//apply_all_median_filters(FBP, FBP_median_basename );
-	//median_filter_FBP_2D(FBP, parameters.FBP_MEDIAN_RADIUS_D);
-	//median_filter_FBP_3D(FBP, parameters.FBP_MEDIAN_RADIUS_D);
+	//median_filter_FBP_2D(FBP, parameters.FBP_MED_FILTER_RADIUS_D);
+	//median_filter_FBP_3D(FBP, parameters.FBP_MED_FILTER_RADIUS_D);
 	//puts("FBP image filtered");
 
 	//char* FBP_path = "C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct";
@@ -6637,8 +6703,8 @@ void test_func()
 	//float* FBP = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
 	//float* filtered_2D = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
 	//float* filtered_3D = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
-	////sprintf(FBP_MEDIAN_2D_PATH,"%s/%s_3D%d%s", PREPROCESSING_DIR, FBP_MEDIAN_BASENAME, parameters.FBP_MEDIAN_RADIUS_D, FBP_MEDIANS_FILE_EXTENSION);
-	////sprintf(FBP_MEDIAN_3D_PATH,"%s/%s_2D%s", PREPROCESSING_DIR, FBP_MEDIAN_BASENAME, parameters.FBP_MEDIAN_RADIUS_D, FBP_MEDIANS_FILE_EXTENSION);
+	////sprintf(FBP_MEDIAN_2D_PATH,"%s/%s_3D%d%s", PREPROCESSING_DIR, FBP_MEDIAN_BASENAME, parameters.FBP_MED_FILTER_RADIUS_D, FBP_MEDIANS_FILE_EXTENSION);
+	////sprintf(FBP_MEDIAN_3D_PATH,"%s/%s_2D%s", PREPROCESSING_DIR, FBP_MEDIAN_BASENAME, parameters.FBP_MED_FILTER_RADIUS_D, FBP_MEDIANS_FILE_EXTENSION);
 	//
 	////
 	////
@@ -6653,8 +6719,8 @@ void test_func()
 	//uint radius = 2;
 	////median_filter_3D( FBP, filtered, radius );
 	////median_filter_3D( FBP, filtered, radius );
-	//median_filter_FBP_2D(FBP, FBP_median_filtered_2D_h, parameters.FBP_MEDIAN_RADIUS_D);
-	//median_filter_FBP_3D(FBP, FBP_median_filtered_3D_h, parameters.FBP_MEDIAN_RADIUS_D);
+	//median_filter_FBP_2D(FBP, FBP_median_filtered_2D_h, parameters.FBP_MED_FILTER_RADIUS_D);
+	//median_filter_FBP_3D(FBP, FBP_median_filtered_3D_h, parameters.FBP_MED_FILTER_RADIUS_D);
 	////FBP_MEDIAN_2D_PATH
 	////char* filename_filt2D, * filename_filt3D, * filt_base = "FBP_median";
 	////sprintf(filename_filt2D, "%s_2D%d", filt_base, radius );

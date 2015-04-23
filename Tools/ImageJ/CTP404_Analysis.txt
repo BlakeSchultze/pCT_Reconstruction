@@ -1,0 +1,111 @@
+macro "CTP404_Analysis"
+{
+
+// Close any open images/windows, clear any results/measurements from previous analyses, and set global options
+run("Close All");
+run("Clear Results");
+run("Input/Output...", "jpeg=85 gif=-1 file=.csv copy_column copy_row save_column save_row");
+
+
+// Definition of parameters for image analysis 
+r= 3.5;						// radius of circular selection region
+d= 7;						// diameter of circular selection region
+filterwidth = 3;					// Width of filter used in median filtering FBP image
+profile_length= 12;				// Set line profile length using diameter of insert 
+profile_radius = profile_length/2;		// Set distance to extend profile line left/right from insert centers
+iterations = 12;				// # of iterations to analyze from image reconstruction
+num_inserts = 8;				// # of inserts in CTP404
+rows = 200;					// # of rows in images
+columns = 200;				// # of columns in images
+slices = 32;					// # of slices in images
+slice_focus = 16;				// Slice # (starting from 0) we are interested in analyzing
+upper_left_y = (slice_focus -1)* rows;
+
+insert_names = newArray("Air (bottom)", "Teflon", "Delrin", "Acrylic", "Air (top)", "Polystyrene", "LDPE", "PMP");
+true_RSPs = newArray(0.0014, 1.838, 1.354, 1.155, 0.0014, 1.0386, 0.9973, 0.869);
+
+//Row offsets from upper left hand corner of slice to center of each CTP404 insert
+centersy_offsets = newArray(158.5,150.5,100,050,041.5,050.5,100,150.5);
+
+// Coordinates of the center of inserts in middle slice for CTP404 phantom
+centersx =  newArray(100,129.5,158,129.5,100,70,41,70);
+centersy = Array.copy(centersy_offsets);
+for (i=0; i < centersy.length; i++)
+	centersy[i] = centersy[i] + upper_left_y;
+
+// Define path to reconstructed images and FBP image
+directory_path = "C:\\Users\\Blake\\Documents\\pCT_Data\\object_name\\Experimental\\MMDDYYYY\\run_number\\Output\\MMDDYYYY\\Reconstruction\\MMDDYYYY\\";
+
+//basename = getArgument();
+//basename= "x_" + d2s(iteration,0 
+iteration = getArgument();
+basename= "x_" + iteration ;
+filename = basename + ".txt";
+
+// Define filenames where analysis results are to be written
+profile_filename = directory_path  + "Line_Profiles.csv";
+//profile_plot_filename = directory_path  + "Line_Profile_Plot.png";
+profile_plot_basename = directory_path  + "Line_Profile_Plot";
+regions_filename = directory_path  + "Region_Statistics.csv";
+run("Text Image... ", "open="+ directory_path + filename );
+
+// *************************************************************************************************************************************************************************************************//
+//' Plot profile analysis: define a line across the diameter of inserts through their center, extract profile along this line, and write profile values to disk
+// *************************************************************************************************************************************************************************************************//
+
+run("Set Measurements...", "redirect=None decimal=4");
+
+// Repeat for each insert
+for (i=0; i < num_inserts; i++)
+{
+	makeLine(centersx[i] - profile_radius,centersy[i] ,centersx[i] + profile_radius, centersy[i] );
+	profile = getProfile();
+	//run("Plot Profile");
+	for (j=0; j < profile.length; j++)
+		setResult(j+1, i, profile[j]);
+	//run("Plot Profile");
+	title = "Line profile for " + insert_names[i] + " after " + iteration  + " iterations";
+	y_label = insert_names[i] + "  RSP Profile";
+	Plot.create(title, "Pixels from Left Edge",  y_label, profile);
+	Plot.setJustification("center");
+	Plot.addText(title, 0.5, 0);
+	Plot.show();
+	profile_plot_filename = profile_plot_basename + iteration  + "_" + insert_names[i] + ".png";
+	saveAs( profile_plot_filename);
+	//saveAs("Measurements", profile_plot_filename);
+	close();
+}
+
+saveAs("Measurements", profile_filename);
+// *************************************************************************************************************************************************************************************************//
+// Select circular region inside each insert, calculate its area and the mean, min, max, and standard deviation of RSP values inside this region and write results to disk
+// *************************************************************************************************************************************************************************************************//
+setTool("oval");
+run("Set Measurements...", "area mean standard min redirect=None decimal=4");
+run("Clear Results");
+
+// Repeat for each insert
+for (i=0; i < num_inserts; i++)
+{
+	makeOval(centersx[i]-r, centersy[i]-r, d, d);
+	run("Measure");
+	//RSP = getResult("Column", row)
+}
+for (i=0; i < num_inserts; i++)
+{
+	//RSP = getResult("Column", row)
+}
+saveAs("Results", regions_filename);
+
+// *************************************************************************************************************************************************************************************************//
+// Extract center slice of image and write it to disk as PNG before and after contrast enhancement
+// *************************************************************************************************************************************************************************************************//
+//setTool("rectangle");
+makeRectangle(0, 3000,200, 200);
+//imageCalculator("Copy create", filename ,filename );
+run("Enhance Contrast", "saturated=0.35");
+run("Duplicate...", "title="+basename+".png");
+//saveAs("PNG", directory_path + basename+"pre.png");
+saveAs("PNG", directory_path + basename+".png");
+//exit()
+}

@@ -16,7 +16,10 @@ char PCT_IMAGES_DIR_NAME[]		= "Images";
 char REF_IMAGES_DIR_NAME[]		= "Reference_Images";
 
 char CONFIG_FILENAME[]			= "settings.cfg";						// Name of the file used to control the program options/parameters as key=value pairs
+char CONFIG_OUT_FILENAME[]		= "settings_out.cfg";					// Name of the file used to control the program options/parameters as key=value pairs
 char LOG_FILENAME[]				= "log.csv";							// Name of the file logging the execution information associated with each data set generated
+char STDOUT_FILENAME[]			= "stdout.txt";							// Name of the file where the stdout strea is redirected
+char STDERR_FILENAME[]			= "stderr.txt";							// Name of the file where the stdout strea is redirected
 char PROJECTION_DATA_BASENAME[]	= "projection";							// Prefix of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
 
 char RADIOGRAPHS_RAW_BASENAME[]	= "radiographs_raw";					// Prefix of the file containing the radiograph images from each projection angle prior to performing cuts 
@@ -29,13 +32,20 @@ char SM_HULL_BASENAME[]			= "hull_SM";							// Prefix of the file containing th
 char FBP_HULL_BASENAME[]		= "hull_FBP";							// Prefix of the file containing the FBP hull image 
 char HULL_BASENAME[]			= "hull";								// Prefix of the file containing the SC, MSC, SM, or FBP hull image as specified by the settings.cfg file 
 char FBP_BASENAME[]				= "FBP";								// Prefix of the file containing the FBP image
+//char FBP_MEDIAN_2D_BASENAME[]	= "FBP_median_2D";						// Prefix of the file containing the 2D median filtered FBP image
+//char FBP_MEDIAN_3D_BASENAME[]	= "FBP_median_3D";						// Prefix of the file containing the 3D median filtered FBP image
+//char FBP_AVERAGE_BASENAME[]		= "FBP_avg";							// Prefix of the file containing the average filtered FBP image
 char X_0_BASENAME[]				= "x_0";								// Prefix of the file containing the FBP, hull, or FBP/hull hybrid initial iterate image as specified by the settings.cfg file
 char MLP_BASENAME[]				= "MLP";								// Prefix of the file containing the MLP path data
-char RECON_HISTORIES_BASENAME[]	= "histories";							// Prefix of the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
-char FBP_MEDIAN_2D_BASENAME[]	= "FBP_median_2D";
-char FBP_MEDIAN_3D_BASENAME[]	= "FBP_median_3D";
-char FBP_AVERAGE_BASENAME[]		= "FBP_avg";
+char INTERSECTIONS_BASENAME[]	= "MLP";								// Prefix of the file containing the # of intersected voxels per MLP path
+char WEPL_BASENAME[]			= "WEPL";								// Prefix of the file containing the WEPL data
+char HISTORIES_BASENAME[]	= "histories";								// Prefix of the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
 char X_BASENAME[]				= "x";									// Prefix of the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
+
+char MEDIAN_FILTER_2D_POSTFIX[]	= "med_2D_r";							// Postfix added to filename for 2D median filtered images
+char MEDIAN_FILTER_3D_POSTFIX[]	= "med_3D_r";							// Postfix added to filename for 3D median filtered images
+char AVERAGE_FILTER_2D_POSTFIX[]= "avg_2D_r";							// Postfix added to filename for 2D average filtered images
+char AVERAGE_FILTER_3D_POSTFIX[]= "avg_3D_r";							// Postfix added to filename for 3D average filtered images
 
 char PROJECTION_DATA_FILE_EXTENSION[]	= ".bin";						// File extension of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
 char RADIOGRAPHS_FILE_EXTENSION[]		= ".txt";						// File extension of the files containing the radiograph images from each projection angle before/after performing cuts
@@ -45,8 +55,21 @@ char FBP_FILE_EXTENSION[]				= ".txt";						// File extension of the file contai
 char FBP_MEDIANS_FILE_EXTENSION[]		= ".txt";						// File extension of the file containing the median filtered FBP images
 char X_0_FILE_EXTENSION[]				= ".txt";						// File extension of the file containing the FBP, hull, or FBP/hull hybrid initial iterate image as specified by the settings.cfg file
 char MLP_FILE_EXTENSION[]				= ".bin";						// File extension of the file containing the MLP path data
+char INTERSECTIONS_FILE_EXTENSION[]		= ".bin";						// File extension of the file containing the # of intersected voxels per MLP path
+char WEPL_FILE_EXTENSION[]				= ".bin";						// File extension of the file containing the WEPL data
 char HISTORIES_FILE_EXTENSION[]			= ".bin";						// File extension of the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
 char X_FILE_EXTENSION[]					= ".txt";						// File extension of the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
+
+DISK_WRITE_MODE PROJECTION_DATA_WRITE_MODE	= BINARY;					// Disk write for the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+DISK_WRITE_MODE RADIOGRAPHS_WRITE_MODE		= TEXT;						// Disk write for the files containing the radiograph images from each projection angle before/after performing cuts
+DISK_WRITE_MODE WEPL_DISTS_WRITE_MODE		= TEXT;						// Disk write for the files containing the WEPL distribution images from each projection angle before/after performing cuts
+DISK_WRITE_MODE HULL_WRITE_MODE				= TEXT;						// Disk write for the file containing the SC, MSC, SM, or FBP hull image as specified by the settings.cfg file 
+DISK_WRITE_MODE FBP_WRITE_MODE				= TEXT;						// Disk write for the file containing the FBP image
+DISK_WRITE_MODE FBP_MEDIANS_WRITE_MODE		= TEXT;						// Disk write for the file containing the median filtered FBP images
+DISK_WRITE_MODE X_0_WRITE_MODE				= TEXT;						// Disk write for the file containing the FBP, hull, or FBP/hull hybrid initial iterate image as specified by the settings.cfg file
+DISK_WRITE_MODE MLP_WRITE_MODE				= BINARY;					// Disk write for the file containing the MLP path data
+DISK_WRITE_MODE HISTORIES_WRITE_MODE		= BINARY;					// Disk write for the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
+DISK_WRITE_MODE X_WRITE_MODE				= TEXT;						// Disk write for the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------- MLP Parameters ----------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/

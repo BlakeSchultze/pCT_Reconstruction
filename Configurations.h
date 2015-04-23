@@ -21,15 +21,17 @@ struct configurations
 	double RECON_CYL_RADIUS_D, RECON_CYL_DIAMETER_D, RECON_CYL_HEIGHT_D, IMAGE_WIDTH_D, IMAGE_HEIGHT_D, IMAGE_THICKNESS_D, VOXEL_WIDTH_D, VOXEL_HEIGHT_D, VOXEL_THICKNESS_D, SLICE_THICKNESS_D;
 	double X_ZERO_COORDINATE_D, Y_ZERO_COORDINATE_D, Z_ZERO_COORDINATE_D, RAM_LAK_TAU_D;
 	double GANTRY_ANGLE_INTERVAL_D, ANGULAR_BIN_SIZE_D, SSD_T_SIZE_D, SSD_V_SIZE_D, T_SHIFT_D, U_SHIFT_D, V_SHIFT_D, T_BIN_SIZE_D, V_BIN_SIZE_D;
-	double LAMBDA_D, LAMBDA, ETA_D, HULL_FILTER_THRESHOLD_D, FBP_AVG_THRESHOLD_D, X_0_FILTER_THRESHOLD_D;
-	double SC_THRESHOLD_D, MSC_THRESHOLD_D, SM_LOWER_THRESHOLD_D, SM_UPPER_THRESHOLD_D, SM_SCALE_THRESHOLD_D;
+	double LAMBDA_D, LAMBDA, ETA_D;
+	double HULL_RSP_THRESHOLD_D, SC_THRESHOLD_D, MSC_THRESHOLD_D, SM_LOWER_THRESHOLD_D, SM_UPPER_THRESHOLD_D, SM_SCALE_THRESHOLD_D;
 	double VOXEL_STEP_SIZE_D, MLP_U_STEP_D, CONSTANT_CHORD_NORM_D, CONSTANT_LAMBDA_SCALE_D;
 
 	uint NUM_SCANS_D, MAX_GPU_HISTORIES_D, MAX_CUTS_HISTORIES_D, T_BINS_D, V_BINS_D, COLUMNS_D, ROWS_D, SLICES_D, SIGMAS_2_KEEP_D;
 	uint GANTRY_ANGLES_D, NUM_FILES_D, ANGULAR_BINS_D, NUM_BINS_D, NUM_VOXELS_D;
 	uint SIZE_BINS_CHAR_D, SIZE_BINS_BOOL_D, SIZE_BINS_INT_D, SIZE_BINS_UINT_D, SIZE_BINS_FLOAT_D, SIZE_IMAGE_CHAR_D;
 	uint SIZE_IMAGE_BOOL_D, SIZE_IMAGE_INT_D, SIZE_IMAGE_UINT_D, SIZE_IMAGE_FLOAT_D, SIZE_IMAGE_DOUBLE_D;
-	uint ITERATIONS_D, BLOCK_SIZE_D, HULL_FILTER_RADIUS_D, X_0_FILTER_RADIUS_D, FBP_AVG_RADIUS_D, FBP_MEDIAN_RADIUS_D;	
+	uint ITERATIONS_D, BLOCK_SIZE_D;
+	uint HULL_MED_FILTER_RADIUS_D, FBP_MED_FILTER_RADIUS_D, X_0_MED_FILTER_RADIUS_D, X_K_MED_FILTER_RADIUS_D, X_MED_FILTER_RADIUS_D;
+	uint HULL_AVG_FILTER_RADIUS_D, FBP_AVG_FILTER_RADIUS_D, X_0_AVG_FILTER_RADIUS_D, X_K_AVG_FILTER_RADIUS_D, X_AVG_FILTER_RADIUS_D;
 	uint MSC_DIFF_THRESH_D;	
 
 	int PSI_SIGN_D;
@@ -39,25 +41,19 @@ struct configurations
 	X_0_TYPES	X_0_TYPE;									// Specify which of the HULL_TYPES to use in this run's MLP calculations
 	RECON_ALGORITHMS RECONSTRUCTION_METHOD; 				// Specify which of the projection algorithms to use for image reconstruction
 	
-	bool ADD_DATA_LOG_ENTRY_D, CONSOLE_OUTPUT_2_DISK_D;
+	bool ADD_DATA_LOG_ENTRY_D, STDOUT_2_DISK_D, USER_INPUT_REQUESTS_OFF_D;
 	bool IMPORT_PREPROCESSING_D, PERFORM_RECONSTRUCTION_D, PREPROCESS_OVERWRITE_OK_D, RECON_OVERWRITE_OK_D;
-	bool FBP_ON_D, AVG_FILTER_FBP_D, MEDIAN_FILTER_FBP_D, IMPORT_FILTERED_FBP_D, SC_ON_D, MSC_ON_D, SM_ON_D;
-	bool AVG_FILTER_HULL_D, AVG_FILTER_ITERATE_D;//, MLP_FILE_EXISTS_D, HISTORIES_FILE_EXISTS_D;
+	bool FBP_ON_D, SC_ON_D, MSC_ON_D, SM_ON_D;
+	//bool AVG_FILTER_HULL_D, AVG_FILTER_ITERATE_D;//, MLP_FILE_EXISTS_D, HISTORIES_FILE_EXISTS_D;
 	bool WRITE_MSC_COUNTS_D, WRITE_SM_COUNTS_D, WRITE_X_FBP_D, WRITE_FBP_HULL_D, WRITE_AVG_FBP_D, WRITE_MEDIAN_FBP_D, WRITE_BIN_WEPLS_D, WRITE_WEPL_DISTS_D, WRITE_SSD_ANGLES_D;	
+	
+	bool MEDIAN_FILTER_HULL_D, MEDIAN_FILTER_FBP_D, MEDIAN_FILTER_X_0_D, MEDIAN_FILTER_X_K_D, MEDIAN_FILTER_X_D;
+	bool AVG_FILTER_HULL_D, AVG_FILTER_FBP_D, AVG_FILTER_X_0_D, AVG_FILTER_X_K_D, AVG_FILTER_X_D;
 	//*************************************************************************************************************************************************************************//
 	//*********************************************************************** Output option parameters ************************************************************************//
 	//*************************************************************************************************************************************************************************//
 	configurations
 	(
-		//char* projection_data_dir		= "D:\\pCT_Data\\Output",							
-		//char* preprocessing_dir_p 		= "CTP404\\input_CTP404_4M",
-		//char* reconstruction_dir_p 		= "CTP404\\input_CTP404_4M\\Robust2\\ETA0001",
-		//char* object_p					= "Object",
-		//char* run_date_p				= "MMDDYYYY",
-		//char* run_number_p				= "Run",
-		//char* projection_data_date_p	= "MMDDYYYY",
-		//char* preprocess_date_p			= "MMDDYYYY",
-		//char* reconstruction_date_p		= "MMDDYYYY",
 		uint num_scans_p 				= 1,								// [#] Total number of scans of same object
 		uint max_gpu_histories_p		= 1500000,							// [#] Number of histories to process on the GPU at a time, based on GPU capacity
 		uint max_cuts_histories_p 		= 1500000,	
@@ -89,19 +85,13 @@ struct configurations
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		uint iterations_p				= 12,								// [#] of iterations through the entire set of histories to perform in iterative image reconstruction
 		uint block_size_p				= 60,								// [#] of paths to use for each update: ART = 1, 
-		uint hull_filter_radius_p 		= 1,								// [#] Averaging filter neighborhood radius in: [voxel - AVG_FILTER_SIZE, voxel + AVG_FILTER_RADIUS]
-		uint x_0_filter_radius_p		= 3,
-		uint fbp_avg_radius_p			= 1,
-		uint fbp_median_radius_p		= 3,	
 		int psi_sign_p					= 1,
 		double lambda_p 				= 0.0001,
 		double eta_p                    = 0.0001,
-		double hull_filter_threshold_p	= 0.1,								// [#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the hull
-		double fbp_avg_threshold_p		= 0.1,
-		double x_0_filter_threshold_p	= 0.1,
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		//----------------------------------------------------------------------- Hull-Detection Parameters -----------------------------------------------------------------------//
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+		double hull_rsp_threshold_p		= 0.1,								// [#] Maximum RSP for voxels assumed to belong to hull
 		uint msc_diff_thresh_p			= 50,								// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
 		double sc_threshold_p			= 0.0,								// [cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
 		double msc_threshold_p			= 0.0,								// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
@@ -112,22 +102,41 @@ struct configurations
 		//------------------------------------------------------------ Program execution behavior options/parameters ----------------------------------------------------------//
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		bool add_data_log_entry_p		= true,								// [T/F] Add log entry for data generated during execution (T) or not (F)
-		bool console_output_2_disk_p	= false,							// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)
+		bool stdout_2_disk_p			= false,							// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)
+		bool user_input_requests_off_p	= false,							// [T/F] Skip all functions that pause execution while waiting for user input (T) or allow user input requests (F)
 		bool import_preprocessing_p		= true,								// [T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
 		bool perform_reconstruction_p	= true,								// [T/F] Perform reconstruction (T) or not (F)
 		bool preprocess_overwrite_ok_p	= false,							// [T/F] Allow preprocessing data to be overwritten (T) or not (F)
 		bool recon_overwrite_ok_p 		= false,							// [T/F] Allow reconstruction data to be overwritten (T) or not (F)
 		bool fbp_on_p					= true,								// [T/F] Turn FBP on (T) or off (F)
-		bool avg_filter_fbp_p			= false,							// [T/F] Apply averaging filter to initial iterate (T) or not (F)
-		bool median_filter_fbp_p		= false,
-		bool import_filtered_fbp_p		= false,
 		bool sc_on_p					= false,							// [T/F] Turn Space Carving on (T) or off (F)
 		bool msc_on_p					= true,								// [T/F] Turn Modified Space Carving on (T) or off (F)
 		bool sm_on_p					= false,							// [T/F] Turn Space Modeling on (T) or off (F)
-		bool avg_filter_hull_p			= true,								// [T/F] Apply averaging filter to hull (T) or not (F)
-		bool avg_filter_iterate_p		= false,							// [T/F] Apply averaging filter to initial iterate (T) or not (F)
 		//bool mlp_file_exists_p			= false,
 		//bool histories_file_exists_p	= false,	
+		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+		//----------------------------------------------------------------------- Filtering options/parameters ------------------------------------------------------------------------//
+		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+		bool median_filter_hull_p			= false,						// [T/F] Apply median filter to hull (T) or not (F)
+		bool median_filter_fbp_p			= false, 						// [T/F] Apply median filter to FBP (T) or not (F)
+		bool median_filter_x_0_p			= false,						// [T/F] Apply median filter to initial iterate (T) or not (F)
+		bool median_filter_x_k_p			= false,						// [T/F] Apply median filter to reconstructed image after each iteration (T) or not (F)
+		bool median_filter_x_p				= false,						// [T/F] Apply median filter to final reconstructed image (T) or not (F)
+		bool avg_filter_hull_p				= false,						// [T/F] Apply averaging filter to hull (T) or not (F)
+		bool avg_filter_fbp_p				= false,						// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+		bool avg_filter_x_0_p				= false,						// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+		bool avg_filter_x_k_p				= false,						// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+		bool avg_filter_x_p					= false,						// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+		uint hull_med_filter_radius_p		= false,						// [#] Radius of median filter neighborhood applied to hull: [voxel - r, voxel + r]
+		uint fbp_med_filter_radius_p		= false,						// [#] Radius of median filter neighborhood applied to FBP: [voxel - r, voxel + r]							
+		uint x_0_med_filter_radius_p		= false,						// [#] Radius of median filter neighborhood applied to x_0: [voxel - r, voxel + r]'
+		uint x_k_med_filter_radius_p		= false,						// [#] Radius of median filter neighborhood applied to x_k: [voxel - r, voxel + r]
+		uint x_med_filter_radius_p			= false,						// [#] Radius of median filter neighborhood applied to x: [voxel - r, voxel + r]
+		uint hull_avg_filter_radius_p		= false, 						// [#] Radius of average filter neighborhood applied to hull: [voxel - r, voxel + r]
+		uint fbp_avg_filter_radius_p		= false,						// [#] Radius of average filter neighborhood applied to FBP: [voxel - r, voxel + r]
+		uint x_0_avg_filter_radius_p		= false,						// [#] Radius of average filter neighborhood applied to x_0: [voxel - r, voxel + r]
+		uint x_k_avg_filter_radius_p		= false,						// [#] Radius of average filter neighborhood applied to x_k: [voxel - r, voxel + r]
+		uint x_avg_filter_radius_p			= false,						// [#] Radius of average filter neighborhood applied to x: [voxel - r, voxel + r]
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		//----------------------------------------------------------------------- Output option parameters --------------------------------------------------------------------//
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -227,20 +236,14 @@ struct configurations
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	ITERATIONS_D(iterations_p),												// *[#] of iterations through the entire set of histories to perform in iterative image reconstruction
 	BLOCK_SIZE_D(block_size_p),												// *[#] of paths to use for each update: e.g., ART = 1, 
-	HULL_FILTER_RADIUS_D(hull_filter_radius_p),								// *[#] Radius of average filter neighborhood applied to hull: [voxel - r, voxel + r]	
-	X_0_FILTER_RADIUS_D(x_0_filter_radius_p),								// *[#] Radius of average filter neighborhood applied to x_0: [voxel - r, voxel + r]
-	FBP_AVG_RADIUS_D(fbp_avg_radius_p),										// *[#] Radius of average filter neighborhood applied to FBP: [voxel - r, voxel + r]
-	FBP_MEDIAN_RADIUS_D(fbp_median_radius_p),								// *[#] Radius of median filter neighborhood applied to FBP: [voxel - r, voxel + r]
 	PSI_SIGN_D(psi_sign_p),													// *[+1/-1] Sign specifying the sign to use for Psi in scaling residual for updates in robust technique to reconstruction	
 	LAMBDA_D(lambda_p),														// *[#] Relaxation parameter used in update calculations in reconstruction algorithms
 	LAMBDA(lambda_p),														// *[#] Relaxation parameter used in update calculations in reconstruction algorithms
 	ETA_D(eta_p),															// *[#] Value used in calculation of Psi = (1-x_i) * ETA used in robust technique to reconstruction
-	HULL_FILTER_THRESHOLD_D(hull_filter_threshold_p),						// *[#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the hull
-	FBP_AVG_THRESHOLD_D(fbp_avg_threshold_p),								// *[#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the FBP image
-	X_0_FILTER_THRESHOLD_D(x_0_filter_threshold_p),							// *[#] Threshold ([0.0, 1.0]) used by averaging filter to identify voxels belonging to the initial iterate x_0
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//----------------------------------------------------------------------- Hull-detection parameters -----------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+	HULL_RSP_THRESHOLD_D(hull_rsp_threshold_p),								// [#] Maximum RSP for voxels assumed to belong to hull
 	MSC_DIFF_THRESH_D(msc_diff_thresh_p),									// *[#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
 	SC_THRESHOLD_D(sc_threshold_p),											// *[cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
 	MSC_THRESHOLD_D(msc_threshold_p),										// *[cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
@@ -250,23 +253,44 @@ struct configurations
 	//*************************************************************************************************************************************************************************//
 	//*********************************************************************** Preprocessing control options *******************************************************************//
 	//*************************************************************************************************************************************************************************//
-	CONSOLE_OUTPUT_2_DISK_D(console_output_2_disk_p	),						// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)	
+	STDOUT_2_DISK_D(stdout_2_disk_p	),										// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)	
+	USER_INPUT_REQUESTS_OFF_D(user_input_requests_off_p),					// [T/F] Skip all functions that pause execution while waiting for user input (T) or allow user input requests (F)
 	ADD_DATA_LOG_ENTRY_D(add_data_log_entry_p),								// *[T/F] Add log entry for data generated during execution (T) or not (F)
 	IMPORT_PREPROCESSING_D(import_preprocessing_p),							// *[T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
 	PERFORM_RECONSTRUCTION_D(perform_reconstruction_p),						// *[T/F] Perform reconstruction (T) or not (F)
 	PREPROCESS_OVERWRITE_OK_D(preprocess_overwrite_ok_p),					// *[T/F] Allow preprocessing data to be overwritten (T) or not (F)
 	RECON_OVERWRITE_OK_D(recon_overwrite_ok_p),								// *[T/F] Allow reconstruction data to be overwritten (T) or not (F)
 	FBP_ON_D(fbp_on_p),														// *[T/F] Turn FBP on (T) or off (F)
-	AVG_FILTER_FBP_D(avg_filter_fbp_p),										// *[T/F] Apply averaging filter to initial iterate (T) or not (F)
-	MEDIAN_FILTER_FBP_D(median_filter_fbp_p),								// *[T/F] Apply median filtering to FBP (T) or not (F)
-	IMPORT_FILTERED_FBP_D(import_filtered_fbp_p),							// *[T/F] Import filtered FBP from disk (T) or not (F)
 	SC_ON_D(sc_on_p),														// *[T/F] Turn Space Carving on (T) or off (F)
 	MSC_ON_D(msc_on_p),														// *[T/F] Turn Modified Space Carving on (T) or off (F)
 	SM_ON_D(sm_on_p),														// *[T/F] Turn Space Modeling on (T) or off (F)
-	AVG_FILTER_HULL_D(avg_filter_hull_p),									// *[T/F] Apply averaging filter to hull (T) or not (F)	
-	AVG_FILTER_ITERATE_D(avg_filter_iterate_p),								// *[T/F] Apply averaging filter to initial iterate x_0 (T) or not (F)	
+	//AVG_FILTER_HULL_D(avg_filter_hull_p),									// *[T/F] Apply averaging filter to hull (T) or not (F)	
+	//AVG_FILTER_ITERATE_D(avg_filter_x_0_p),									// *[T/F] Apply averaging filter to initial iterate x_0 (T) or not (F)	
 	//MLP_FILE_EXISTS_D(mlp_file_exists_p),									// *[T/F] MLP.bin preprocessing data exists (T) or not (F)
 	//HISTORIES_FILE_EXISTS_D(histories_file_exists_p),						// *[T/F] Histories.bin preprocessing data exists (T) or not (F)
+	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//----------------------------------------------------------------------- Filtering options/parameters ------------------------------------------------------------------------//
+	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+	MEDIAN_FILTER_HULL_D(median_filter_hull_p),								// [T/F] Apply median filter to hull (T) or not (F)
+	MEDIAN_FILTER_FBP_D(median_filter_fbp_p), 								// [T/F] Apply median filter to FBP (T) or not (F)
+	MEDIAN_FILTER_X_0_D(median_filter_x_0_p),								// [T/F] Apply median filter to initial iterate (T) or not (F)
+	MEDIAN_FILTER_X_K_D(median_filter_x_k_p),								// [T/F] Apply median filter to reconstructed image after each iteration (T) or not (F)
+	MEDIAN_FILTER_X_D(median_filter_x_p),									// [T/F] Apply median filter to final reconstructed image (T) or not (F)
+	AVG_FILTER_HULL_D(avg_filter_hull_p),									// [T/F] Apply averaging filter to hull (T) or not (F)
+	AVG_FILTER_FBP_D(avg_filter_fbp_p),										// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+	AVG_FILTER_X_0_D(avg_filter_x_0_p),										// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+	AVG_FILTER_X_K_D(avg_filter_x_k_p),										// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+	AVG_FILTER_X_D(avg_filter_x_p),											// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+	HULL_MED_FILTER_RADIUS_D(hull_med_filter_radius_p),						// [#] Radius of median filter neighborhood applied to hull: [voxel - r, voxel + r]
+	FBP_MED_FILTER_RADIUS_D(fbp_med_filter_radius_p),						// [#] Radius of median filter neighborhood applied to FBP: [voxel - r, voxel + r]							
+	X_0_MED_FILTER_RADIUS_D(x_0_med_filter_radius_p),						// [#] Radius of median filter neighborhood applied to x_0: [voxel - r, voxel + r]'
+	X_K_MED_FILTER_RADIUS_D(x_k_med_filter_radius_p),						// [#] Radius of median filter neighborhood applied to x_k: [voxel - r, voxel + r]
+	X_MED_FILTER_RADIUS_D(x_med_filter_radius_p),							// [#] Radius of median filter neighborhood applied to x: [voxel - r, voxel + r]
+	HULL_AVG_FILTER_RADIUS_D(hull_avg_filter_radius_p), 					// [#] Radius of average filter neighborhood applied to hull: [voxel - r, voxel + r]
+	FBP_AVG_FILTER_RADIUS_D(fbp_avg_filter_radius_p),						// [#] Radius of average filter neighborhood applied to FBP: [voxel - r, voxel + r]
+	X_0_AVG_FILTER_RADIUS_D(x_0_avg_filter_radius_p),						// [#] Radius of average filter neighborhood applied to x_0: [voxel - r, voxel + r]
+	X_K_AVG_FILTER_RADIUS_D(x_k_avg_filter_radius_p),						// [#] Radius of average filter neighborhood applied to x_k: [voxel - r, voxel + r]
+	X_AVG_FILTER_RADIUS_D(x_avg_filter_radius_p),							// [#] Radius of average filter neighborhood applied to x: [voxel - r, voxel + r]
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//--------------------------------------------------------- Control of writing optional intermediate data to disk  --------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -481,8 +505,11 @@ void add_object_directory(char*, char*);
 int add_run_directory(char*, char*, char*, char*, SCAN_TYPES );
 int add_pCT_Images_dir(char*, char*, char*, char*, SCAN_TYPES );
 
-void write_reconstruction_settings();
-void read_config_file();
+CONFIG_LINE split_config_comments(char*);
+void write_config( CONFIG_OBJECT);
+void fgets_config(char*, int, FILE*, CONFIG_OBJECT&);
+uint parse_config_file_line( FILE*, CONFIG_OBJECT& );
+CONFIG_OBJECT config_file_2_object();
 bool key_is_string_parameter( char* );
 bool key_is_floating_point_parameter( char* );
 bool key_is_integer_parameter( char* );
@@ -493,7 +520,7 @@ void set_integer_parameter( generic_IO_container & );
 void set_boolean_parameter( generic_IO_container & );
 void set_parameter( generic_IO_container & );
 void set_execution_date();
-void set_IO_paths();
+void set_IO_directories();
 void view_config_file();
 void set_dependent_parameters();
 void parameters_2_GPU();
@@ -959,47 +986,6 @@ int add_pCT_Images_dir(char* pct_data_dir, char* object_name, char* run_date, ch
 	return create_unique_dir( pCT_Images_directory );
 }
 
-void write_reconstruction_settings() 
-{
-	FILE* settings_file = fopen("reconstruction_settings.txt", "w");
-	time_t rawtime;
-	struct tm * timeinfo;
-
-	time (&rawtime);
-	timeinfo = localtime (&rawtime);
-	fprintf (settings_file, "Current local time and date: %s", asctime(timeinfo));
-	fprintf(settings_file, "PRIME_OFFSET = %d \n",  PRIME_OFFSET);
-	fprintf(settings_file, "AVG_FILTER_HULL = %s \n",  bool_2_string(parameters.AVG_FILTER_HULL_D));
-	
-	fprintf(settings_file, "HULL_FILTER_RADIUS = %d \n",  parameters.HULL_FILTER_RADIUS_D);
-	fprintf(settings_file, "HULL_FILTER_THRESHOLD = %d \n",  parameters.HULL_FILTER_THRESHOLD_D);
-	fprintf(settings_file, "LAMBDA = %d \n",  parameters.LAMBDA_D);
-
-	// fwrite( &reconstruction_histories, sizeof(unsigned int), 1, export_histories );
-	switch( parameters.X_0_TYPE )
-	{
-		case X_HULL:		fprintf(settings_file, "x_0 = X_HULL\n");		break;
-		case X_FBP:		fprintf(settings_file, "x_0 = x_FBP\n");	break;
-		case HYBRID:		fprintf(settings_file, "x_0 = HYBRID\n");		break;
-		case ZEROS:			fprintf(settings_file, "x_0 = ZEROS\n");		break;
-		case IMPORT_X_0:		fprintf(settings_file, "x_0 = IMPORT\n");		break;
-	}
-	fprintf(settings_file, "IMPORT_FILTERED_FBP = %d \n", bool_2_string(parameters.IMPORT_FILTERED_FBP_D) );
-	if( parameters.IMPORT_FILTERED_FBP_D )
-	{
-		fprintf(settings_file, "FILTERED_FBP_PATH = %d \n",  FBP_PATH);
-	}
-	switch( parameters.RECONSTRUCTION_METHOD )
-	{
-		case ART:		fprintf(settings_file, "RECON_ALGORITHM = ART\n");		break;
-		case BIP:		fprintf(settings_file, "RECON_ALGORITHM = BIP\n");	break;
-		case DROP:		fprintf(settings_file, "RECON_ALGORITHM = DROP\n");	break;
-		case SAP:		fprintf(settings_file, "RECON_ALGORITHM = SAP\n");	break;
-		case ROBUST1:			fprintf(settings_file, "RECON_ALGORITHM = ROBUST1\n");		break;
-		case ROBUST2:		fprintf(settings_file, "RECON_ALGORITHM = ROBUST2\n");		break;
-	}
-	fclose(settings_file);
-}
 void read_config_file()
 {		
 	// Extract current directory (executable path) terminal response from system command "chdir" 
@@ -1015,9 +1001,9 @@ void read_config_file()
 		printf("%s\n", PROJECTION_DATA_DIR );
 		print_section_separator('-');
 	}
-	CONFIG_FILE_PATH  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
-	sprintf(CONFIG_FILE_PATH, "%s/%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
-	FILE* input_file = fopen(CONFIG_FILE_PATH, "r" );
+	CONFIG_PATH  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
+	sprintf(CONFIG_PATH, "%s/%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
+	FILE* input_file = fopen(CONFIG_PATH, "r" );
 	print_section_header( "Reading key/value pairs from configuration file and setting corresponding execution parameters", '*' );
 	while( !feof(input_file) )
 	{		
@@ -1028,6 +1014,180 @@ void read_config_file()
 	}
 	fclose(input_file);
 	print_section_exit( "Finished reading configuration file and setting execution parameters", "====>" );
+}
+CONFIG_LINE split_config_comments(char* comment_line)
+{
+	std::string entry_string(comment_line);
+	entry_string.pop_back(); // Pop off endline character
+	for( int i = 0; i < (int)entry_string.length(); i++)
+	{
+		if(entry_string[i] == '\t' )
+		{
+			entry_string[i] = ' ';
+			entry_string.insert(i, 3, ' ');
+		}
+		
+	}
+	entry_string.resize(CONFIG_LINE_WIDTH, ' ');
+	CONFIG_LINE parsed_comment;
+	std::string temp;
+	size_t comment_position = 0, temp_length = 0;
+	for( int i = 0; i < NUM_CONFIG_FIELDS; i++ )
+	{
+		temp_length = CONFIG_FIELD_WIDTHS[i];
+		temp = entry_string.substr(comment_position, temp_length );
+		parsed_comment.push_back(temp);
+		comment_position += temp_length;
+	}
+	return parsed_comment;
+}
+void write_config( CONFIG_OBJECT config_object)
+{
+	std::ofstream config_file(CONFIG_PATH);
+	
+	if( !config_file.is_open() )
+		config_file.open(CONFIG_PATH);
+	else
+	{
+		for( int i = 0; i < config_object.size(); i++ )
+		{
+			config_file << std::noskipws;		
+			for( int j = 0; j < NUM_CONFIG_FIELDS; j++ )
+			{
+				config_file <<  config_object[i][j];
+			}
+			config_file << endl;
+		}
+	}
+	config_file.close();
+}
+void fgets_config(char *line, int buf_size, FILE* input_file, CONFIG_OBJECT& config_object)
+{
+    bool done = false;
+	char* line_copy = line;
+    while(!done)
+    {
+        if( fgets(line, buf_size, input_file ) == NULL )										// Read a line from the file
+            return;		
+		line_copy = line;
+		while( *line == ' ' || *line == '\t' )
+			line++;
+        if( std::find_if(line, &line[strlen(line)], blank_line ) == ( &line[strlen(line)] ) )	// Skip lines with only "\n", "\t", and/or " "
+		{
+			config_object.push_back(split_config_comments(line_copy));
+			continue;
+		}
+        else if( strncmp( line, "//", 2 ) == 0 )												// Skip any comment lines
+        {
+			config_object.push_back(split_config_comments(line_copy));
+			continue;
+		}
+        else																					// Got a valid data line so return with this line
+			done = true;    
+    }
+}
+uint parse_config_file_line( FILE* input_file, CONFIG_OBJECT& config_object )
+{
+	char key[128], equal_sign[128], value[256], comments[512];	
+	const uint buf_size = 1024;
+	char line[buf_size];
+	std::size_t found;
+	CONFIG_LINE config_line;
+	uint parameters_changed = 0;
+	char* parameter;
+	
+	// Remove leading spaces/tabs and return first line which does not begin with comment command "//" and is not blank
+	fgets_config(line, buf_size, input_file, config_object);	
+	
+	// Having now read a non comment/blank line and removed leading spaces/tabs, parse it into {key}{=}{value}//{comments} format
+	int filled = sscanf (line, "%s %s %s // %s", &key, &equal_sign, &value, &comments);
+
+	std::string line_string(line), key_string(key), equal_string(equal_sign), value_string(value), comment_string(comments);
+
+	// n =				  1			   1		   2			2		   3		   3	 ...	 n			 n       
+	// i =	 0			  1			   2		   3			4		   5		   6	 ...   2n - 1  		 2n		  2n + 1
+	// [program name][parameter 1][new val 1][parameter 2][new val 2][parameter 3][new val 3]...[parameter n][new val n][cfg path]
+	for( int n = 1; n <= num_parameters_2_change; n++)
+	{
+		parameter =  run_arguments[2 * n - 1];
+		if( strcmp(key, parameter) == 0 )
+		{
+			if(		key_is_string_parameter( parameter )
+				||	key_is_floating_point_parameter( parameter )
+				||	key_is_integer_parameter( parameter )
+				||	key_is_boolean_parameter( parameter ) 
+			)
+			{
+				value_string = std::string(run_arguments[2 * n]);	
+				parameters_changed++;
+			}
+		}
+	}
+	if( filled <= 3 )
+		comment_string = "";
+	else
+	{
+		found = line_string.find("//");
+		comment_string = line_string.substr(found, std::string::npos);
+		comment_string.pop_back();
+	}
+	if( (int)value_string.length() > VALUE_FIELD_WIDTH )
+		comment_string.insert(0, value_string.substr(VALUE_FIELD_WIDTH, std::string::npos ) );	
+
+	key_string.resize(KEY_FIELD_WIDTH, ' ');
+	equal_string.resize(EQUALS_FIELD_WIDTH, ' ');
+	value_string.resize(VALUE_FIELD_WIDTH, ' ');		
+	comment_string.resize(COMMENT_FIELD_WIDTH, ' ');
+
+	config_line.push_back(key_string);
+	config_line.push_back(equal_string);
+	config_line.push_back(value_string);
+	config_line.push_back(comment_string);
+	config_object.push_back(config_line);
+
+	return parameters_changed;
+}
+CONFIG_OBJECT config_file_2_object()
+{		
+	// Extract current directory (executable path) terminal response from system command "chdir" 
+	CONFIG_OBJECT config_object;
+	uint parameters_changed = 0;
+	if( !CONFIG_PATH_PASSED )
+	{
+		std::string str =  terminal_response("chdir");
+		const char* cstr = str.c_str();
+		PROJECTION_DATA_DIR = (char*) calloc( strlen(cstr), sizeof(char));
+		std::copy( cstr, &cstr[strlen(cstr) - 1], PROJECTION_DATA_DIR );
+		print_section_header( "Config file location set to current execution directory :", '*' );	
+		print_section_separator('-');
+		printf("%s\n", PROJECTION_DATA_DIR );
+		print_section_separator('-');
+	}
+	//puts("It is at\n");
+	//puts(PROJECTION_DATA_DIR);
+	CONFIG_PATH  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
+	//sprintf(CONFIG_PATH, "C:/Users/Blake/Documents/pCT_Data/object_name/Experimental/MMDDYYYY/run_number/Output/MMDDYYYY/settings.cfg" );
+	sprintf(CONFIG_PATH, "%s\\%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
+	
+	FILE* input_file = fopen(CONFIG_PATH, "r" );
+	print_section_header( "Reading key/value pairs from configuration file and setting corresponding execution parameters", '*' );
+	//puts(CONFIG_PATH);
+	while( !feof(input_file) )	
+	{
+		parameters_changed += parse_config_file_line(input_file, config_object);
+		//set_parameter( input_value );
+		//if( input_value.input_type_ID > STRING )
+			//puts("invalid type_ID");
+	}
+	fclose(input_file);
+	print_section_exit( "Finished reading configuration file and setting execution parameters", "====>" );
+	write_config( config_object);
+	if( parameters_changed < num_parameters_2_change )
+	{
+		puts("ERROR: Parameter specified for value change does not have a valid key."); 
+		exit_program_if(true);
+	}
+	return config_object;
 }
 bool key_is_string_parameter( char* key )
 {
@@ -1073,9 +1233,7 @@ bool key_is_floating_point_parameter( char* key )
 		||	strcmp (key, "SLICE_THICKNESS") == 0 
 		||	strcmp (key, "LAMBDA") == 0 
 		||	strcmp (key, "ETA") == 0 
-		||	strcmp (key, "HULL_FILTER_THRESHOLD") == 0 
-		||	strcmp (key, "FBP_AVG_THRESHOLD") == 0 
-		||	strcmp (key, "X_0_FILTER_THRESHOLD") == 0 
+		||	strcmp (key, "HULL_RSP_THRESHOLD") == 0 
 		||	strcmp (key, "SC_THRESHOLD") == 0 
 		||	strcmp (key, "MSC_THRESHOLD") == 0 
 		||	strcmp (key, "SM_LOWER_THRESHOLD") == 0 
@@ -1106,10 +1264,16 @@ bool key_is_integer_parameter( char* key )
 		||	strcmp (key, "SLICES") == 0
 		||	strcmp (key, "ITERATIONS") == 0
 		||	strcmp (key, "BLOCK_SIZE") == 0
-		||	strcmp (key, "HULL_FILTER_RADIUS") == 0
-		||	strcmp (key, "X_0_FILTER_RADIUS") == 0
-		||	strcmp (key, "FBP_AVG_RADIUS") == 0
-		||	strcmp (key, "FBP_MEDIAN_RADIUS") == 0
+		||	strcmp (key, "HULL_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "FBP_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_0_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_K_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "HULL_AVG_FILTER_RADIUS") == 0
+		||	strcmp (key, "FBP_AVG_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_0_AVG_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_K_AVG_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_AVG_FILTER_RADIUS") == 0							
 		||	strcmp (key, "PSI_SIGN") == 0
 		||	strcmp (key, "MSC_DIFF_THRESH") == 0
 	)
@@ -1122,20 +1286,25 @@ bool key_is_boolean_parameter( char* key )
 	if
 	( 
 			strcmp (key, "ADD_DATA_LOG_ENTRY") == 0
-		||	strcmp (key, "CONSOLE_OUTPUT_2_DISK") == 0
+		||	strcmp (key, "STDOUT_2_DISK") == 0
 		||	strcmp (key, "IMPORT_PREPROCESSING") == 0
 		||	strcmp (key, "PERFORM_RECONSTRUCTION") == 0
 		||	strcmp (key, "PREPROCESS_OVERWRITE_OK") == 0
 		||	strcmp (key, "RECON_OVERWRITE_OK") == 0
 		||	strcmp (key, "FBP_ON") == 0
-		||	strcmp (key, "AVG_FILTER_FBP") == 0
-		||	strcmp (key, "MEDIAN_FILTER_FBP") == 0
-		||	strcmp (key, "IMPORT_FILTERED_FBP") == 0
 		||	strcmp (key, "SC_ON") == 0
 		||	strcmp (key, "MSC_ON") == 0
 		||	strcmp (key, "SM_ON") == 0
+		||	strcmp (key, "MEDIAN_FILTER_HULL") == 0
+		||	strcmp (key, "MEDIAN_FILTER_FBP") == 0
+		||	strcmp (key, "MEDIAN_FILTER_X_0") == 0
+		||	strcmp (key, "MEDIAN_FILTER_X_K") == 0
+		||	strcmp (key, "MEDIAN_FILTER_X") == 0
 		||	strcmp (key, "AVG_FILTER_HULL") == 0
-		||	strcmp (key, "AVG_FILTER_ITERATE") == 0
+		||	strcmp (key, "AVG_FILTER_FBP") == 0
+		||	strcmp (key, "AVG_FILTER_X_0") == 0
+		||	strcmp (key, "AVG_FILTER_X_K") == 0
+		||	strcmp (key, "AVG_FILTER_X") == 0
 		||	strcmp (key, "WRITE_MSC_COUNTS") == 0
 		||	strcmp (key, "WRITE_SM_COUNTS") == 0
 		||	strcmp (key, "WRITE_X_FBP") == 0
@@ -1160,6 +1329,7 @@ void set_string_parameter( generic_IO_container &value )
 		PROJECTION_DATA_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PROJECTION_DATA_DIR );
 		PROJECTION_DATA_DIR_SET = true;
+		puts("PROJECTION_DATA_DIR_SET");
 	}
 	else if( strcmp (value.key, "PREPROCESSING_DIR") == 0 )
 	{
@@ -1168,6 +1338,7 @@ void set_string_parameter( generic_IO_container &value )
 		PREPROCESSING_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PREPROCESSING_DIR );
 		PREPROCESSING_DIR_SET = true;
+		puts("PREPROCESSING_DIR_SET");
 	}
 	else if( strcmp (value.key, "RECONSTRUCTION_DIR") == 0 )
 	{
@@ -1176,54 +1347,63 @@ void set_string_parameter( generic_IO_container &value )
 		RECONSTRUCTION_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RECONSTRUCTION_DIR );
 		RECONSTRUCTION_DIR_SET = true;
+		puts("RECONSTRUCTION_DIR_SET");
 	}
 	else if( strcmp (value.key, "PATH_2_PCT_DATA_DIR") == 0 )
 	{
 		PATH_2_PCT_DATA_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PATH_2_PCT_DATA_DIR );
 		PATH_2_PCT_DATA_DIR_SET = true;
+		puts("PATH_2_PCT_DATA_DIR_SET");
 	}
 	else if( strcmp (value.key, "OBJECT") == 0 )
 	{
 		OBJECT = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], OBJECT );
 		OBJECT_SET = true;
+		puts("OBJECT_SET");
 	}
 	else if( strcmp (value.key, "RUN_DATE") == 0 )
 	{
 		RUN_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RUN_DATE );
 		RUN_DATE_SET = true;
+		puts("RUN_DATE_SET");
 	}
 	else if( strcmp (value.key, "RUN_NUMBER") == 0 )
 	{
 		RUN_NUMBER = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RUN_NUMBER );
 		RUN_NUMBER_SET = true;
+		puts("RUN_NUMBER_SET");
 	}
 	else if( strcmp (value.key, "PROJECTION_DATA_DATE") == 0 )
 	{
 		PROJECTION_DATA_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PROJECTION_DATA_DATE );
 		PROJECTION_DATA_DATE_SET = true;
+		puts("PROJECTION_DATA_DATE_SET");
 	}
 	else if( strcmp (value.key, "PREPROCESS_DATE") == 0 )
 	{
 		PREPROCESS_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PREPROCESS_DATE );
 		PREPROCESS_DATE_SET = true;
+		puts("PREPROCESS_DATE_SET");
 	}
 	else if( strcmp (value.key, "RECONSTRUCTION_DATE") == 0 )
 	{
 		RECONSTRUCTION_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RECONSTRUCTION_DATE );
 		RECONSTRUCTION_DATE_SET = true;
+		puts("RECONSTRUCTION_DATE_SET");
 	}
 	else if( strcmp (value.key, "USER_NAME") == 0 )
 	{
 		USER_NAME = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
 		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], USER_NAME );
 		USER_NAME_SET = true;
+		puts("USER_NAME_SET");
 	}
 	else
 	{
@@ -1422,34 +1602,19 @@ void set_floating_point_parameter( generic_IO_container &value )
 		//ETA = value.double_input;
 		parameters.ETA_D = value.double_input;
 	}
-	else if( strcmp (value.key, "HULL_FILTER_THRESHOLD") == 0 )
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	else if( strcmp (value.key, "HULL_RSP_THRESHOLD") == 0 )
 	{
 		if( value.double_input < 0 )
 		{
 			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
 			exit_program_if(true);
 		}
-		//HULL_FILTER_THRESHOLD = value.double_input;
-		parameters.HULL_FILTER_THRESHOLD_D = value.double_input;
+		//HULL_RSP_THRESHOLD = value.double_input;
+		parameters.HULL_RSP_THRESHOLD_D = value.double_input;
 	}
-	else if( strcmp (value.key, "FBP_AVG_THRESHOLD") == 0 )
-	{
-		//FBP_AVG_THRESHOLD = value.double_input;
-		parameters.FBP_AVG_THRESHOLD_D = value.double_input;
-	}
-	else if( strcmp (value.key, "X_0_FILTER_THRESHOLD") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//X_0_FILTER_THRESHOLD = value.double_input;
-		parameters.X_0_FILTER_THRESHOLD_D = value.double_input;
-	}
-	//------------------------------------------------------------------------------//
-	//------------------------------------------------------------------------------//
-	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "SC_THRESHOLD") == 0 )
 	{
 		//SC_THRESHOLD = value.double_input;
@@ -1677,13 +1842,7 @@ void set_integer_parameter( generic_IO_container &value )
 		//BLOCK_SIZE = value.double_input;
 		parameters.BLOCK_SIZE_D =  value.integer_input;
 	}
-	else if( strcmp (value.key, "HULL_FILTER_RADIUS") == 0 )
-	{
-		printf("set to %d\n", value.integer_input);
-		//HULL_FILTER_RADIUS = value.double_input;
-		parameters.HULL_FILTER_RADIUS_D =  value.integer_input;
-	}
-	else if( strcmp (value.key, "X_0_FILTER_RADIUS") == 0 )
+	else if( strcmp (value.key, "HULL_MED_FILTER_RADIUS") == 0 )
 	{
 		if( value.integer_input < 0 )
 		{
@@ -1691,10 +1850,10 @@ void set_integer_parameter( generic_IO_container &value )
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
-		//X_0_FILTER_RADIUS = value.double_input;
-		parameters.X_0_FILTER_RADIUS_D =  value.integer_input;
+		//HULL_MED_FILTER_RADIUS = value.double_input;
+		parameters.HULL_MED_FILTER_RADIUS_D = value.integer_input;
 	}
-	else if( strcmp (value.key, "FBP_AVG_RADIUS") == 0 )
+	else if( strcmp (value.key, "FBP_MED_FILTER_RADIUS") == 0 )
 	{
 		if( value.integer_input < 0 )
 		{
@@ -1702,10 +1861,10 @@ void set_integer_parameter( generic_IO_container &value )
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
-		//FBP_AVG_RADIUS = value.double_input;
-		parameters.FBP_AVG_RADIUS_D = value.integer_input;
+		//FBP_MED_FILTER_RADIUS = value.double_input;
+		parameters.FBP_MED_FILTER_RADIUS_D = value.integer_input;
 	}
-	else if( strcmp (value.key, "FBP_MEDIAN_RADIUS") == 0 )
+	else if( strcmp (value.key, "X_0_MED_FILTER_RADIUS") == 0 )
 	{
 		if( value.integer_input < 0 )
 		{
@@ -1713,8 +1872,85 @@ void set_integer_parameter( generic_IO_container &value )
 			exit_program_if(true);
 		}
 		printf("set to %d\n", value.integer_input);
-		//FBP_MEDIAN_RADIUS = value.double_input;
-		parameters.FBP_MEDIAN_RADIUS_D = value.integer_input;
+		//X_0_MED_FILTER_RADIUS = value.double_input;
+		parameters.X_0_MED_FILTER_RADIUS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "X_K_MED_FILTER_RADIUS") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		printf("set to %d\n", value.integer_input);
+		//X_K_MED_FILTER_RADIUS = value.double_input;
+		parameters.X_K_MED_FILTER_RADIUS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "X_MED_FILTER_RADIUS") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		printf("set to %d\n", value.integer_input);
+		//X_MED_FILTER_RADIUS = value.double_input;
+		parameters.X_MED_FILTER_RADIUS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "HULL_AVG_FILTER_RADIUS") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		printf("set to %d\n", value.integer_input);
+		//HULL_AVG_FILTER_RADIUS = value.double_input;
+		parameters.HULL_AVG_FILTER_RADIUS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "FBP_AVG_FILTER_RADIUS") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		printf("set to %d\n", value.integer_input);
+		//FBP_AVG_FILTER_RADIUS = value.double_input;
+		parameters.FBP_AVG_FILTER_RADIUS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "X_0_AVG_FILTER_RADIUS") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		printf("set to %d\n", value.integer_input);
+		//X_0_AVG_FILTER_RADIUS = value.double_input;
+		parameters.X_0_AVG_FILTER_RADIUS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "X_K_AVG_FILTER_RADIUS") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		printf("set to %d\n", value.integer_input);
+		//X_K_AVG_FILTER_RADIUS = value.double_input;
+		parameters.X_K_AVG_FILTER_RADIUS_D = value.integer_input;
+	}
+	else if( strcmp (value.key, "X_AVG_FILTER_RADIUS") == 0 )
+	{
+		if( value.integer_input < 0 )
+		{
+			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+			exit_program_if(true);
+		}
+		printf("set to %d\n", value.integer_input);
+		//X_AVG_FILTER_RADIUS = value.double_input;
+		parameters.X_AVG_FILTER_RADIUS_D = value.integer_input;
 	}
 	else if( strcmp (value.key, "PSI_SIGN") == 0 )
 	{
@@ -1753,10 +1989,10 @@ void set_boolean_parameter( generic_IO_container &value )
 		//ADD_DATA_LOG_ENTRY = value.boolean_input;
 		parameters.ADD_DATA_LOG_ENTRY_D = value.boolean_input;
 	}
-	else if( strcmp (value.key, "CONSOLE_OUTPUT_2_DISK") == 0 )
+	else if( strcmp (value.key, "STDOUT_2_DISK") == 0 )
 	{
-		//CONSOLE_OUTPUT_2_DISK = value.boolean_input;
-		parameters.CONSOLE_OUTPUT_2_DISK_D = value.boolean_input;
+		//STDOUT_2_DISK = value.boolean_input;
+		parameters.STDOUT_2_DISK_D = value.boolean_input;
 	}
 	else if( strcmp (value.key, "IMPORT_PREPROCESSING") == 0 )
 	{
@@ -1783,21 +2019,6 @@ void set_boolean_parameter( generic_IO_container &value )
 		//FBP_ON = value.boolean_input;
 		parameters.FBP_ON_D = value.boolean_input;
 	}
-	else if( strcmp (value.key, "AVG_FILTER_FBP") == 0 )
-	{
-		//AVG_FILTER_FBP = value.boolean_input;
-		parameters.AVG_FILTER_FBP_D = value.boolean_input;
-	}
-	else if( strcmp (value.key, "MEDIAN_FILTER_FBP") == 0 )
-	{
-		//MEDIAN_FILTER_FBP = value.boolean_input;
-		parameters.MEDIAN_FILTER_FBP_D = value.boolean_input;
-	}
-	else if( strcmp (value.key, "IMPORT_FILTERED_FBP") == 0 )
-	{
-		//IMPORT_FILTERED_FBP = value.boolean_input;
-		parameters.IMPORT_FILTERED_FBP_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "SC_ON") == 0 )
 	{
 		//SC_ON = value.boolean_input;
@@ -1813,15 +2034,58 @@ void set_boolean_parameter( generic_IO_container &value )
 		//SM_ON = value.boolean_input;
 		parameters.SM_ON_D = value.boolean_input;
 	}
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "AVG_FILTER_HULL") == 0 )
 	{
 		//AVG_FILTER_HULL = value.boolean_input;
 		parameters.AVG_FILTER_HULL_D = value.boolean_input;
 	}
-	else if( strcmp (value.key, "AVG_FILTER_ITERATE") == 0 )
+	else if( strcmp (value.key, "AVG_FILTER_FBP") == 0 )
 	{
-		//AVG_FILTER_ITERATE = value.boolean_input;
-		parameters.AVG_FILTER_ITERATE_D = value.boolean_input;
+		//AVG_FILTER_FBP = value.boolean_input;
+		parameters.AVG_FILTER_FBP_D = value.boolean_input;
+	}
+	else if( strcmp (value.key, "AVG_FILTER_X_0") == 0 )
+	{
+		//AVG_FILTER_X_0 = value.boolean_input;
+		parameters.AVG_FILTER_X_0_D = value.boolean_input;
+	}
+	else if( strcmp (value.key, "AVG_FILTER_X_K") == 0 )
+	{
+		//AVG_FILTER_X_K = value.boolean_input;
+		parameters.AVG_FILTER_X_K_D = value.boolean_input;
+	}
+	else if( strcmp (value.key, "AVG_FILTER_X") == 0 )
+	{
+		//AVG_FILTER_X = value.boolean_input;
+		parameters.AVG_FILTER_X_D = value.boolean_input;
+	}
+	else if( strcmp (value.key, "MEDIAN_FILTER_HULL") == 0 )
+	{
+		//MEDIAN_FILTER_HULL = value.boolean_input;
+		parameters.MEDIAN_FILTER_HULL_D = value.boolean_input;
+	}
+	else if( strcmp (value.key, "MEDIAN_FILTER_FBP") == 0 )
+	{
+		//MEDIAN_FILTER_FBP = value.boolean_input;
+		parameters.MEDIAN_FILTER_FBP_D = value.boolean_input;
+	}
+	else if( strcmp (value.key, "MEDIAN_FILTER_X_0") == 0 )
+	{
+		//MEDIAN_FILTER_X_0 = value.boolean_input;
+		parameters.MEDIAN_FILTER_X_0_D = value.boolean_input;
+	}
+	else if( strcmp (value.key, "MEDIAN_FILTER_X_K") == 0 )
+	{
+		//MEDIAN_FILTER_X_K = value.boolean_input;
+		parameters.MEDIAN_FILTER_X_K_D = value.boolean_input;
+	}
+	else if( strcmp (value.key, "MEDIAN_FILTER_X") == 0 )
+	{
+		//MEDIAN_FILTER_X = value.boolean_input;
+		parameters.MEDIAN_FILTER_X_D = value.boolean_input;
 	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
@@ -1903,7 +2167,7 @@ void set_execution_date()
 	RECONSTRUCTION_DATE = (char*) calloc( strlen(reconstruction_date) + 1, sizeof(char) ); 
 	std::copy( reconstruction_date, reconstruction_date + strlen(reconstruction_date), RECONSTRUCTION_DATE );
 }
-void set_IO_paths()
+void set_IO_directories()
 {
 	char mkdir_command[256];
 	print_section_header( "Setting I/O path parameters and creating directories", '*' );
@@ -1939,7 +2203,7 @@ void set_IO_paths()
 		char* h5 = strstr( h4 + 1, "/" ) + 1;
 		char* h6 = strstr( h5 + 1, "/" ) + 1;
 		char* h7 = strstr( h6 + 1, "/" ) + 1;
-
+		
 		PATH_2_PCT_DATA_DIR		= (char*) calloc( (int)(h1 - PROJECTION_DATA_DIR),	sizeof(char) ); 
 		OBJECT					= (char*) calloc( (int)(h3 - h2 + 1),				sizeof(char) );
 		SCAN_TYPE				= (char*) calloc( (int)(h4 - h3 + 1),				sizeof(char) ); 
@@ -1947,18 +2211,26 @@ void set_IO_paths()
 		RUN_NUMBER				= (char*) calloc( (int)(h6 - h5 + 1),				sizeof(char) ); 
 		PROJECTION_DATA_DATE	= (char*) calloc( (int)(strlen(h7) + 1),			sizeof(char) ); 
 		
+		puts("Hello");
+		
+
 		std::copy( PROJECTION_DATA_DIR, h1 - 1, PATH_2_PCT_DATA_DIR );		 
 		std::copy( h2, h3 - 1, OBJECT );
 		std::copy( h3, h4 - 1, SCAN_TYPE );
 		std::copy( h4, h5 - 1, RUN_DATE );
 		std::copy( h5, h6 - 1, RUN_NUMBER );
 		std::copy( h7, h7 + strlen(h7), PROJECTION_DATA_DATE );
+
+		puts(PROJECTION_DATA_DIR);
+		puts(PATH_2_PCT_DATA_DIR);
 	}
 	else if( PROJECTION_DATA_DIR_CONSTRUCTABLE )
 	{		
 		uint length = strlen(PATH_2_PCT_DATA_DIR) + strlen(PCT_DATA_DIR_NAME) + strlen(OBJECT) + strlen(SCAN_TYPE) + strlen(RUN_DATE) + strlen(RUN_NUMBER) + strlen(PROJECTION_DATA_DIR_NAME) + strlen(PROJECTION_DATA_DATE);
 		PROJECTION_DATA_DIR = (char*) calloc( length + 1, sizeof(char) ); 
-		sprintf(PROJECTION_DATA_DIR,"%s/%s/%s/%s/%s/%s/%s/%s", PATH_2_PCT_DATA_DIR, PCT_DATA_DIR_NAME, OBJECT, SCAN_TYPE, RUN_DATE, RUN_NUMBER, PROJECTION_DATA_DIR_NAME, PROJECTION_DATA_DATE );		
+		sprintf(PROJECTION_DATA_DIR,"%s\\%s\\%s\\%s\\%s\\%s\\%s\\%s", PATH_2_PCT_DATA_DIR, PCT_DATA_DIR_NAME, OBJECT, SCAN_TYPE, RUN_DATE, RUN_NUMBER, PROJECTION_DATA_DIR_NAME, PROJECTION_DATA_DATE );		
+		puts("Construct\n");
+		puts(PROJECTION_DATA_DIR);
 	}
 	else
 		puts("Projection data directory was not (properly) specified in settings.cfg and is being set based on current execution directory and date to\n");		
@@ -1973,7 +2245,7 @@ void set_IO_paths()
 	if( !PREPROCESSING_DIR_SET )
 	{
 		PREPROCESSING_DIR = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(RECONSTRUCTION_DIR_NAME) + strlen(PREPROCESS_DATE) + 1, sizeof(char) ); 
-		sprintf(PREPROCESSING_DIR,"%s/%s/%s", PROJECTION_DATA_DIR, RECONSTRUCTION_DIR_NAME, PREPROCESS_DATE);		
+		sprintf(PREPROCESSING_DIR,"%s\\%s\\%s", PROJECTION_DATA_DIR, RECONSTRUCTION_DIR_NAME, PREPROCESS_DATE);		
 	}		
 	if( parameters.PREPROCESS_OVERWRITE_OK_D )
 	{
@@ -1996,7 +2268,7 @@ void set_IO_paths()
 	if( !RECONSTRUCTION_DIR_SET )
 	{
 		RECONSTRUCTION_DIR = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(PCT_IMAGES_DIR_NAME) + strlen(RECONSTRUCTION_DATE) + 1, sizeof(char) ); 
-		sprintf(RECONSTRUCTION_DIR,"%s/%s/%s", PREPROCESSING_DIR, PCT_IMAGES_DIR_NAME, RECONSTRUCTION_DATE);		
+		sprintf(RECONSTRUCTION_DIR,"%s\\%s\\%s", PREPROCESSING_DIR, PCT_IMAGES_DIR_NAME, RECONSTRUCTION_DATE);		
 	}
 	if( parameters.RECON_OVERWRITE_OK_D )
 	{
@@ -2013,71 +2285,6 @@ void set_IO_paths()
 	printf("RECONSTRUCTION_DIR = %s\n", RECONSTRUCTION_DIR );
 	print_section_separator('~');
 
-	print_section_exit("Finished setting paths to I/O data directories and creating associated folders", "====>" );
-	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-	//----------------------------------------------- Set file names for preprocessing data generated as output ------------------------------------------------//
-	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-	print_section_header( "Preprocessing and reconstruction data/images generated will be written to and/or read from the following paths", '*' );
-	
-	HULL_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
-	FBP_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
-	FBP_MEDIAN_2D_FILENAME = (char*) calloc( strlen(FBP_MEDIAN_2D_BASENAME) + 3 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
-	FBP_MEDIAN_3D_FILENAME = (char*) calloc( strlen(FBP_MEDIAN_3D_BASENAME) + 3 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
-	X_0_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
-	MLP_FILENAME = (char*) calloc( strlen(MLP_BASENAME) + strlen(MLP_FILE_EXTENSION) + 1, sizeof(char) );
-	RECON_HISTORIES_FILENAME = (char*) calloc( strlen(RECON_HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION) + 1, sizeof(char) );
-	X_FILENAME = (char*) calloc( strlen(X_BASENAME) + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
-
-	sprintf( HULL_FILENAME,"%s%s", HULL_BASENAME, HULL_FILE_EXTENSION );
-	sprintf( FBP_FILENAME,"%s%s", FBP_BASENAME, FBP_FILE_EXTENSION );
-	sprintf( FBP_MEDIAN_2D_FILENAME,"%s_2D%d%s", FBP_MEDIAN_2D_BASENAME, 2 * parameters.FBP_MEDIAN_RADIUS_D + 1, FBP_MEDIANS_FILE_EXTENSION);
-	sprintf( FBP_MEDIAN_3D_FILENAME,"%s_3D%d%s", FBP_MEDIAN_3D_BASENAME, 2 * parameters.FBP_MEDIAN_RADIUS_D + 1, FBP_MEDIANS_FILE_EXTENSION);
-	sprintf( X_0_FILENAME, "%s%s", X_0_BASENAME, X_0_FILE_EXTENSION );
-	sprintf( MLP_FILENAME,"%s%s", MLP_BASENAME, MLP_FILE_EXTENSION );
-	sprintf( RECON_HISTORIES_FILENAME,"%s%s", RECON_HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION);
-	sprintf( X_FILENAME,"%s%s", X_BASENAME, X_FILE_EXTENSION);
-
-	printf("HULL_FILENAME = %s\n\n", HULL_FILENAME );	
-	printf("FBP_FILENAME = %s\n\n", FBP_FILENAME );
-	printf("FBP_MEDIAN_2D_FILENAME = %s\n\n", FBP_MEDIAN_2D_FILENAME );
-	printf("FBP_MEDIAN_3D_FILENAME = %s\n\n", FBP_MEDIAN_3D_FILENAME );
-	printf("X_0_FILENAME = %s\n\n", X_0_FILENAME );	
-	printf("MLP_FILENAME = %s\n\n", MLP_FILENAME );	
-	printf("RECON_HISTORIES_FILENAME = %s\n\n", RECON_HISTORIES_FILENAME );	
-	printf("X_FILENAME = %s\n", X_FILENAME );
-	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-	//----------------------------- Set paths to preprocessing and reconstruction data using associated directory and file names -------------------------------//
-	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-	
-	print_section_header( "File names of preprocessing data generated as output", '*' );	
-
-	HULL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_FILENAME) + 1, sizeof(char) );
-	FBP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_FILENAME) + 1, sizeof(char) );
-	FBP_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
-	FBP_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
-	X_0_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_FILENAME) + 1, sizeof(char) );
-	MLP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(MLP_FILENAME) + 1, sizeof(char) );
-	RECON_HISTORIES_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(RECON_HISTORIES_FILENAME) + 1, sizeof(char) );
-	X_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_FILENAME) + 1, sizeof(char) );
-	 
-	sprintf( HULL_PATH,"%s/%s", PREPROCESSING_DIR, HULL_FILENAME );
-	sprintf( FBP_PATH,"%s/%s", PREPROCESSING_DIR, FBP_FILENAME );
-	sprintf(FBP_MEDIAN_2D_PATH,"%s/%s", PREPROCESSING_DIR, FBP_MEDIAN_2D_FILENAME);
-	sprintf(FBP_MEDIAN_3D_PATH,"%s/%s", PREPROCESSING_DIR, FBP_MEDIAN_3D_FILENAME);
-	sprintf( X_0_PATH, "%s/%s", PREPROCESSING_DIR, X_0_FILENAME );
-	sprintf(MLP_PATH,"%s/%s", PREPROCESSING_DIR, MLP_FILENAME );
-	sprintf(RECON_HISTORIES_PATH,"%s/%s", PREPROCESSING_DIR, RECON_HISTORIES_FILENAME );
-	sprintf(X_PATH,"%s/%s", RECONSTRUCTION_DIR, X_FILENAME);
-	
-	printf("HULL_PATH = %s\n\n", HULL_PATH );	
-	printf("FBP_PATH = %s\n\n", FBP_PATH );
-	printf("FBP_MEDIAN_2D_PATH = %s\n\n", FBP_MEDIAN_2D_PATH );
-	printf("FBP_MEDIAN_3D_PATH = %s\n\n", FBP_MEDIAN_3D_PATH );
-	printf("X_0_PATH = %s\n\n", X_0_PATH );	
-	printf("MLP_PATH = %s\n\n", MLP_PATH );	
-	printf("RECON_HISTORIES_PATH = %s\n\n", RECON_HISTORIES_PATH );	
-	printf("X_PATH = %s\n", X_PATH );
-
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//------------------------------------- Extract information about scan data used for preprocessig and reconstruction ---------------------------------------//
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -2089,15 +2296,415 @@ void set_IO_paths()
 	printf("RUN_DATE = %s\n", RUN_DATE);
 	printf("RUN_NUMBER = %s\n", RUN_NUMBER);
 	printf("PROJECTION_DATA_DATE = %s\n", PROJECTION_DATA_DATE);
+	print_section_exit("Finished setting paths to I/O data directories and creating associated folders", "====>" );
+}
+void set_IO_filenames()
+{
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//----------------------------------------------- Set file names for preprocessing data generated as output ------------------------------------------------//
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	print_section_header( "Preprocessing and reconstruction data/images generated will be written to and/or read from the following paths", '*' );
+	
+	//HULL_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
+	//FBP_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
+	//FBP_MEDIAN_2D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
+	//FBP_MEDIAN_3D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
+	//X_0_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
+	//MLP_FILENAME = (char*) calloc( strlen(MLP_BASENAME) + strlen(MLP_FILE_EXTENSION) + 1, sizeof(char) );
+	//RECON_HISTORIES_FILENAME = (char*) calloc( strlen(HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION) + 1, sizeof(char) );
+	//X_FILENAME = (char*) calloc( strlen(X_BASENAME) + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
+	
+	HULL_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(HULL_FILE_EXTENSION), sizeof(char) );
+	FBP_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(FBP_FILE_EXTENSION), sizeof(char) );
+	X_0_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(X_0_FILE_EXTENSION), sizeof(char) );
+	X_FILENAME = (char*) calloc( strlen(X_BASENAME) + strlen(X_FILE_EXTENSION), sizeof(char) );
+	
+	HULL_MEDIAN_2D_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_MEDIAN_2D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
+	X_0_MEDIAN_2D_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) ); 
+	X_MEDIAN_2D_FILENAME= (char*) calloc( strlen(X_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
+	
+	HULL_MEDIAN_3D_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_MEDIAN_3D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
+	X_0_MEDIAN_3D_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) ); 
+	X_MEDIAN_3D_FILENAME= (char*) calloc( strlen(X_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
+	
+	HULL_AVG_2D_FILENAME  = (char*) calloc( strlen(HULL_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_AVG_2D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
+	X_0_AVG_2D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
+	X_AVG_2D_FILENAME  = (char*) calloc( strlen(X_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
 
-	print_section_exit("Finished setting file names of input/output data files and the paths to where they are to be written", "====>" );
+	HULL_AVG_3D_FILENAME  = (char*) calloc( strlen(HULL_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_AVG_3D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
+	X_0_AVG_3D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
+	X_AVG_3D_FILENAME  = (char*) calloc( strlen(X_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
+
+	HULL_COMBO_2D_FILENAME  = (char*) calloc( strlen(HULL_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION), sizeof(char) );
+	FBP_COMBO_2D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION), sizeof(char) );
+	X_0_COMBO_2D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION), sizeof(char) );
+	X_COMBO_2D_FILENAME  = (char*) calloc( strlen(X_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION), sizeof(char) );
+
+	HULL_COMBO_3D_FILENAME  = (char*) calloc( strlen(HULL_BASENAME) + 1 + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_3D_POSTFIX) + strlen(HULL_FILE_EXTENSION), sizeof(char) );
+	FBP_COMBO_3D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + 1 + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION), sizeof(char) );
+	X_0_COMBO_3D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + 1 + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION), sizeof(char) );
+	X_COMBO_3D_FILENAME  = (char*) calloc( strlen(X_BASENAME) + 1 + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION), sizeof(char) );
+
+	MLP_FILENAME = (char*) calloc( strlen(MLP_BASENAME) + strlen(MLP_FILE_EXTENSION), sizeof(char) );
+	WEPL_FILENAME = (char*) calloc( strlen(WEPL_BASENAME) + strlen(WEPL_FILE_EXTENSION), sizeof(char) );
+	RECON_HISTORIES_FILENAME = (char*) calloc( strlen(HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION), sizeof(char) );
+	
+	sprintf( HULL_FILENAME,"%s%s", HULL_BASENAME, HULL_FILE_EXTENSION );
+	sprintf( FBP_FILENAME,"%s%s", FBP_BASENAME, FBP_FILE_EXTENSION );
+	sprintf( X_0_FILENAME, "%s%s", X_0_BASENAME, X_0_FILE_EXTENSION );
+	sprintf( X_FILENAME,"%s%s", X_BASENAME, X_FILE_EXTENSION);
+
+	sprintf( HULL_AVG_2D_FILENAME, "%s_%s%d%s", HULL_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.HULL_AVG_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
+	sprintf( FBP_AVG_2D_FILENAME, "%s_%s%d%s", FBP_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( X_0_AVG_2D_FILENAME, "%s_%s%d%s", X_0_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_AVG_2D_FILENAME, "%s_%s%d%s", X_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
+	
+	sprintf( HULL_MEDIAN_2D_FILENAME, "%s_%s%d%s", HULL_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.HULL_MED_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
+	sprintf( FBP_MEDIAN_2D_FILENAME, "%s_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( X_0_MEDIAN_2D_FILENAME, "%s_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_MEDIAN_2D_FILENAME, "%s_%s%d%s", X_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
+	
+	sprintf( HULL_MEDIAN_3D_FILENAME, "%s_%s%d%s", HULL_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.HULL_MED_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
+	sprintf( FBP_MEDIAN_3D_FILENAME, "%s_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( X_0_MEDIAN_3D_FILENAME, "%s_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_MEDIAN_3D_FILENAME, "%s_%s%d%s", X_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
+	
+	sprintf( HULL_AVG_3D_FILENAME, "%s_%s%d%s", HULL_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.HULL_AVG_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
+	sprintf( FBP_AVG_3D_FILENAME, "%s_%s%d%s", FBP_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( X_0_AVG_3D_FILENAME, "%s_%s%d%s", X_0_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_AVG_3D_FILENAME, "%s_%s%d%s", X_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
+	
+	sprintf( HULL_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", HULL_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.HULL_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.HULL_AVG_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
+	sprintf( FBP_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( X_0_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", X_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
+	
+	sprintf( HULL_COMBO_3D_FILENAME, "%s_%s%d_%s%d%s", HULL_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.HULL_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.HULL_AVG_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
+	sprintf( FBP_COMBO_3D_FILENAME, "%s_%s%d_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( X_0_COMBO_3D_FILENAME, "%s_%s%d_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_COMBO_3D_FILENAME, "%s_%s%d_%s%d%s", X_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
+	
+	sprintf( MLP_FILENAME,"%s%s", MLP_BASENAME, MLP_FILE_EXTENSION );
+	sprintf( WEPL_FILENAME,"%s%s", WEPL_BASENAME, WEPL_FILE_EXTENSION );
+	sprintf( RECON_HISTORIES_FILENAME,"%s%s", HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION);
+	
+	printf("HULL_FILENAME = %s\n\n", HULL_FILENAME );	
+	printf("FBP_FILENAME = %s\n\n", FBP_FILENAME );
+	printf("X_0_FILENAME = %s\n\n", X_0_FILENAME );	
+	printf("X_FILENAME = %s\n\n", X_FILENAME );
+	
+	printf("HULL_MEDIAN_2D_FILENAME = %s\n\n", HULL_MEDIAN_2D_FILENAME );	
+	printf("FBP_MEDIAN_2D_FILENAME = %s\n\n", FBP_MEDIAN_2D_FILENAME );
+	printf("X_0_MEDIAN_2D_FILENAME = %s\n\n", X_0_MEDIAN_2D_FILENAME );	
+	printf("X_MEDIAN_2D_FILENAME = %s\n\n", X_MEDIAN_2D_FILENAME );
+	
+	printf("HULL_MEDIAN_3D_FILENAME = %s\n\n", HULL_MEDIAN_3D_FILENAME );	
+	printf("FBP_MEDIAN_3D_FILENAME = %s\n\n", FBP_MEDIAN_3D_FILENAME );
+	printf("X_0_MEDIAN_3D_FILENAME = %s\n\n", X_0_MEDIAN_3D_FILENAME );	
+	printf("X_MEDIAN_3D_FILENAME = %s\n\n", X_MEDIAN_3D_FILENAME );
+
+	printf("HULL_AVG_2D_FILENAME = %s\n\n", HULL_AVG_2D_FILENAME );	
+	printf("FBP_AVG_2D_FILENAME = %s\n\n", FBP_AVG_2D_FILENAME );
+	printf("X_0_AVG_2D_FILENAME = %s\n\n", X_0_AVG_2D_FILENAME );	
+	printf("X_AVG_2D_FILENAME = %s\n\n", X_AVG_2D_FILENAME );
+	
+	printf("HULL_AVG_3D_FILENAME = %s\n\n", HULL_AVG_3D_FILENAME );	
+	printf("FBP_AVG_3D_FILENAME = %s\n\n", FBP_AVG_3D_FILENAME );
+	printf("X_0_AVG_3D_FILENAME = %s\n\n", X_0_AVG_3D_FILENAME );	
+	printf("X_AVG_3D_FILENAME = %s\n\n", X_AVG_3D_FILENAME );
+
+	printf("HULL_COMBO_2D_FILENAME = %s\n\n", HULL_COMBO_2D_FILENAME );	
+	printf("FBP_COMBO_2D_FILENAME = %s\n\n", FBP_COMBO_2D_FILENAME );
+	printf("X_0_COMBO_2D_FILENAME = %s\n\n", X_0_COMBO_2D_FILENAME );	
+	printf("X_COMBO_2D_FILENAME = %s\n\n", X_COMBO_2D_FILENAME );
+
+	printf("HULL_COMBO_3D_FILENAME = %s\n\n", HULL_COMBO_3D_FILENAME );	
+	printf("FBP_COMBO_3D_FILENAME = %s\n\n", FBP_COMBO_3D_FILENAME );
+	printf("X_0_COMBO_3D_FILENAME = %s\n\n", X_0_COMBO_3D_FILENAME );	
+	printf("X_COMBO_3D_FILENAME = %s\n\n", X_COMBO_3D_FILENAME );
+
+	printf("MLP_FILENAME = %s\n\n", MLP_FILENAME );	
+	printf("WEPL_FILENAME = %s\n\n", WEPL_FILENAME );	
+	printf("RECON_HISTORIES_FILENAME = %s\n", RECON_HISTORIES_FILENAME );	
+	
+	print_section_exit("Finished setting file names of input/output data files", "====>" );
+}
+void set_IO_filepaths()
+{
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//----------------------------- Set paths to preprocessing and reconstruction data using associated directory and file names -------------------------------//
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
+	
+	print_section_header( "File names of preprocessing data generated as output", '*' );	
+
+	HULL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_FILENAME) + 1, sizeof(char) );
+	FBP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_FILENAME) + 1, sizeof(char) );
+	X_0_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_FILENAME) + 1, sizeof(char) );
+	X_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_FILENAME) + 1, sizeof(char) );
+	 
+	HULL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_FILENAME) + 1, sizeof(char) );
+	FBP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_FILENAME) + 1, sizeof(char) );
+	X_0_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_FILENAME) + 1, sizeof(char) );
+	X_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_FILENAME) + 1, sizeof(char) );
+
+	HULL_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
+	FBP_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
+	X_0_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
+	X_MEDIAN_2D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
+
+	HULL_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
+	FBP_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
+	X_0_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
+	X_MEDIAN_3D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
+
+	HULL_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_AVG_2D_FILENAME) + 1, sizeof(char) );
+	FBP_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_AVG_2D_FILENAME) + 1, sizeof(char) );
+	X_0_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_AVG_2D_FILENAME) + 1, sizeof(char) );
+	X_AVG_2D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_AVG_2D_FILENAME) + 1, sizeof(char) );
+
+	HULL_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_AVG_3D_FILENAME) + 1, sizeof(char) );
+	FBP_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_AVG_3D_FILENAME) + 1, sizeof(char) );
+	X_0_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_AVG_3D_FILENAME) + 1, sizeof(char) );
+	X_AVG_3D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_AVG_3D_FILENAME) + 1, sizeof(char) );
+
+	HULL_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_COMBO_2D_FILENAME) + 1, sizeof(char) );
+	FBP_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_COMBO_2D_FILENAME) + 1, sizeof(char) );
+	X_0_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_COMBO_2D_FILENAME) + 1, sizeof(char) );
+	X_COMBO_2D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_COMBO_2D_FILENAME) + 1, sizeof(char) );
+
+	HULL_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_COMBO_3D_FILENAME) + 1, sizeof(char) );
+	FBP_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_COMBO_3D_FILENAME) + 1, sizeof(char) );
+	X_0_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_COMBO_3D_FILENAME) + 1, sizeof(char) );
+	X_COMBO_3D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_COMBO_3D_FILENAME) + 1, sizeof(char) );
+
+	MLP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(MLP_FILENAME) + 1, sizeof(char) );
+	WEPL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(WEPL_FILENAME) + 1, sizeof(char) );
+	HISTORIES_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(RECON_HISTORIES_FILENAME) + 1, sizeof(char) );
+	
+	sprintf( HULL_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_FILENAME );
+	sprintf( FBP_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_FILENAME );
+	sprintf( X_0_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_FILENAME );
+	sprintf( X_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_FILENAME);
+	
+	sprintf( HULL_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_FILENAME );
+	sprintf( FBP_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_FILENAME );
+	sprintf( X_0_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_FILENAME );
+	sprintf( X_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_FILENAME);
+
+	sprintf( HULL_MEDIAN_2D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_MEDIAN_2D_FILENAME );
+	sprintf( FBP_MEDIAN_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_MEDIAN_2D_FILENAME );
+	sprintf( X_0_MEDIAN_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_MEDIAN_2D_FILENAME );
+	sprintf( X_MEDIAN_2D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_MEDIAN_2D_FILENAME);
+
+	sprintf( HULL_MEDIAN_3D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_MEDIAN_3D_FILENAME );
+	sprintf( FBP_MEDIAN_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_MEDIAN_3D_FILENAME );
+	sprintf( X_0_MEDIAN_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_MEDIAN_3D_FILENAME );
+	sprintf( X_MEDIAN_3D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_MEDIAN_3D_FILENAME);
+
+	sprintf( HULL_AVG_2D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_AVG_2D_FILENAME );
+	sprintf( FBP_AVG_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_AVG_2D_FILENAME );
+	sprintf( X_0_AVG_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_AVG_2D_FILENAME );
+	sprintf( X_AVG_2D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_AVG_2D_FILENAME);
+
+	sprintf( HULL_AVG_3D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_AVG_3D_FILENAME );
+	sprintf( FBP_AVG_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_AVG_3D_FILENAME );
+	sprintf( X_0_AVG_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_AVG_3D_FILENAME );
+	sprintf( X_AVG_3D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_AVG_3D_FILENAME);
+	
+	sprintf( HULL_COMBO_2D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_COMBO_2D_FILENAME );
+	sprintf( FBP_COMBO_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_COMBO_2D_FILENAME );
+	sprintf( X_0_COMBO_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_COMBO_2D_FILENAME );
+	sprintf( X_COMBO_2D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_COMBO_2D_FILENAME);
+
+	sprintf( HULL_COMBO_3D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_COMBO_3D_FILENAME );
+	sprintf( FBP_COMBO_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_COMBO_3D_FILENAME );
+	sprintf( X_0_COMBO_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_COMBO_3D_FILENAME );
+	sprintf( X_COMBO_3D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_COMBO_3D_FILENAME);
+	
+	sprintf(MLP_PATH,"%s\\%s", PREPROCESSING_DIR, MLP_FILENAME );
+	sprintf(WEPL_PATH,"%s\\%s", PREPROCESSING_DIR, WEPL_FILENAME );
+	sprintf(HISTORIES_PATH,"%s\\%s", PREPROCESSING_DIR, RECON_HISTORIES_FILENAME );
+	
+	printf("HULL_PATH = %s\n\n", HULL_PATH );	
+	printf("FBP_PATH = %s\n\n", FBP_PATH );
+	printf("X_0_PATH = %s\n\n", X_0_PATH );	
+	printf("X_PATH = %s\n\n", X_PATH );
+
+	printf("HULL_MEDIAN_2D_PATH = %s\n\n", HULL_MEDIAN_2D_PATH );	
+	printf("FBP_MEDIAN_2D_PATH = %s\n\n", FBP_MEDIAN_2D_PATH );
+	printf("X_0_MEDIAN_2D_PATH = %s\n\n", X_0_MEDIAN_2D_PATH );	
+	printf("X_MEDIAN_2D_PATH = %s\n\n", X_MEDIAN_2D_PATH );
+
+	printf("HULL_MEDIAN_3D_PATH = %s\n\n", HULL_MEDIAN_3D_PATH );	
+	printf("FBP_MEDIAN_3D_PATH = %s\n\n", FBP_MEDIAN_3D_PATH );
+	printf("X_0_MEDIAN_3D_PATH = %s\n\n", X_0_MEDIAN_3D_PATH );	
+	printf("X_MEDIAN_3D_PATH = %s\n\n", X_MEDIAN_3D_PATH );
+
+	printf("HULL_AVG_2D_PATH = %s\n\n", HULL_AVG_2D_PATH );	
+	printf("FBP_AVG_2D_PATH = %s\n\n", FBP_AVG_2D_PATH );
+	printf("X_0_AVG_2D_PATH = %s\n\n", X_0_AVG_2D_PATH );	
+	printf("X_AVG_2D_PATH = %s\n\n", X_AVG_2D_PATH );
+
+	printf("HULL_AVG_3D_PATH = %s\n\n", HULL_AVG_3D_PATH );	
+	printf("FBP_AVG_3D_PATH = %s\n\n", FBP_AVG_3D_PATH );
+	printf("X_0_AVG_3D_PATH = %s\n\n", X_0_AVG_3D_PATH );	
+	printf("X_AVG_3D_PATH = %s\n\n", X_AVG_3D_PATH );
+	
+	printf("HULL_COMBO_2D_PATH = %s\n\n", HULL_COMBO_2D_PATH );	
+	printf("FBP_COMBO_2D_PATH = %s\n\n", FBP_COMBO_2D_PATH );
+	printf("X_0_COMBO_2D_PATH = %s\n\n", X_0_COMBO_2D_PATH );	
+	printf("X_COMBO_2D_PATH = %s\n\n", X_COMBO_2D_PATH );
+
+	printf("HULL_COMBO_3D_PATH = %s\n\n", HULL_COMBO_3D_PATH );	
+	printf("FBP_COMBO_3D_PATH = %s\n\n", FBP_COMBO_3D_PATH );
+	printf("X_0_COMBO_3D_PATH = %s\n\n", X_0_COMBO_3D_PATH );	
+	printf("X_COMBO_3D_PATH = %s\n\n", X_COMBO_3D_PATH );
+	
+	printf("MLP_PATH = %s\n\n", MLP_PATH );	
+	printf("WEPL_PATH = %s\n\n", WEPL_PATH );	
+	printf("HISTORIES_PATH = %s\n", HISTORIES_PATH );	
+
+	print_section_exit("Finished setting paths to where the input/output data are to be written", "====>" );
+}
+void set_images_2_use()
+{
+	if( parameters.MEDIAN_FILTER_HULL_D && parameters.AVG_FILTER_HULL_D )
+	{
+		HULL_2_USE_FILENAME = HULL_COMBO_2D_FILENAME;
+		HULL_2_USE_PATH = HULL_COMBO_2D_PATH;
+	}
+	else if( parameters.MEDIAN_FILTER_HULL_D)
+	{
+		HULL_2_USE_FILENAME = HULL_MEDIAN_2D_FILENAME;
+		HULL_2_USE_PATH = HULL_MEDIAN_2D_PATH;
+	}
+	else if( parameters.AVG_FILTER_HULL_D)
+	{
+		HULL_2_USE_FILENAME = HULL_AVG_2D_FILENAME;
+		HULL_2_USE_PATH = HULL_AVG_2D_PATH;
+	}
+	else
+	{
+		HULL_2_USE_FILENAME = HULL_FILENAME;
+		HULL_2_USE_PATH = HULL_PATH;
+	}
+	// FBP image specification
+	if( parameters.MEDIAN_FILTER_FBP_D && parameters.AVG_FILTER_FBP_D )
+	{
+		FBP_2_USE_FILENAME = FBP_COMBO_2D_FILENAME;
+		FBP_2_USE_PATH = FBP_COMBO_2D_PATH;
+	}
+	else if( parameters.MEDIAN_FILTER_FBP_D)
+	{
+		FBP_2_USE_FILENAME = FBP_MEDIAN_2D_FILENAME;
+		FBP_2_USE_PATH = FBP_MEDIAN_2D_PATH;
+	}
+	else if( parameters.AVG_FILTER_FBP_D)
+	{
+		FBP_2_USE_FILENAME = FBP_AVG_2D_FILENAME;
+		FBP_2_USE_PATH = FBP_AVG_2D_PATH;
+	}
+	else
+	{
+		FBP_2_USE_FILENAME = FBP_FILENAME;
+		FBP_2_USE_PATH = FBP_PATH;
+	}
+	// x_0 image specification
+	if( parameters.MEDIAN_FILTER_X_0_D && parameters.AVG_FILTER_X_0_D )
+	{
+		X_0_2_USE_FILENAME = X_0_COMBO_2D_FILENAME;
+		X_0_2_USE_PATH = X_0_COMBO_2D_PATH;
+	}
+	else if( parameters.MEDIAN_FILTER_X_0_D)
+	{
+		X_0_2_USE_FILENAME = X_0_MEDIAN_2D_FILENAME;
+		X_0_2_USE_PATH = X_0_MEDIAN_2D_PATH;
+	}
+	else if( parameters.AVG_FILTER_X_0_D)
+	{
+		X_0_2_USE_FILENAME = X_0_AVG_2D_FILENAME;
+		X_0_2_USE_PATH = X_0_AVG_2D_PATH;
+	}
+	else
+	{
+		X_0_2_USE_FILENAME = X_0_FILENAME;
+		X_0_2_USE_PATH = X_0_PATH;
+	}
+	// x_k image specification
+	if( parameters.MEDIAN_FILTER_X_K_D && parameters.AVG_FILTER_X_K_D )
+	{
+		X_K_2_USE_FILENAME = X_K_COMBO_2D_FILENAME;
+		X_K_2_USE_PATH = X_K_COMBO_2D_PATH;
+	}
+	else if( parameters.MEDIAN_FILTER_X_K_D)
+	{
+		X_K_2_USE_FILENAME = X_K_MEDIAN_2D_FILENAME;
+		X_K_2_USE_PATH = X_K_MEDIAN_2D_PATH;
+	}
+	else if( parameters.AVG_FILTER_X_K_D)
+	{
+		X_K_2_USE_FILENAME = X_K_AVG_2D_FILENAME;
+		X_K_2_USE_PATH = X_K_AVG_2D_PATH;
+	}
+	else
+	{
+		X_K_2_USE_FILENAME = X_K_FILENAME;
+		X_K_2_USE_PATH = X_K_PATH;
+	}
+	// X image specification
+	if( parameters.MEDIAN_FILTER_X_D && parameters.AVG_FILTER_X_D )
+	{
+		X_2_USE_FILENAME = X_COMBO_2D_FILENAME;
+		X_2_USE_PATH = X_COMBO_2D_PATH;
+	}
+	else if( parameters.MEDIAN_FILTER_X_D)
+	{
+		X_2_USE_FILENAME = X_MEDIAN_2D_FILENAME;
+		X_2_USE_PATH = X_MEDIAN_2D_PATH;
+	}
+	else if( parameters.AVG_FILTER_X_D)
+	{
+		X_2_USE_FILENAME = X_AVG_2D_FILENAME;
+		X_2_USE_PATH = X_AVG_2D_PATH;
+	}
+	else
+	{
+		X_2_USE_FILENAME = X_FILENAME;
+		X_2_USE_PATH = X_PATH;
+	}
+}
+void existing_data_check()
+{
+	//if( parameters.PERFORM_RECONSTRUCTION_D && !parameters.PREPROCESS_OVERWRITE_OK_D )
+	//{
+		HULL_EXISTS = file_exists3(HULL_2_USE_PATH);
+		FBP_EXISTS = file_exists3(FBP_2_USE_PATH);
+		X_0_EXISTS = file_exists3(X_0_2_USE_PATH);
+		X_K_EXISTS = file_exists3(X_K_2_USE_PATH);
+		//X_EXISTS = file_exists3(X_2_USE_PATH);
+		cout << HULL_EXISTS << endl;
+		cout << FBP_EXISTS << endl;
+		cout << X_0_EXISTS << endl;
+		cout << X_K_EXISTS << endl;
+		// MLP_PATH, *WEPL_PATH, *HISTORIES_PATH
+		MLP_EXISTS = file_exists3(MLP_PATH);
+		WEPL_EXISTS = file_exists3(WEPL_PATH);
+		HISTORIES_EXISTS = file_exists3(HISTORIES_PATH);
+		cout << MLP_EXISTS << endl;
+		cout << WEPL_EXISTS << endl;
+		cout << HISTORIES_EXISTS << endl;
+	//}
 }
 void view_config_file()
 {
 	char filename[256]; 
 
 	#if defined(_WIN32) || defined(_WIN64)
-		sprintf(filename, "%s %s %s", "start", "wordpad", CONFIG_FILENAME);
+		sprintf(filename, "%s %s %s", "start", "wordpad", CONFIG_PATH);
 		terminal_response(filename);
     #else
 		sprintf(filename, "%s %s", "touch", CONFIG_FILENAME);
