@@ -7,17 +7,17 @@ This program expects proton tracker coordinate and Water Equivalent Path Length 
 -------------------------------------------------------------------------
 Phase 1:
 -------------------------------------------------------------------------
-(1) Parse command line arguments, use different config file if path argument given, generate modified config file if key/value pairs passed as arguments
+(1) Parse command line arguments, use different config file if path argument given, generate modified config file if key/value pairs passed as arguments \cr
 
-(2) Parse default, modified, or specified config file (depending on results (1)) and set internal variables/options I/O directories, file names, and file paths.
+(2) Parse default, modified, or specified config file (depending on results (1)) and set internal variables/options I/O directories, file names, and file paths./cr
 
-(3) Transfer instance of "configurations" struct ("parameters") whose members correspond to program parameters/options to GPU's global memory to establish persistent access to these throughout program execution by passing its global memory address instead of individually by value to each kernel.
+(3) Transfer instance of "configurations" struct ("parameters") whose members correspond to program parameters/options to GPU's global memory to establish persistent access to these throughout program execution by passing its global memory address instead of individually by value to each kernel./n
 
-(4) Determine if BOTH the entry AND the exit paths of each proton intersect reconstruction volume and, thus, pass through it.
+(4) Determine if BOTH the entry AND the exit paths of each proton intersect reconstruction volume and, thus, pass through it.\\
 
 (5) For protons that pass through reconstruction volume, accumulate entry/exit coordinates/angles of this intersection and their WEPL, gantry angle, and bin number.
 
-(6) Perform statistical analysis of each bin (mean/std dev) and remove histories with WEPL or xy/xz angle greater than 3 std devs from mean.
+(6) Perform statistical analysis of each bin (mean/std dev) and remove histories with WEPL or xy/xz angle greater than 3 std devs from mean.//
 
 (7) Perform hull-detection  (SC, MSC, SM, and/or FBP).
 
