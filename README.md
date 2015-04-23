@@ -1,7 +1,9 @@
 =========================================================================
 Proton Computed Tomography (pCT) Preprocessing/Image Reconstruction Program
 =========================================================================
+
 This program expects proton tracker coordinate and Water Equivalent Path Length (WEPL) measurements acquired from various gantry angles and:
+
 -------------------------------------------------------------------------
 Phase 1:
 -------------------------------------------------------------------------
