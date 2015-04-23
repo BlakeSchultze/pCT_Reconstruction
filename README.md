@@ -14,7 +14,7 @@ Proton Computed Tomography (pCT) Preprocessing/Image Reconstruction Program
 **(5)** For protons that pass through reconstruction volume, accumulate entry/exit coordinates/angles of this intersection and their WEPL, gantry angle, and bin number.  
 **(6)** Perform statistical analysis of each bin (mean/std dev) and remove histories with WEPL or xy/xz angle greater than 3 std devs from mean.  
 **(7)** Perform hull-detection  (SC, MSC, SM, and/or FBP).  
-**(8)** Perform any image filtering (2D/3D median/average) or data processing (WEPL distributions, radiographs, etc.) specified in *config* file.
+**(8)** Perform any image filtering (2D/3D median/average) or data processing (WEPL distributions, radiographs, etc.) specified in *config* file.  
 **(9)** Write the data/images specified in *config* file but not required for reconstruction to disk.  
 **(10)** Choose the hull and perform the method for constructing the initial iterate specified in *config* file and write these to `hull.txt` and `x_0.txt`, respectively.  
 **(11)** Using specified hull, determine if **BOTH** the entry **AND** the exit paths of each proton intersect hull and, thus, pass through it.  
