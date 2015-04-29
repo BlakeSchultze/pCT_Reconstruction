@@ -1,0 +1,58 @@
+macro "Rotate_90_CCW"
+{
+	run("Close All");
+	run("Clear Results");
+
+	// Path to images defined as macro argument or selected from dialog by user if no argument is provided
+	setBatchMode(true);
+	filename = getArgument();
+	if( filename == "" )
+	{
+		filepath = File.openDialog("Select a File");
+		filename = File.getName(filepath);
+		path = File.getParent(filepath);
+		setBatchMode(false);
+	}
+	else
+		path = File.getParent(filepath);
+	unrotated_path = path + "\\unrotated";
+	File.makeDirectory(unrotated_path);
+	
+	// Image and reconstruction properties
+	slices = 32;
+	rows = 200;
+	columns = 200;
+	
+	unrotated_file_at = unrotated_path+ "\\" +  filename;
+	if( !File.exists(unrotated_file_at ) )	
+		File.copy( filepath,  unrotated_file_at);
+	else
+		print( "unrotated " + filename + " already exists");
+
+	run("Text Image... ", "open=" + unrotated_file_at );
+	run("Enhance Contrast", "saturated=0.35");
+	run("Image to Results");
+	close();
+	
+	newImage(filename, "32-bit black", 200, 6400, 1);
+	for( slice = 0; slice  < slices; slice ++ )
+	{
+		for( row = 0; row < rows; row++)
+		{
+			for( column= 0; column< columns; column++)
+			{
+				column_string = "X"+ d2s(column, 0);
+				val = getResult(column_string, rows*slice + row);
+				if( val > 2.0000 )
+					val = 2.0000;
+				if( val < -2.0000 )
+					val = -2.0000;
+				setPixel(row, rows*(slice+1) - column - 1, val);
+			}
+		}
+	}
+	setMinAndMax(0.000,1.90);
+	saveAs("text image",  filepath);
+	close();
+	run("Clear Results");
+}	

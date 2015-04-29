@@ -5968,6 +5968,16 @@ bool file_exists3 (const char* file_location)
     return file_location && (stat (file_location, &sb) == 0 ;
     #endif
 } 
+void rename_subdirectory_files(char* string_2_find, char* string_2_replace, char* string_replacement )
+{
+	char chnage_name_command[256];
+	sprintf( chnage_name_command, "Get-ChildItem -Filter \"*%s*\" -Recurse | Rename-Item -NewName {$_.name -replace '%s','%s' }", string_2_find, string_2_replace, string_replacement);
+	system("Powershell");
+}
+void rotate_image()
+{
+	import_image( O*& import_into, char* directory, char* filename_base, DISK_WRITE_MODE format )
+}
 void fgets_validated(char *line, int buf_size, FILE* input_file)
 {
     bool done = false;

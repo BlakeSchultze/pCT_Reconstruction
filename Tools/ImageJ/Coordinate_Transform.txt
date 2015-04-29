@@ -1,0 +1,65 @@
+macro "Rotate_90_CCW"
+{
+run("Close All");
+run("Clear Results");
+
+// Path to images defined as macro argument or selected from dialog by user if no argument is provided
+//path = "D:\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\CTP404_merged\\New folder\\avgfilt-r1\\DROP\\BlockSize = 60\\FBP-med7\\0.0001\\";
+setBatchMode(true);
+path = getArgument();
+if( path == "" )
+{
+	path = getDirectory("Choose a Directory");
+	setBatchMode(false);
+}
+unrotated_path = path + "unrotated";
+basename = "x_";
+
+// Image and reconstruction properties
+iterations = 12;
+slices = 32;
+rows = 200;
+columns = 200;
+
+
+File.makeDirectory(unrotated_path) ;
+
+for( iteration = 0; iteration <= iterations; iteration++ )
+{	
+	filename_in = basename + d2s(iteration,0);
+	unrotated_file_at = unrotated_path+ "\\" +  filename_in + ".txt";
+	if( !File.exists(unrotated_file_at ) )	
+		File.copy(path + filename_in + ".txt", );
+	else
+		print( "unrotated " + filename_in + ".txt" + " already exists");
+	filename_out = basename + d2s(iteration,0) + "_unrotated";
+	run("Text Image... ", "open=[" + unrotated_file_at + "]");
+	run("Enhance Contrast", "saturated=0.35");
+	run("Image to Results");
+	close();
+	
+	newImage(filename_in + ".txt", "32-bit black", 200, 6400, 1);
+	for( slice = 0; slice  < slices; slice ++ )
+	{
+		for( row = 0; row < rows; row++)
+		{
+			for( column= 0; column< columns; column++)
+			{
+				column_string = "X"+ d2s(column, 0);
+				val = getResult(column_string, rows*slice + row);
+				if( val > 2.0000 )
+					val = 2.0000;
+				if( val < -2.0000 )
+					val = -2.0000;
+				setPixel(row, rows*(slice+1) - column - 1, val);
+			}
+		}
+	}
+	//run("Enhance Contrast", "saturated=0.35");
+	//setMinAndMax(0.000, 2.0);
+	setMinAndMax(0.000,1.90);
+	saveAs("text image", path + filename_in + ".txt");
+	close();
+	run("Clear Results");
+}	
+}	
