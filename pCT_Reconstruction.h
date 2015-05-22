@@ -103,35 +103,49 @@ char* OBJECT, *SCAN_TYPE, *RUN_DATE, *RUN_NUMBER, *PROJECTION_DATA_DATE, *PREPRO
 char* USER_NAME;
 char* PATH_2_PCT_DATA_DIR, *DATA_TYPE_DIR, *PROJECTION_DATA_DIR, *PREPROCESSING_DIR, *RECONSTRUCTION_DIR;
 //char* OVERWRITING_PREPROCESS_DATE, OVERWRITING_RECON_DATE;
-
-char* HULL_FILENAME, *FBP_FILENAME, *X_0_FILENAME, *X_K_FILENAME,  *X_FILENAME;
-char* MLP_FILENAME, *WEPL_FILENAME, *HISTORIES_FILENAME;
-char* HULL_MEDIAN_2D_FILENAME, *FBP_MEDIAN_2D_FILENAME, *X_0_MEDIAN_2D_FILENAME, *X_K_MEDIAN_2D_FILENAME, *X_MEDIAN_2D_FILENAME;
-char* HULL_MEDIAN_3D_FILENAME, *FBP_MEDIAN_3D_FILENAME, *X_0_MEDIAN_3D_FILENAME, *X_K_MEDIAN_3D_FILENAME, *X_MEDIAN_3D_FILENAME;
-char* HULL_AVG_2D_FILENAME, *FBP_AVG_2D_FILENAME, *X_0_AVG_2D_FILENAME, *X_K_AVG_2D_FILENAME, *X_AVG_2D_FILENAME;
-char* HULL_AVG_3D_FILENAME, *FBP_AVG_3D_FILENAME, *X_0_AVG_3D_FILENAME, *X_K_AVG_3D_FILENAME, *X_AVG_3D_FILENAME;
-char* HULL_COMBO_2D_FILENAME, *FBP_COMBO_2D_FILENAME, *X_0_COMBO_2D_FILENAME, *X_K_COMBO_2D_FILENAME, *X_COMBO_2D_FILENAME;
-char* HULL_COMBO_3D_FILENAME, *FBP_COMBO_3D_FILENAME, *X_0_COMBO_3D_FILENAME, *X_K_COMBO_3D_FILENAME, *X_COMBO_3D_FILENAME;
-
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------- IO file extension character array variables -------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+char PROJECTION_DATA_FILE_EXTENSION[4], RADIOGRAPHS_FILE_EXTENSION[4], WEPL_DISTS_FILE_EXTENSION[4];
+char HULL_FILE_EXTENSION[4], FBP_FILE_EXTENSION[4], FBP_MEDIANS_FILE_EXTENSION[4], X_0_FILE_EXTENSION[4], X_FILE_EXTENSION[4];	
+char MLP_FILE_EXTENSION[4], VOXELS_PER_PATH_FILE_EXTENSION[4], WEPL_FILE_EXTENSION[4], HISTORIES_FILE_EXTENSION[4];
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------ IO filename character array variables ----------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+char* HULL_FILENAME, *FBP_FILENAME, *X_0_FILENAME, *X_K_FILENAME;
+char* MLP_FILENAME, *VOXELS_PER_PATH_FILENAME, *WEPL_FILENAME, *HISTORIES_FILENAME;
+char* HULL_MEDIAN_2D_FILENAME, *FBP_MEDIAN_2D_FILENAME, *X_0_MEDIAN_2D_FILENAME, *X_K_MEDIAN_2D_FILENAME;
+char* HULL_MEDIAN_3D_FILENAME, *FBP_MEDIAN_3D_FILENAME, *X_0_MEDIAN_3D_FILENAME, *X_K_MEDIAN_3D_FILENAME;
+char* HULL_AVG_2D_FILENAME, *FBP_AVG_2D_FILENAME, *X_0_AVG_2D_FILENAME, *X_K_AVG_2D_FILENAME;
+char* HULL_AVG_3D_FILENAME, *FBP_AVG_3D_FILENAME, *X_0_AVG_3D_FILENAME, *X_K_AVG_3D_FILENAME;
+char* HULL_COMBO_2D_FILENAME, *FBP_COMBO_2D_FILENAME, *X_0_COMBO_2D_FILENAME, *X_K_COMBO_2D_FILENAME;
+char* HULL_COMBO_3D_FILENAME, *FBP_COMBO_3D_FILENAME, *X_0_COMBO_3D_FILENAME, *X_K_COMBO_3D_FILENAME;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------ Full IO path character array variables ---------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char* CONFIG_PATH, *CONFIG_OUT_PATH, *LOG_PATH, *STDOUT_PATH, *STDERR_PATH;
-char* MLP_PATH, *WEPL_PATH, *HISTORIES_PATH;
-char* HULL_PATH, *FBP_PATH, *X_0_PATH, *X_K_PATH, *X_PATH;
-char* HULL_MEDIAN_2D_PATH, *FBP_MEDIAN_2D_PATH, *X_0_MEDIAN_2D_PATH, *X_K_MEDIAN_2D_PATH, *X_MEDIAN_2D_PATH;
-char* HULL_MEDIAN_3D_PATH, *FBP_MEDIAN_3D_PATH, *X_0_MEDIAN_3D_PATH, *X_K_MEDIAN_3D_PATH, *X_MEDIAN_3D_PATH;
-char* HULL_AVG_2D_PATH, *FBP_AVG_2D_PATH, *X_0_AVG_2D_PATH, *X_K_AVG_2D_PATH, *X_AVG_2D_PATH;
-char* HULL_AVG_3D_PATH, *FBP_AVG_3D_PATH, *X_0_AVG_3D_PATH, *X_K_AVG_3D_PATH, *X_AVG_3D_PATH;
-char* HULL_COMBO_2D_PATH, *FBP_COMBO_2D_PATH, *X_0_COMBO_2D_PATH, *X_K_COMBO_2D_PATH, *X_COMBO_2D_PATH;
-char* HULL_COMBO_3D_PATH, *FBP_COMBO_3D_PATH, *X_0_COMBO_3D_PATH, *X_K_COMBO_3D_PATH, *X_COMBO_3D_PATH;
-
-char* HULL_2_USE_FILENAME, *FBP_2_USE_FILENAME, *X_0_2_USE_FILENAME, *X_K_2_USE_FILENAME, *X_2_USE_FILENAME;
-char* HULL_2_USE_PATH, *FBP_2_USE_PATH, *X_0_2_USE_PATH, *X_K_2_USE_PATH, *X_2_USE_PATH;
-
+char* MLP_PATH, *VOXELS_PER_PATH_PATH, *WEPL_PATH, *HISTORIES_PATH;
+char* HULL_PATH, *FBP_PATH, *X_0_PATH, *X_K_PATH;
+char* HULL_MEDIAN_2D_PATH, *FBP_MEDIAN_2D_PATH, *X_0_MEDIAN_2D_PATH, *X_K_MEDIAN_2D_PATH;
+char* HULL_MEDIAN_3D_PATH, *FBP_MEDIAN_3D_PATH, *X_0_MEDIAN_3D_PATH, *X_K_MEDIAN_3D_PATH;
+char* HULL_AVG_2D_PATH, *FBP_AVG_2D_PATH, *X_0_AVG_2D_PATH, *X_K_AVG_2D_PATH;
+char* HULL_AVG_3D_PATH, *FBP_AVG_3D_PATH, *X_0_AVG_3D_PATH, *X_K_AVG_3D_PATH;
+char* HULL_COMBO_2D_PATH, *FBP_COMBO_2D_PATH, *X_0_COMBO_2D_PATH, *X_K_COMBO_2D_PATH;
+char* HULL_COMBO_3D_PATH, *FBP_COMBO_3D_PATH, *X_0_COMBO_3D_PATH, *X_K_COMBO_3D_PATH;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------- Selected images filename/path character array variables ------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+char* X_FILENAME_BASE, *X_MEDIAN_2D_FILENAME_BASE, *X_MEDIAN_3D_FILENAME_BASE, *X_AVG_2D_FILENAME_BASE, *X_AVG_3D_FILENAME_BASE, *X_COMBO_2D_FILENAME_BASE, *X_COMBO_3D_FILENAME_BASE;
+char* X_PATH_BASE, *X_MEDIAN_2D_PATH_BASE, *X_MEDIAN_3D_PATH_BASE, *X_AVG_2D_PATH_BASE, *X_AVG_3D_PATH_BASE, *X_COMBO_2D_PATH_BASE, *X_COMBO_3D_PATH_BASE;
+char* HULL_2_USE_FILENAME, *FBP_2_USE_FILENAME, *X_0_2_USE_FILENAME, *X_K_2_USE_FILENAME, *X_2_USE_FILENAME_BASE;
+char* HULL_2_USE_PATH, *FBP_2_USE_PATH, *X_0_2_USE_PATH, *X_K_2_USE_PATH, *X_2_USE_PATH_BASE;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------------- Preprocessing option parameters -------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 bool OBJECT_SET = false, RUN_DATE_SET = false, RUN_NUMBER_SET = false, USER_NAME_SET = false;
 bool PROJECTION_DATA_DATE_SET = false, PREPROCESS_DATE_SET = false, RECONSTRUCTION_DATE_SET = false;
 bool PROJECTION_DATA_DIR_SET = false, PREPROCESSING_DIR_SET = false, RECONSTRUCTION_DIR_SET = false;
-
 bool PATH_2_PCT_DATA_DIR_SET, PROJECTION_DATA_DIR_CONSTRUCTABLE, PREPROCESSING_DIR_CONSTRUCTABLE, RECONSTRUCTION_DIR_CONSTRUCTABLE;
-
 /***************************************************************************************************************************************************************************/
 /******************************************************************************* Constants *********************************************************************************/
 /***************************************************************************************************************************************************************************/
@@ -142,7 +156,7 @@ unsigned int MAGIC_NUMBER_CHECK = int('DTCP');
 #define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
 #define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
 #define SOURCE_RADIUS			260.7									// [cm] Distance  to source/scatterer 
-#define FBP_THRESHOLD			0.6										// [cm] RSP threshold used to generate FBP_hull from x_FBP
+#define FBP_THRESHOLD			0.6										// [cm] RSP threshold used to generate FBP_hull from FBP
 #define MAX_INTERSECTIONS		1000									// Limit on the # of intersections expected for proton's MLP; = # voxels along image diagonal
 /***************************************************************************************************************************************************************************/
 /************************************************************************* For Use In Development **************************************************************************/
@@ -150,13 +164,6 @@ unsigned int MAGIC_NUMBER_CHECK = int('DTCP');
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------- Execution and early exit options -------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-bool DEBUG_TEXT_ON				= true;							// Provide (T) or suppress (F) print statements to console during execution
-bool RUN_ON						= false;						// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
-bool EXIT_AFTER_BINNING			= false;						// Exit program early after completing data read and initial processing
-bool EXIT_AFTER_HULLS			= true;							// Exit program early after completing hull-detection
-bool EXIT_AFTER_CUTS			= false;						// Exit program early after completing statistical cuts
-bool EXIT_AFTER_SINOGRAM		= false;						// Exit program early after completing the ruction of the sinogram
-bool EXIT_AFTER_FBP				= false;						// Exit program early after completing FBP
 /***************************************************************************************************************************************************************************/
 /************************************************************************ End of Parameter Definitions *********************************************************************/
 /***************************************************************************************************************************************************************************/

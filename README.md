@@ -23,9 +23,22 @@ Proton Computed Tomography (pCT) Preprocessing/Image Reconstruction Program
 **(14)** Using entry/exit data from `(12)`, calculate the MLP and write intersected voxels along paths to `MLP.bin`.  
 
 -------------------------------------------------------------------------
-**Phase 2:**
+**Phase 2:**rber
 -------------------------------------------------------------------------
-**(1)** Order the histories so that successive histories are approximately orthogonal, with a separation between histories that is prime and is not a divisor of the total number of histories, thereby improving convergence rate.  
+**(1)** Calculate the largest prime number (*P*) less than *1/4*th of the total # of histories (*N*).  
+(2) Generate a sequence of numbers beginning with 0 successive numbers      by successively adding *P* to the previous number erer wer wer
+
+such that the difference between successive numbers is this prime number *P* modulo N, i.e., *n(i+1) - n(i) = P mod(N)* or  *n(i+1) = n(i) + P mod(N)*.  Beginning with array/vector index 0, generate 
+
+Beginning with 0, generate a sequence of numbers {n1, n2, n3, ..., nN} with the next number being the modulo N result of the sum of the previous number  n(i+1) = n(i) + P mod(N)
+
+by adding this prime number to the previous number
+
+
+taking the modulo N result of the sum of the previous number and this prime number.  
+
+If we begin with 1 and repeatedly add this prime number modulo *N* it will generate a sequence of numbers in which every number 1-N will appear exactly once before any number is repeated.  If we use this sequence of #s to select the order in which we use histories in reconstruction instead of applying them sequentially, we will still use each history once per iteration but successive histories will now be approximately orthogonal, thereby improving convergence since orthogonal histories have no voxels in common and thus provide more information than histories with little angular separation which often provide redundant information when their paths have 1 or more voxels in common.  This ordering will not guarantee that successive histories are perfectly orthogonal, but it dramatically increases the chances that successive histories do not share any common voxels and therefore maximizes the amount of new information added by successive histories.  
+  
 **(2)** Perform image reconstruction using the iterative projection method specified in *config* file.  
 **(3)** After each iteration, write image to disk as `x_k.txt`, where *k* denotes this is the reconstructed image `x` after the *k*th iteration.  
 **(4)** After each iteration, apply 2D/3D median/average filter with radius *r* if specified in *config* file, writing the result of this to disk as well as `x_k_xxx_xx_rx`, where `xxx` is either *med* or *avg*, `xx` is either *2D* or *3D*, and the last `x` denotes the filter width *w*.  

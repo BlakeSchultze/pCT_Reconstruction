@@ -19,51 +19,20 @@
 /***************************************************************************************************** Program Main ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
 int main(unsigned int num_arguments, char** arguments)
-{
-	//system("C:/Users/Blake/Documents/Visual\" Studio 2010\"/Projects/robust_pct/x64/Debug/robust_pct.exe>log.out 2>&1");
-	//system("CMD.exe 1>&outpt.txt 2>&1");
-	//system("3>&1 4>&2");
-	//system("trap 'exec 2>&4 1>&3' 0 1 2 3");
-	//system("1>log.out 2>&1");
-	//system("2>&1");
-	//freopen(STDOUT_FILENAME,"w",stdout);
-	//freopen(STDERR_FILENAME,"w",stderr);
-	//system("2>& 1");
-	//freopen(STDOUT_FILENAME,"w",stdout);
-	//system("2>& 1");
-	//system("1>log.out 2>&1");
-	if( parameters.STDOUT_2_DISK_D )
-	{
-		//system("rexec 3>&1 4>&2");
-		//system("rtrap 'exec 2>&4 1>&3' 0 1 2 3");
-		//system("rexec 1>log.out 2>&1");
-		//system("robust_pct 2>& test.txt");
-		//std::stringstream buffer;
-		//std::streambuf * old = std::cout.rdbuf(buffer.rdbuf());
-		//std::streambuf * old = std::cin.rdbuf(buffer.rdbuf());
-		//std::streambuf * old2 = std::cerr.rdbuf(buffer.rdbuf());
-		//freopen(STDOUT_FILENAME,"a+",stdin);
-		//freopen(STDOUT_FILENAME,"w",stderr);
-		freopen(STDOUT_FILENAME,"w+",stdout);
-		//system("2>&1");
-		//system("mkdir 2>& out.txt");
-		//int file = open("myfile.txt", O_APPEND | O_WRONLY);
-		//if(file < 0)    return 1;
- 
-		//Now we redirect standard output to the file using dup2
-		//if(dup2(file,1) < 0)    return 1;
-		//system("script out.txt");
-		//system("script C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct/out.txt");
-	}
-	set_execution_date();
-	apply_execution_arguments( num_arguments, arguments );
+{	
 	if( RUN_ON )
 	{
 		//print_copyright_notice();
+		apply_execution_arguments( num_arguments, arguments );
+		set_execution_date();
 		CONFIG_OBJECT config_object = config_file_2_object();			
 		set_dependent_parameters();
+		set_IO_file_extensions();
 		set_IO_directories();
 		set_IO_filenames();
+		set_IO_filepaths();
+		set_images_2_use();
+		existing_data_check();
 		parameters_2_GPU();
 		print_section_exit("Finished reading configurations and setting program options and parameters", "====>" );
 		//pause_execution();
@@ -77,9 +46,6 @@ int main(unsigned int num_arguments, char** arguments)
 			/* Initialize hull detection images and transfer them to the GPU (performed if parameters.SC_ON_D, parameters.MSC_ON_D, or parameters.SM_ON_D is true)											*/
 			/********************************************************************************************************************************************************/
 			hull_initializations();
-			//MSC_counts_h = (int*) calloc( parameters.NUM_VOXELS_D, sizeof(int));
-			//cudaMemcpy( MSC_counts_h,	MSC_counts_d,	parameters.NUM_VOXELS_D * sizeof(int), cudaMemcpyDeviceToHost );	
-			//array_2_disk( "hull_MSC_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
 			/********************************************************************************************************************************************************/
 			/* Read the u-coordinates of the detector planes from the config file, allocate and	initialize statistical data arrays, and count the number of 		*/
 			/* histories per file, projection, gantry angle, scan, and total.																						*/
@@ -88,27 +54,7 @@ int main(unsigned int num_arguments, char** arguments)
 				assign_SSD_positions();		// Read the detector plane u-coordinates from config file
 			initializations();				// allocate and initialize host and GPU memory for statistical
 			count_histories();				// count the number of histories per file, per scan, total, etc.
-			//puts("hello");
 			reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
-			//puts("hello");
-			/********************************************************************************************************************************************************/
-			/* Reading the 16 energy detector responses for each of the 5 stages and generate single energy response for each history								*/
-			/********************************************************************************************************************************************************/
-			uint start_file_num = 0, end_file_num = 0, histories_to_process = 0;
-			//while( start_file_num != parameters.NUM_FILES_D )
-			//{
-			//	while( end_file_num < parameters.NUM_FILES_D )
-			//	{
-			//		if( histories_to_process + histories_per_file[end_file_num] < parameters.MAX_GPU_HISTORIES_D )
-			//			histories_to_process += histories_per_file[end_file_num];
-			//		else
-			//			break;
-			//		end_file_num++;
-			//	}
-			//	//read_energy_responses( histories_to_process, start_file_num, end_file_num );
-			//	start_file_num = end_file_num;
-			//	histories_to_process = 0;
-			//}
 			/********************************************************************************************************************************************************/
 			/* Iteratively Read and Process Data One Chunk at a Time. There are at Most	parameters.MAX_GPU_HISTORIES_D Per Chunk (i.e. Iteration). On Each Iteration:			*/
 			/*	(1) Read data from file																																*/
@@ -121,7 +67,7 @@ int main(unsigned int num_arguments, char** arguments)
 			puts("Iteratively reading data from hard disk");
 			puts("Removing proton histories that don't pass through the reconstruction volume");
 			puts("Binning the data from those that did...");
-			start_file_num = 0, end_file_num = 0, histories_to_process = 0;
+			uint start_file_num = 0, end_file_num = 0, histories_to_process = 0;
 			while( start_file_num != parameters.NUM_FILES_D )
 			{
 				while( end_file_num < parameters.NUM_FILES_D )
@@ -142,7 +88,7 @@ int main(unsigned int num_arguments, char** arguments)
 			}
 			puts("Data reading complete.");
 			printf("%d out of %d (%4.2f%%) histories traversed the reconstruction volume\n", recon_vol_histories, total_histories, (double) recon_vol_histories / total_histories * 100  );
-			exit_program_if( EXIT_AFTER_BINNING );
+			exit_program_if( parameters.EXIT_AFTER_BINNING_D );
 			/********************************************************************************************************************************************************/
 			/* Reduce vector capacities to their size, the number of histories remaining after histories that didn't intersect reconstruction volume were ignored	*/																				
 			/********************************************************************************************************************************************************/		
@@ -151,7 +97,7 @@ int main(unsigned int num_arguments, char** arguments)
 			/* Perform thresholding on MSC and SM hulls and write all hull images to file																			*/																					
 			/********************************************************************************************************************************************************/
 			hull_detection_finish();
-			exit_program_if( EXIT_AFTER_HULLS );
+			exit_program_if( parameters.EXIT_AFTER_HULLS_D );
 			/********************************************************************************************************************************************************/
 			/* Calculate the mean WEPL, relative ut-angle, and relative uv-angle for each bin and count the number of histories in each bin							*/											
 			/********************************************************************************************************************************************************/
@@ -204,18 +150,18 @@ int main(unsigned int num_arguments, char** arguments)
 			post_cut_memory_clean();
 			resize_vectors( post_cut_histories );
 			shrink_vectors( post_cut_histories );
-			exit_program_if( EXIT_AFTER_CUTS );
+			exit_program_if( parameters.EXIT_AFTER_CUTS_D );
 			/********************************************************************************************************************************************************/
 			/* Recalculate the mean WEPL for each bin using	the histories remaining after cuts and use these to produce the sinogram								*/
 			/********************************************************************************************************************************************************/
 			construct_sinogram();
-			exit_program_if( EXIT_AFTER_SINOGRAM );
+			exit_program_if( parameters.EXIT_AFTER_SINOGRAM_D );
 			/********************************************************************************************************************************************************/
 			/* Perform filtered backprojection and write FBP hull to disk																							*/
 			/********************************************************************************************************************************************************/
 			if( parameters.FBP_ON_D )
 				FBP();
-			exit_program_if( EXIT_AFTER_FBP );
+			exit_program_if( parameters.EXIT_AFTER_FBP_D );
 			define_hull();
 			define_x_0();
 			print_section_exit("Preprocessing complete", "====>" );
@@ -229,15 +175,11 @@ int main(unsigned int num_arguments, char** arguments)
 			reconstruction_histories = import_histories();
 		}
 		image_reconstruction();
-		array_2_disk("x", RECONSTRUCTION_DIR, TEXT, x_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
 		print_section_exit("Reconstruction complete", "====>" );
 	}
 	else
 	{
-		//binary_2_ASCII();
 		test_func();
-		//combine_data_sets();
-		//puts("finished program");
 	}
 	/************************************************************************************************************************************************************/
 	/* Program has finished execution. Require the user to hit enter to terminate the program and close the terminal/console window								*/ 															
@@ -248,8 +190,6 @@ int main(unsigned int num_arguments, char** arguments)
 	print_section_header("Program has finished executing", '-' );
 	if( !parameters.STDOUT_2_DISK_D || !parameters.USER_INPUT_REQUESTS_OFF_D )
 		exit_program_if(true);
-	//std::string text = buffer.str();
-	//cout << text << endl;
 }
 /***********************************************************************************************************************************************************************************************************************/
 /**************************************************************************************** t/v conversions and energy calibrations **************************************************************************************/
@@ -280,22 +220,22 @@ void read_energy_responses( const int num_histories, const int start_file_num, c
 /***********************************************************************************************************************************************************************************************************************/
 void apply_execution_arguments(unsigned int num_arguments, char** arguments)
 {
-	num_run_arguments = num_arguments;
-	run_arguments = arguments; 
+	NUM_RUN_ARGUMENTS = num_arguments;
+	RUN_ARGUMENTS = arguments; 
 	int config_path_index, i = 1;
-	if( num_run_arguments % 2 == 0 )
+	if( NUM_RUN_ARGUMENTS % 2 == 0 )
 	{
 		CONFIG_PATH_PASSED = true;
-		num_parameters_2_change = (num_run_arguments / 2) - 1;	
+		NUM_PARAMETERS_2_CHANGE = (NUM_RUN_ARGUMENTS / 2) - 1;	
 	}
 	else
 	{
 		CONFIG_PATH_PASSED = false;
-		num_parameters_2_change = num_run_arguments / 2;
+		NUM_PARAMETERS_2_CHANGE = NUM_RUN_ARGUMENTS / 2;
 	}
-	for( ; i <= num_parameters_2_change; i++ );
-	for( unsigned int j = 1; j < num_run_arguments; j++ )
-		cout << run_arguments[j] << endl;
+	for( ; i <= NUM_PARAMETERS_2_CHANGE; i++ );
+	for( unsigned int j = 1; j < NUM_RUN_ARGUMENTS; j++ )
+		cout << RUN_ARGUMENTS[j] << endl;
 	
 	// n =				  1			   1		   2			2		   3		   3	 ...	 n			 n       
 	// i =	 0			  1			   2		   3			4		   5		   6	 ...   2n - 1  		 2n		  2n + 1
@@ -305,8 +245,8 @@ void apply_execution_arguments(unsigned int num_arguments, char** arguments)
 	if( CONFIG_PATH_PASSED )
 	{
 		config_path_index = 2 * i - 1;
-		PROJECTION_DATA_DIR = (char*) calloc( strlen(run_arguments[config_path_index])+1, sizeof(char));
-		std::copy( run_arguments[config_path_index], &run_arguments[config_path_index][strlen(run_arguments[config_path_index])], PROJECTION_DATA_DIR );
+		PROJECTION_DATA_DIR = (char*) calloc( strlen(RUN_ARGUMENTS[config_path_index])+1, sizeof(char));
+		std::copy( RUN_ARGUMENTS[config_path_index], &RUN_ARGUMENTS[config_path_index][strlen(RUN_ARGUMENTS[config_path_index])], PROJECTION_DATA_DIR );
 		print_section_header("Config file location passed as command line argument and set to : ",'*');
 		print_section_separator('-');
 		printf("%s\n", PROJECTION_DATA_DIR );
@@ -467,7 +407,7 @@ void assign_SSD_positions()	//HERE THE COORDINATES OF THE DETECTORS PLANES ARE L
 	puts("Reading tracker plane positions...");
 
 	sprintf(configFilename, "%s\\scan.cfg", PREPROCESSING_DIR);
-	if( DEBUG_TEXT_ON )
+	if( parameters.DEBUG_TEXT_ON_D )
 		printf("Opening config file %s...\n", configFilename);
 	std::ifstream configFile(configFilename);		
 	if( !configFile.is_open() ) {
@@ -480,11 +420,11 @@ void assign_SSD_positions()	//HERE THE COORDINATES OF THE DETECTORS PLANES ARE L
 		fflush(stdout);
 		printf("user_response = \"%s\"\n", user_response);
 	}
-	if( DEBUG_TEXT_ON )
+	if( parameters.DEBUG_TEXT_ON_D )
 		puts("Reading Tracking Plane Positions...");
 	for( unsigned int i = 0; i < 8; i++ ) {
 		configFile >> SSD_u_Positions[i];
-		if( DEBUG_TEXT_ON )
+		if( parameters.DEBUG_TEXT_ON_D )
 			printf("SSD_u_Positions[%d] = %3f", i, SSD_u_Positions[i]);
 	}
 	
@@ -500,13 +440,13 @@ void count_histories()
 	histories_per_gantry_angle =		 (int*) calloc( parameters.GANTRY_ANGLES_D, sizeof(int) );
 	recon_vol_histories_per_projection = (int*) calloc( parameters.GANTRY_ANGLES_D, sizeof(int) );
 
-	if( DEBUG_TEXT_ON )
+	if( parameters.DEBUG_TEXT_ON_D )
 		puts("Counting proton histories...\n");
 	switch( DATA_FORMAT )
 	{
 		case VERSION_0  : count_histories_v0();		break;
 	}
-	if( DEBUG_TEXT_ON )
+	if( parameters.DEBUG_TEXT_ON_D )
 	{
 		for( uint file_number = 0, gantry_position_number = 0; file_number < (parameters.NUM_SCANS_D * parameters.GANTRY_ANGLES_D); file_number++, gantry_position_number++ )
 		{
@@ -566,7 +506,7 @@ void count_histories_v0()
 			{
 				DATA_FORMAT	= VERSION_0;
 				fread(&num_histories, sizeof(int), 1, data_file );
-				if( DEBUG_TEXT_ON )
+				if( parameters.DEBUG_TEXT_ON_D )
 					printf("There are %d Histories for Gantry Angle %d From Scan Number %d\n", num_histories, gantry_angle, scan_number);
 				histories_per_file[file_number] = num_histories;
 				histories_per_gantry_angle[gantry_position_number] += num_histories;
@@ -601,7 +541,7 @@ void count_histories_v0()
 			{
 				DATA_FORMAT = VERSION_1;
 				fread(&num_histories, sizeof(int), 1, data_file );
-				if( DEBUG_TEXT_ON )
+				if( parameters.DEBUG_TEXT_ON_D )
 					printf("There are %d Histories for Gantry Angle %d From Scan Number %d\n", num_histories, gantry_angle, scan_number);
 				histories_per_file[file_number] = num_histories;
 				histories_per_gantry_angle[gantry_position_number] += num_histories;
@@ -1906,24 +1846,24 @@ void FBP()
 
 	puts("Performing backprojection...");
 
-	x_FBP_h = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
-	if( x_FBP_h == NULL ) 
+	FBP_h = (float*) calloc( parameters.NUM_VOXELS_D, sizeof(float) );
+	if( FBP_h == NULL ) 
 	{
-		printf("ERROR: Memory not allocated for x_FBP_h!\n");
+		printf("ERROR: Memory not allocated for FBP_h!\n");
 		exit_program_if(true);
 	}
 
 	free(sinogram_filtered_h);
-	cudaMalloc((void**) &x_FBP_d, parameters.SIZE_IMAGE_FLOAT_D );
-	cudaMemcpy( x_FBP_d, x_FBP_h, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyHostToDevice );
+	cudaMalloc((void**) &FBP_d, parameters.SIZE_IMAGE_FLOAT_D );
+	cudaMemcpy( FBP_d, FBP_h, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyHostToDevice );
 
 	dim3 dimBlock( parameters.SLICES_D );
 	dim3 dimGrid( parameters.COLUMNS_D, parameters.ROWS_D );   
-	backprojection_GPU<<< dimGrid, dimBlock >>>( parameters_d, sinogram_filtered_d, x_FBP_d );
+	backprojection_GPU<<< dimGrid, dimBlock >>>( parameters_d, sinogram_filtered_d, FBP_d );
 	cudaFree(sinogram_filtered_d);
 
-	cudaMemcpy( x_FBP_h, x_FBP_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost );
-	array_2_disk( "x_FBP_h", PREPROCESSING_DIR, TEXT, x_FBP_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );	
+	cudaMemcpy( FBP_h, FBP_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost );
+	array_2_disk( "FBP_h", PREPROCESSING_DIR, TEXT, FBP_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );	
 
 	//if( parameters.IMPORT_FILTERED_FBP_D)
 	//{
@@ -1933,71 +1873,71 @@ void FBP()
 	//	//import_image( image, filename );
 	//	float* image = (float*)calloc( parameters.NUM_VOXELS_D, sizeof(float));
 	//	import_image( image, PREPROCESSING_DIR, FBP_BASENAME, TEXT );
-	//	x_FBP_h = image;
+	//	FBP_h = image;
 	//	array_2_disk( "FBP_after", PREPROCESSING_DIR, TEXT, image, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
 	//}
 	if( parameters.AVG_FILTER_FBP_D )
 	{
 		puts("Applying average filter to FBP image...");
-		//cout << x_FBP_d << endl;
-		//float* x_FBP_filtered_d;
-		x_FBP_filtered_h = x_FBP_h;
-		cudaMalloc((void**) &x_FBP_filtered_d, parameters.SIZE_IMAGE_FLOAT_D );
-		cudaMemcpy( x_FBP_filtered_d, x_FBP_filtered_h, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyHostToDevice );
+		//cout << FBP_d << endl;
+		//float* FBP_filtered_d;
+		FBP_filtered_h = FBP_h;
+		cudaMalloc((void**) &FBP_filtered_d, parameters.SIZE_IMAGE_FLOAT_D );
+		cudaMemcpy( FBP_filtered_d, FBP_filtered_h, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyHostToDevice );
 
-		//averaging_filter( x_FBP_h, x_FBP_filtered_d, FBP_AVG_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
-		//averaging_filter( x_FBP_filtered_h, x_FBP_filtered_d, parameters.FBP_AVG_FILTER_RADIUS_D, false, parameters.FBP_AVG_THRESHOLD_D );
+		//averaging_filter( FBP_h, FBP_filtered_d, FBP_AVG_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
+		//averaging_filter( FBP_filtered_h, FBP_filtered_d, parameters.FBP_AVG_FILTER_RADIUS_D, false, parameters.FBP_AVG_THRESHOLD_D );
 		puts("FBP Filtering complete");
 		if( parameters.WRITE_AVG_FBP_D )
 		{
 			puts("Writing filtered hull to disk...");
-			//cudaMemcpy(x_FBP_h, x_FBP_filtered_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost);
-			//array_2_disk( "x_FBP_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_FBP_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
-			cudaMemcpy(x_FBP_filtered_h, x_FBP_filtered_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost) ;
-			//cout << x_FBP_d << endl;
-			array_2_disk( "x_FBP_filtered", PREPROCESSING_DIR, TEXT, x_FBP_filtered_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
-			//x_FBP_h = x_FBP_filtered_h;
+			//cudaMemcpy(FBP_h, FBP_filtered_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost);
+			//array_2_disk( "FBP_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+			cudaMemcpy(FBP_filtered_h, FBP_filtered_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost) ;
+			//cout << FBP_d << endl;
+			array_2_disk( "FBP_filtered", PREPROCESSING_DIR, TEXT, FBP_filtered_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+			//FBP_h = FBP_filtered_h;
 		}
-		cudaFree(x_FBP_filtered_d);
+		cudaFree(FBP_filtered_d);
 	}
 	else if( parameters.MEDIAN_FILTER_FBP_D )
 	{
 		puts("Applying median filter to FBP image...");
-		//cout << x_FBP_d << endl;
-		//float* x_FBP_filtered_d;
-		//FBP_median_filtered_h = x_FBP_h;
+		//cout << FBP_d << endl;
+		//float* FBP_filtered_d;
+		//FBP_median_filtered_h = FBP_h;
 		//cudaMalloc((void**) &FBP_median_filtered_d, parameters.SIZE_IMAGE_FLOAT_D );
 		//cudaMemcpy( FBP_median_filtered_d, FBP_median_filtered_h, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyHostToDevice );
 		FBP_median_filtered_2D_h = (float*)calloc(parameters.NUM_VOXELS_D, sizeof(float));
 		FBP_median_filtered_3D_h = (float*)calloc(parameters.NUM_VOXELS_D, sizeof(float));
-		//averaging_filter( x_FBP_h, x_FBP_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
-		//median_filter_2D( x_FBP_h, FBP_median_filtered_2D_h, parameters.FBP_MED_FILTER_RADIUS_D );
-		//median_filter_2D( x_FBP_h, FBP_median_filtered_3D_h, parameters.FBP_MED_FILTER_RADIUS_D );
-		median_filter_2D( x_FBP_h, parameters.FBP_MED_FILTER_RADIUS_D );
+		//averaging_filter( FBP_h, FBP_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
+		//median_filter_2D( FBP_h, FBP_median_filtered_2D_h, parameters.FBP_MED_FILTER_RADIUS_D );
+		//median_filter_2D( FBP_h, FBP_median_filtered_3D_h, parameters.FBP_MED_FILTER_RADIUS_D );
+		median_filter_2D( FBP_h, parameters.FBP_MED_FILTER_RADIUS_D );
 		puts("FBP median filtering complete");
 		if( parameters.WRITE_MEDIAN_FBP_D )
 		{
 			puts("Writing filtered hull to disk...");
-			//cudaMemcpy(x_FBP_h, x_FBP_filtered_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost);
-			//array_2_disk( "x_FBP_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_FBP_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+			//cudaMemcpy(FBP_h, FBP_filtered_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost);
+			//array_2_disk( "FBP_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
 			//cudaMemcpy(FBP_median_filtered_h, FBP_median_filtered_d, parameters.SIZE_IMAGE_FLOAT_D, cudaMemcpyDeviceToHost) ;
-			//cout << x_FBP_d << endl;
+			//cout << FBP_d << endl;
 			array_2_disk( FBP_MEDIAN_2D_FILENAME, PREPROCESSING_DIR, TEXT, FBP_median_filtered_2D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
 			array_2_disk( FBP_MEDIAN_3D_FILENAME, PREPROCESSING_DIR, TEXT, FBP_median_filtered_3D_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
-			//x_FBP_h = x_FBP_filtered_h;
+			//FBP_h = FBP_filtered_h;
 		}
-		cudaFree(x_FBP_filtered_d);
+		cudaFree(FBP_filtered_d);
 	}
 	
 	// Generate FBP hull by thresholding FBP image
 	if( X_HULL == FBP_HULL )
-		x_FBP_2_hull();
+		FBP_2_hull();
 
 	// Discard FBP image unless it is to be used as the initial iterate x_0 in iterative image reconstruction
 	if( parameters.X_0_TYPE != X_FBP && parameters.X_0_TYPE != HYBRID && X_HULL != FBP_HULL	)
 	{
-		free(x_FBP_h);
-		cudaFree(x_FBP_d);
+		free(FBP_h);
+		cudaFree(FBP_d);
 	}
 }
 void filter()
@@ -2079,7 +2019,7 @@ void backprojection()
 				z = -parameters.RECON_CYL_HEIGHT_D / 2.0 + (slice + 0.5) * parameters.SLICE_THICKNESS_D;
 				// If the voxel is outside the cylinder defining the reconstruction volume, set RSP to air
 				if( ( x * x + y * y ) > ( parameters.RECON_CYL_RADIUS_D * parameters.RECON_CYL_RADIUS_D ) )
-					x_FBP_h[voxel] = (float)RSP_AIR;							
+					FBP_h[voxel] = (float)RSP_AIR;							
 				else
 				{	  
 					// Sum over projection angles
@@ -2113,29 +2053,29 @@ void backprojection()
 
 						// If in last v_vin, there is no bin below so only use adjacent bins
 						if( v_bin == parameters.V_BINS_D - 1 || ( bin < 0 ) )
-							x_FBP_h[voxel] += (float)scale_factor * ( ( ( 1 - eta ) * sinogram_filtered_h[bin] ) + ( eta * sinogram_filtered_h[bin + 1] ) ) ;
+							FBP_h[voxel] += (float)scale_factor * ( ( ( 1 - eta ) * sinogram_filtered_h[bin] ) + ( eta * sinogram_filtered_h[bin + 1] ) ) ;
 					/*	if( t_bin < parameters.T_BINS_D - 1 )
-								x_FBP_h[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered_h[bin] ) + ( eta * sinogram_filtered_h[bin + 1] ) );
+								FBP_h[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered_h[bin] ) + ( eta * sinogram_filtered_h[bin + 1] ) );
 							if( v_bin < parameters.V_BINS_D - 1 )
-								x_FBP_h[voxel] += scale_factor * ( ( ( 1 - epsilon ) * sinogram_filtered_h[bin] ) + ( epsilon * sinogram_filtered_h[bin_below] ) );
+								FBP_h[voxel] += scale_factor * ( ( ( 1 - epsilon ) * sinogram_filtered_h[bin] ) + ( epsilon * sinogram_filtered_h[bin_below] ) );
 							if( t_bin == parameters.T_BINS_D - 1 && v_bin == parameters.V_BINS_D - 1 )
-								x_FBP_h[voxel] += scale_factor * sinogram_filtered_h[bin];*/
+								FBP_h[voxel] += scale_factor * sinogram_filtered_h[bin];*/
 						else 
 						{
 							// Technically this is to be multiplied by delta as well, but since delta is constant, it is more accurate numerically to multiply result by delta instead
-							x_FBP_h[voxel] += (float)scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered_h[bin] 
+							FBP_h[voxel] += (float)scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered_h[bin] 
 							+ eta * ( 1 - epsilon ) * sinogram_filtered_h[bin + 1]
 							+ ( 1 - eta ) * epsilon * sinogram_filtered_h[bin_below]
 							+ eta * epsilon * sinogram_filtered_h[bin_below + 1] );
 						} 
 					}
-					x_FBP_h[voxel] *= (float)delta;
+					FBP_h[voxel] *= (float)delta;
 				}
 			}
 		}
 	}
 }
-__global__ void backprojection_GPU( configurations* parameters, float* sinogram_filtered, float* x_FBP )
+__global__ void backprojection_GPU( configurations* parameters, float* sinogram_filtered, float* FBP )
 {
 	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
 	int voxel = slice * parameters->COLUMNS_D * parameters->ROWS_D + row * parameters->COLUMNS_D + column;	
@@ -2153,7 +2093,7 @@ __global__ void backprojection_GPU( configurations* parameters, float* sinogram_
 
 		//// If the voxel is outside a cylinder contained in the reconstruction volume, set to air
 		if( ( x * x + y * y ) > ( parameters->RECON_CYL_RADIUS_D * parameters->RECON_CYL_RADIUS_D ) )
-			x_FBP[( slice * parameters->COLUMNS_D * parameters->ROWS_D) + ( row * parameters->COLUMNS_D ) + column] = RSP_AIR;							
+			FBP[( slice * parameters->COLUMNS_D * parameters->ROWS_D) + ( row * parameters->COLUMNS_D ) + column] = RSP_AIR;							
 		else
 		{	  
 			// Sum over projection angles
@@ -2189,29 +2129,29 @@ __global__ void backprojection_GPU( configurations* parameters, float* sinogram_
 
 				//if( ( ( bin + parameters->ANGULAR_BINS_D * parameters->T_BINS_D + 1 ) >= NUM_BINS ) || ( bin < 0 ) );
 				if( v_bin == parameters->V_BINS_D - 1 || ( bin < 0 ) )
-					x_FBP[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered[bin] ) + ( eta * sinogram_filtered[bin + 1] ) ) ;
+					FBP[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered[bin] ) + ( eta * sinogram_filtered[bin + 1] ) ) ;
 					//printf("The bin selected for this voxel does not exist!\n Slice: %d\n Column: %d\n Row: %d\n", slice, column, row);
 				else 
 				{
 					// not sure why this won't compile without calculating the index ahead of time instead inside []s
-					/*x_FBP[voxel] += delta * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
+					/*FBP[voxel] += delta * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
 					+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
 					+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + parameters->ANGULAR_BINS_D * parameters->T_BINS_D]
 					+ eta * epsilon * sinogram_filtered[bin + parameters->ANGULAR_BINS_D * parameters->T_BINS_D + 1] ) * scale_factor;*/
 
 					// Multilpying by the gantry angle interval for each gantry angle is equivalent to multiplying the final answer by 2*PI and is better numerically
-					// so multiplying by delta each time should be replaced by x_FBP_h[voxel] *= 2 * PI after all contributions have been made, which is commented out below
-					x_FBP[voxel] += scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
+					// so multiplying by delta each time should be replaced by FBP_h[voxel] *= 2 * PI after all contributions have been made, which is commented out below
+					FBP[voxel] += scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
 					+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
 					+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + ( parameters->ANGULAR_BINS_D * parameters->T_BINS_D)]
 					+ eta * epsilon * sinogram_filtered[bin + ( parameters->ANGULAR_BINS_D * parameters->T_BINS_D) + 1] );
 				}				
 			}
-			x_FBP[voxel] *= delta; 
+			FBP[voxel] *= delta; 
 		}
 	}
 }
-void x_FBP_2_hull()
+void FBP_2_hull()
 {
 	puts("Performing thresholding on FBP image to generate FBP hull...");
 
@@ -2219,7 +2159,7 @@ void x_FBP_2_hull()
 	initialize_hull( FBP_hull_h, FBP_hull_d );
 	dim3 dimBlock( parameters.SLICES_D );
 	dim3 dimGrid( parameters.COLUMNS_D, parameters.ROWS_D );   
-	x_FBP_2_hull_GPU<<< dimGrid, dimBlock >>>( parameters_d, x_FBP_d, FBP_hull_d );	
+	FBP_2_hull_GPU<<< dimGrid, dimBlock >>>( parameters_d, FBP_d, FBP_hull_d );	
 	cudaMemcpy( FBP_hull_h, FBP_hull_d, parameters.SIZE_IMAGE_BOOL_D, cudaMemcpyDeviceToHost );
 	
 	if( parameters.WRITE_FBP_HULL_D )
@@ -2228,16 +2168,16 @@ void x_FBP_2_hull()
 	if( parameters.HULL_TYPE != FBP_HULL)	
 		free(FBP_hull_h);
 	cudaFree(FBP_hull_d);
-	cudaFree(x_FBP_d);
+	cudaFree(FBP_d);
 }
-__global__ void x_FBP_2_hull_GPU( configurations* parameters, float* x_FBP, bool* FBP_hull )
+__global__ void FBP_2_hull_GPU( configurations* parameters, float* FBP, bool* FBP_hull )
 {
 	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
 	int voxel = slice * parameters->COLUMNS_D * parameters->ROWS_D + row * parameters->COLUMNS_D + column; 
 	double x = -parameters->RECON_CYL_RADIUS_D + ( column + 0.5 )* parameters->VOXEL_WIDTH_D;
 	double y = parameters->RECON_CYL_RADIUS_D - (row + 0.5) * parameters->VOXEL_HEIGHT_D;
 	double d_squared = pow(x, 2) + pow(y, 2);
-	if(x_FBP[voxel] > FBP_THRESHOLD && (d_squared < pow(parameters->RECON_CYL_RADIUS_D, 2) ) ) 
+	if(FBP[voxel] > FBP_THRESHOLD && (d_squared < pow(parameters->RECON_CYL_RADIUS_D, 2) ) ) 
 		FBP_hull[voxel] = true; 
 	else
 		FBP_hull[voxel] = false; 
@@ -3245,11 +3185,9 @@ template<typename T> void apply_all_median_filters(T*& image, char* output_basen
 template<typename O> bool find_MLP_endpoints
 ( 
 	O*& image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
-	double& x_object, double& y_object, double& z_object, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
+	double& x_hit, double& y_hit, double& z_hit, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
 )
 {	
-		//char user_response[20];
-
 		/********************************************************************************************/
 		/********************************* Voxel Walk Parameters ************************************/
 		/********************************************************************************************/
@@ -3261,37 +3199,20 @@ template<typename O> bool find_MLP_endpoints
 		double x = x_start, y = y_start, z = z_start;
 		double x_to_go, y_to_go, z_to_go;		
 		double x_extension, y_extension;	
-		//int voxel_x, voxel_y, voxel_z;
-		//int voxel_x_out, voxel_y_out, voxel_z_out; 
 		int voxel; 
 		bool hit_hull = false, end_walk, outside_image;
-		// true false
-		//bool debug_run = false;
-		//bool MLP_image_output = false;
 		/********************************************************************************************/
 		/******************** Initial Conditions and Movement Characteristics ***********************/
 		/********************************************************************************************/	
 		if( !entering )
-		{
 			xy_angle += PI;
-		}
+		
 		x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
 		y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
 		z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
-		if( x_move_direction < 0 )
-		{
-			//if( debug_run )
-				//puts("z switched");
-			z_move_direction *= -1;
-		}
-		/*if( debug_run )
-		{
-			cout << "x_move_direction = " << x_move_direction << endl;
-			cout << "y_move_direction = " << y_move_direction << endl;
-			cout << "z_move_direction = " << z_move_direction << endl;
-		}*/
 		
-
+		if( x_move_direction < 0 )
+			z_move_direction *= -1;
 
 		voxel_x = calculate_voxel( parameters.X_ZERO_COORDINATE_D, x, parameters.VOXEL_WIDTH_D );
 		voxel_y = calculate_voxel( parameters.Y_ZERO_COORDINATE_D, y, parameters.VOXEL_HEIGHT_D );
@@ -3317,53 +3238,23 @@ template<typename O> bool find_MLP_endpoints
 		double dx_dy = pow( tan(xy_angle), -1.0 );
 		double dx_dz = pow( tan(xz_angle), -1.0 );
 		double dy_dz = tan(xy_angle)/tan(xz_angle);
-
-		//if( debug_run )
-		//{
-		//	cout << "delta_yx = " << delta_yx << "delta_zx = " << delta_zx << "delta_zy = " << delta_zy << endl;
-		//	cout << "dy_dx = " << dy_dx << "dz_dx = " << dz_dx << "dz_dy = " << dz_dy << endl;
-		//	cout << "dx_dy = " << dx_dy << "dx_dz = " << dx_dz << "dy_dz = " << dy_dz << endl;
-		//}
-
 		/********************************************************************************************/
 		/************************* Initialize and Check Exit Conditions *****************************/
 		/********************************************************************************************/
 		outside_image = (voxel_x >= parameters.COLUMNS_D ) || (voxel_y >= parameters.ROWS_D ) || (voxel_z >= parameters.SLICES_D ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
 		if( !outside_image )
-		{
 			hit_hull = (image[voxel] == 1);		
-			//image[voxel] = 4;
-		}
 		end_walk = outside_image || hit_hull;
-		//int j = 0;
-		//int j_low_limit = 0;
-		//int j_high_limit = 250;
-		/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
-		{
-			printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-			printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-			printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-		}*/
-		//if( debug_run )
-			//fgets(user_response, sizeof(user_response), stdin);
 		/********************************************************************************************/
 		/*********************************** Voxel Walk Routine *************************************/
 		/********************************************************************************************/
 		if( z_move_direction != 0 )
 		{
-			//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				//printf("z_end != z_start\n");
 			while( !end_walk )
 			{
 				// Change in z for Move to Voxel Edge in x and y
 				x_extension = delta_zx * x_to_go;
 				y_extension = delta_zy * y_to_go;
-				//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				//{
-				//	printf(" x_extension = %3f y_extension = %3f\n", x_extension, y_extension );
-				//	//printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-				//	//printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-				//}
 				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
 				{
 					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");					
@@ -3372,13 +3263,6 @@ template<typename O> bool find_MLP_endpoints
 					z = edge_coordinate( parameters.Z_ZERO_COORDINATE_D, voxel_z, parameters.VOXEL_THICKNESS_D, Z_INCREASING_DIRECTION, z_move_direction );					
 					x = corresponding_coordinate( dx_dz, z, z_start, x_start );
 					y = corresponding_coordinate( dy_dz, z, z_start, y_start );
-
-					/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
-					{
-						printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-						printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-						printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-					}*/
 
 					x_to_go = distance_remaining( parameters.X_ZERO_COORDINATE_D, x, X_INCREASING_DIRECTION, x_move_direction, parameters.VOXEL_WIDTH_D, voxel_x );
 					y_to_go = distance_remaining( parameters.Y_ZERO_COORDINATE_D, y, Y_INCREASING_DIRECTION, y_move_direction, parameters.VOXEL_HEIGHT_D, voxel_y );	
@@ -3426,35 +3310,17 @@ template<typename O> bool find_MLP_endpoints
 				{
 					z_to_go = parameters.VOXEL_THICKNESS_D;
 					voxel_z -= z_move_direction;
-				}
-				
+				}			
 				voxel_z = max(voxel_z, 0 );
 				voxel = voxel_x + voxel_y * parameters.COLUMNS_D + voxel_z * parameters.COLUMNS_D * parameters.ROWS_D;
-				//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				//{
-				//	printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-				//	printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-				//	printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
-				//}
 				outside_image = (voxel_x >= parameters.COLUMNS_D ) || (voxel_y >= parameters.ROWS_D ) || (voxel_z >= parameters.SLICES_D ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
 				if( !outside_image )
-				{
 					hit_hull = (image[voxel] == 1);	
-					//if( MLP_image_output )
-					//{
-						//image[voxel] = 4;
-					//}
-				}
-				end_walk = outside_image || hit_hull;
-				//j++;
-				//if( debug_run )
-					//fgets(user_response, sizeof(user_response), stdin);		
+				end_walk = outside_image || hit_hull;	
 			}// end !end_walk 
 		}
 		else
 		{
-			//if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				//printf("z_end == z_start\n");
 			while( !end_walk )
 			{
 				// Change in x for Move to Voxel Edge in y
@@ -3494,33 +3360,17 @@ template<typename O> bool find_MLP_endpoints
 					voxel_y -= y_move_direction;
 				}
 				voxel = voxel_x + voxel_y * parameters.COLUMNS_D + voxel_z * parameters.COLUMNS_D * parameters.ROWS_D;		
-				/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
-				{
-					printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
-					printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
-					printf("voxel_x_in = %d voxel_y_in = %d voxel_z_in = %d\n", voxel_x, voxel_y, voxel_z);
-				}*/
 				outside_image = (voxel_x >= parameters.COLUMNS_D ) || (voxel_y >= parameters.ROWS_D ) || (voxel_z >= parameters.SLICES_D ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
 				if( !outside_image )
-				{
 					hit_hull = (image[voxel] == 1);		
-					//if( MLP_image_output )
-					//{
-						//image[voxel] = 4;
-					//}
-				}
-				end_walk = outside_image || hit_hull;
-				//j++;
-				//if( debug_run )
-					//fgets(user_response, sizeof(user_response), stdin);		
+				end_walk = outside_image || hit_hull;	
 			}// end: while( !end_walk )
-			//printf("i = %d", i );
 		}//end: else: z_start != z_end => z_start == z_end
 		if( hit_hull )
 		{
-			x_object = x;
-			y_object = y;
-			z_object = z;
+			x_hit = x;
+			y_hit = y;
+			z_hit = z;
 		}
 		return hit_hull;
 }
@@ -3768,6 +3618,7 @@ unsigned int find_MLP_path
 		}
 		u_1 += parameters.MLP_U_STEP_D;
 	}
+	voxels_per_path_vector.push_back(num_intersections);
 	return num_intersections;
 }
 /***********************************************************************************************************************************************************************************************************************/
@@ -3775,23 +3626,20 @@ unsigned int find_MLP_path
 /***********************************************************************************************************************************************************************************************************************/
 void export_hull()
 {
-//	puts("Writing image reconstruction hull to disk...");
-//	char input_hull_filename[256];
-//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
-//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
-//	fwrite( &hull_h, sizeof(bool), parameters.NUM_VOXELS_D, write_input_hull );
-//	fclose(write_input_hull);
-//	puts("Finished writing image reconstruction hull to disk.");
+	//X_2_USE_PATH 
+	//X_K_2_USE_PATH
+	//X_0_2_USE_PATH 
+	//FBP_2_USE_PATH 
+	//HULL_2_USE_PATH
+	puts("Writing image reconstruction hull to disk...");
+	array_2_disk(HULL_2_USE_FILENAME, PREPROCESSING_DIR, HULL_WRITE_MODE, hull_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	puts("Finished writing image reconstruction hull to disk.");
 }
 void export_x_0()
 {
-//	puts("Writing image reconstruction hull to disk...");
-//	char input_hull_filename[256];
-//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
-//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
-//	fwrite( &hull_h, sizeof(bool), parameters.NUM_VOXELS_D, write_input_hull );
-//	fclose(write_input_hull);
-//	puts("Finished writing image reconstruction hull to disk.");
+	puts("Writing image reconstruction hull to disk...");
+	array_2_disk(X_0_2_USE_FILENAME, PREPROCESSING_DIR, X_0_WRITE_MODE, x_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	puts("Finished writing image reconstruction hull to disk.");
 }
 void export_WEPL()
 {
@@ -3800,10 +3648,11 @@ void export_WEPL()
 	//sprintf(WEPL_filename, "%s/%s%s", PREPROCESSING_DIR, WEPL_BASENAME, WEPL_FILE_EXTENSION );
 	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
 	//FILE* WEPL_file = fopen(WEPL_filename, "wb");
-	FILE* WEPL_file = fopen(WEPL_PATH, "wb");
-	fwrite( &reconstruction_histories, sizeof(unsigned int), 1, WEPL_file );
-	fwrite( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), WEPL_file );
-	fclose(WEPL_file);
+	//FILE* WEPL_file = fopen(WEPL_PATH, "wb");
+	//fwrite( &reconstruction_histories, sizeof(unsigned int), 1, WEPL_file );
+	//fwrite( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), WEPL_file );
+	//fclose(WEPL_file);
+	vector_2_disk(WEPL_BASENAME, PREPROCESSING_DIR, WEPL_WRITE_MODE, WEPL_vector, WEPL_vector.size(), 1, 1, true );
 	print_section_exit("Finished writing WEPL data to disk.", "====>");
 }
 void export_histories()
@@ -3834,16 +3683,14 @@ void export_histories()
 	fclose(histories_file);
 	print_section_exit("Finished writing histories to disk.", "====>");
 }
-void export_MLP_intersections()
+void export_voxels_per_path()
 {
 	puts("Writing # of intersections per MLP path to disk...");
-	char intersections_filename[256];
-	sprintf(intersections_filename, "%s/%s%s", PREPROCESSING_DIR, INTERSECTIONS_BASENAME, INTERSECTIONS_FILE_EXTENSION );
-	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
-	FILE* intersections_file = fopen(intersections_filename, "wb");
-	fwrite( &MLP_path_voxels[0], sizeof(float), MLP_path_voxels.size(), intersections_file );
-	fclose(intersections_file);
-	print_section_exit("Finished writing WEPL data to disk.", "====>");
+	FILE* voxels_per_path_file = fopen(VOXELS_PER_PATH_PATH, "wb");
+	fwrite( &reconstruction_histories, sizeof(int), 1, voxels_per_path_file );
+	fwrite( &voxels_per_path_vector[0], sizeof(int), voxels_per_path_vector.size(), voxels_per_path_file );
+	fclose(voxels_per_path_file);
+	print_section_exit("Finished writing # of intersections per MLP path to disk.", "====>");
 }
 void export_MLP_path( FILE* path_file, unsigned int*& path, unsigned int num_intersections)
 {
@@ -3892,7 +3739,7 @@ unsigned int import_WEPL()
 }
 unsigned int import_histories()
 {
-	char histories_filename[256];
+	//char histories_filename[256];
 	//sprintf(histories_filename, "%s/%s%s", PREPROCESSING_DIR, HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION );
 	//FILE* histories_file = fopen(histories_filename, "rb");
 	FILE* histories_file = fopen(HISTORIES_PATH, "rb");
@@ -3925,17 +3772,15 @@ unsigned int import_histories()
 	fclose(histories_file);
 	return histories;
 }
-unsigned int import_MLP_intersections()
+unsigned int import_voxels_per_path()
 {
-	char intersections_filename[256];
-	sprintf(intersections_filename, "%s/%s%s", PREPROCESSING_DIR, INTERSECTIONS_BASENAME, INTERSECTIONS_FILE_EXTENSION );
-	FILE* intersections_file = fopen(intersections_filename, "rb");
+	FILE* voxels_per_path_file = fopen(VOXELS_PER_PATH_PATH, "rb");
 	unsigned int histories;
-	fread( &histories, sizeof(unsigned int), 1, intersections_file );
+	fread( &histories, sizeof(unsigned int), 1, voxels_per_path_file );
 	//fread( &reconstruction_histories, sizeof(unsigned int), 1, intersections_file );
-	WEPL_vector.resize(histories);
-	fread( &MLP_path_voxels[0], sizeof(float), MLP_path_voxels.size(), intersections_file );
-	fclose(intersections_file);
+	voxels_per_path_vector.resize(histories);
+	fread( &voxels_per_path_vector[0], sizeof(int), voxels_per_path_vector.size(), voxels_per_path_file );
+	fclose(voxels_per_path_file);
 	return histories;
 }
 unsigned int import_MLP_path(FILE* path_file, unsigned int*& path )
@@ -3961,8 +3806,8 @@ void define_x_0()
 	{	
 		case IMPORT_X_0	:	import_image( x_h, X_0_PATH, X_0_BASENAME, TEXT );																break;
 		case X_HULL		:	std::copy( hull_h, hull_h + parameters.NUM_VOXELS_D, x_h );														break;												
-		case X_FBP		:	x_h = x_FBP_h; 																							break;
-		case HYBRID		:	std::transform(x_FBP_h, x_FBP_h + parameters.NUM_VOXELS_D, hull_h, x_h, std::multiplies<float>() );				break;	
+		case X_FBP		:	x_h = FBP_h; 																							break;
+		case HYBRID		:	std::transform(FBP_h, FBP_h + parameters.NUM_VOXELS_D, hull_h, x_h, std::multiplies<float>() );				break;	
 		case ZEROS		:	break;
 		default			:	puts("ERROR: Invalid initial iterate selected");
 							exit(1);
@@ -4183,10 +4028,10 @@ void image_reconstruction()
 		{		
 			i = history_sequence[n];			
 			path_intersections = find_MLP_path( path_voxels, chord_lengths, x_entry_vector[i], y_entry_vector[i], z_entry_vector[i], x_exit_vector[i], y_exit_vector[i], z_exit_vector[i], xy_entry_angle_vector[i], xz_entry_angle_vector[i], xy_exit_angle_vector[i], xz_exit_angle_vector[i], voxel_x_vector[i], voxel_y_vector[i], voxel_z_vector[i]);
-			MLP_path_voxels.push_back(path_intersections);
+			voxels_per_path_vector.push_back(path_intersections);
 			export_MLP_path( export_MLP_paths, path_voxels, path_intersections);
 		}
-		export_MLP_intersections();
+		export_voxels_per_path();
 		export_histories();
 		export_WEPL();
 		fclose(export_MLP_paths);
@@ -4246,10 +4091,12 @@ void image_reconstruction()
 			}
 		}	
 		fclose(import_MLP_paths);
-		sprintf(iterate_filename, "%s%d", "x_", iteration );		
-		array_2_disk(iterate_filename, PREPROCESSING_DIR, TEXT, x_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+		sprintf(iterate_filename, "%s_%d", X_2_USE_PATH_BASE, iteration, X_FILE_EXTENSION );		
+		array_2_disk(iterate_filename, PREPROCESSING_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
 	}
-	puts("Image reconstruction complete.");
+	puts("Image reconstruction complete.  Writing reconstructed image to disk...");
+	array_2_disk("x", RECONSTRUCTION_DIR, TEXT, x_h, parameters.COLUMNS_D, parameters.ROWS_D, parameters.SLICES_D, parameters.NUM_VOXELS_D, true );
+	puts("Reconstructed image written to disk.");
 }
 /********************************************************************************************************* ART *********************************************************************************************************/
 template< typename T, typename LHS, typename RHS> T discrete_dot_product( LHS*& left, RHS*& right, unsigned int*& elements, unsigned int num_elements )
@@ -5070,11 +4917,13 @@ template<typename T> void vector_2_disk( char* filename_base, char* filepath, DI
 			sprintf( filename, "%s/%s_%d", filepath, filename_base, file );
 		else
 			sprintf( filename, "%s/%s", filepath, filename_base );			
-		switch( format )
+switch( format )
 		{
 			case TEXT	:	sprintf( filename, "%s.txt", filename );	
+							puts("writing text format");
 							output_file.open(filename);					break;
 			case BINARY	:	sprintf( filename, "%s.bin", filepath );
+							puts("writing binary format");
 							output_file.open(filename, std::ofstream::binary);
 		}
 		//output_file.open(filename);		
@@ -5085,15 +4934,15 @@ template<typename T> void vector_2_disk( char* filename_base, char* filepath, DI
 				for(int x = 0; x < x_max; x++)
 				{
 					index = x + ( y * x_max ) + ( z * x_max * y_max );
-					if( index >= elements )
+					if( index >= num_elements )
 						break;
 					output_file << data[index] << " ";
 				}	
-				if( index >= elements )
+				if( index >= num_elements )
 					break;
 				output_file << std::endl;
 			}
-			if( index >= elements )
+			if( index >= num_elements )
 				break;
 		}
 		z_start += 1;
@@ -5287,16 +5136,8 @@ template<typename T>  void bins_2_disk( char* filename_base, char* filepath, DIS
 		angular_bins.resize(angles.size());
 		std::transform(angles.begin(), angles.end(), angular_bins.begin(), std::bind2nd(std::divides<int>(), parameters.GANTRY_ANGLE_INTERVAL_D ) );
 	}
-	//int data_elements = sizeof(data)/sizeof(float);
-	//std::cout << std::endl << data_elements << std::endl << std::endl;
 	int num_angles = (int) angular_bins.size();
 	int num_v_bins = (int) v_bins.size();
-	/*for( unsigned int i = 0; i < 3; i++ )
-		printf("%d\n", angles[i] );
-	for( unsigned int i = 0; i < 3; i++ )
-		printf("%d\n", angular_bins[i] );
-	for( unsigned int i = 0; i < 3; i++ )
-		printf("%d\n", v_bins[i] );*/
 	char filename[256];
 	int start_bin, angle;
 	FILE* output_file;
@@ -5304,9 +5145,6 @@ template<typename T>  void bins_2_disk( char* filename_base, char* filepath, DIS
 	for( int angular_bin = 0; angular_bin < num_angles; angular_bin++)
 	{
 		angle = angular_bins[angular_bin] * (int) parameters.GANTRY_ANGLE_INTERVAL_D;
-		//printf("angle = %d\n", angular_bins[angular_bin]);
-		//sprintf( filename, "%s%s/%s_%03d%s", filepath, filename_base, angle, ".txt" );
-		//output_file = fopen (filename, "w");	
 		sprintf( filename, "%s/%s_%03d", filepath, filename_base, angular_bin );	
 		switch( format )
 		{
@@ -5317,7 +5155,6 @@ template<typename T>  void bins_2_disk( char* filename_base, char* filepath, DIS
 		}
 		for( int v_bin = 0; v_bin < num_v_bins; v_bin++)
 		{			
-			//printf("v bin = %d\n", v_bins[v_bin]);
 			start_bin = angular_bins[angular_bin] * parameters.T_BINS_D + v_bins[v_bin] * parameters.ANGULAR_BINS_D * parameters.T_BINS_D;
 			t_bins_2_disk( output_file, bin_numbers, data, num_elements, type, bin_order, start_bin );
 			if( v_bin != num_v_bins - 1 )
@@ -5583,7 +5420,7 @@ void truncate_data_set(uint reduced_num_histories)
 	char magic_number1[4];
 	int version_id1;
 	int file_histories1;
-	int histories_per_angle = reduced_num_histories/90;
+	//int histories_per_angle = reduced_num_histories/90;
 
 	float projection_angle1, beam_energy1;
 	int generation_date1, preprocess_date1;
@@ -5974,10 +5811,10 @@ void rename_subdirectory_files(char* string_2_find, char* string_2_replace, char
 	sprintf( chnage_name_command, "Get-ChildItem -Filter \"*%s*\" -Recurse | Rename-Item -NewName {$_.name -replace '%s','%s' }", string_2_find, string_2_replace, string_replacement);
 	system("Powershell");
 }
-void rotate_image()
-{
-	import_image( O*& import_into, char* directory, char* filename_base, DISK_WRITE_MODE format )
-}
+//void rotate_image()
+//{
+//	import_image( O*& import_into, char* directory, char* filename_base, DISK_WRITE_MODE format )
+//}
 void fgets_validated(char *line, int buf_size, FILE* input_file)
 {
     bool done = false;
@@ -6196,6 +6033,44 @@ void print_copyright_notice()
 	char* program_header = (char*)calloc(string_length + 6, sizeof(char) );
 	sprintf(program_header, "%s\n%s\n%s\n%s\n%s\n%s\n", COPYRIGHT_NOTICE, HEADER_STATEMENT, BLAKE_CONTACT, REINHARD_CONTACT, KEITH_CONTACT, PANIZ_CONTACT );
 	puts(program_header);
+}
+void std_IO_2_disk()
+{
+	//system("C:/Users/Blake/Documents/Visual\" Studio 2010\"/Projects/robust_pct/x64/Debug/robust_pct.exe>log.out 2>&1");
+	//system("CMD.exe 1>&outpt.txt 2>&1");
+	//system("3>&1 4>&2");
+	//system("trap 'exec 2>&4 1>&3' 0 1 2 3");
+	//system("1>log.out 2>&1");
+	//system("2>&1");
+	//freopen(STDOUT_FILENAME,"w",stdout);
+	//freopen(STDERR_FILENAME,"w",stderr);
+	//system("2>& 1");
+	//freopen(STDOUT_FILENAME,"w",stdout);
+	//system("2>& 1");
+	//system("1>log.out 2>&1");
+	//if( parameters.STDOUT_2_DISK_D )
+	//{
+	//	//system("rexec 3>&1 4>&2");
+	//	//system("rtrap 'exec 2>&4 1>&3' 0 1 2 3");
+	//	//system("rexec 1>log.out 2>&1");
+	//	//system("robust_pct 2>& test.txt");
+	//	//std::stringstream buffer;
+	//	//std::streambuf * old = std::cout.rdbuf(buffer.rdbuf());
+	//	//std::streambuf * old = std::cin.rdbuf(buffer.rdbuf());
+	//	//std::streambuf * old2 = std::cerr.rdbuf(buffer.rdbuf());
+	//	//freopen(STDOUT_FILENAME,"a+",stdin);
+	//	//freopen(STDOUT_FILENAME,"w",stderr);
+	//	freopen(STDOUT_FILENAME,"w+",stdout);
+	//	//system("2>&1");
+	//	//system("mkdir 2>& out.txt");
+	//	//int file = open("myfile.txt", O_APPEND | O_WRONLY);
+	//	//if(file < 0)    return 1;
+ //
+	//	//Now we redirect standard output to the file using dup2
+	//	//if(dup2(file,1) < 0)    return 1;
+	//	//system("script out.txt");
+	//	//system("script C:/Users/Blake/Documents/Visual Studio 2010/Projects/robust_pct/robust_pct/out.txt");
+	//}
 }
 /***********************************************************************************************************************************************************************************************************************/
 /****************************************************************************** Log Maintaining Functions and Functions in Development *********************************************************************************/
@@ -6424,132 +6299,13 @@ void add_log_entry( LOG_ENTRIES entry )
 		puts("Entry already existed so either output data was overwritten or configurations were improperly specified.");
 	
 }
-void log_add_entry( LOG_ENTRIES entry )
-{
-	char object_l[OBJECT_ENTRIES_SIZE], scan_type_l[TYPE_ENTRIES_SIZE];
-	char run_date_l[DATE_ENTRIES_SIZE], run_number_l[RUN_NUM_ENTRIES_SIZE];
-	char projection_data_date_l[DATE_ENTRIES_SIZE], preprocess_date_l[DATE_ENTRIES_SIZE];
-	char reconstruction_date_l[DATE_ENTRIES_SIZE];
-	char c;
-	std::vector<char*> log_entry;
-	std::vector<std::vector<char*> > log;
-	char object_next[64], scan_type_next[64], run_date_next[64], run_number_next[64];
-	char projection_data_date_next[64], preprocess_date_next[64], reconstruction_date_next[64];
-	char line[1024];
-	char output_entry[64];
-	int in_pos, out_pos;
-	std::fstream log_file(LOG_FILENAME, std::fstream::in | std::fstream::out);
-	
-	if( !log_file.is_open() )
-		log_file.open(LOG_FILENAME);
-	else
-	{
-		puts("Is open");
-		log_file << std::skipws;
-		while( !log_file.eof() )
-		{		
-			log_entry.clear();
-			in_pos = log_file.tellg();
-			log_file.getline(object_l, 64, ',');
-			log_entry.push_back(object_l);
-			puts("object_l= ");
-			puts(object_l);
-
-			//in_pos = log_file.tellg();
-			log_file.getline(scan_type_l, 64, ',');
-			log_entry.push_back(scan_type_l);
-			puts("scan_type_l= ");
-			puts(scan_type_l);
-
-			//in_pos = log_file.tellg();
-			log_file.getline(run_date_l, 64, ',');
-			log_entry.push_back(run_date_l);
-			puts("run_date_l= ");
-			puts(run_date_l);
-
-			//in_pos = log_file.tellg();
-			log_file.getline(run_number_l, 64, ',');
-			log_entry.push_back(run_number_l);
-			puts("run_number_l= ");
-			puts(run_number_l);
-
-			//in_pos = log_file.tellg();
-			log_file.getline(projection_data_date_l, 64, ',');
-			log_entry.push_back(projection_data_date_l);
-			puts("projection_data_date_l= ");
-			puts(projection_data_date_l);
-
-			//in_pos = log_file.tellg();
-			log_file.getline(preprocess_date_l, 64, ',');
-			log_entry.push_back(preprocess_date_l);
-			puts("preprocess_date_l= ");
-			puts(preprocess_date_l);
-
-			//in_pos = log_file.tellg();
-			log_file.getline(reconstruction_date_l, 64, ',');
-			log_entry.push_back(reconstruction_date_l);
-			puts("reconstruction_date_l= ");
-			puts(reconstruction_date_l);
-			/*if( strcmp(reconstruction_date_l, RECONSTRUCTION_DATE ) == 0 )
-			{
-				puts("rewriting");
-				log_file.seekp (in_pos, log_file.beg);
-				sprintf(output_entry, "%s_1", reconstruction_date_l);
-				log_file.write (output_entry,10);
-			}*/
-			out_pos = in_pos;
-			in_pos = log_file.tellg();
-			log_file.get();
-			//log_file.get();
-			//if( strcmp(preprocess_date_l, PREPROCESS_DATE ) == 0 )
-			//{
-			//	//out_pos = in_pos;
-			//	//in_pos = log_file.tellg();
-			//	puts("rewriting");
-			//	log_file.seekp (out_pos, log_file.beg);
-			//	sprintf(output_entry, "%s_1234", PREPROCESS_DATE);
-			//	while( !log_file.eof() )
-			//	{
-			//		log_file << object_l <<"," << scan_type_l <<"," << run_date_l<<"," << run_number_l<<"," << projection_data_date_l<<"," << output_entry<<"," << reconstruction_date_l << "," << endl ;
-			//	}
-			//	log_file << object_l <<"," << scan_type_l <<"," << run_date_l<<"," << run_number_l<<"," << projection_data_date_l<<"," << output_entry<<"," << reconstruction_date_l << "," << endl ;
-			//	out_pos = log_file.tellp();
-			//	//in_pos = out_pos;
-			//	//log_file.write (output_entry,11);
-			//	//in_pos = log_file.tellp();
-			//	log_file.seekg (out_pos, log_file.beg);
-			//	//log_file.seekp(in_pos, log_file.beg);
-			//	pause_execution();
-			//}
-
-			log.push_back(log_entry);
-			
-			//pos = is.tellg();
-			
-			//ios_base::beg	beginning of the stream
-			//ios_base::cur	
-			//log_file << 
-		}
-	}
-	log_file.close();
-	for( int i = 0; i < log.size(); i++ )
-	{
-		for( int j = 0; j < (log[i]).size(); j++ )
-		{
-			printf("%s\n", (log[i])[j] );
-		}
-		puts("");
-	}
-}
 void print_log( LOG_OBJECT log )
 {
 	for( int i = 0; i < log.size(); i++ )
 	{
 		printf("Log Entry %d : \n", i );
 		for( int j = 0; j < NUM_LOG_FIELDS; j++ )
-		{
 			printf("%s\n", log[i][j] );
-		}
 		puts("");
 	}
 }
@@ -6597,7 +6353,7 @@ void log_write_test()
 		sprintf(ACQUIRED_BY, "%s", "" );
 	sprintf(PREPROCESSED_BY, "%s", "Blake Schultze" );
 	sprintf(RECONSTRUCTED_BY, "%s", "Blake Schultze" );
-	sprintf(CONFIG_LINK, "file:///%s/%s", PREPROCESSING_DIR, CONFIG_FILENAME );
+	sprintf(CONFIG_LINK, "file:///%s/%s ", PREPROCESSING_DIR, CONFIG_FILENAME );
 	sprintf(COMMENTS, "%s", "Insert Comments Here" );
 
 	log_file << OBJECT <<"," << SCAN_TYPE << "," << RUN_DATE << "," << RUN_NUMBER << "," << ACQUIRED_BY << "," << PROJECTION_DATA_DATE << ","  << CALIBRATED_BY << ","  << PREPROCESS_DATE << ","  << PREPROCESSED_BY << "," << RECONSTRUCTION_DATE << "," << RECONSTRUCTED_BY << "," << CONFIG_LINK << "," << COMMENTS << ","<< endl;
@@ -6659,21 +6415,78 @@ void log_write_test3()
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************* Testing Host Functions and Functions in Development *********************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
+unsigned int read_MLP_endpoints2()
+{
+	char endpoints_filename[256];
+	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
+	sprintf(endpoints_filename, "D:\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\CTP404_merged\\MLP_endpoints_r=1.bin" );
+	FILE* read_MLP_endpoints = fopen(endpoints_filename, "rb");
+	unsigned int histories;
+	fread( &histories, sizeof(unsigned int), 1, read_MLP_endpoints );
+	printf("%d\n",histories );
+	////D:\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Output\\CTP404_merged\\MLP_endpoints_r=1.bin
+	//resize_vectors( histories );
+	//shrink_vectors( histories );
+	//voxel_x_vector.resize(histories);
+	//voxel_y_vector.resize(histories);
+	//voxel_z_vector.resize(histories);
+
+	////fread( &reconstruction_histories, sizeof(unsigned int), 1, read_MLP_endpoints );
+	//fread( &voxel_x_vector[0], sizeof(int), voxel_x_vector.size(), read_MLP_endpoints );
+	//fread( &voxel_y_vector[0], sizeof(int), voxel_y_vector.size(), read_MLP_endpoints);
+	//fread( &voxel_z_vector[0], sizeof(int), voxel_z_vector.size(), read_MLP_endpoints );
+	//fread( &bin_num_vector[0], sizeof(int), bin_num_vector.size(), read_MLP_endpoints );
+	//fread( &WEPL_vector[0], sizeof(float), WEPL_vector.size(), read_MLP_endpoints );
+	//fread( &x_entry_vector[0], sizeof(float), x_entry_vector.size(), read_MLP_endpoints);
+	//fread( &y_entry_vector[0], sizeof(float), y_entry_vector.size(), read_MLP_endpoints);
+	//fread( &z_entry_vector[0], sizeof(float), z_entry_vector.size(), read_MLP_endpoints);
+	//fread( &x_exit_vector[0], sizeof(float), x_exit_vector.size(), read_MLP_endpoints );
+	//fread( &y_exit_vector[0], sizeof(float), y_exit_vector.size(), read_MLP_endpoints );
+	//fread( &z_exit_vector[0], sizeof(float), z_exit_vector.size(), read_MLP_endpoints );
+	//fread( &xy_entry_angle_vector[0], sizeof(float), xy_entry_angle_vector.size(), read_MLP_endpoints );
+	//fread( &xz_entry_angle_vector[0], sizeof(float), xz_entry_angle_vector.size(), read_MLP_endpoints );
+	//fread( &xy_exit_angle_vector[0], sizeof(float), xy_exit_angle_vector.size(), read_MLP_endpoints );
+	//fread( &xz_exit_angle_vector[0], sizeof(float), xz_exit_angle_vector.size(), read_MLP_endpoints );
+	fclose(read_MLP_endpoints);
+	return histories;
+}
 void test_func()
 {
-	//print_copyright_notice();
-	//view_config_file();
-	set_execution_date();
-	CONFIG_OBJECT config_object = config_file_2_object();
-	read_config_file();
-	
-	set_dependent_parameters();
-	set_IO_directories();
-	set_IO_filenames();
-	set_IO_filepaths();
-	
-	parameters_2_GPU();
+	//set_execution_date();
+	//apply_execution_arguments( num_arguments, arguments );
+	//uint histories = read_MLP_endpoints2();
+	//printf(
+	////print_copyright_notice();
+	////view_config_file();
+	//set_execution_date();
+	//CONFIG_OBJECT config_object = config_file_2_object();
+	//read_config_file();
+	//
+	//set_dependent_parameters();
+	//set_IO_directories();
+	//set_IO_filenames();
+	//set_IO_filepaths();
+	//
+	//parameters_2_GPU();
+	//existing_data_check();
 	existing_data_check();
+	std::vector<float> test_vec(15, 2.0);
+	for( int i = 0; i < (int)test_vec.size(); i++ )
+		cout << test_vec[i] << endl;
+	//vector_2_disk("test_vec", "D:\\pCT_Data\\Output\\CTP404\\CTP404_merged\\", TEXT, test_vec, test_vec.size(), 1, 1, true);
+	char* filename = "D:\\pCT_Data\\Output\\CTP404\\CTP404_merged\\test_vec.bin";
+	FILE* outfile = fopen(filename, "wb");
+	fwrite( &test_vec[0], sizeof(float), test_vec.size(), outfile );
+	fclose(outfile);
+
+	FILE* infile = fopen(filename, "rb");
+	std::vector<float> invec;
+	invec.reserve(test_vec.size());
+	invec.resize(test_vec.size());
+	fread( &invec[0], sizeof(float), test_vec.size(), infile );
+	for( int i = 0; i < test_vec.size(); i++ )
+		cout << invec[i] << endl;
+	fclose(infile);
 	/*cout << file_exists3(MLP_PATH) << endl;
 	cout << file_exists3(WEPL_PATH) << endl;
 	cout << file_exists3(HISTORIES_PATH) << endl;*/

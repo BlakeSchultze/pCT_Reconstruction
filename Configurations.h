@@ -44,11 +44,10 @@ struct configurations
 	bool ADD_DATA_LOG_ENTRY_D, STDOUT_2_DISK_D, USER_INPUT_REQUESTS_OFF_D;
 	bool IMPORT_PREPROCESSING_D, PERFORM_RECONSTRUCTION_D, PREPROCESS_OVERWRITE_OK_D, RECON_OVERWRITE_OK_D;
 	bool FBP_ON_D, SC_ON_D, MSC_ON_D, SM_ON_D;
-	//bool AVG_FILTER_HULL_D, AVG_FILTER_ITERATE_D;//, MLP_FILE_EXISTS_D, HISTORIES_FILE_EXISTS_D;
-	bool WRITE_MSC_COUNTS_D, WRITE_SM_COUNTS_D, WRITE_X_FBP_D, WRITE_FBP_HULL_D, WRITE_AVG_FBP_D, WRITE_MEDIAN_FBP_D, WRITE_BIN_WEPLS_D, WRITE_WEPL_DISTS_D, WRITE_SSD_ANGLES_D;	
-	
 	bool MEDIAN_FILTER_HULL_D, MEDIAN_FILTER_FBP_D, MEDIAN_FILTER_X_0_D, MEDIAN_FILTER_X_K_D, MEDIAN_FILTER_X_D;
 	bool AVG_FILTER_HULL_D, AVG_FILTER_FBP_D, AVG_FILTER_X_0_D, AVG_FILTER_X_K_D, AVG_FILTER_X_D;
+	bool WRITE_MSC_COUNTS_D, WRITE_SM_COUNTS_D, WRITE_X_FBP_D, WRITE_FBP_HULL_D, WRITE_AVG_FBP_D, WRITE_MEDIAN_FBP_D, WRITE_BIN_WEPLS_D, WRITE_WEPL_DISTS_D, WRITE_SSD_ANGLES_D;	
+	bool DEBUG_TEXT_ON_D, EXIT_AFTER_BINNING_D, EXIT_AFTER_HULLS_D, EXIT_AFTER_CUTS_D, EXIT_AFTER_SINOGRAM_D, EXIT_AFTER_FBP_D;
 	//*************************************************************************************************************************************************************************//
 	//*********************************************************************** Output option parameters ************************************************************************//
 	//*************************************************************************************************************************************************************************//
@@ -148,20 +147,20 @@ struct configurations
 		bool write_median_fbp_p			= false,							// [T/F] Write median filtered FBP image to disk (T) or not (F)
 		bool write_bin_wepls_p			= false,							// [T/F] Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
 		bool write_wepl_dists_p			= false,							// [T/F] Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
-		bool write_ssd_angles_p			= false								// [T/F] Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F)
+		bool write_ssd_angles_p			= false,							// [T/F] Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F)
+		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+		//----------------------------------------------------------------------- Program Execution Control -------------------------------------------------------------------//
+		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+		bool debug_text_on_p			= true,								// Provide (T) or suppress (F) print statements to console during execution
+		bool exit_after_binning_p		= false,							// Exit program early after completing data read and initial processing
+		bool exit_after_hulls_p			= true,								// Exit program early after completing hull-detection
+		bool exit_after_cuts_p			= false,							// Exit program early after completing statistical cuts
+		bool exit_after_sinogram_p		= false,							// Exit program early after completing the ruction of the sinogram
+		bool exit_after_fbp_p			= false								// Exit program early after completing FBP
 	):
 	//*************************************************************************************************************************************************************************//
 	//*********************************************************************** Parameter Instantiations ************************************************************************//
 	//*************************************************************************************************************************************************************************//
-	//PROJECTION_DATA_DIR(projection_data_dir),
-	//PREPROCESSING_DIR_D(preprocessing_dir_p),
-	//RECONSTRUCTION_DIR_D(reconstruction_dir_p),
-	//OBJECT_D(object_p),
-	//RUN_DATE_D(run_date_p),
-	//RUN_NUMBER_D(run_number_p),
-	//PROJECTION_DATA_DATE_D(projection_data_date_p),
-	//PREPROCESS_DATE_D(preprocess_date_p),
-	//RECONSTRUCTION_DATE_D(reconstruction_date_p),
 	NUM_SCANS_D(num_scans_p),												// *[#] Total number of scans of same object	
 	MAX_GPU_HISTORIES_D(max_gpu_histories_p),								// *[#] Number of histories to process on the GPU at a time, based on GPU capacity
 	MAX_CUTS_HISTORIES_D(max_cuts_histories_p),								// *[#] Number of histories to process on the GPU at a time, based on GPU capacity
@@ -264,10 +263,6 @@ struct configurations
 	SC_ON_D(sc_on_p),														// *[T/F] Turn Space Carving on (T) or off (F)
 	MSC_ON_D(msc_on_p),														// *[T/F] Turn Modified Space Carving on (T) or off (F)
 	SM_ON_D(sm_on_p),														// *[T/F] Turn Space Modeling on (T) or off (F)
-	//AVG_FILTER_HULL_D(avg_filter_hull_p),									// *[T/F] Apply averaging filter to hull (T) or not (F)	
-	//AVG_FILTER_ITERATE_D(avg_filter_x_0_p),									// *[T/F] Apply averaging filter to initial iterate x_0 (T) or not (F)	
-	//MLP_FILE_EXISTS_D(mlp_file_exists_p),									// *[T/F] MLP.bin preprocessing data exists (T) or not (F)
-	//HISTORIES_FILE_EXISTS_D(histories_file_exists_p),						// *[T/F] Histories.bin preprocessing data exists (T) or not (F)
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//----------------------------------------------------------------------- Filtering options/parameters ------------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -302,7 +297,16 @@ struct configurations
 	WRITE_MEDIAN_FBP_D(write_median_fbp_p),									// *[T/F] Write median filtered FBP image to disk (T) or not (F)
 	WRITE_BIN_WEPLS_D(write_bin_wepls_p),									// *[T/F] Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
 	WRITE_WEPL_DISTS_D(write_wepl_dists_p),									// *[T/F] Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
-	WRITE_SSD_ANGLES_D(write_ssd_angles_p)									// *[T/F] Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F)
+	WRITE_SSD_ANGLES_D(write_ssd_angles_p),									// *[T/F] Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F)
+	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+	//---------------------------------------------------------------------- Program Execution Control  -----------------------------------------------------------------------//
+	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+	DEBUG_TEXT_ON_D(debug_text_on_p),										// Provide (T) or suppress (F) print statements to console during execution
+	EXIT_AFTER_BINNING_D(exit_after_binning_p),								// Exit program early after completing data read and initial processing
+	EXIT_AFTER_HULLS_D(exit_after_hulls_p),									// Exit program early after completing hull-detection
+	EXIT_AFTER_CUTS_D(exit_after_cuts_p),									// Exit program early after completing statistical cuts
+	EXIT_AFTER_SINOGRAM_D(exit_after_sinogram_p),							// Exit program early after completing the ruction of the sinogram
+	EXIT_AFTER_FBP_D(exit_after_fbp_p)										// Exit program early after completing FBP
 	{};
 };
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -363,7 +367,7 @@ void statistical_cuts( const uint, const uint );
 void initialize_sinogram();
 void construct_sinogram();
 void FBP();
-void x_FBP_2_hull();
+void FBP_2_hull();
 void filter();
 void backprojection();
 
@@ -475,7 +479,8 @@ void bin_2_indexes( int, int&, int&, int& );
 void print_section_separator(char );
 void print_section_header( char*, char );
 void print_section_exit( char*, char* );
-const char * bool_2_string( bool b ){ return b ? "true" : "false"; }
+void print_copyright_notice();
+void std_IO_2_disk();
 
 // Generic IO helper functions
 template<typename T> T cin_until_valid( T*, int, char* );
@@ -490,16 +495,11 @@ bool file_exists (const char* file_location) { return (bool)std::ifstream(file_l
 bool file_exists2 (const char* file_location) { return std::ifstream(file_location).good(); };
 bool file_exists3 (const char*);
 bool blank_line( char c ) { return (c != '\n') && (c!= '\t') && (c != ' '); };
+const char * bool_2_string( bool b ){ return b ? "true" : "false"; }
 void fgets_validated(char *line, int buf_size, FILE*);
 struct generic_IO_container read_key_value_pair( FILE* );
-void print_copyright_notice();
 
 // Configuration option/parameter handling
-void set_configs_2_defines();
-void set_defines_2_configs();
-void export_D_configuration_parameters();
-void export_configuration_parameters();
-void set_data_info( char *);
 bool preprocessing_data_exists();
 void add_object_directory(char*, char*);
 int add_run_directory(char*, char*, char*, char*, SCAN_TYPES );
@@ -512,17 +512,21 @@ uint parse_config_file_line( FILE*, CONFIG_OBJECT& );
 CONFIG_OBJECT config_file_2_object();
 bool key_is_string_parameter( char* );
 bool key_is_floating_point_parameter( char* );
+bool key_is_unsigned_integer_parameter( char* );
 bool key_is_integer_parameter( char* );
 bool key_is_boolean_parameter( char* );
 void set_string_parameter( generic_IO_container & );
 void set_floating_point_parameter( generic_IO_container & );
+void set_unsigned_integer_parameter( generic_IO_container & );
 void set_integer_parameter( generic_IO_container & );
 void set_boolean_parameter( generic_IO_container & );
 void set_parameter( generic_IO_container & );
+void set_file_extension( char*, DISK_WRITE_MODE );
 void set_execution_date();
 void set_IO_directories();
 void view_config_file();
 void set_dependent_parameters();
+void set_IO_file_extensions();
 void parameters_2_GPU();
 
 // Log file functions
@@ -559,7 +563,7 @@ __global__ void statistical_cuts_GPU( configurations*, uint, int*, int*, float*,
 __global__ void construct_sinogram_GPU( configurations*, int*, float* );
 __global__ void filter_GPU( configurations*, float*, float* );
 __global__ void backprojection_GPU( configurations*, float*, float* );
-__global__ void x_FBP_2_hull_GPU( configurations*, float*, bool* );
+__global__ void FBP_2_hull_GPU( configurations*, float*, bool* );
 
 // Hull-Detection 
 template<typename T> __global__ void initialize_hull_GPU( configurations*, T* );
@@ -609,289 +613,9 @@ __device__ void take_3D_step_GPU( configurations*, const int, const int, const i
 // New routine test functions
 __global__ void test_func_GPU( configurations*, int* );
 __global__ void test_func_device( configurations*, double*, double*, double* );
-
 /***********************************************************************************************************************************************************************************************************************/
 /**************** Functions for reading configuration file, setting associated option/parameter variables, and enforcement of data storage naming/organization scheme for all data/folders generated  ******************/
 /***********************************************************************************************************************************************************************************************************************/
-void set_configs_2_defines()
-{
-	/*parameters.NUM_SCANS_D = NUM_SCANS;
-	parameters.GANTRY_ANGLE_INTERVAL_D = GANTRY_ANGLE_INTERVAL;
-	parameters.SSD_T_SIZE_D = SSD_T_SIZE;
-	parameters.SSD_V_SIZE_D = SSD_V_SIZE;
-	parameters.T_SHIFT_D = T_SHIFT;
-	parameters.U_SHIFT_D = U_SHIFT;
-	parameters.T_BIN_SIZE_D = T_BIN_SIZE;
-	parameters.T_BINS_D = T_BINS;
-	parameters.V_BIN_SIZE_D = V_BIN_SIZE;
-	parameters.V_BINS_D = V_BINS;
-	parameters.ANGULAR_BIN_SIZE_D = ANGULAR_BIN_SIZE;
-	parameters.SIGMAS_2_KEEP_D = SIGMAS_2_KEEP;
-	parameters.RECON_CYL_RADIUS_D = RECON_CYL_RADIUS;
-	parameters.RECON_CYL_HEIGHT_D = RECON_CYL_HEIGHT;
-	parameters.IMAGE_WIDTH_D = IMAGE_WIDTH;
-	parameters.IMAGE_HEIGHT_D = IMAGE_HEIGHT;
-	parameters.IMAGE_THICKNESS_D = IMAGE_THICKNESS;
-	parameters.COLUMNS_D = COLUMNS;
-	parameters.ROWS_D = ROWS;
-	parameters.SLICES_D = SLICES;
-	parameters.VOXEL_WIDTH_D = VOXEL_WIDTH;
-	parameters.VOXEL_HEIGHT_D = VOXEL_HEIGHT;
-	parameters.VOXEL_THICKNESS_D = VOXEL_THICKNESS;
-	parameters.LAMBDA_D = LAMBDA;
-	parameters.LAMBDA = LAMBDA;*/
-}
-void set_defines_2_configs()
-{
-	//NUM_SCANS = parameters.NUM_SCANS_D;
-	//GANTRY_ANGLE_INTERVAL = parameters.GANTRY_ANGLE_INTERVAL_D;
-	//SSD_T_SIZE = parameters.SSD_T_SIZE_D;
-	//SSD_V_SIZE = parameters.SSD_V_SIZE_D;
-	//T_SHIFT = parameters.T_SHIFT_D;
-	//U_SHIFT = parameters.U_SHIFT_D;
-	//T_BIN_SIZE = parameters.T_BIN_SIZE_D;
-	//T_BINS = parameters.T_BINS_D;
-	//V_BIN_SIZE = parameters.V_BIN_SIZE_D;
-	//V_BINS = parameters.V_BINS_D;
-	//ANGULAR_BIN_SIZE = parameters.ANGULAR_BIN_SIZE_D;
-	//SIGMAS_2_KEEP = parameters.SIGMAS_2_KEEP_D;
-	//RECON_CYL_RADIUS = parameters.RECON_CYL_RADIUS_D;
-	//RECON_CYL_HEIGHT = parameters.RECON_CYL_HEIGHT_D;
-	//IMAGE_WIDTH = parameters.IMAGE_WIDTH_D;
-	//IMAGE_HEIGHT = parameters.IMAGE_HEIGHT_D;
-	//IMAGE_THICKNESS = parameters.IMAGE_THICKNESS_D;
-	//COLUMNS = parameters.COLUMNS_D;
-	//ROWS = parameters.ROWS_D;
-	//SLICES = parameters.SLICES_D;
-	//VOXEL_WIDTH = parameters.VOXEL_WIDTH_D;
-	//VOXEL_HEIGHT = parameters.VOXEL_HEIGHT_D;
-	//VOXEL_THICKNESS = parameters.VOXEL_THICKNESS_D;
-	//LAMBDA = parameters.LAMBDA_D;
-}
-void export_D_configuration_parameters()
-{
-	char run_settings_filename[512];
-	puts("Writing configuration_parameters struct elements to disk...");
-
-	sprintf(run_settings_filename, "%s\\%s", PREPROCESSING_DIR, CONFIG_FILENAME);
-
-	std::ofstream run_settings_file(run_settings_filename);		
-	if( !run_settings_file.is_open() ) {
-		printf("ERROR: run settings file not created properly %s!\n", run_settings_filename);	
-		exit_program_if(true);
-	}
-	char buf[64];
-	run_settings_file.setf (std::ios_base::showpoint);
-	/*run_settings_file << "PROJECTION_DATA_DIR = "		<<  "\""	<< parameters.PROJECTION_DATA_DIR						<< "\"" << std::endl;
-	run_settings_file << "PREPROCESSING_DIR_D = "		<<  "\""	<< parameters.PREPROCESSING_DIR_D						<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DIR_D = "		<<  "\""	<< parameters.RECONSTRUCTION_DIR_D						<< "\"" << std::endl;
-	run_settings_file << "OBJECT_D = "					<<  "\""	<< parameters.OBJECT_D									<< "\"" << std::endl;
-	run_settings_file << "RUN_DATE_D = "				<<  "\""	<< parameters.RUN_DATE_D								<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER_D = "				<<  "\""	<< parameters.RUN_NUMBER_D								<< "\"" << std::endl;
-	run_settings_file << "PROJECTION_DATA_DATE_D = "	<<  "\""	<< parameters.PROJECTION_DATA_DATE_D					<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER_D = "				<<  "\""	<< parameters.RUN_NUMBER_D								<< "\"" << std::endl;
-	run_settings_file << "PREPROCESS_DATE_D = "			<<  "\""	<< parameters.PREPROCESS_DATE_D							<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DATE_D = "		<<  "\""	<< parameters.RECONSTRUCTION_DATE_D						<< "\"" << std::endl;*/
-
-	run_settings_file << "PROJECTION_DATA_DIR = "	<<  "\""	<< PROJECTION_DATA_DIR								<< "\"" << std::endl;
-	run_settings_file << "PREPROCESSING_DIR = "		<<  "\""	<< PREPROCESSING_DIR								<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DIR = "	<<  "\""	<< RECONSTRUCTION_DIR								<< "\"" << std::endl;
-	run_settings_file << "OBJECT = "				<<  "\""	<< OBJECT											<< "\"" << std::endl;
-	run_settings_file << "RUN_DATE = "				<<  "\""	<< RUN_DATE											<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
-	run_settings_file << "PROJECTION_DATA_DATE = "	<<  "\""	<< PROJECTION_DATA_DATE								<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
-	run_settings_file << "PREPROCESS_DATE = "		<<  "\""	<< PREPROCESS_DATE									<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DATE = "	<<  "\""	<< RECONSTRUCTION_DATE								<< "\"" << std::endl;
-
-	run_settings_file << "NUM_SCANS = "				<< parameters.NUM_SCANS_D												<< std::endl;
-	run_settings_file << "T_BINS = "				<< parameters.T_BINS_D													<< std::endl;
-	run_settings_file << "V_BINS = "				<< parameters.V_BINS_D													<< std::endl;
-	run_settings_file << "COLUMNS = "				<< parameters.COLUMNS_D													<< std::endl;
-	run_settings_file << "ROWS = "					<< parameters.ROWS_D													<< std::endl;
-	run_settings_file << "SLICES = "				<< parameters.SLICES_D													<< std::endl;
-	run_settings_file << "SIGMAS_2_KEEP = "			<< parameters.SIGMAS_2_KEEP_D											<< std::endl;
-	run_settings_file << "GANTRY_ANGLE_INTERVAL = "	<< minimize_trailing_zeros( parameters.GANTRY_ANGLE_INTERVAL_D, buf	)	<< std::endl;
-	run_settings_file << "ANGULAR_BIN_SIZE = "		<< minimize_trailing_zeros( parameters.ANGULAR_BIN_SIZE_D, buf )		<< std::endl;
-	run_settings_file << "SSD_T_SIZE = "			<< minimize_trailing_zeros( parameters.SSD_T_SIZE_D, buf )				<< std::endl;
-	run_settings_file << "SSD_V_SIZE = "			<< minimize_trailing_zeros( parameters.SSD_V_SIZE_D, buf )				<< std::endl;
-	run_settings_file << "T_SHIFT = "				<< minimize_trailing_zeros( parameters.T_SHIFT_D, buf )					<< std::endl;
-	run_settings_file << "U_SHIFT = "				<< minimize_trailing_zeros( parameters.U_SHIFT_D, buf )					<< std::endl;
-	run_settings_file << "T_BIN_SIZE = "			<< minimize_trailing_zeros( parameters.T_BIN_SIZE_D, buf )				<< std::endl;	
-	run_settings_file << "V_BIN_SIZE = "			<< minimize_trailing_zeros( parameters.V_BIN_SIZE_D, buf )				<< std::endl;		
-	run_settings_file << "RECON_CYL_RADIUS = "		<< minimize_trailing_zeros( parameters.RECON_CYL_RADIUS_D, buf )		<< std::endl;
-	run_settings_file << "RECON_CYL_HEIGHT = "		<< minimize_trailing_zeros( parameters.RECON_CYL_HEIGHT_D, buf )		<< std::endl;
-	run_settings_file << "IMAGE_WIDTH = "			<< minimize_trailing_zeros( parameters.IMAGE_WIDTH_D, buf )				<< std::endl;
-	run_settings_file << "IMAGE_HEIGHT = "			<< minimize_trailing_zeros( parameters.IMAGE_HEIGHT_D, buf )			<< std::endl;
-	run_settings_file << "IMAGE_THICKNESS = "		<< minimize_trailing_zeros( parameters.IMAGE_THICKNESS_D, buf )			<< std::endl;
-	run_settings_file << "VOXEL_WIDTH = "			<< minimize_trailing_zeros( parameters.VOXEL_WIDTH_D, buf )				<< std::endl;
-	run_settings_file << "VOXEL_HEIGHT = "			<< minimize_trailing_zeros( parameters.VOXEL_HEIGHT_D, buf )			<< std::endl;
-	run_settings_file << "VOXEL_THICKNESS = "		<< minimize_trailing_zeros( parameters.VOXEL_THICKNESS_D, buf )			<< std::endl;
-	run_settings_file << "LAMBDA = "				<< minimize_trailing_zeros( parameters.LAMBDA_D, buf )					<< std::endl;
-	run_settings_file << "LAMBDA = "				<< minimize_trailing_zeros( parameters.LAMBDA, buf )					<< std::endl;
-	run_settings_file.close();	
-}
-void export_configuration_parameters()
-{
-	char run_settings_filename[512];
-	puts("Writing configuration_parameters struct elements to disk...");
-
-	sprintf(run_settings_filename, "%s\\%s", PREPROCESSING_DIR, CONFIG_FILENAME);
-
-	std::ofstream run_settings_file(run_settings_filename);		
-	if( !run_settings_file.is_open() ) {
-		printf("ERROR: run settings file not created properly %s!\n", run_settings_filename);	
-		exit_program_if(true);
-	}
-	char buf[64];
-	run_settings_file.setf (std::ios_base::showpoint);
-	/*run_settings_file << "PROJECTION_DATA_DIR = "	<<  "\""	<< PROJECTION_DATA_DIR								<< "\"" << std::endl;
-	run_settings_file << "PREPROCESSING_DIR = "		<<  "\""	<< PREPROCESSING_DIR								<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DIR = "	<<  "\""	<< RECONSTRUCTION_DIR								<< "\"" << std::endl;
-	run_settings_file << "OBJECT = "				<<  "\""	<< OBJECT											<< "\"" << std::endl;
-	run_settings_file << "RUN_DATE = "				<<  "\""	<< RUN_DATE											<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
-	run_settings_file << "PROJECTION_DATA_DATE = "	<<  "\""	<< PROJECTION_DATA_DATE								<< "\"" << std::endl;
-	run_settings_file << "RUN_NUMBER = "			<<  "\""	<< RUN_NUMBER										<< "\"" << std::endl;
-	run_settings_file << "PREPROCESS_DATE = "		<<  "\""	<< PREPROCESS_DATE									<< "\"" << std::endl;
-	run_settings_file << "RECONSTRUCTION_DATE = "	<<  "\""	<< RECONSTRUCTION_DATE								<< "\"" << std::endl;
-	run_settings_file << "NUM_SCANS = "							<<  NUM_SCANS												<< std::endl;
-	run_settings_file << "T_BINS = "							<<  T_BINS													<< std::endl;
-	run_settings_file << "V_BINS = "							<<  V_BINS													<< std::endl;
-	run_settings_file << "COLUMNS = "							<<  COLUMNS													<< std::endl;
-	run_settings_file << "ROWS = "								<<  ROWS													<< std::endl;
-	run_settings_file << "SLICES = "							<<  SLICES													<< std::endl;
-	run_settings_file << "SIGMAS_2_KEEP = "						<<  SIGMAS_2_KEEP											<< std::endl;
-	run_settings_file << "GANTRY_ANGLE_INTERVAL = "				<< minimize_trailing_zeros( GANTRY_ANGLE_INTERVAL, buf )	<< std::endl;
-	run_settings_file << "ANGULAR_BIN_SIZE = "					<< minimize_trailing_zeros( ANGULAR_BIN_SIZE, buf )			<< std::endl;
-	run_settings_file << "SSD_T_SIZE = "						<< minimize_trailing_zeros( SSD_T_SIZE, buf )				<< std::endl;
-	run_settings_file << "SSD_V_SIZE = "						<< minimize_trailing_zeros( SSD_V_SIZE, buf )				<< std::endl;
-	run_settings_file << "T_SHIFT = "							<< minimize_trailing_zeros( T_SHIFT, buf )					<< std::endl;
-	run_settings_file << "U_SHIFT = "							<< minimize_trailing_zeros( U_SHIFT, buf )					<< std::endl;
-	run_settings_file << "T_BIN_SIZE = "						<< minimize_trailing_zeros( T_BIN_SIZE, buf )				<< std::endl;	
-	run_settings_file << "V_BIN_SIZE = "						<< minimize_trailing_zeros( V_BIN_SIZE, buf )				<< std::endl;		
-	run_settings_file << "RECON_CYL_RADIUS = "					<< minimize_trailing_zeros( RECON_CYL_RADIUS, buf )			<< std::endl;
-	run_settings_file << "RECON_CYL_HEIGHT = "					<< minimize_trailing_zeros( RECON_CYL_HEIGHT, buf )			<< std::endl;
-	run_settings_file << "IMAGE_WIDTH = "						<< minimize_trailing_zeros( IMAGE_WIDTH, buf )				<< std::endl;
-	run_settings_file << "IMAGE_HEIGHT = "						<< minimize_trailing_zeros( IMAGE_HEIGHT, buf )				<< std::endl;
-	run_settings_file << "IMAGE_THICKNESS = "					<< minimize_trailing_zeros( IMAGE_THICKNESS, buf )			<< std::endl;
-	run_settings_file << "VOXEL_WIDTH = "						<< minimize_trailing_zeros( VOXEL_WIDTH, buf )				<< std::endl;
-	run_settings_file << "VOXEL_HEIGHT = "						<< minimize_trailing_zeros( VOXEL_HEIGHT, buf )				<< std::endl;
-	run_settings_file << "VOXEL_THICKNESS = "					<< minimize_trailing_zeros( VOXEL_THICKNESS, buf )			<< std::endl;
-	run_settings_file << "LAMBDA = "							<< minimize_trailing_zeros( LAMBDA, buf )					<< std::endl;
-	run_settings_file.close();*/
-}
-void set_data_info( char * path)
-{
-	//char OBJECT[]					= "Object";
-	//char* DATA_TYPE_DIR;
-	//char RUN_DATE[]					= "MMDDYYYY";
-	//char RUN_NUMBER[]				= "Run";
-	//char PREPROCESS_DATE[]			= "MMDDYYYY";
-	//char RECONSTRUCTION_DIR[]		= "Reconstruction";
-	//char RECONSTRUCTION_DATE[]				= "MMDDYYYY";
-	//char PCT_IMAGES[]				= "Images";
-	//char REFERENCE_IMAGES[]			= "Reference_Images";
-	//char TEST_OUTPUT_FILE[]			= "export_testing.cfg";
-	char * pch = strtok (path,  "\\ : \n");
-	  while (pch != NULL)
-	  {
-		printf ("%s\n",pch);
-		pch = strtok (NULL, "\\ : \n");
-		if( strcmp(pch, "pCT_Data") == 0) 
-			break;
-	  }
-	pch = strtok (NULL, "\\ : \n");
-	if(pch != NULL)
-		if( strcmp(pch, "object_name") == 0)
-			cout << "object_name found" << endl;
-	pch = strtok (NULL, "\\ : \n");
-	if(pch != NULL)
-		if( strcmp(pch, "Experimental") == 0)
-			cout << "Experimental found" << endl;
-	pch = strtok (NULL, "\\ : \n");
-	if(pch != NULL)
-		if( strcmp(pch, "DDMMYYYY") == 0)
-			cout << "DDMMYYYY found" << endl;
-}
-bool preprocessing_data_exists()
-{
-	return true;
-}
-//void add_log_entry()
-//{
-//	// PATH_2_PCT_DATA_DIR/LOG_FILENAME
-//	char buf[64];	
-//	//char* open_quote_pos;
-//	const uint buf_size = 1024;
-//	char log_path[256];
-//	sprintf( log_path, "%s/%s", PATH_2_PCT_DATA_DIR, LOG_FILENAME );
-//	FILE* log_file = fopen(log_path, "r+" );
-//	char line[buf_size];
-//	//int string_leng5th;
-//	//generic_IO_container input_value;
-//	// Remove leading spaces/tabs and return first line which does not begin with comment command "//" and is not blank
-//	char item[256], item_name[256], remainder[256];
-//	char object[256], scan_type[256], run_date[256], run_num[256], proj_date[256], pre_date[256], recon_date[256];
-//	
-//	fgets_validated(line, buf_size, log_file);
-//	sscanf (line, "%s: %s", &item, &object );
-//	//while( strcmp( object, OBJECT ) != 0 )
-//	printf("%s = %s\n", line, object );
-//	while( strcmp( item, "Object" ) != 0 )
-//	{
-//		fgets_validated(line, buf_size, log_file);
-//		sscanf (line, "%s: %s", &item, &object );
-//		printf("%s = %s\n", line, object );
-//		if( feof(log_file) )
-//		{
-//			return;
-//			puts("Return");
-//		}
-//	}
-//	//if( strcmp( object, "object_name" ) < 0)
-//
-//	//else
-//
-//	fgets_validated(line, buf_size, log_file);
-//	sscanf (line, "Object: %s", &object );
-//	fprintf(log_file, "Hello");
-//	//sscanf (line, " %s = %s %s", &item, &item_name, &remainder );idated(log_file, line, buf_size);
-//	//if( strcmp( line, OBJECT ) == 0 )
-//	//{
-//	//	fgets_validated(log_file, line, buf_size);
-//	//	fprintf (log_file, "\n" );
-//	//}
-//	//else
-//	//	fprintf (log_file, "Object = %s\n", OBJECT);
-//	//puts("Hello");
-//	//fprintf( log_file, "\tScan Type = %s : %s %s %s %s %s ", SCAN_TYPE, RUN_DATE, RUN_NUMBER, PROJECTION_DATA_DATE, PREPROCESS_DATE, RECONSTRUCTION_DATE);
-//	////fwrite( &reconstruction_histories, sizeof(unsigned int), 1, log_file );
-//	fclose(log_file);
-//}
-//bool find_log_item( FILE* log_file, char* log_item, char* log_item_name )
-//{
-//	char buf[64];	
-//	//char* open_quote_pos;
-//	const uint buf_size = 1024;
-//	char key_value_pair[256];
-//	char item[256], item_name[256], remainder[256];
-//	sprintf( key_value_pair, "%s = %s", log_item, log_item_name );
-//	char line[buf_size];
-//
-//	fgets_validated(log_file, line, buf_size);
-//	sscanf (line, " %s = %s %s", &item, &item_name, &remainder );
-//	while( strcmp( line, item ) < 0 )
-//	{
-//		fgets_validated(log_file, line, buf_size);
-//		sscanf (line, " %s = %s %s", &item, &item_name, &remainder );
-//	}
-//	if( strcmp( line, log_item ) == 0 )
-//		fprintf (log_file, "\nObject: %s\n", log_item );
-//	else
-//		fprintf (log_file, "\n" );
-//	return true;
-//}
 void add_object_directory(char* pct_data_dir, char* object_name)
 {
 	char mkdir_command[128];
@@ -1015,6 +739,19 @@ void read_config_file()
 	fclose(input_file);
 	print_section_exit( "Finished reading configuration file and setting execution parameters", "====>" );
 }
+void view_config_file()
+{
+	char filename[256]; 
+
+	#if defined(_WIN32) || defined(_WIN64)
+		sprintf(filename, "%s %s %s", "start", "wordpad", CONFIG_PATH);
+		terminal_response(filename);
+    #else
+		sprintf(filename, "%s %s", "touch", CONFIG_FILENAME);
+		terminal_response(filename);
+    #endif
+	
+}
 CONFIG_LINE split_config_comments(char* comment_line)
 {
 	std::string entry_string(comment_line);
@@ -1053,9 +790,7 @@ void write_config( CONFIG_OBJECT config_object)
 		{
 			config_file << std::noskipws;		
 			for( int j = 0; j < NUM_CONFIG_FIELDS; j++ )
-			{
 				config_file <<  config_object[i][j];
-			}
 			config_file << endl;
 		}
 	}
@@ -1107,9 +842,9 @@ uint parse_config_file_line( FILE* input_file, CONFIG_OBJECT& config_object )
 	// n =				  1			   1		   2			2		   3		   3	 ...	 n			 n       
 	// i =	 0			  1			   2		   3			4		   5		   6	 ...   2n - 1  		 2n		  2n + 1
 	// [program name][parameter 1][new val 1][parameter 2][new val 2][parameter 3][new val 3]...[parameter n][new val n][cfg path]
-	for( int n = 1; n <= num_parameters_2_change; n++)
+	for( int n = 1; n <= NUM_PARAMETERS_2_CHANGE; n++)
 	{
-		parameter =  run_arguments[2 * n - 1];
+		parameter =  RUN_ARGUMENTS[2 * n - 1];
 		if( strcmp(key, parameter) == 0 )
 		{
 			if(		key_is_string_parameter( parameter )
@@ -1118,7 +853,7 @@ uint parse_config_file_line( FILE* input_file, CONFIG_OBJECT& config_object )
 				||	key_is_boolean_parameter( parameter ) 
 			)
 			{
-				value_string = std::string(run_arguments[2 * n]);	
+				value_string = std::string(RUN_ARGUMENTS[2 * n]);	
 				parameters_changed++;
 			}
 		}
@@ -1182,7 +917,7 @@ CONFIG_OBJECT config_file_2_object()
 	fclose(input_file);
 	print_section_exit( "Finished reading configuration file and setting execution parameters", "====>" );
 	write_config( config_object);
-	if( parameters_changed < num_parameters_2_change )
+	if( parameters_changed < NUM_PARAMETERS_2_CHANGE )
 	{
 		puts("ERROR: Parameter specified for value change does not have a valid key."); 
 		exit_program_if(true);
@@ -1244,7 +979,7 @@ bool key_is_floating_point_parameter( char* key )
 	else
 		return false;
 }
-bool key_is_integer_parameter( char* key )
+bool key_is_unsigned_integer_parameter( char* key )
 {
 	if
 	( 
@@ -1274,8 +1009,17 @@ bool key_is_integer_parameter( char* key )
 		||	strcmp (key, "X_0_AVG_FILTER_RADIUS") == 0
 		||	strcmp (key, "X_K_AVG_FILTER_RADIUS") == 0
 		||	strcmp (key, "X_AVG_FILTER_RADIUS") == 0							
-		||	strcmp (key, "PSI_SIGN") == 0
 		||	strcmp (key, "MSC_DIFF_THRESH") == 0
+	)
+		return true;
+	else
+		return false;
+}
+bool key_is_integer_parameter( char* key )
+{
+	if
+	(	
+		strcmp (key, "PSI_SIGN") == 0
 	)
 		return true;
 	else
@@ -1314,6 +1058,12 @@ bool key_is_boolean_parameter( char* key )
 		||	strcmp (key, "WRITE_BIN_WEPLS") == 0
 		||	strcmp (key, "WRITE_WEPL_DISTS") == 0
 		||	strcmp (key, "WRITE_SSD_ANGLES") == 0 
+		||	strcmp (key, "DEBUG_TEXT_ON") == 0
+		||	strcmp (key, "EXIT_AFTER_BINNING") == 0
+		||	strcmp (key, "EXIT_AFTER_HULLS") == 0
+		||	strcmp (key, "EXIT_AFTER_CUTS") == 0
+		||	strcmp (key, "EXIT_AFTER_SINOGRAM") == 0
+		||	strcmp (key, "EXIT_AFTER_FBP") == 0	
 	)
 		return true;
 	else
@@ -1415,7 +1165,7 @@ void set_floating_point_parameter( generic_IO_container &value )
 {
 	char buf[64];
 	if( value.input_type_ID == INTEGER )
-			printf("converted to a double and ");
+		printf("converted to a double and ");
 	//printf("set to %s\n", minimize_trailing_zeros(value.double_input, buf));
 	printf("set to %s\n", minimize_trailing_zeros(value.double_input, buf));
 	if( strcmp (value.key, "GANTRY_ANGLE_INTERVAL") == 0 )
@@ -1651,332 +1401,120 @@ void set_floating_point_parameter( generic_IO_container &value )
 		exit_program_if(true);
 	}
 }
-void set_integer_parameter( generic_IO_container &value )
+void set_unsigned_integer_parameter( generic_IO_container &value )
 {
 	if( value.input_type_ID == DOUBLE )
 		printf("converted to an integer and ");
+
+	if( value.integer_input < 0 )
+	{
+		puts("ERROR: Negative value specified for an unsigned integer variable.\n  Correct the configuration file and rerun program");
+		exit_program_if(true);
+	}
+
 	if( strcmp (value.key, "DATA_TYPE") == 0 )
-	{	
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
+	{			
 		exit_program_if(print_scan_type(value.integer_input));
 		// EXPERIMENTAL = 0, GEANT4 = 1, TOPAS = 2
 		parameters.DATA_TYPE = SCAN_TYPES(value.integer_input);
-		//DATA_TYPE = SCAN_TYPES(value.integer_input);
 	}
 	else if( strcmp (value.key, "HULL_TYPE") == 0 )
 	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
 		exit_program_if(print_hull_type(value.integer_input));
 		// IMPORT = 0, SC = 1, MSC = 2, SM = 3, FBP = 4
 		parameters.HULL_TYPE = HULL_TYPES(value.integer_input);
-		//HULL = HULL_TYPES(value.integer_input);
 	}
 	else if( strcmp (value.key, "FBP_FILTER_TYPE") == 0 )
 	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
 		exit_program_if(print_filter_type(value.integer_input));
 		// RAM_LAK = 0, SHEPP_LOGAN = 1, NONE = 2
 		parameters.FBP_FILTER_TYPE = FILTER_TYPES(value.integer_input);
-		//FBP_FILTER = FILTER_TYPES(value.integer_input);
 	}
 	else if( strcmp (value.key, "X_0_TYPE") == 0 )
 	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
 		exit_program_if(print_x_0_type(value.integer_input));
 		// IMPORT = 0, HULL = 1, FBP = 2, HYBRID = 3, ZEROS = 4
 		parameters.X_0_TYPE = X_0_TYPES(value.integer_input);
-		//X_0 = X_0_TYPES(value.integer_input);
 	}
 	else if( strcmp (value.key, "RECONSTRUCTION_METHOD") == 0 )
 	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}	
 		exit_program_if(print_recon_algorithm(value.integer_input));
 		// ART = 0, DROP = 1, BIP = 2, SAP = 3, ROBUST1 = 4, ROBUST2 = 5 
 		parameters.RECONSTRUCTION_METHOD = RECON_ALGORITHMS(value.integer_input);
-		//RECONSTRUCTION = RECON_ALGORITHMS(value.integer_input);
 	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "NUM_SCANS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//NUM_SCANS = value.integer_input;
 		parameters.NUM_SCANS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "MAX_GPU_HISTORIES") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//MAX_GPU_HISTORIES = value.integer_input;
 		parameters.MAX_GPU_HISTORIES_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "MAX_CUTS_HISTORIES") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//MAX_CUTS_HISTORIES = value.integer_input;
 		parameters.MAX_CUTS_HISTORIES_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "T_BINS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//T_BINS = value.integer_input;
 		parameters.T_BINS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "V_BINS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//V_BINS = value.integer_input;
 		parameters.V_BINS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "SIGMAS_2_KEEP") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//SIGMAS_2_KEEP = value.integer_input;
 		parameters.SIGMAS_2_KEEP_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "COLUMNS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//COLUMNS = value.integer_input;
 		parameters.COLUMNS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "ROWS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//ROWS = value.integer_input;
 		parameters.ROWS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "SLICES") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//SLICES = value.integer_input;
 		parameters.SLICES_D = value.integer_input;
-	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "ITERATIONS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//ITERATIONS = value.double_input;
 		parameters.ITERATIONS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "BLOCK_SIZE") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//BLOCK_SIZE = value.double_input;
 		parameters.BLOCK_SIZE_D =  value.integer_input;
-	}
 	else if( strcmp (value.key, "HULL_MED_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//HULL_MED_FILTER_RADIUS = value.double_input;
 		parameters.HULL_MED_FILTER_RADIUS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "FBP_MED_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//FBP_MED_FILTER_RADIUS = value.double_input;
 		parameters.FBP_MED_FILTER_RADIUS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "X_0_MED_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//X_0_MED_FILTER_RADIUS = value.double_input;
 		parameters.X_0_MED_FILTER_RADIUS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "X_K_MED_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//X_K_MED_FILTER_RADIUS = value.double_input;
 		parameters.X_K_MED_FILTER_RADIUS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "X_MED_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//X_MED_FILTER_RADIUS = value.double_input;
 		parameters.X_MED_FILTER_RADIUS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "HULL_AVG_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//HULL_AVG_FILTER_RADIUS = value.double_input;
 		parameters.HULL_AVG_FILTER_RADIUS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "FBP_AVG_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//FBP_AVG_FILTER_RADIUS = value.double_input;
 		parameters.FBP_AVG_FILTER_RADIUS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "X_0_AVG_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//X_0_AVG_FILTER_RADIUS = value.double_input;
 		parameters.X_0_AVG_FILTER_RADIUS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "X_K_AVG_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//X_K_AVG_FILTER_RADIUS = value.double_input;
 		parameters.X_K_AVG_FILTER_RADIUS_D = value.integer_input;
-	}
 	else if( strcmp (value.key, "X_AVG_FILTER_RADIUS") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//X_AVG_FILTER_RADIUS = value.double_input;
 		parameters.X_AVG_FILTER_RADIUS_D = value.integer_input;
-	}
-	else if( strcmp (value.key, "PSI_SIGN") == 0 )
-	{
-		printf("set to %d\n", value.integer_input);
-		//PSI_SIGN = value.double_input;
-		parameters.PSI_SIGN_D = value.integer_input;
-	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "MSC_DIFF_THRESH") == 0 )
-	{
-		if( value.integer_input < 0 )
-		{
-			puts("given a negative value for an unsigned integer variable.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		printf("set to %d\n", value.integer_input);
-		//MSC_DIFF_THRESH = value.double_input;
 		parameters.MSC_DIFF_THRESH_D = value.integer_input;
-	}
 	else
 	{
 		puts("ERROR: Procedure for setting this key is undefined");
 		exit_program_if(true);
 	}
+	printf("set to %d\n", value.integer_input);
+}
+void set_integer_parameter( generic_IO_container &value )
+{
+	if( value.input_type_ID == DOUBLE )
+		printf("converted to an integer and ");
+	
+	if( strcmp (value.key, "PSI_SIGN") == 0 )
+		parameters.PSI_SIGN_D = value.integer_input;
+	else
+	{
+		puts("ERROR: Procedure for setting this key is undefined");
+		exit_program_if(true);
+	}
+	printf("set to %d\n", value.integer_input);
 }
 void set_boolean_parameter( generic_IO_container &value )
 {
@@ -1985,156 +1523,84 @@ void set_boolean_parameter( generic_IO_container &value )
 	printf("set to %s\n", value.string_input );
 
 	if( strcmp (value.key, "ADD_DATA_LOG_ENTRY") == 0 )
-	{
-		//ADD_DATA_LOG_ENTRY = value.boolean_input;
 		parameters.ADD_DATA_LOG_ENTRY_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "STDOUT_2_DISK") == 0 )
-	{
-		//STDOUT_2_DISK = value.boolean_input;
 		parameters.STDOUT_2_DISK_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "IMPORT_PREPROCESSING") == 0 )
-	{
-		//IMPORT_PREPROCESSING = value.boolean_input;
 		parameters.IMPORT_PREPROCESSING_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "PERFORM_RECONSTRUCTION") == 0 )
-	{
-		//PERFORM_RECONSTRUCTION = value.boolean_input;
 		parameters.PERFORM_RECONSTRUCTION_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "PREPROCESS_OVERWRITE_OK") == 0 )
-	{
-		//PREPROCESS_OVERWRITE_OK = value.boolean_input;
 		parameters.PREPROCESS_OVERWRITE_OK_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "RECON_OVERWRITE_OK") == 0 )
-	{
-		//RECON_OVERWRITE_OK = value.boolean_input;
 		parameters.RECON_OVERWRITE_OK_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "FBP_ON") == 0 )
-	{
-		//FBP_ON = value.boolean_input;
 		parameters.FBP_ON_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "SC_ON") == 0 )
-	{
-		//SC_ON = value.boolean_input;
 		parameters.SC_ON_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "MSC_ON") == 0 )
-	{
-		//MSC_ON = value.boolean_input;
 		parameters.MSC_ON_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "SM_ON") == 0 )
-	{
-		//SM_ON = value.boolean_input;
 		parameters.SM_ON_D = value.boolean_input;
-	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "AVG_FILTER_HULL") == 0 )
-	{
-		//AVG_FILTER_HULL = value.boolean_input;
 		parameters.AVG_FILTER_HULL_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "AVG_FILTER_FBP") == 0 )
-	{
-		//AVG_FILTER_FBP = value.boolean_input;
 		parameters.AVG_FILTER_FBP_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "AVG_FILTER_X_0") == 0 )
-	{
-		//AVG_FILTER_X_0 = value.boolean_input;
 		parameters.AVG_FILTER_X_0_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "AVG_FILTER_X_K") == 0 )
-	{
-		//AVG_FILTER_X_K = value.boolean_input;
 		parameters.AVG_FILTER_X_K_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "AVG_FILTER_X") == 0 )
-	{
-		//AVG_FILTER_X = value.boolean_input;
 		parameters.AVG_FILTER_X_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "MEDIAN_FILTER_HULL") == 0 )
-	{
-		//MEDIAN_FILTER_HULL = value.boolean_input;
 		parameters.MEDIAN_FILTER_HULL_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "MEDIAN_FILTER_FBP") == 0 )
-	{
-		//MEDIAN_FILTER_FBP = value.boolean_input;
 		parameters.MEDIAN_FILTER_FBP_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "MEDIAN_FILTER_X_0") == 0 )
-	{
-		//MEDIAN_FILTER_X_0 = value.boolean_input;
 		parameters.MEDIAN_FILTER_X_0_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "MEDIAN_FILTER_X_K") == 0 )
-	{
-		//MEDIAN_FILTER_X_K = value.boolean_input;
 		parameters.MEDIAN_FILTER_X_K_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "MEDIAN_FILTER_X") == 0 )
-	{
-		//MEDIAN_FILTER_X = value.boolean_input;
 		parameters.MEDIAN_FILTER_X_D = value.boolean_input;
-	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "WRITE_MSC_COUNTS") == 0 )
-	{
-		//WRITE_MSC_COUNTS = value.boolean_input;
 		parameters.WRITE_MSC_COUNTS_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "WRITE_SM_COUNTS") == 0 )
-	{
-		//WRITE_SM_COUNTS = value.boolean_input;
 		parameters.WRITE_SM_COUNTS_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "WRITE_X_FBP") == 0 )
-	{
-		//WRITE_X_FBP = value.boolean_input;
 		parameters.WRITE_X_FBP_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "WRITE_FBP_HULL") == 0 )
-	{
-		//WRITE_FBP_HULL = value.boolean_input;
 		parameters.WRITE_FBP_HULL_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "WRITE_AVG_FBP") == 0 )
-	{
-		//WRITE_AVG_FBP = value.boolean_input;
 		parameters.WRITE_AVG_FBP_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "WRITE_MEDIAN_FBP") == 0 )
-	{
-		//WRITE_MEDIAN_FBP = value.boolean_input;
 		parameters.WRITE_MEDIAN_FBP_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "WRITE_BIN_WEPLS") == 0 )
-	{
-		//WRITE_BIN_WEPLS = value.boolean_input;
 		parameters.WRITE_BIN_WEPLS_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "WRITE_WEPL_DISTS") == 0 )
-	{
-		//WRITE_WEPL_DISTS = value.boolean_input;
 		parameters.WRITE_WEPL_DISTS_D = value.boolean_input;
-	}
 	else if( strcmp (value.key, "WRITE_SSD_ANGLES") == 0 )
-	{
-		//WRITE_SSD_ANGLES = value.boolean_input;
 		parameters.WRITE_SSD_ANGLES_D = value.boolean_input;
-	}
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	else if( strcmp (value.key, "DEBUG_TEXT_ON") == 0 )
+		parameters.DEBUG_TEXT_ON_D = value.boolean_input;
+	else if( strcmp (value.key, "EXIT_AFTER_BINNING") == 0 )
+		parameters.EXIT_AFTER_BINNING_D = value.boolean_input;
+	else if( strcmp (value.key, "EXIT_AFTER_HULLS") == 0 )
+		parameters.EXIT_AFTER_HULLS_D = value.boolean_input;
+	else if( strcmp (value.key, "EXIT_AFTER_CUTS") == 0 )
+		parameters.EXIT_AFTER_CUTS_D = value.boolean_input;
+	else if( strcmp (value.key, "EXIT_AFTER_SINOGRAM") == 0 )
+		parameters.EXIT_AFTER_SINOGRAM_D = value.boolean_input;
+	else if( strcmp (value.key, "EXIT_AFTER_FBP") == 0 )
+		parameters.EXIT_AFTER_FBP_D = value.boolean_input;
 	else
 	{
 		puts("ERROR: Procedure for setting this key is undefined");
@@ -2155,6 +1621,13 @@ void set_parameter( generic_IO_container &value )
 	else
 		puts("\nNo match for this key");
 }
+void set_file_extension( char* file_extension, DISK_WRITE_MODE format )
+{
+	if( format == TEXT )
+		file_extension = ".txt";
+	else if( format == BINARY )
+		file_extension = ".bin";
+}
 void set_execution_date()
 {
 	current_MMDDYYYY( EXECUTION_DATE);
@@ -2166,6 +1639,66 @@ void set_execution_date()
 	char* reconstruction_date = EXECUTION_DATE;
 	RECONSTRUCTION_DATE = (char*) calloc( strlen(reconstruction_date) + 1, sizeof(char) ); 
 	std::copy( reconstruction_date, reconstruction_date + strlen(reconstruction_date), RECONSTRUCTION_DATE );
+}
+void set_dependent_parameters()
+{
+	parameters.GANTRY_ANGLES_D		= uint( 360 / parameters.GANTRY_ANGLE_INTERVAL_D );								// [#] Total number of projection angles
+	parameters.NUM_FILES_D			= parameters.NUM_SCANS_D * parameters.GANTRY_ANGLES_D;							// [#] 1 file per gantry angle per translation
+	parameters.T_BINS_D				= uint( parameters.SSD_T_SIZE_D / parameters.T_BIN_SIZE_D + 0.5 );				// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
+	parameters.V_BINS_D				= uint( parameters.SSD_V_SIZE_D/ parameters.V_BIN_SIZE_D + 0.5 );				// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
+	parameters.ANGULAR_BINS_D		= uint( 360 / parameters.ANGULAR_BIN_SIZE_D + 0.5 );							// [#] Number of bins (i.e. quantization levels) for path angle 
+	parameters.NUM_BINS_D			= parameters.ANGULAR_BINS_D * parameters.T_BINS_D * parameters.V_BINS_D;		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
+	parameters.RECON_CYL_HEIGHT_D	= parameters.SSD_V_SIZE_D - 1.0;												// [cm] Height of reconstruction cylinder
+	parameters.RECON_CYL_DIAMETER_D	= 2 * parameters.RECON_CYL_RADIUS_D;											// [cm] Diameter of reconstruction cylinder
+	parameters.SLICES_D				= uint( parameters.RECON_CYL_HEIGHT_D / parameters.SLICE_THICKNESS_D);			// [#] Number of voxels in the z direction (i.e., number of slices) of image
+	parameters.NUM_VOXELS_D			= parameters.COLUMNS_D * parameters.ROWS_D * parameters.SLICES_D;				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
+	parameters.IMAGE_WIDTH_D		= parameters.RECON_CYL_DIAMETER_D;												// [cm] Distance between left and right edges of each slice in image
+	parameters.IMAGE_HEIGHT_D		= parameters.RECON_CYL_DIAMETER_D;						// [cm] Distance between top and bottom edges of each slice in image
+	parameters.IMAGE_THICKNESS_D	= parameters.RECON_CYL_HEIGHT_D;						// [cm] Distance between bottom of bottom slice and top of the top slice of image
+	parameters.VOXEL_WIDTH_D		= parameters.IMAGE_WIDTH_D / parameters.COLUMNS_D;		// [cm] Distance between left and right edges of each voxel in image
+	parameters.VOXEL_HEIGHT_D		= parameters.IMAGE_HEIGHT_D / parameters.ROWS_D;		// [cm] Distance between top and bottom edges of each voxel in image
+	parameters.VOXEL_THICKNESS_D	= parameters.IMAGE_THICKNESS_D / parameters.SLICES_D;	// [cm] Distance between top and bottom of each slice in image
+	parameters.X_ZERO_COORDINATE_D	= -parameters.RECON_CYL_RADIUS_D;						// [cm] x-coordinate corresponding to left edge of 1st voxel (i.e. column) in image space
+	parameters.Y_ZERO_COORDINATE_D	= parameters.RECON_CYL_RADIUS_D;						// [cm] y-coordinate corresponding to top edge of 1st voxel (i.e. row) in image space
+	parameters.Z_ZERO_COORDINATE_D	= parameters.RECON_CYL_HEIGHT_D/2;						// [cm] z-coordinate corresponding to top edge of 1st voxel (i.e. slice) in image space
+	parameters.RAM_LAK_TAU_D		= 2/ROOT_TWO * parameters.T_BIN_SIZE_D;					// Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
+	/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+	/*---------------------------------------------------------- Memory allocation size for arrays (binning, image) -----------------------------------------------------------*/
+	/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+	parameters.SIZE_BINS_CHAR_D		= ( parameters.NUM_BINS_D   * sizeof(char)	);			// Amount of memory required for a character array used for binning
+	parameters.SIZE_BINS_BOOL_D		= ( parameters.NUM_BINS_D  * sizeof(bool)	);			// Amount of memory required for a boolean array used for binning
+	parameters.SIZE_BINS_INT_D		= ( parameters.NUM_BINS_D   * sizeof(int)	);			// Amount of memory required for a integer array used for binning
+	parameters.SIZE_BINS_UINT_D		= ( parameters.NUM_BINS_D   * sizeof(uint)	);			// Amount of memory required for a integer array used for binning
+	parameters.SIZE_BINS_FLOAT_D	= ( parameters.NUM_BINS_D	 * sizeof(float));			// Amount of memory required for a floating point array used for binning
+	parameters.SIZE_IMAGE_CHAR_D	= ( parameters.NUM_VOXELS_D * sizeof(char)	);			// Amount of memory required for a character array used for binning
+	parameters.SIZE_IMAGE_BOOL_D	= ( parameters.NUM_VOXELS_D * sizeof(bool)	);			// Amount of memory required for a boolean array used for binning
+	parameters.SIZE_IMAGE_INT_D		= ( parameters.NUM_VOXELS_D * sizeof(int)	);			// Amount of memory required for a integer array used for binning
+	parameters.SIZE_IMAGE_UINT_D	= ( parameters.NUM_VOXELS_D * sizeof(uint)	);			// Amount of memory required for a integer array used for binning
+	parameters.SIZE_IMAGE_FLOAT_D	= ( parameters.NUM_VOXELS_D * sizeof(float) );			// Amount of memory required for a floating point array used for binning
+	parameters.SIZE_IMAGE_DOUBLE_D	= ( parameters.NUM_VOXELS_D * sizeof(double));			// Amount of memory required for a floating point array used for binning
+	/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+	/*-------------------------------------------------------------- Iterative Image Reconstruction Parameters ----------------------------------------------------------------*/
+	/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+	parameters.VOXEL_STEP_SIZE_D		= ( parameters.VOXEL_WIDTH_D / 2 );						// [cm] Length of the step taken along the path, i.e. change in depth per step for
+	parameters.MLP_U_STEP_D				= ( parameters.VOXEL_WIDTH_D / 2);						// Size of the step taken along u direction during MLP; depth difference between successive MLP points
+	parameters.CONSTANT_CHORD_NORM_D	= pow(parameters.VOXEL_WIDTH_D, 2.0);
+	parameters.CONSTANT_LAMBDA_SCALE_D	= parameters.VOXEL_WIDTH_D * parameters.LAMBDA_D;
+}
+void set_IO_file_extensions()
+{
+	set_file_extension( PROJECTION_DATA_FILE_EXTENSION, PROJECTION_DATA_WRITE_MODE );	// File extension of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+	set_file_extension( RADIOGRAPHS_FILE_EXTENSION, RADIOGRAPHS_WRITE_MODE );			// File extension of the files containing the radiograph images from each projection angle before/after performing cuts
+	set_file_extension( WEPL_DISTS_FILE_EXTENSION, WEPL_DISTS_WRITE_MODE );				// File extension of the files containing the WEPL distribution images from each projection angle before/after performing cuts
+	set_file_extension( HULL_FILE_EXTENSION, HULL_WRITE_MODE );							// File extension of the file containing the SC, MSC, SM, or FBP hull image as specified by the settings.cfg file 
+	set_file_extension( FBP_FILE_EXTENSION, FBP_WRITE_MODE );							// File extension of the file containing the FBP image
+	set_file_extension( FBP_MEDIANS_FILE_EXTENSION, FBP_MEDIANS_WRITE_MODE );			// File extension of the file containing the median filtered FBP images
+	set_file_extension( X_0_FILE_EXTENSION, X_0_WRITE_MODE );							// File extension of the file containing the FBP, hull, or FBP/hull hybrid initial iterate image as specified by the settings.cfg file
+	set_file_extension( MLP_FILE_EXTENSION, MLP_WRITE_MODE );							// File extension of the file containing the MLP path data
+	set_file_extension( VOXELS_PER_PATH_FILE_EXTENSION, VOXELS_PER_PATH_WRITE_MODE );	// File extension of the file containing the # of intersected voxels per MLP path
+	set_file_extension( WEPL_FILE_EXTENSION, WEPL_WRITE_MODE );							// File extension of the file containing the WEPL data
+	set_file_extension( HISTORIES_FILE_EXTENSION, HISTORIES_WRITE_MODE );				// File extension of the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
+	set_file_extension( X_FILE_EXTENSION, X_WRITE_MODE );								// File extension of the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
+
 }
 void set_IO_directories()
 {
@@ -2304,130 +1837,115 @@ void set_IO_filenames()
 	//----------------------------------------------- Set file names for preprocessing data generated as output ------------------------------------------------//
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
 	print_section_header( "Preprocessing and reconstruction data/images generated will be written to and/or read from the following paths", '*' );
-	
-	//HULL_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
-	//FBP_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
-	//FBP_MEDIAN_2D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
-	//FBP_MEDIAN_3D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(FBP_MEDIANS_FILE_EXTENSION) + 1, sizeof(char) );
-	//X_0_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
-	//MLP_FILENAME = (char*) calloc( strlen(MLP_BASENAME) + strlen(MLP_FILE_EXTENSION) + 1, sizeof(char) );
-	//HISTORIES_FILENAME = (char*) calloc( strlen(HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION) + 1, sizeof(char) );
-	//X_FILENAME = (char*) calloc( strlen(X_BASENAME) + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
-	
+
 	HULL_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(HULL_FILE_EXTENSION), sizeof(char) );
-	FBP_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(FBP_FILE_EXTENSION), sizeof(char) );
-	X_0_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(X_0_FILE_EXTENSION), sizeof(char) );
-	X_FILENAME = (char*) calloc( strlen(X_BASENAME) + strlen(X_FILE_EXTENSION), sizeof(char) );
-	
 	HULL_MEDIAN_2D_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
-	FBP_MEDIAN_2D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
-	X_0_MEDIAN_2D_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) ); 
-	X_MEDIAN_2D_FILENAME= (char*) calloc( strlen(X_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
-	
 	HULL_MEDIAN_3D_FILENAME = (char*) calloc( strlen(HULL_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
-	FBP_MEDIAN_3D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
-	X_0_MEDIAN_3D_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) ); 
-	X_MEDIAN_3D_FILENAME= (char*) calloc( strlen(X_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
-	
 	HULL_AVG_2D_FILENAME  = (char*) calloc( strlen(HULL_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
-	FBP_AVG_2D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
-	X_0_AVG_2D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
-	X_AVG_2D_FILENAME  = (char*) calloc( strlen(X_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
-
 	HULL_AVG_3D_FILENAME  = (char*) calloc( strlen(HULL_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION) + 1, sizeof(char) );
-	FBP_AVG_3D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
-	X_0_AVG_3D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
-	X_AVG_3D_FILENAME  = (char*) calloc( strlen(X_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION) + 1, sizeof(char) );
-
 	HULL_COMBO_2D_FILENAME  = (char*) calloc( strlen(HULL_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(HULL_FILE_EXTENSION), sizeof(char) );
-	FBP_COMBO_2D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION), sizeof(char) );
-	X_0_COMBO_2D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION), sizeof(char) );
-	X_COMBO_2D_FILENAME  = (char*) calloc( strlen(X_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION), sizeof(char) );
-
 	HULL_COMBO_3D_FILENAME  = (char*) calloc( strlen(HULL_BASENAME) + 1 + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_3D_POSTFIX) + strlen(HULL_FILE_EXTENSION), sizeof(char) );
+	
+	FBP_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(FBP_FILE_EXTENSION), sizeof(char) );
+	FBP_MEDIAN_2D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_MEDIAN_3D_FILENAME = (char*) calloc( strlen(FBP_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_AVG_2D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_AVG_3D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION) + 1, sizeof(char) );
+	FBP_COMBO_2D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION), sizeof(char) );
 	FBP_COMBO_3D_FILENAME  = (char*) calloc( strlen(FBP_BASENAME) + 1 + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(FBP_FILE_EXTENSION), sizeof(char) );
+	
+	X_0_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(X_0_FILE_EXTENSION), sizeof(char) );
+	X_0_MEDIAN_2D_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) ); 
+	X_0_MEDIAN_3D_FILENAME = (char*) calloc( strlen(X_0_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) ); 
+	X_0_AVG_2D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
+	X_0_AVG_3D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION) + 1, sizeof(char) );
+	X_0_COMBO_2D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION), sizeof(char) );
 	X_0_COMBO_3D_FILENAME   = (char*) calloc( strlen(X_0_BASENAME) + 1 + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(X_0_FILE_EXTENSION), sizeof(char) );
-	X_COMBO_3D_FILENAME  = (char*) calloc( strlen(X_BASENAME) + 1 + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1 + strlen(X_FILE_EXTENSION), sizeof(char) );
+	
+	X_FILENAME_BASE = (char*) calloc( strlen(X_BASENAME), sizeof(char) );
+	X_MEDIAN_2D_FILENAME_BASE = (char*) calloc( strlen(X_BASENAME) + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1, sizeof(char) );
+	X_MEDIAN_3D_FILENAME_BASE = (char*) calloc( strlen(X_BASENAME) + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1, sizeof(char) );	
+	X_AVG_2D_FILENAME_BASE  = (char*) calloc( strlen(X_BASENAME) + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1, sizeof(char) );
+	X_AVG_3D_FILENAME_BASE  = (char*) calloc( strlen(X_BASENAME) + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1, sizeof(char) );
+	X_COMBO_2D_FILENAME_BASE  = (char*) calloc( strlen(X_BASENAME) + 1 + strlen(MEDIAN_FILTER_2D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_2D_POSTFIX) + 1, sizeof(char) );
+	X_COMBO_3D_FILENAME_BASE  = (char*) calloc( strlen(X_BASENAME) + 1 + strlen(MEDIAN_FILTER_3D_POSTFIX) + 1 + 1 + strlen(AVERAGE_FILTER_3D_POSTFIX) + 1, sizeof(char) );
 
 	MLP_FILENAME = (char*) calloc( strlen(MLP_BASENAME) + strlen(MLP_FILE_EXTENSION), sizeof(char) );
+	VOXELS_PER_PATH_FILENAME = (char*) calloc( strlen(VOXELS_PER_PATH_BASENAME) + strlen(VOXELS_PER_PATH_FILE_EXTENSION), sizeof(char) );
 	WEPL_FILENAME = (char*) calloc( strlen(WEPL_BASENAME) + strlen(WEPL_FILE_EXTENSION), sizeof(char) );
 	HISTORIES_FILENAME = (char*) calloc( strlen(HISTORIES_BASENAME) + strlen(HISTORIES_FILE_EXTENSION), sizeof(char) );
 	
 	sprintf( HULL_FILENAME,"%s%s", HULL_BASENAME, HULL_FILE_EXTENSION );
-	sprintf( FBP_FILENAME,"%s%s", FBP_BASENAME, FBP_FILE_EXTENSION );
-	sprintf( X_0_FILENAME, "%s%s", X_0_BASENAME, X_0_FILE_EXTENSION );
-	sprintf( X_FILENAME,"%s%s", X_BASENAME, X_FILE_EXTENSION);
-
 	sprintf( HULL_AVG_2D_FILENAME, "%s_%s%d%s", HULL_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.HULL_AVG_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
-	sprintf( FBP_AVG_2D_FILENAME, "%s_%s%d%s", FBP_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
-	sprintf( X_0_AVG_2D_FILENAME, "%s_%s%d%s", X_0_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
-	sprintf( X_AVG_2D_FILENAME, "%s_%s%d%s", X_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
-	
 	sprintf( HULL_MEDIAN_2D_FILENAME, "%s_%s%d%s", HULL_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.HULL_MED_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
-	sprintf( FBP_MEDIAN_2D_FILENAME, "%s_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
-	sprintf( X_0_MEDIAN_2D_FILENAME, "%s_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
-	sprintf( X_MEDIAN_2D_FILENAME, "%s_%s%d%s", X_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
-	
 	sprintf( HULL_MEDIAN_3D_FILENAME, "%s_%s%d%s", HULL_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.HULL_MED_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
-	sprintf( FBP_MEDIAN_3D_FILENAME, "%s_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
-	sprintf( X_0_MEDIAN_3D_FILENAME, "%s_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
-	sprintf( X_MEDIAN_3D_FILENAME, "%s_%s%d%s", X_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
-	
 	sprintf( HULL_AVG_3D_FILENAME, "%s_%s%d%s", HULL_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.HULL_AVG_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
-	sprintf( FBP_AVG_3D_FILENAME, "%s_%s%d%s", FBP_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
-	sprintf( X_0_AVG_3D_FILENAME, "%s_%s%d%s", X_0_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
-	sprintf( X_AVG_3D_FILENAME, "%s_%s%d%s", X_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
-	
 	sprintf( HULL_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", HULL_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.HULL_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.HULL_AVG_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
-	sprintf( FBP_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
-	sprintf( X_0_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
-	sprintf( X_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", X_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
-	
 	sprintf( HULL_COMBO_3D_FILENAME, "%s_%s%d_%s%d%s", HULL_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.HULL_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.HULL_AVG_FILTER_RADIUS_D + 1, HULL_FILE_EXTENSION);
+	
+	sprintf( FBP_FILENAME,"%s%s", FBP_BASENAME, FBP_FILE_EXTENSION );
+	sprintf( FBP_AVG_2D_FILENAME, "%s_%s%d%s", FBP_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( FBP_MEDIAN_2D_FILENAME, "%s_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( FBP_MEDIAN_3D_FILENAME, "%s_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( FBP_AVG_3D_FILENAME, "%s_%s%d%s", FBP_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	sprintf( FBP_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
 	sprintf( FBP_COMBO_3D_FILENAME, "%s_%s%d_%s%d%s", FBP_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.FBP_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.FBP_AVG_FILTER_RADIUS_D + 1, FBP_FILE_EXTENSION);
+	
+	sprintf( X_0_FILENAME, "%s%s", X_0_BASENAME, X_0_FILE_EXTENSION );
+	sprintf( X_0_AVG_2D_FILENAME, "%s_%s%d%s", X_0_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_0_MEDIAN_2D_FILENAME, "%s_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_0_MEDIAN_3D_FILENAME, "%s_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_0_AVG_3D_FILENAME, "%s_%s%d%s", X_0_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
+	sprintf( X_0_COMBO_2D_FILENAME, "%s_%s%d_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
 	sprintf( X_0_COMBO_3D_FILENAME, "%s_%s%d_%s%d%s", X_0_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_0_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_0_AVG_FILTER_RADIUS_D + 1, X_0_FILE_EXTENSION);
-	sprintf( X_COMBO_3D_FILENAME, "%s_%s%d_%s%d%s", X_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1, X_FILE_EXTENSION);
+	
+	sprintf( X_FILENAME_BASE,"%s", X_BASENAME);
+	sprintf( X_AVG_2D_FILENAME_BASE, "%s_%s%d", X_BASENAME, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1);
+	sprintf( X_MEDIAN_2D_FILENAME_BASE, "%s_%s%d", X_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1);
+	sprintf( X_MEDIAN_3D_FILENAME_BASE, "%s_%s%d", X_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1);
+	sprintf( X_AVG_3D_FILENAME_BASE, "%s_%s%d", X_BASENAME, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1);
+	sprintf( X_COMBO_2D_FILENAME_BASE, "%s_%s%d_%s%d", X_BASENAME, MEDIAN_FILTER_2D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_2D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1);
+	sprintf( X_COMBO_3D_FILENAME_BASE, "%s_%s%d_%s%d", X_BASENAME, MEDIAN_FILTER_3D_POSTFIX, 2 * parameters.X_MED_FILTER_RADIUS_D + 1, AVERAGE_FILTER_3D_POSTFIX, 2 * parameters.X_AVG_FILTER_RADIUS_D + 1);
 	
 	sprintf( MLP_FILENAME,"%s%s", MLP_BASENAME, MLP_FILE_EXTENSION );
+	sprintf( VOXELS_PER_PATH_FILENAME,"%s%s", VOXELS_PER_PATH_BASENAME, VOXELS_PER_PATH_FILE_EXTENSION );	
 	sprintf( WEPL_FILENAME,"%s%s", WEPL_BASENAME, WEPL_FILE_EXTENSION );
 	sprintf( HISTORIES_FILENAME,"%s%s", HISTORIES_BASENAME, HISTORIES_FILE_EXTENSION);
 	
 	printf("HULL_FILENAME = %s\n\n", HULL_FILENAME );	
-	printf("FBP_FILENAME = %s\n\n", FBP_FILENAME );
-	printf("X_0_FILENAME = %s\n\n", X_0_FILENAME );	
-	printf("X_FILENAME = %s\n\n", X_FILENAME );
-	
 	printf("HULL_MEDIAN_2D_FILENAME = %s\n\n", HULL_MEDIAN_2D_FILENAME );	
-	printf("FBP_MEDIAN_2D_FILENAME = %s\n\n", FBP_MEDIAN_2D_FILENAME );
-	printf("X_0_MEDIAN_2D_FILENAME = %s\n\n", X_0_MEDIAN_2D_FILENAME );	
-	printf("X_MEDIAN_2D_FILENAME = %s\n\n", X_MEDIAN_2D_FILENAME );
-	
 	printf("HULL_MEDIAN_3D_FILENAME = %s\n\n", HULL_MEDIAN_3D_FILENAME );	
-	printf("FBP_MEDIAN_3D_FILENAME = %s\n\n", FBP_MEDIAN_3D_FILENAME );
-	printf("X_0_MEDIAN_3D_FILENAME = %s\n\n", X_0_MEDIAN_3D_FILENAME );	
-	printf("X_MEDIAN_3D_FILENAME = %s\n\n", X_MEDIAN_3D_FILENAME );
-
 	printf("HULL_AVG_2D_FILENAME = %s\n\n", HULL_AVG_2D_FILENAME );	
-	printf("FBP_AVG_2D_FILENAME = %s\n\n", FBP_AVG_2D_FILENAME );
-	printf("X_0_AVG_2D_FILENAME = %s\n\n", X_0_AVG_2D_FILENAME );	
-	printf("X_AVG_2D_FILENAME = %s\n\n", X_AVG_2D_FILENAME );
-	
 	printf("HULL_AVG_3D_FILENAME = %s\n\n", HULL_AVG_3D_FILENAME );	
-	printf("FBP_AVG_3D_FILENAME = %s\n\n", FBP_AVG_3D_FILENAME );
-	printf("X_0_AVG_3D_FILENAME = %s\n\n", X_0_AVG_3D_FILENAME );	
-	printf("X_AVG_3D_FILENAME = %s\n\n", X_AVG_3D_FILENAME );
-
 	printf("HULL_COMBO_2D_FILENAME = %s\n\n", HULL_COMBO_2D_FILENAME );	
-	printf("FBP_COMBO_2D_FILENAME = %s\n\n", FBP_COMBO_2D_FILENAME );
-	printf("X_0_COMBO_2D_FILENAME = %s\n\n", X_0_COMBO_2D_FILENAME );	
-	printf("X_COMBO_2D_FILENAME = %s\n\n", X_COMBO_2D_FILENAME );
-
 	printf("HULL_COMBO_3D_FILENAME = %s\n\n", HULL_COMBO_3D_FILENAME );	
+	
+	printf("FBP_FILENAME = %s\n\n", FBP_FILENAME );
+	printf("FBP_MEDIAN_2D_FILENAME = %s\n\n", FBP_MEDIAN_2D_FILENAME );	
+	printf("FBP_MEDIAN_3D_FILENAME = %s\n\n", FBP_MEDIAN_3D_FILENAME );
+	printf("FBP_AVG_2D_FILENAME = %s\n\n", FBP_AVG_2D_FILENAME );
+	printf("FBP_AVG_3D_FILENAME = %s\n\n", FBP_AVG_3D_FILENAME );
+	printf("FBP_COMBO_2D_FILENAME = %s\n\n", FBP_COMBO_2D_FILENAME );
 	printf("FBP_COMBO_3D_FILENAME = %s\n\n", FBP_COMBO_3D_FILENAME );
+	
+	printf("X_0_FILENAME = %s\n\n", X_0_FILENAME );	
+	printf("X_0_MEDIAN_2D_FILENAME = %s\n\n", X_0_MEDIAN_2D_FILENAME );	
+	printf("X_0_MEDIAN_3D_FILENAME = %s\n\n", X_0_MEDIAN_3D_FILENAME );	
+	printf("X_0_AVG_2D_FILENAME = %s\n\n", X_0_AVG_2D_FILENAME );	
+	printf("X_0_AVG_3D_FILENAME = %s\n\n", X_0_AVG_3D_FILENAME );	
+	printf("X_0_COMBO_2D_FILENAME = %s\n\n", X_0_COMBO_2D_FILENAME );	
 	printf("X_0_COMBO_3D_FILENAME = %s\n\n", X_0_COMBO_3D_FILENAME );	
-	printf("X_COMBO_3D_FILENAME = %s\n\n", X_COMBO_3D_FILENAME );
+	
+	printf("X_FILENAME = %s\n\n", X_FILENAME_BASE );
+	printf("X_MEDIAN_2D_FILENAME = %s\n\n", X_MEDIAN_2D_FILENAME_BASE );
+	printf("X_MEDIAN_3D_FILENAME = %s\n\n", X_MEDIAN_3D_FILENAME_BASE );
+	printf("X_AVG_2D_FILENAME = %s\n\n", X_AVG_2D_FILENAME_BASE );
+	printf("X_AVG_3D_FILENAME = %s\n\n", X_AVG_3D_FILENAME_BASE );
+	printf("X_COMBO_2D_FILENAME = %s\n\n", X_COMBO_2D_FILENAME_BASE );
+	printf("X_COMBO_3D_FILENAME = %s\n\n", X_COMBO_3D_FILENAME_BASE );
 
 	printf("MLP_FILENAME = %s\n\n", MLP_FILENAME );	
+	printf("VOXELS_PER_PATH_FILENAME = %s\n\n", VOXELS_PER_PATH_FILENAME );	
 	printf("WEPL_FILENAME = %s\n\n", WEPL_FILENAME );	
 	printf("HISTORIES_FILENAME = %s\n", HISTORIES_FILENAME );	
 	
@@ -2437,134 +1955,117 @@ void set_IO_filepaths()
 {
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//----------------------------- Set paths to preprocessing and reconstruction data using associated directory and file names -------------------------------//
-	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-	
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------//	
 	print_section_header( "File names of preprocessing data generated as output", '*' );	
 
 	HULL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_FILENAME) + 1, sizeof(char) );
-	FBP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_FILENAME) + 1, sizeof(char) );
-	X_0_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_FILENAME) + 1, sizeof(char) );
-	X_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_FILENAME) + 1, sizeof(char) );
-	 
-	HULL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_FILENAME) + 1, sizeof(char) );
-	FBP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_FILENAME) + 1, sizeof(char) );
-	X_0_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_FILENAME) + 1, sizeof(char) );
-	X_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_FILENAME) + 1, sizeof(char) );
-
 	HULL_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
-	FBP_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
-	X_0_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
-	X_MEDIAN_2D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
-
 	HULL_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
-	FBP_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
-	X_0_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
-	X_MEDIAN_3D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
-
 	HULL_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_AVG_2D_FILENAME) + 1, sizeof(char) );
-	FBP_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_AVG_2D_FILENAME) + 1, sizeof(char) );
-	X_0_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_AVG_2D_FILENAME) + 1, sizeof(char) );
-	X_AVG_2D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_AVG_2D_FILENAME) + 1, sizeof(char) );
-
 	HULL_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_AVG_3D_FILENAME) + 1, sizeof(char) );
-	FBP_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_AVG_3D_FILENAME) + 1, sizeof(char) );
-	X_0_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_AVG_3D_FILENAME) + 1, sizeof(char) );
-	X_AVG_3D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_AVG_3D_FILENAME) + 1, sizeof(char) );
-
 	HULL_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_COMBO_2D_FILENAME) + 1, sizeof(char) );
-	FBP_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_COMBO_2D_FILENAME) + 1, sizeof(char) );
-	X_0_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_COMBO_2D_FILENAME) + 1, sizeof(char) );
-	X_COMBO_2D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_COMBO_2D_FILENAME) + 1, sizeof(char) );
-
 	HULL_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_COMBO_3D_FILENAME) + 1, sizeof(char) );
+			
+	FBP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_FILENAME) + 1, sizeof(char) );
+	FBP_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
+	FBP_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
+	FBP_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_AVG_2D_FILENAME) + 1, sizeof(char) );
+	FBP_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_AVG_3D_FILENAME) + 1, sizeof(char) );
+	FBP_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_COMBO_2D_FILENAME) + 1, sizeof(char) );
 	FBP_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_COMBO_3D_FILENAME) + 1, sizeof(char) );
+	
+	X_0_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_FILENAME) + 1, sizeof(char) );	
+	X_0_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
+	X_0_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
+	X_0_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_AVG_2D_FILENAME) + 1, sizeof(char) );
+	X_0_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_AVG_3D_FILENAME) + 1, sizeof(char) );
+	X_0_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_COMBO_2D_FILENAME) + 1, sizeof(char) );
 	X_0_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_COMBO_3D_FILENAME) + 1, sizeof(char) );
-	X_COMBO_3D_PATH = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_COMBO_3D_FILENAME) + 1, sizeof(char) );
+	
+	X_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_FILENAME_BASE) + 1, sizeof(char) );
+	X_MEDIAN_2D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_MEDIAN_2D_FILENAME_BASE) + 1, sizeof(char) );
+	X_MEDIAN_3D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_MEDIAN_3D_FILENAME_BASE) + 1, sizeof(char) );
+	X_AVG_2D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_AVG_2D_FILENAME_BASE) + 1, sizeof(char) );
+	X_AVG_3D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_AVG_3D_FILENAME_BASE) + 1, sizeof(char) );
+	X_COMBO_2D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_COMBO_2D_FILENAME_BASE) + 1, sizeof(char) );
+	X_COMBO_3D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_COMBO_3D_FILENAME_BASE) + 1, sizeof(char) );
 
 	MLP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(MLP_FILENAME) + 1, sizeof(char) );
+	VOXELS_PER_PATH_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(VOXELS_PER_PATH_FILENAME) + 1, sizeof(char) );
 	WEPL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(WEPL_FILENAME) + 1, sizeof(char) );
 	HISTORIES_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HISTORIES_FILENAME) + 1, sizeof(char) );
 	
 	sprintf( HULL_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_FILENAME );
-	sprintf( FBP_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_FILENAME );
-	sprintf( X_0_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_FILENAME );
-	sprintf( X_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_FILENAME);
-	
-	sprintf( HULL_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_FILENAME );
-	sprintf( FBP_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_FILENAME );
-	sprintf( X_0_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_FILENAME );
-	sprintf( X_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_FILENAME);
-
 	sprintf( HULL_MEDIAN_2D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_MEDIAN_2D_FILENAME );
-	sprintf( FBP_MEDIAN_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_MEDIAN_2D_FILENAME );
-	sprintf( X_0_MEDIAN_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_MEDIAN_2D_FILENAME );
-	sprintf( X_MEDIAN_2D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_MEDIAN_2D_FILENAME);
-
 	sprintf( HULL_MEDIAN_3D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_MEDIAN_3D_FILENAME );
-	sprintf( FBP_MEDIAN_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_MEDIAN_3D_FILENAME );
-	sprintf( X_0_MEDIAN_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_MEDIAN_3D_FILENAME );
-	sprintf( X_MEDIAN_3D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_MEDIAN_3D_FILENAME);
-
 	sprintf( HULL_AVG_2D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_AVG_2D_FILENAME );
-	sprintf( FBP_AVG_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_AVG_2D_FILENAME );
-	sprintf( X_0_AVG_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_AVG_2D_FILENAME );
-	sprintf( X_AVG_2D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_AVG_2D_FILENAME);
-
 	sprintf( HULL_AVG_3D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_AVG_3D_FILENAME );
-	sprintf( FBP_AVG_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_AVG_3D_FILENAME );
-	sprintf( X_0_AVG_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_AVG_3D_FILENAME );
-	sprintf( X_AVG_3D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_AVG_3D_FILENAME);
-	
 	sprintf( HULL_COMBO_2D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_COMBO_2D_FILENAME );
-	sprintf( FBP_COMBO_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_COMBO_2D_FILENAME );
-	sprintf( X_0_COMBO_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_COMBO_2D_FILENAME );
-	sprintf( X_COMBO_2D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_COMBO_2D_FILENAME);
-
 	sprintf( HULL_COMBO_3D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_COMBO_3D_FILENAME );
+	
+	sprintf( FBP_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_FILENAME );
+	sprintf( FBP_MEDIAN_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_MEDIAN_2D_FILENAME );
+	sprintf( FBP_MEDIAN_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_MEDIAN_3D_FILENAME );
+	sprintf( FBP_AVG_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_AVG_2D_FILENAME );
+	sprintf( FBP_AVG_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_AVG_3D_FILENAME );
+	sprintf( FBP_COMBO_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_COMBO_2D_FILENAME );
 	sprintf( FBP_COMBO_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_COMBO_3D_FILENAME );
+	
+	sprintf( X_0_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_FILENAME );
+	sprintf( X_0_MEDIAN_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_MEDIAN_2D_FILENAME );
+	sprintf( X_0_MEDIAN_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_MEDIAN_3D_FILENAME );
+	sprintf( X_0_AVG_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_AVG_2D_FILENAME );
+	sprintf( X_0_AVG_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_AVG_3D_FILENAME );
+	sprintf( X_0_COMBO_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_COMBO_2D_FILENAME );
 	sprintf( X_0_COMBO_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_COMBO_3D_FILENAME );
-	sprintf( X_COMBO_3D_PATH,"%s\\%s", RECONSTRUCTION_DIR, X_COMBO_3D_FILENAME);
+		
+	sprintf( X_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_FILENAME_BASE);
+	sprintf( X_MEDIAN_2D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_MEDIAN_2D_FILENAME_BASE);
+	sprintf( X_MEDIAN_3D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_MEDIAN_3D_FILENAME_BASE);
+	sprintf( X_AVG_2D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_AVG_2D_FILENAME_BASE);
+	sprintf( X_AVG_3D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_AVG_3D_FILENAME_BASE);
+	sprintf( X_COMBO_2D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_COMBO_2D_FILENAME_BASE);
+	sprintf( X_COMBO_3D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_COMBO_3D_FILENAME_BASE);
 	
 	sprintf(MLP_PATH,"%s\\%s", PREPROCESSING_DIR, MLP_FILENAME );
+	sprintf(VOXELS_PER_PATH_PATH,"%s\\%s", PREPROCESSING_DIR, VOXELS_PER_PATH_FILENAME );
 	sprintf(WEPL_PATH,"%s\\%s", PREPROCESSING_DIR, WEPL_FILENAME );
 	sprintf(HISTORIES_PATH,"%s\\%s", PREPROCESSING_DIR, HISTORIES_FILENAME );
 	
 	printf("HULL_PATH = %s\n\n", HULL_PATH );	
-	printf("FBP_PATH = %s\n\n", FBP_PATH );
-	printf("X_0_PATH = %s\n\n", X_0_PATH );	
-	printf("X_PATH = %s\n\n", X_PATH );
-
 	printf("HULL_MEDIAN_2D_PATH = %s\n\n", HULL_MEDIAN_2D_PATH );	
-	printf("FBP_MEDIAN_2D_PATH = %s\n\n", FBP_MEDIAN_2D_PATH );
-	printf("X_0_MEDIAN_2D_PATH = %s\n\n", X_0_MEDIAN_2D_PATH );	
-	printf("X_MEDIAN_2D_PATH = %s\n\n", X_MEDIAN_2D_PATH );
-
 	printf("HULL_MEDIAN_3D_PATH = %s\n\n", HULL_MEDIAN_3D_PATH );	
-	printf("FBP_MEDIAN_3D_PATH = %s\n\n", FBP_MEDIAN_3D_PATH );
-	printf("X_0_MEDIAN_3D_PATH = %s\n\n", X_0_MEDIAN_3D_PATH );	
-	printf("X_MEDIAN_3D_PATH = %s\n\n", X_MEDIAN_3D_PATH );
-
 	printf("HULL_AVG_2D_PATH = %s\n\n", HULL_AVG_2D_PATH );	
-	printf("FBP_AVG_2D_PATH = %s\n\n", FBP_AVG_2D_PATH );
-	printf("X_0_AVG_2D_PATH = %s\n\n", X_0_AVG_2D_PATH );	
-	printf("X_AVG_2D_PATH = %s\n\n", X_AVG_2D_PATH );
-
 	printf("HULL_AVG_3D_PATH = %s\n\n", HULL_AVG_3D_PATH );	
-	printf("FBP_AVG_3D_PATH = %s\n\n", FBP_AVG_3D_PATH );
-	printf("X_0_AVG_3D_PATH = %s\n\n", X_0_AVG_3D_PATH );	
-	printf("X_AVG_3D_PATH = %s\n\n", X_AVG_3D_PATH );
-	
 	printf("HULL_COMBO_2D_PATH = %s\n\n", HULL_COMBO_2D_PATH );	
-	printf("FBP_COMBO_2D_PATH = %s\n\n", FBP_COMBO_2D_PATH );
-	printf("X_0_COMBO_2D_PATH = %s\n\n", X_0_COMBO_2D_PATH );	
-	printf("X_COMBO_2D_PATH = %s\n\n", X_COMBO_2D_PATH );
-
 	printf("HULL_COMBO_3D_PATH = %s\n\n", HULL_COMBO_3D_PATH );	
+	
+	printf("FBP_PATH = %s\n\n", FBP_PATH );
+	printf("FBP_MEDIAN_2D_PATH = %s\n\n", FBP_MEDIAN_2D_PATH );
+	printf("FBP_MEDIAN_3D_PATH = %s\n\n", FBP_MEDIAN_3D_PATH );
+	printf("FBP_AVG_2D_PATH = %s\n\n", FBP_AVG_2D_PATH );
+	printf("FBP_AVG_3D_PATH = %s\n\n", FBP_AVG_3D_PATH );
+	printf("FBP_COMBO_2D_PATH = %s\n\n", FBP_COMBO_2D_PATH );
 	printf("FBP_COMBO_3D_PATH = %s\n\n", FBP_COMBO_3D_PATH );
+	
+	printf("X_0_PATH = %s\n\n", X_0_PATH );	
+	printf("X_0_MEDIAN_2D_PATH = %s\n\n", X_0_MEDIAN_2D_PATH );	
+	printf("X_0_MEDIAN_3D_PATH = %s\n\n", X_0_MEDIAN_3D_PATH );	
+	printf("X_0_AVG_2D_PATH = %s\n\n", X_0_AVG_2D_PATH );	
+	printf("X_0_AVG_3D_PATH = %s\n\n", X_0_AVG_3D_PATH );	
+	printf("X_0_COMBO_2D_PATH = %s\n\n", X_0_COMBO_2D_PATH );	
 	printf("X_0_COMBO_3D_PATH = %s\n\n", X_0_COMBO_3D_PATH );	
-	printf("X_COMBO_3D_PATH = %s\n\n", X_COMBO_3D_PATH );
+	
+	printf("X_PATH = %s\n\n", X_PATH_BASE );
+	printf("X_MEDIAN_2D_PATH = %s\n\n", X_MEDIAN_2D_PATH_BASE );
+	printf("X_MEDIAN_3D_PATH = %s\n\n", X_MEDIAN_3D_PATH_BASE );
+	printf("X_AVG_2D_PATH = %s\n\n", X_AVG_2D_PATH_BASE );
+	printf("X_AVG_3D_PATH = %s\n\n", X_AVG_3D_PATH_BASE );	
+	printf("X_COMBO_2D_PATH = %s\n\n", X_COMBO_2D_PATH_BASE );
+	printf("X_COMBO_3D_PATH = %s\n\n", X_COMBO_3D_PATH_BASE );
 	
 	printf("MLP_PATH = %s\n\n", MLP_PATH );	
+	printf("VOXELS_PER_PATH_PATH = %s\n\n", VOXELS_PER_PATH_PATH );	
 	printf("WEPL_PATH = %s\n\n", WEPL_PATH );	
 	printf("HISTORIES_PATH = %s\n", HISTORIES_PATH );	
 
@@ -2572,6 +2073,7 @@ void set_IO_filepaths()
 }
 void set_images_2_use()
 {
+	// Hull image specification
 	if( parameters.MEDIAN_FILTER_HULL_D && parameters.AVG_FILTER_HULL_D )
 	{
 		HULL_2_USE_FILENAME = HULL_COMBO_2D_FILENAME;
@@ -2655,106 +2157,62 @@ void set_images_2_use()
 		X_K_2_USE_FILENAME = X_K_FILENAME;
 		X_K_2_USE_PATH = X_K_PATH;
 	}
-	// X image specification
+	// x image specification
 	if( parameters.MEDIAN_FILTER_X_D && parameters.AVG_FILTER_X_D )
 	{
-		X_2_USE_FILENAME = X_COMBO_2D_FILENAME;
-		X_2_USE_PATH = X_COMBO_2D_PATH;
+		X_2_USE_FILENAME_BASE = X_COMBO_2D_FILENAME_BASE;
+		X_2_USE_PATH_BASE = X_COMBO_2D_PATH_BASE;
 	}
 	else if( parameters.MEDIAN_FILTER_X_D)
 	{
-		X_2_USE_FILENAME = X_MEDIAN_2D_FILENAME;
-		X_2_USE_PATH = X_MEDIAN_2D_PATH;
+		X_2_USE_FILENAME_BASE = X_MEDIAN_2D_FILENAME_BASE;
+		X_2_USE_PATH_BASE = X_MEDIAN_2D_PATH_BASE;
 	}
 	else if( parameters.AVG_FILTER_X_D)
 	{
-		X_2_USE_FILENAME = X_AVG_2D_FILENAME;
-		X_2_USE_PATH = X_AVG_2D_PATH;
+		X_2_USE_FILENAME_BASE = X_AVG_2D_FILENAME_BASE;
+		X_2_USE_PATH_BASE = X_AVG_2D_PATH_BASE;
 	}
 	else
 	{
-		X_2_USE_FILENAME = X_FILENAME;
-		X_2_USE_PATH = X_PATH;
+		X_2_USE_FILENAME_BASE = X_FILENAME_BASE;
+		X_2_USE_PATH_BASE = X_PATH_BASE;
 	}
 }
 void existing_data_check()
 {
 	//if( parameters.PERFORM_RECONSTRUCTION_D && !parameters.PREPROCESS_OVERWRITE_OK_D )
 	//{
-		HULL_EXISTS = file_exists3(HULL_2_USE_PATH);
-		FBP_EXISTS = file_exists3(FBP_2_USE_PATH);
-		X_0_EXISTS = file_exists3(X_0_2_USE_PATH);
-		X_K_EXISTS = file_exists3(X_K_2_USE_PATH);
-		//X_EXISTS = file_exists3(X_2_USE_PATH);
-		cout << HULL_EXISTS << endl;
-		cout << FBP_EXISTS << endl;
-		cout << X_0_EXISTS << endl;
-		cout << X_K_EXISTS << endl;
-		// MLP_PATH, *WEPL_PATH, *HISTORIES_PATH
-		MLP_EXISTS = file_exists3(MLP_PATH);
-		WEPL_EXISTS = file_exists3(WEPL_PATH);
-		HISTORIES_EXISTS = file_exists3(HISTORIES_PATH);
-		cout << MLP_EXISTS << endl;
-		cout << WEPL_EXISTS << endl;
-		cout << HISTORIES_EXISTS << endl;
-	//}
-}
-void view_config_file()
-{
-	char filename[256]; 
+		char* existing_data_dir = "D:\\pCT_Data\\Output\\CTP404\\CTP404_merged\\";
+		//HULL_EXISTS = file_exists3(HULL_2_USE_PATH);
+		//FBP_EXISTS = file_exists3(FBP_2_USE_PATH);
+		//X_0_EXISTS = file_exists3(X_0_2_USE_PATH);
+		//MLP_EXISTS = file_exists3(MLP_PATH);
+		//WEPL_EXISTS = file_exists3(WEPL_PATH);
+		//HISTORIES_EXISTS = file_exists3(HISTORIES_PATH);
+		//X_K_EXISTS = file_exists3(X_K_2_USE_PATH);
+		X_2_USE_PATH_BASE = (char*)calloc(256,sizeof(char));
+		sprintf(X_2_USE_PATH_BASE, "%s%s", existing_data_dir, X_BASENAME);
+		char x_existing_check[256];
+		sprintf(X_FILE_EXTENSION, ".txt");
+		sprintf( x_existing_check, "%s_%d%s", X_2_USE_PATH_BASE, NUM_X_EXISTS + 1, X_FILE_EXTENSION );
+		cout << x_existing_check << endl;
+		while( file_exists3(x_existing_check) )
+			sprintf( x_existing_check, "%s_%d%s", X_2_USE_PATH_BASE, ++NUM_X_EXISTS + 1, X_FILE_EXTENSION );
 
-	#if defined(_WIN32) || defined(_WIN64)
-		sprintf(filename, "%s %s %s", "start", "wordpad", CONFIG_PATH);
-		terminal_response(filename);
-    #else
-		sprintf(filename, "%s %s", "touch", CONFIG_FILENAME);
-		terminal_response(filename);
-    #endif
-	
-}
-void set_dependent_parameters()
-{
-	parameters.GANTRY_ANGLES_D		= uint( 360 / parameters.GANTRY_ANGLE_INTERVAL_D );								// [#] Total number of projection angles
-	parameters.NUM_FILES_D			= parameters.NUM_SCANS_D * parameters.GANTRY_ANGLES_D;							// [#] 1 file per gantry angle per translation
-	parameters.T_BINS_D				= uint( parameters.SSD_T_SIZE_D / parameters.T_BIN_SIZE_D + 0.5 );				// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
-	parameters.V_BINS_D				= uint( parameters.SSD_V_SIZE_D/ parameters.V_BIN_SIZE_D + 0.5 );				// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
-	parameters.ANGULAR_BINS_D		= uint( 360 / parameters.ANGULAR_BIN_SIZE_D + 0.5 );							// [#] Number of bins (i.e. quantization levels) for path angle 
-	parameters.NUM_BINS_D			= parameters.ANGULAR_BINS_D * parameters.T_BINS_D * parameters.V_BINS_D;		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
-	parameters.RECON_CYL_HEIGHT_D	= parameters.SSD_V_SIZE_D - 1.0;												// [cm] Height of reconstruction cylinder
-	parameters.RECON_CYL_DIAMETER_D	= 2 * parameters.RECON_CYL_RADIUS_D;											// [cm] Diameter of reconstruction cylinder
-	parameters.SLICES_D				= uint( parameters.RECON_CYL_HEIGHT_D / parameters.SLICE_THICKNESS_D);			// [#] Number of voxels in the z direction (i.e., number of slices) of image
-	parameters.NUM_VOXELS_D			= parameters.COLUMNS_D * parameters.ROWS_D * parameters.SLICES_D;				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
-	parameters.IMAGE_WIDTH_D		= parameters.RECON_CYL_DIAMETER_D;												// [cm] Distance between left and right edges of each slice in image
-	parameters.IMAGE_HEIGHT_D		= parameters.RECON_CYL_DIAMETER_D;						// [cm] Distance between top and bottom edges of each slice in image
-	parameters.IMAGE_THICKNESS_D	= parameters.RECON_CYL_HEIGHT_D;						// [cm] Distance between bottom of bottom slice and top of the top slice of image
-	parameters.VOXEL_WIDTH_D		= parameters.IMAGE_WIDTH_D / parameters.COLUMNS_D;		// [cm] Distance between left and right edges of each voxel in image
-	parameters.VOXEL_HEIGHT_D		= parameters.IMAGE_HEIGHT_D / parameters.ROWS_D;		// [cm] Distance between top and bottom edges of each voxel in image
-	parameters.VOXEL_THICKNESS_D	= parameters.IMAGE_THICKNESS_D / parameters.SLICES_D;	// [cm] Distance between top and bottom of each slice in image
-	parameters.X_ZERO_COORDINATE_D	= -parameters.RECON_CYL_RADIUS_D;						// [cm] x-coordinate corresponding to left edge of 1st voxel (i.e. column) in image space
-	parameters.Y_ZERO_COORDINATE_D	= parameters.RECON_CYL_RADIUS_D;						// [cm] y-coordinate corresponding to top edge of 1st voxel (i.e. row) in image space
-	parameters.Z_ZERO_COORDINATE_D	= parameters.RECON_CYL_HEIGHT_D/2;						// [cm] z-coordinate corresponding to top edge of 1st voxel (i.e. slice) in image space
-	parameters.RAM_LAK_TAU_D		= 2/ROOT_TWO * parameters.T_BIN_SIZE_D;					// Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
-	/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-	/*---------------------------------------------------------- Memory allocation size for arrays (binning, image) -----------------------------------------------------------*/
-	/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-	parameters.SIZE_BINS_CHAR_D		= ( parameters.NUM_BINS_D   * sizeof(char)	);			// Amount of memory required for a character array used for binning
-	parameters.SIZE_BINS_BOOL_D		= ( parameters.NUM_BINS_D  * sizeof(bool)	);			// Amount of memory required for a boolean array used for binning
-	parameters.SIZE_BINS_INT_D		= ( parameters.NUM_BINS_D   * sizeof(int)	);			// Amount of memory required for a integer array used for binning
-	parameters.SIZE_BINS_UINT_D		= ( parameters.NUM_BINS_D   * sizeof(uint)	);			// Amount of memory required for a integer array used for binning
-	parameters.SIZE_BINS_FLOAT_D	= ( parameters.NUM_BINS_D	 * sizeof(float));			// Amount of memory required for a floating point array used for binning
-	parameters.SIZE_IMAGE_CHAR_D	= ( parameters.NUM_VOXELS_D * sizeof(char)	);			// Amount of memory required for a character array used for binning
-	parameters.SIZE_IMAGE_BOOL_D	= ( parameters.NUM_VOXELS_D * sizeof(bool)	);			// Amount of memory required for a boolean array used for binning
-	parameters.SIZE_IMAGE_INT_D		= ( parameters.NUM_VOXELS_D * sizeof(int)	);			// Amount of memory required for a integer array used for binning
-	parameters.SIZE_IMAGE_UINT_D	= ( parameters.NUM_VOXELS_D * sizeof(uint)	);			// Amount of memory required for a integer array used for binning
-	parameters.SIZE_IMAGE_FLOAT_D	= ( parameters.NUM_VOXELS_D * sizeof(float) );			// Amount of memory required for a floating point array used for binning
-	parameters.SIZE_IMAGE_DOUBLE_D	= ( parameters.NUM_VOXELS_D * sizeof(double));			// Amount of memory required for a floating point array used for binning
-	/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-	/*-------------------------------------------------------------- Iterative Image Reconstruction Parameters ----------------------------------------------------------------*/
-	/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-	parameters.VOXEL_STEP_SIZE_D		= ( parameters.VOXEL_WIDTH_D / 2 );						// [cm] Length of the step taken along the path, i.e. change in depth per step for
-	parameters.MLP_U_STEP_D				= ( parameters.VOXEL_WIDTH_D / 2);						// Size of the step taken along u direction during MLP; depth difference between successive MLP points
-	parameters.CONSTANT_CHORD_NORM_D	= pow(parameters.VOXEL_WIDTH_D, 2.0);
-	parameters.CONSTANT_LAMBDA_SCALE_D	= parameters.VOXEL_WIDTH_D * parameters.LAMBDA_D;
+		if( NUM_X_EXISTS > 0 )
+			X_EXISTS = true;
+		cout << NUM_X_EXISTS << endl;
+		//cout << HULL_EXISTS << endl;
+		//cout << FBP_EXISTS << endl;
+		//cout << X_0_EXISTS << endl;
+		//cout << X_K_EXISTS << endl;
+		// MLP_PATH, *WEPL_PATH, *HISTORIES_PATH
+		
+		//cout << MLP_EXISTS << endl;
+		//cout << WEPL_EXISTS << endl;
+		//cout << HISTORIES_EXISTS << endl;
+	//}
 }
 void parameters_2_GPU()
 {

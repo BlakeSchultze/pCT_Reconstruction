@@ -11,19 +11,20 @@ typedef unsigned int uint;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------- Preprocessing and reconstruction configuration/parameter container definitions --------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+bool RUN_ON						= false;						// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
 char EXECUTION_DATE[9];
 bool CONFIG_PATH_PASSED = false;			// [T/F] Path to "settings.cfg" passed as command line argument [T] or inferred from current directory [F]
-unsigned int num_run_arguments;
-int num_parameters_2_change; 
-char** run_arguments;
-std::stringstream buffer;
+unsigned int NUM_RUN_ARGUMENTS;
+int NUM_PARAMETERS_2_CHANGE; 
+char** RUN_ARGUMENTS;
+std::stringstream BUFFER;
 
 int GENERATION_DATE, CALIBRATION_DATE;
 uint PHANTOM_NAME_SIZE, DATA_SOURCE_SIZE, ACQUIRED_BY_SIZE, CALIBRATED_BY_SIZE, SKIP_2_DATA_SIZE, VERSION_ID, PROJECTION_INTERVAL;
 float PROJECTION_ANGLE, BEAM_ENERGY_IN;
 char* PHANTOM_NAME, * DATA_SOURCE, * ACQUIRED_BY, * CALIBRATED_BY, * PREPROCESSED_BY, * RECONSTRUCTED_BY, * CONFIG_LINK, * COMMENTS;
-
-bool HULL_EXISTS, FBP_EXISTS, X_0_EXISTS, X_K_EXISTS, MLP_EXISTS, WEPL_EXISTS, HISTORIES_EXISTS;
+bool HULL_EXISTS, FBP_EXISTS, X_0_EXISTS, X_K_EXISTS, X_EXISTS, MLP_EXISTS, VOXELS_PER_PATH_EXISTS, WEPL_EXISTS, HISTORIES_EXISTS;
+uint NUM_X_EXISTS = 0;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*------------------------------------------------------ Reconstruction history ordering and iterate update parameters ----------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -106,8 +107,8 @@ bool* hull_h, * hull_d;
 int* MSC_counts_h, * MSC_counts_d;
 int* SM_counts_h, * SM_counts_d;
 int* MLP_test_image_h, * MLP_test_image_d;
-float* x_FBP_h, * x_FBP_d;
-float* x_FBP_filtered_h, * x_FBP_filtered_d;
+float* FBP_h, * FBP_d;
+float* FBP_filtered_h, * FBP_filtered_d;
 float* FBP_median_filtered_2D_h, * FBP_median_filtered_2D_d;
 float* FBP_median_filtered_3D_h, * FBP_median_filtered_3D_d;
 
@@ -140,7 +141,7 @@ std::vector<float>	xz_exit_angle_vector;
 std::vector<int> voxel_x_vector;
 std::vector<int> voxel_y_vector;
 std::vector<int> voxel_z_vector;
-std::vector<int> MLP_path_voxels;
+std::vector<int> voxels_per_path_vector;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------- Execution timer variables ------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
