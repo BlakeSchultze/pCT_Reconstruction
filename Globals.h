@@ -146,3 +146,27 @@ std::vector<int> voxels_per_path_vector;
 /*---------------------------------------------------------------------- Execution timer variables ------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 clock_t program_start, program_end, pause_cycles = 0;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------- WED calculations variables -----------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+
+// WED calculations
+const char targets_input_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\WED_Input_Data\\bap_new_coord\\";
+const char targets_output_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\WED_Input_Data\\bap_new_coord\\WEDcalcs\\";
+const char WED_input_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\WED_Input_Data\\RStP_DICOM_PHANTOM\\";
+const char WED_output_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\WED_Input_Data\\bap_new_coord\\WEDcalcs\\";
+char targets_base_name[] = "proxi_distal";	
+float* RSP_Phantom_image_h, *RSP_Phantom_image_d;
+float* RSP_Phantom_slice_h, *RSP_Phantom_slice_d;
+bool FULL_PHANTOM = false;
+int BEAM_ANGLE_1 = 0;
+int BEAM_ANGLE_2 = 145;
+int BEAM_ANGLE_3 = 215;
+double* wed_values_beam_1, * wed_values_beam_2, * wed_values_beam_3;
+float* target_x_h, * target_x_d;
+float* target_y_h, * target_y_d;
+float* target_z_h, * target_z_d;
+int num_targets;
+std::vector<int> entry_voxel_x;
+std::vector<int> entry_voxel_y;
+std::vector<int> entry_voxel_z;
