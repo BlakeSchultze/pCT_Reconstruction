@@ -149,12 +149,12 @@ clock_t program_start, program_end, pause_cycles = 0;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------- WED calculations variables -----------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-
+//C:\Users\Blake\Documents\Visual Studio 2010\Projects\robust_pct\robust_pct
 // WED calculations
-const char targets_input_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\WED_Input_Data\\bap_new_coord\\";
-const char targets_output_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\WED_Input_Data\\bap_new_coord\\WEDcalcs\\";
-const char WED_input_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\WED_Input_Data\\RStP_DICOM_PHANTOM\\";
-const char WED_output_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction\\Input\\WED_Input_Data\\bap_new_coord\\WEDcalcs\\";
+const char targets_input_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\bap_new_coord\\";
+const char targets_output_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\WEDcalcs\\";
+const char WED_input_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\RStP_DICOM_PHANTOM\\";
+const char WED_output_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\bap_new_coord\\WEDcalcs\\";
 char targets_base_name[] = "proxi_distal";	
 float* RSP_Phantom_image_h, *RSP_Phantom_image_d;
 float* RSP_Phantom_slice_h, *RSP_Phantom_slice_d;
