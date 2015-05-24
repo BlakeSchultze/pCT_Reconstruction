@@ -27,6 +27,9 @@ double*& process_targets(int);
 void write_WED_values(double*&, int);
 void print_targets();
 void write_phantom_entries(int);
+void combine_image_slices(const char*, char*, char*, uint, uint, uint, uint, DISK_WRITE_MODE );
+void read_txt_Phantom();
+void read_bin_Phantom();
 /***********************************************************************************************************************************************************************************************************************/
 /***************************************************************************************************** Program Main ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -6464,6 +6467,30 @@ unsigned int read_MLP_endpoints2()
 }
 void test_func()
 {
+	//combine_image_slices(WED_input_dir, "_RStP_dicom_phantom_txt125mm.txt", "RStP_Phantom", RSP_IMAGE_ROWS, RSP_IMAGE_COLUMNS, RSP_IMAGE_SLICES, 1, BINARY);
+	//combine_image_slices(WED_input_dir, "_RStP_dicom_phantom_txt125mm.txt", "RStP_Phantom", RSP_IMAGE_ROWS, RSP_IMAGE_COLUMNS, RSP_IMAGE_SLICES, 1, TEXT);
+	//read_txt_Phantom();
+	read_bin_Phantom();
+	//read_Phantom();
+	read_targets( BEAM_ANGLE_1 );
+	wed_values_beam_1 = process_targets(BEAM_ANGLE_1);
+	write_WED_values( wed_values_beam_1, BEAM_ANGLE_1);
+	write_phantom_entries( BEAM_ANGLE_1 );
+	entry_voxel_x.clear();
+	entry_voxel_y.clear();
+	entry_voxel_z.clear();
+	read_targets( BEAM_ANGLE_2 );
+	//calculate_WED_host( float x_target, float y_target, float z_target, float beam_angle_XY )
+	wed_values_beam_2 = process_targets(BEAM_ANGLE_2);
+	write_WED_values( wed_values_beam_2, BEAM_ANGLE_2);
+	write_phantom_entries( BEAM_ANGLE_2 );
+	entry_voxel_x.clear();
+	entry_voxel_y.clear();
+	entry_voxel_z.clear();
+	read_targets( BEAM_ANGLE_3 );
+	wed_values_beam_3 = process_targets(BEAM_ANGLE_3);
+	write_WED_values( wed_values_beam_3, BEAM_ANGLE_3);
+	write_phantom_entries( BEAM_ANGLE_3 );
 	//set_execution_date();
 	//apply_execution_arguments( num_arguments, arguments );
 	//uint histories = read_MLP_endpoints2();
@@ -6481,24 +6508,24 @@ void test_func()
 	//
 	//parameters_2_GPU();
 	//existing_data_check();
-	existing_data_check();
-	std::vector<float> test_vec(15, 2.0);
-	for( int i = 0; i < (int)test_vec.size(); i++ )
-		cout << test_vec[i] << endl;
-	//vector_2_disk("test_vec", "D:\\pCT_Data\\Output\\CTP404\\CTP404_merged\\", TEXT, test_vec, test_vec.size(), 1, 1, true);
-	char* filename = "D:\\pCT_Data\\Output\\CTP404\\CTP404_merged\\test_vec.bin";
-	FILE* outfile = fopen(filename, "wb");
-	fwrite( &test_vec[0], sizeof(float), test_vec.size(), outfile );
-	fclose(outfile);
+	//existing_data_check();
+	//std::vector<float> test_vec(15, 2.0);
+	//for( int i = 0; i < (int)test_vec.size(); i++ )
+	//	cout << test_vec[i] << endl;
+	////vector_2_disk("test_vec", "D:\\pCT_Data\\Output\\CTP404\\CTP404_merged\\", TEXT, test_vec, test_vec.size(), 1, 1, true);
+	//char* filename = "D:\\pCT_Data\\Output\\CTP404\\CTP404_merged\\test_vec.bin";
+	//FILE* outfile = fopen(filename, "wb");
+	//fwrite( &test_vec[0], sizeof(float), test_vec.size(), outfile );
+	//fclose(outfile);
 
-	FILE* infile = fopen(filename, "rb");
-	std::vector<float> invec;
-	invec.reserve(test_vec.size());
-	invec.resize(test_vec.size());
-	fread( &invec[0], sizeof(float), test_vec.size(), infile );
-	for( int i = 0; i < test_vec.size(); i++ )
-		cout << invec[i] << endl;
-	fclose(infile);
+	//FILE* infile = fopen(filename, "rb");
+	//std::vector<float> invec;
+	//invec.reserve(test_vec.size());
+	//invec.resize(test_vec.size());
+	//fread( &invec[0], sizeof(float), test_vec.size(), infile );
+	//for( int i = 0; i < test_vec.size(); i++ )
+	//	cout << invec[i] << endl;
+	//fclose(infile);
 	/*cout << file_exists3(MLP_PATH) << endl;
 	cout << file_exists3(WEPL_PATH) << endl;
 	cout << file_exists3(HISTORIES_PATH) << endl;*/
@@ -7072,7 +7099,7 @@ void read_Phantom()
 		cout << "There should be " << RSP_IMAGE_VOXELS/128 << " voxels in this slice" << endl;
 		cout << "Total voxels thus far is = " << total_voxels << endl; //Prints the correct value every time
 	}
-	cout << "Elements read = " << total_voxels << endl; // Prints wrong value, even though it printed correct right before exiting for loop
+	//cout << "Elements read = " << total_voxels << endl; // Prints wrong value, even though it printed correct right before exiting for loop
 	cout << "There should be " << RSP_IMAGE_VOXELS << " voxels in the phantom" << endl;
 	//fgets(text, sizeof text, stdin);
 }
@@ -7769,4 +7796,112 @@ void write_phantom_entries(int beam_angle)
 		output_file << entry_voxel_x[i] << " " <<  entry_voxel_y[i] << " " <<  entry_voxel_z[i] << endl;
 	output_file.close();
 	cout << entry_voxel_x.size() << endl;
+}
+void combine_image_slices(const char* directory, char* file_basename, char* combined_filename, uint rows, uint columns, uint slices, uint start_slice, DISK_WRITE_MODE format )
+{
+	float line;
+	char text[20];
+	char data_filename[256];
+	uint num_voxels = rows * columns * slices;
+	float* image = (float*) calloc( num_voxels, sizeof(float) );
+	int elements = 0;
+	int total_voxels = 0;
+	for( int slice = start_slice; slice < start_slice + slices; slice++ )
+	{
+		sprintf( data_filename, "%s%03d%s", directory, slice, file_basename );
+		std::ifstream slice_file (data_filename);
+		if (slice_file.is_open())
+		{
+			while ( slice_file >> line )
+				image[total_voxels++] = line;
+			slice_file.close();
+		}
+		cout << "Finished reading slice " << slice << endl;
+	}
+	char output_filename_txt[256];
+	//if( format == TEXT )
+	//{
+		sprintf(output_filename_txt, "%s\\%s.txt", directory, combined_filename);
+		FILE* combined_image_file_txt = fopen(output_filename_txt, "w");
+		fwrite(image, sizeof(float), num_voxels, combined_image_file_txt);
+		fclose(combined_image_file_txt);
+	//}
+		char output_filename_bin[256];
+	//else if( format == BINARY )
+	//{
+		sprintf(output_filename_bin, "%s\\%s.bin", directory, combined_filename);
+		FILE* combined_image_file_bin = fopen(output_filename_bin, "wb");
+		fwrite(image, sizeof(float), num_voxels, combined_image_file_bin);
+		fclose(combined_image_file_bin);
+	//}
+} 
+void read_txt_Phantom()
+{
+	float line;
+	char text[20];
+	char data_filename[256];
+	RSP_Phantom_image_h = (float*) calloc( RSP_IMAGE_VOXELS, sizeof(float) );
+	//int elements = 0;
+	int total_voxels = 0;
+		sprintf( data_filename, "%sRStP_Phantom.txt", WED_input_dir );
+		printf("%s\n", data_filename);
+		FILE* input = fopen(data_filename, "r");
+		fread(RSP_Phantom_image_h, sizeof(float), RSP_IMAGE_VOXELS, input );
+		fclose(input);
+		//for( int i = 0; i < RSP_IMAGE_VOXELS; i++)
+			//printf("%3f\n", RSP_Phantom_image_h[i] );
+		//std::ifstream myfile (data_filename);
+		//if (myfile.is_open())
+		//{
+		//	puts("Hello\n");
+		//	while ( myfile >> line )
+		//	{
+		//		RSP_Phantom_image_h[total_voxels] = line;
+		//		//elements++;		
+		//		total_voxels++;
+		//	}
+		//	myfile.close();
+		//}
+		//cout << "Slice number " << slice << endl;
+		//cout << "Elements read = " << elements << endl;
+		//cout << "There should be " << RSP_IMAGE_VOXELS/128 << " voxels in this slice" << endl;
+		cout << "Total voxels thus far is = " << total_voxels << endl; //Prints the correct value every time
+	//cout << "Elements read = " << total_voxels << endl; // Prints wrong value, even though it printed correct right before exiting for loop
+	cout << "There should be " << RSP_IMAGE_VOXELS << " voxels in the phantom" << endl;
+	//fgets(text, sizeof text, stdin);
+}
+void read_bin_Phantom()
+{
+	float line;
+	char text[20];
+	char data_filename[256];
+	RSP_Phantom_image_h = (float*) calloc( RSP_IMAGE_VOXELS, sizeof(float) );
+	//int elements = 0;
+	int total_voxels = 0;
+		sprintf( data_filename, "%sRStP_Phantom.bin", WED_input_dir );
+		printf("%s\n", data_filename);
+		FILE* input = fopen(data_filename, "rb");
+		fread(RSP_Phantom_image_h, sizeof(float), RSP_IMAGE_VOXELS, input );
+		fclose(input);
+		//for( int i = 0; i < RSP_IMAGE_VOXELS; i++)
+			//printf("%3f\n", RSP_Phantom_image_h[i] );
+		//std::ifstream myfile (data_filename);
+		//if (myfile.is_open())
+		//{
+		//	puts("Hello\n");
+		//	while ( myfile >> line )
+		//	{
+		//		RSP_Phantom_image_h[total_voxels] = line;
+		//		//elements++;		
+		//		total_voxels++;
+		//	}
+		//	myfile.close();
+		//}
+		//cout << "Slice number " << slice << endl;
+		//cout << "Elements read = " << elements << endl;
+		//cout << "There should be " << RSP_IMAGE_VOXELS/128 << " voxels in this slice" << endl;
+		cout << "Total voxels thus far is = " << total_voxels << endl; //Prints the correct value every time
+	//cout << "Elements read = " << total_voxels << endl; // Prints wrong value, even though it printed correct right before exiting for loop
+	cout << "There should be " << RSP_IMAGE_VOXELS << " voxels in the phantom" << endl;
+	//fgets(text, sizeof text, stdin);
 }
