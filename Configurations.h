@@ -491,6 +491,8 @@ std::string terminal_response(char*);
 char((&terminal_response( char*, char(&)[256]))[256]);
 bool directory_exists(char* );
 unsigned int create_unique_dir( char* );
+void get_dir_filenames(std::vector<std::string> &, const std::string &);
+void get_dir_filenames_matching(const std::string &, const std::string &, std::vector<std::string> &, std::vector<std::string> &);
 bool file_exists (const char* file_location) { return (bool)std::ifstream(file_location); };
 bool file_exists2 (const char* file_location) { return std::ifstream(file_location).good(); };
 bool file_exists3 (const char*);
