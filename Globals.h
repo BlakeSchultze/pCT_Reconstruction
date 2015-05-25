@@ -158,7 +158,7 @@ const char WED_output_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\
 char targets_base_name[] = "proxi_distal";	
 float* RSP_Phantom_image_h, *RSP_Phantom_image_d;
 float* RSP_Phantom_slice_h, *RSP_Phantom_slice_d;
-bool FULL_PHANTOM = false;
+bool FULL_PHANTOM = true;
 int BEAM_ANGLE_1 = 0;
 int BEAM_ANGLE_2 = 145;
 int BEAM_ANGLE_3 = 215;

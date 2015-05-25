@@ -30,6 +30,17 @@ void write_phantom_entries(int);
 void combine_image_slices(const char*, char*, char*, uint, uint, uint, uint, DISK_WRITE_MODE );
 void read_txt_Phantom();
 void read_bin_Phantom();
+double calculate_WED_host2( float, float, float, float, float );
+void WED_take_2D_step
+( 
+	const int, const int, const int, const double, const double, const double, const double, const double, const double, 
+	const double, const double, const double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double&, double&	
+);
+void WED_take_3D_step
+( 
+	const int, const int, const int, const double, const double, const double, const double, const double, const double, 
+	const double, const double, const double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double&, double&	
+);
 /***********************************************************************************************************************************************************************************************************************/
 /***************************************************************************************************** Program Main ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
@@ -6467,30 +6478,30 @@ unsigned int read_MLP_endpoints2()
 }
 void test_func()
 {
-	//combine_image_slices(WED_input_dir, "_RStP_dicom_phantom_txt125mm.txt", "RStP_Phantom", RSP_IMAGE_ROWS, RSP_IMAGE_COLUMNS, RSP_IMAGE_SLICES, 1, BINARY);
-	//combine_image_slices(WED_input_dir, "_RStP_dicom_phantom_txt125mm.txt", "RStP_Phantom", RSP_IMAGE_ROWS, RSP_IMAGE_COLUMNS, RSP_IMAGE_SLICES, 1, TEXT);
+	//combine_image_slices(WED_input_dir, "_RStP_dicom_phantom_txt125mm.txt", "RStP_Phantom", WED_TARGET_ROWS, WED_TARGET_COLUMNS, WED_TARGET_SLICES, 1, BINARY);
+	//combine_image_slices(WED_input_dir, "_RStP_dicom_phantom_txt125mm.txt", "RStP_Phantom", WED_TARGET_ROWS, WED_TARGET_COLUMNS, WED_TARGET_SLICES, 1, TEXT);
 	//read_txt_Phantom();
 	read_bin_Phantom();
 	//read_Phantom();
 	read_targets( BEAM_ANGLE_1 );
 	wed_values_beam_1 = process_targets(BEAM_ANGLE_1);
 	write_WED_values( wed_values_beam_1, BEAM_ANGLE_1);
-	write_phantom_entries( BEAM_ANGLE_1 );
-	entry_voxel_x.clear();
-	entry_voxel_y.clear();
-	entry_voxel_z.clear();
+	//write_phantom_entries( BEAM_ANGLE_1 );
+	//entry_voxel_x.clear();
+	//entry_voxel_y.clear();
+	//entry_voxel_z.clear();
 	read_targets( BEAM_ANGLE_2 );
-	//calculate_WED_host( float x_target, float y_target, float z_target, float beam_angle_XY )
+	////calculate_WED_host( float x_target, float y_target, float z_target, float beam_angle_XY )
 	wed_values_beam_2 = process_targets(BEAM_ANGLE_2);
 	write_WED_values( wed_values_beam_2, BEAM_ANGLE_2);
-	write_phantom_entries( BEAM_ANGLE_2 );
-	entry_voxel_x.clear();
-	entry_voxel_y.clear();
-	entry_voxel_z.clear();
+	//write_phantom_entries( BEAM_ANGLE_2 );
+	//entry_voxel_x.clear();
+	//entry_voxel_y.clear();
+	//entry_voxel_z.clear();
 	read_targets( BEAM_ANGLE_3 );
 	wed_values_beam_3 = process_targets(BEAM_ANGLE_3);
 	write_WED_values( wed_values_beam_3, BEAM_ANGLE_3);
-	write_phantom_entries( BEAM_ANGLE_3 );
+	//write_phantom_entries( BEAM_ANGLE_3 );
 	//set_execution_date();
 	//apply_execution_arguments( num_arguments, arguments );
 	//uint histories = read_MLP_endpoints2();
@@ -7062,25 +7073,24 @@ __global__ void test_func_GPU( configurations* parameters, int* a)
 
 int calculate_x_voxel(float x_position)
 {
-	return (  x_position - RSP_IMAGE_X_MIN) / RSP_IMAGE_VOXEL_WIDTH; //76.7168     95.625 96.875 98.125 99.375 100.625 101.875 103.125 104.375 105.625 106.875 108.125
+	return (  x_position - WED_TARGET_X_MIN) / WED_TARGET_VOXEL_WIDTH; //76.7168     95.625 96.875 98.125 99.375 100.625 101.875 103.125 104.375 105.625 106.875 108.125
 }
 int calculate_y_voxel(float y_position)
 {
-	return ( RSP_IMAGE_Y_MAX - y_position ) / RSP_IMAGE_VOXEL_HEIGHT;
+	return ( WED_TARGET_Y_MAX - y_position ) / WED_TARGET_VOXEL_HEIGHT;
 }
 int calculate_slice(float z_position)
 {
-	return ( RSP_IMAGE_Z_MAX - z_position ) / RSP_IMAGE_VOXEL_THICKNESS;
+	return ( WED_TARGET_Z_MAX - z_position ) / WED_TARGET_VOXEL_THICKNESS;
 }
 void read_Phantom()
 {
 	float line;
 	char text[20];
 	char data_filename[256];
-	RSP_Phantom_image_h = (float*) calloc( RSP_IMAGE_VOXELS, sizeof(float) );
-	int elements;
-	int total_voxels;
-	for( int slice = 1, total_voxels = 0, elements = 0; slice <= RSP_IMAGE_SLICES; slice++, elements = 0 )
+	RSP_Phantom_image_h = (float*) calloc( WED_TARGET_VOXELS, sizeof(float) );
+	int total_voxels = 0;
+	for( int slice = 1; slice <= WED_TARGET_SLICES; slice++ )
 	{
 		sprintf( data_filename, "%s%03d_RStP_dicom_phantom_txt125mm.txt", WED_input_dir, slice );
 		std::ifstream myfile (data_filename);
@@ -7088,29 +7098,43 @@ void read_Phantom()
 		{
 			while ( myfile >> line )
 			{
-				RSP_Phantom_image_h[total_voxels] = line;
-				elements++;		
-				total_voxels++;
+				RSP_Phantom_image_h[total_voxels++] = line;	
 			}
 			myfile.close();
 		}
 		cout << "Slice number " << slice << endl;
-		cout << "Elements read = " << elements << endl;
-		cout << "There should be " << RSP_IMAGE_VOXELS/128 << " voxels in this slice" << endl;
+		cout << "There should be " << WED_TARGET_VOXELS/128 << " voxels in this slice" << endl;
 		cout << "Total voxels thus far is = " << total_voxels << endl; //Prints the correct value every time
 	}
 	//cout << "Elements read = " << total_voxels << endl; // Prints wrong value, even though it printed correct right before exiting for loop
-	cout << "There should be " << RSP_IMAGE_VOXELS << " voxels in the phantom" << endl;
+	cout << "There should be " << WED_TARGET_VOXELS << " voxels in the phantom" << endl;
 	//fgets(text, sizeof text, stdin);
+	char output_filename_txt[256];
+	////combine_image_slices(WED_input_dir, "_RStP_dicom_phantom_txt125mm.txt", "RStP_Phantom", WED_TARGET_ROWS, WED_TARGET_COLUMNS, WED_TARGET_SLICES, 1, BINARY);
+	 
+	//if( format == TEXT )
+	//{
+		sprintf(output_filename_txt, "%s%s2.txt", WED_input_dir, "RStP_Phantom");
+		FILE* combined_image_file_txt = fopen(output_filename_txt, "w");
+		fwrite(RSP_Phantom_image_h, sizeof(float), total_voxels, combined_image_file_txt);
+		fclose(combined_image_file_txt);
+	//}
+		char output_filename_bin[256];
+	//else if( format == BINARY )
+	//{
+		sprintf(output_filename_bin, "%s%s2.bin", WED_input_dir, "RStP_Phantom");
+		FILE* combined_image_file_bin = fopen(output_filename_bin, "wb");
+		fwrite(RSP_Phantom_image_h, sizeof(float), total_voxels, combined_image_file_bin);
+		fclose(combined_image_file_bin);
 }
 void read_slice( int slice)
 {
 	float line;
 	char text[20];
 	char data_filename[256];
-	RSP_Phantom_slice_h = (float*) calloc( RSP_IMAGE_COLUMNS * RSP_IMAGE_ROWS, sizeof(float) );
+	RSP_Phantom_slice_h = (float*) calloc( WED_TARGET_COLUMNS * WED_TARGET_ROWS, sizeof(float) );
 	int num_voxels = 0;
-	sprintf( data_filename, "%s%03d_RStP_dicom_phantom_txt125mm.txt", WED_input_dir, slice );
+	sprintf( data_filename, "%s%03d_RStP_dicom_phantom_txt125mm.txt", WED_input_dir, slice + 1 );
 	//cout << data_filename << endl;
 	std::ifstream myfile (data_filename);
 	if (myfile.is_open())
@@ -7124,9 +7148,9 @@ void read_slice( int slice)
 	}
 	cout << "Slice number " << slice << endl;
 	cout << "Elements read = " << num_voxels << endl;
-	cout << "There should be " << RSP_IMAGE_VOXELS/128 << " voxels in this slice" << endl;
+	cout << "There should be " << WED_TARGET_VOXELS/128 << " voxels in this slice" << endl;
 	//fgets(text, sizeof text, stdin);
-	//write_slice( "RSP_Phantom2", WED_input_dir, RSP_Phantom_slice_h, RSP_IMAGE_COLUMNS, RSP_IMAGE_ROWS, slice);
+	//write_slice( "RSP_Phantom2", WED_input_dir, RSP_Phantom_slice_h, WED_TARGET_COLUMNS, WED_TARGET_ROWS, slice);
 }
 void write_slice( char* output_filename_base, const char* output_directory, float* &float_array, int x_max, int y_max, int slice )
 {
@@ -7145,13 +7169,13 @@ void write_slice( char* output_filename_base, const char* output_directory, floa
 }
 void calculate_WED( )
 {
-	float* RSP_Phantom_image_h = (float*) calloc( RSP_IMAGE_VOXELS, sizeof(float) );
-	cudaMalloc((void**) &RSP_Phantom_image_d,	RSP_IMAGE_FLOAT_MEM_SIZE );
-	cudaMemcpy(RSP_Phantom_image_d, RSP_Phantom_image_h, RSP_IMAGE_FLOAT_MEM_SIZE, cudaMemcpyHostToDevice) ;
+	float* RSP_Phantom_image_h = (float*) calloc( WED_TARGET_VOXELS, sizeof(float) );
+	cudaMalloc((void**) &RSP_Phantom_image_d,	WED_TARGET_FLOAT_MEM_SIZE );
+	cudaMemcpy(RSP_Phantom_image_d, RSP_Phantom_image_h, WED_TARGET_FLOAT_MEM_SIZE, cudaMemcpyHostToDevice) ;
 	
 	int num_histories = 10;
-	dim3 dimBlock( RSP_IMAGE_SLICES );
-	dim3 dimGrid( RSP_IMAGE_COLUMNS, RSP_IMAGE_ROWS );   
+	dim3 dimBlock( WED_TARGET_SLICES );
+	dim3 dimGrid( WED_TARGET_COLUMNS, WED_TARGET_ROWS );   
 	//calculate_WED_kernel<<< dimGrid, dimBlock >>>( num_histories, RSP_Phantom_image_d);
 }
 double calculate_WED_host( float x_target, float y_target, float z_target, float beam_angle_XY )
@@ -7182,9 +7206,9 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 		double WED = 0;
 		
 		if( FULL_PHANTOM )
-			intersected_voxels = (bool*) calloc( RSP_IMAGE_VOXELS, sizeof(bool) );
+			intersected_voxels = (bool*) calloc( WED_TARGET_VOXELS, sizeof(bool) );
 		else
-			intersected_voxels = (bool*) calloc( RSP_IMAGE_COLUMNS * RSP_IMAGE_ROWS, sizeof(bool) );
+			intersected_voxels = (bool*) calloc( WED_TARGET_COLUMNS * WED_TARGET_ROWS, sizeof(bool) );
 		/*********************************************************************************************/
 		float x_start, y_start, z_start;
 		bool x_start_direction = cosf( beam_angle_XY * ANGLE_TO_RADIANS) >= 0;
@@ -7252,18 +7276,22 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 		/********************************************************************************************/
 		/************************** Initial and Boundary Conditions *********************************/
 		/********************************************************************************************/
-
+		//x_position - WED_TARGET_X_MIN
+		//x_start + WED_TARGET_X_MAX 
 		// Initial Distance Into Voxel
-		x_inside = modf( ( x_start + RSP_IMAGE_X_MAX ) / RSP_IMAGE_VOXEL_WIDTH, &voxel_x ) * RSP_IMAGE_VOXEL_WIDTH;	
-		y_inside = modf( ( RSP_IMAGE_Y_MAX - y_start ) / RSP_IMAGE_VOXEL_HEIGHT, &voxel_y ) * RSP_IMAGE_VOXEL_HEIGHT;
-		z_inside = modf( ( RSP_IMAGE_Z_MAX - z_start ) / RSP_IMAGE_VOXEL_THICKNESS, &voxel_z ) * RSP_IMAGE_VOXEL_THICKNESS;
+		x_inside = modf( ( x_start + WED_TARGET_X_MAX ) / WED_TARGET_VOXEL_WIDTH, &voxel_x ) * WED_TARGET_VOXEL_WIDTH;	
+		y_inside = modf( ( WED_TARGET_Y_MAX - y_start ) / WED_TARGET_VOXEL_HEIGHT, &voxel_y ) * WED_TARGET_VOXEL_HEIGHT;
+		z_inside = modf( ( WED_TARGET_Z_MAX - z_start ) / WED_TARGET_VOXEL_THICKNESS, &voxel_z ) * WED_TARGET_VOXEL_THICKNESS;
 		//printf("voxel_x = %3f \nvoxel_y = %3f \nvoxel_z = %3f\n", voxel_x, voxel_y, voxel_z);
 		//printf("x_inside = %3f y_inside = %3f z_inside = %3f\n", x_inside, y_inside, z_inside);
-	
+		//voxel_x = x_vox;
+		//voxel_y = y_vox;
+		//voxel_z = z_vox;
+
 		if( FULL_PHANTOM )
-			voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS + voxel_z * RSP_IMAGE_COLUMNS * RSP_IMAGE_ROWS);
+			voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS + voxel_z * WED_TARGET_COLUMNS * WED_TARGET_ROWS);
 		else
-			voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS);
+			voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS);
 		//printf("voxel = %d \n", voxel );
 		/********************************************************************************************/
 		/***************************** Path and Walk Information ************************************/
@@ -7287,19 +7315,19 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 		//	}
 		//}
 		// Lengths/Distances as x is Incremented One Voxel
-		delta_x = RSP_IMAGE_VOXEL_WIDTH;
-		delta_y = fabs(tanf( beam_angle_XY * ANGLE_TO_RADIANS) * RSP_IMAGE_VOXEL_WIDTH);
-		delta_z = fabs(tanf( beam_angle_XZ * ANGLE_TO_RADIANS ) * RSP_IMAGE_VOXEL_WIDTH);
+		delta_x = WED_TARGET_VOXEL_WIDTH;
+		delta_y = fabs(tanf( beam_angle_XY * ANGLE_TO_RADIANS) * WED_TARGET_VOXEL_WIDTH);
+		delta_z = fabs(tanf( beam_angle_XZ * ANGLE_TO_RADIANS ) * WED_TARGET_VOXEL_WIDTH);
 		if( x_start == x_target )
 		{
 			delta_x = 0;
-			delta_y = RSP_IMAGE_VOXEL_HEIGHT;
-			delta_z = fabs(tanf(beam_angle_XZ * ANGLE_TO_RADIANS) / tanf(beam_angle_XY * ANGLE_TO_RADIANS) * RSP_IMAGE_VOXEL_HEIGHT);
+			delta_y = WED_TARGET_VOXEL_HEIGHT;
+			delta_z = fabs(tanf(beam_angle_XZ * ANGLE_TO_RADIANS) / tanf(beam_angle_XY * ANGLE_TO_RADIANS) * WED_TARGET_VOXEL_HEIGHT);
 			if( y_start == y_target )
 			{
 				delta_x = 0;
 				delta_y = 0;
-				delta_z = RSP_IMAGE_VOXEL_THICKNESS;
+				delta_z = WED_TARGET_VOXEL_THICKNESS;
 			}
 		}
 		printf("delta_x = %3f delta_y = %3f delta_z = %3f\n", delta_x, delta_y, delta_z );
@@ -7321,24 +7349,24 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 		/**************************** Status Tracking Information ***********************************/
 		/********************************************************************************************/
 		x = x_start, y = y_start, z = z_start;
-		x_to_go = ( x_voxel_step > 0 ) * ( RSP_IMAGE_VOXEL_WIDTH - x_inside ) + ( x_voxel_step <= 0 ) * x_inside;
-		y_to_go = ( y_voxel_step > 0 ) * ( RSP_IMAGE_VOXEL_HEIGHT - y_inside ) + ( y_voxel_step <= 0 ) * y_inside;
-		z_to_go = ( z_voxel_step > 0 ) * ( RSP_IMAGE_VOXEL_THICKNESS - z_inside ) + ( z_voxel_step <= 0 ) * z_inside;
+		x_to_go = ( x_voxel_step > 0 ) * ( WED_TARGET_VOXEL_WIDTH - x_inside ) + ( x_voxel_step <= 0 ) * x_inside;
+		y_to_go = ( y_voxel_step > 0 ) * ( WED_TARGET_VOXEL_HEIGHT - y_inside ) + ( y_voxel_step <= 0 ) * y_inside;
+		z_to_go = ( z_voxel_step > 0 ) * ( WED_TARGET_VOXEL_THICKNESS - z_inside ) + ( z_voxel_step <= 0 ) * z_inside;
 	
 		printf("initial values:\n\tx_to_go = %3f\n\ty_to_go = %3f\n\tz_to_go = %3f\n", x_to_go, y_to_go, z_to_go);
 		
 		if( FULL_PHANTOM )
 		{
-			outside_image = (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) || (voxel_z >= RSP_IMAGE_SLICES );
+			outside_image = (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) || (voxel_z >= WED_TARGET_SLICES );
 			if( !outside_image )
-				entered_object = RSP_Phantom_image_h[voxel] >= THESHOLD_RSP;
+				entered_object = RSP_Phantom_image_h[voxel] >= WED_TARGET_THRESHOLD_RSP;
 			end_walk = entered_object || outside_image;
 		}
 		else
 		{
-			outside_slice = (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS );
+			outside_slice = (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS );
 			if( !outside_slice )
-				entered_object = RSP_Phantom_slice_h[voxel] >= THESHOLD_RSP;
+				entered_object = RSP_Phantom_slice_h[voxel] >= WED_TARGET_THRESHOLD_RSP;
 			end_walk = entered_object || outside_slice;
 		}
 		
@@ -7360,17 +7388,17 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					z_move = z_to_go;
 					x_to_go -= x_move;
 					y_to_go -= y_move;
-					z_to_go = RSP_IMAGE_VOXEL_THICKNESS;
+					z_to_go = WED_TARGET_VOXEL_THICKNESS;
 					voxel_z += z_voxel_step;
 					if( x_to_go == 0 )
 					{
 						voxel_x += x_voxel_step;
-						x_to_go = RSP_IMAGE_VOXEL_WIDTH;
+						x_to_go = WED_TARGET_VOXEL_WIDTH;
 					}
 					if(	y_to_go == 0 )
 					{
 						voxel_y += y_voxel_step;
-						y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+						y_to_go = WED_TARGET_VOXEL_HEIGHT;
 					}
 				}
 				//If Next Voxel Edge is in x or xy Diagonal
@@ -7380,13 +7408,13 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					x_move = x_to_go;
 					y_move = delta_y / delta_x * x_to_go;
 					z_move = delta_z / delta_x * x_to_go;
-					x_to_go = RSP_IMAGE_VOXEL_WIDTH;
+					x_to_go = WED_TARGET_VOXEL_WIDTH;
 					y_to_go -= y_move;
 					z_to_go -= z_move;
 					voxel_x += x_voxel_step;
 					if( y_to_go == 0 )
 					{
-						y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+						y_to_go = WED_TARGET_VOXEL_HEIGHT;
 						voxel_y += y_voxel_step;
 					}
 				}
@@ -7398,24 +7426,24 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					y_move = y_to_go;
 					z_move = delta_z / delta_y * y_to_go;
 					x_to_go -= x_move;
-					y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+					y_to_go = WED_TARGET_VOXEL_HEIGHT;
 					z_to_go -= z_move;
 					voxel_y += y_voxel_step;
 				}
 				if( FULL_PHANTOM )
 				{
-					voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS + voxel_z * RSP_IMAGE_COLUMNS * RSP_IMAGE_ROWS);
-					outside_image = (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) || (voxel_z >= RSP_IMAGE_SLICES );
+					voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS + voxel_z * WED_TARGET_COLUMNS * WED_TARGET_ROWS);
+					outside_image = (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) || (voxel_z >= WED_TARGET_SLICES );
 					if( !outside_image )
-						entered_object = RSP_Phantom_image_h[voxel] >= THESHOLD_RSP;
+						entered_object = RSP_Phantom_image_h[voxel] >= WED_TARGET_THRESHOLD_RSP;
 					end_walk = entered_object || outside_image;
 				}
 				else
 				{
-					voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS );
-					outside_slice = ( (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) );
+					voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS );
+					outside_slice = ( (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) );
 					if( !outside_slice )
-						entered_object = ( RSP_Phantom_slice_h[voxel] >= THESHOLD_RSP );
+						entered_object = ( RSP_Phantom_slice_h[voxel] >= WED_TARGET_THRESHOLD_RSP );
 					end_walk = ( entered_object || outside_slice );
 				}
 				x += x_move_direction * x_move;
@@ -7442,12 +7470,12 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					printf(" x_to_go <= y_extension \n");
 					x_move = x_to_go;
 					y_move = delta_y / delta_x * x_to_go;				
-					x_to_go = RSP_IMAGE_VOXEL_WIDTH;
+					x_to_go = WED_TARGET_VOXEL_WIDTH;
 					y_to_go -= y_move;
 					voxel_x += x_voxel_step;
 					if( y_to_go == 0 )
 					{
-						y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+						y_to_go = WED_TARGET_VOXEL_HEIGHT;
 						voxel_y += y_voxel_step;
 					}
 				}
@@ -7458,7 +7486,7 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					x_move = delta_x / delta_y * y_to_go;
 					y_move = y_to_go;
 					x_to_go -= x_move;
-					y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+					y_to_go = WED_TARGET_VOXEL_HEIGHT;
 					voxel_y += y_voxel_step;
 				}
 				//printf("end of loop\n\n");
@@ -7469,23 +7497,25 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 				//printf("MLP_IMAGE_WIDTH/2 = %3f\n MLP_IMAGE_HEIGHT/2 = %3f", MLP_IMAGE_WIDTH/2 , MLP_IMAGE_HEIGHT/2 );
 				if( FULL_PHANTOM )
 				{
-					voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS + voxel_z * RSP_IMAGE_COLUMNS * RSP_IMAGE_ROWS);
-					outside_image = (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) || (voxel_z >= RSP_IMAGE_SLICES );
+					voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS + voxel_z * WED_TARGET_COLUMNS * WED_TARGET_ROWS);
+					outside_image = (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) || (voxel_z >= WED_TARGET_SLICES );
 					if( !outside_image )
-						entered_object = RSP_Phantom_image_h[voxel] >= THESHOLD_RSP;
+						entered_object = RSP_Phantom_image_h[voxel] >= WED_TARGET_THRESHOLD_RSP;
 					end_walk = entered_object || outside_image;
+					cout << "Phantom Value = " << RSP_Phantom_image_h[voxel] << endl;
 				}
 				else
 				{
-					voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS );
-					outside_slice = ( (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) );
+					voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS );
+					outside_slice = ( (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) );
 					if( !outside_slice )
-						entered_object = ( RSP_Phantom_slice_h[voxel] >= THESHOLD_RSP );
+						entered_object = ( RSP_Phantom_slice_h[voxel] >= WED_TARGET_THRESHOLD_RSP );
 					end_walk = ( entered_object || outside_slice );
+					cout << "Phantom Value = " << RSP_Phantom_slice_h[voxel] << endl;
 				}
 				x += x_move_direction * x_move;
 				y += y_move_direction * y_move;
-				cout << "Phantom Value = " << RSP_Phantom_slice_h[voxel] << endl;
+				
 				//fgets(text, sizeof text, stdin);
 			}// end: while( !end_walk )
 		}//end: else: z_start != z_target => z_start == z_target
@@ -7501,6 +7531,7 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 		z_vox = calculate_slice( z_in_object );
 
 		cout << "v_xin = " << x_vox << endl << "v_yin =  " << y_vox << endl << "v_zin =  " << z_vox << endl;
+		cout << "v_xin2 = " << voxel_x << endl << "v_yin2 =  " << voxel_y << endl << "v_zin2 =  " << voxel_z << endl;
 		//cout << "xtogo = " << x_to_go << "ytogo =  " << y_to_go << "ztogo =  " << z_to_go << endl;
 		//cout << "Phantom value at voxel = " << RSP_Phantom_slice_h[voxel] << endl;
 		//cout << "Phantom value at voxel +1 = " << RSP_Phantom_slice_h[voxel +1] << endl;
@@ -7516,9 +7547,9 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 		/****************** Target and WED Calculation Termination Information **********************/
 		/********************************************************************************************/
 		intersected_voxels[voxel] = true;
-		//target_voxel_x = int( ( x_target + RECON_CYL_RADIUS ) /RSP_IMAGE_VOXEL_WIDTH );
-		//target_voxel_y = int( ( RECON_CYL_RADIUS - y_target ) /RSP_IMAGE_VOXEL_HEIGHT );
-		//target_voxel_z = int( ( RECON_CYL_HEIGHT/2 - z_target ) /RSP_IMAGE_VOXEL_THICKNESS );
+		//target_voxel_x = int( ( x_target + RECON_CYL_RADIUS ) /WED_TARGET_VOXEL_WIDTH );
+		//target_voxel_y = int( ( RECON_CYL_RADIUS - y_target ) /WED_TARGET_VOXEL_HEIGHT );
+		//target_voxel_z = int( ( RECON_CYL_HEIGHT/2 - z_target ) /WED_TARGET_VOXEL_THICKNESS );
 		target_voxel_x = calculate_x_voxel( x_target );
 		target_voxel_y = calculate_y_voxel( y_target );
 		target_voxel_z = calculate_slice( z_target );
@@ -7526,16 +7557,16 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 		cout << "target_voxel_x = " << target_voxel_x << " " << "target_voxel_y = " << target_voxel_y << " " << "target_voxel_z = " << target_voxel_z << endl;
 		if( FULL_PHANTOM )
 		{
-			target_voxel = int( target_voxel_x + target_voxel_y * RSP_IMAGE_COLUMNS + target_voxel_z * RSP_IMAGE_COLUMNS * RSP_IMAGE_ROWS );
-			outside_image = (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) || (voxel_z >= RSP_IMAGE_SLICES );
+			target_voxel = int( target_voxel_x + target_voxel_y * WED_TARGET_COLUMNS + target_voxel_z * WED_TARGET_COLUMNS * WED_TARGET_ROWS );
+			outside_image = (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) || (voxel_z >= WED_TARGET_SLICES );
 			if( !outside_image )
 				entered_target = ( voxel == target_voxel );
 			end_WED = entered_target || outside_image;
 		}
 		else
 		{
-			target_voxel = int( target_voxel_x + target_voxel_y * RSP_IMAGE_COLUMNS );
-			outside_slice = (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS );
+			target_voxel = int( target_voxel_x + target_voxel_y * WED_TARGET_COLUMNS );
+			outside_slice = (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS );
 			if( !outside_slice )
 				entered_target = ( voxel == target_voxel );
 			end_WED = entered_target || outside_slice;
@@ -7560,17 +7591,17 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					chord_length = z_move /delta_z * L_xyz;
 					x_to_go -= x_move;
 					y_to_go -= y_move;
-					z_to_go = RSP_IMAGE_VOXEL_THICKNESS;
+					z_to_go = WED_TARGET_VOXEL_THICKNESS;
 					voxel_z += z_voxel_step;
 					if( x_to_go == 0 )
 					{
 						voxel_x += x_voxel_step;
-						x_to_go = RSP_IMAGE_VOXEL_WIDTH;
+						x_to_go = WED_TARGET_VOXEL_WIDTH;
 					}
 					if(	y_to_go == 0 )
 					{
 						voxel_y += y_voxel_step;
-						y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+						y_to_go = WED_TARGET_VOXEL_HEIGHT;
 					}
 				}
 				//If Next Voxel Edge is in x or xy Diagonal
@@ -7581,13 +7612,13 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					y_move = delta_y / delta_x * x_to_go;
 					z_move = delta_z / delta_x * x_to_go;
 					chord_length = z_move /delta_z * L_xyz;
-					x_to_go = RSP_IMAGE_VOXEL_WIDTH;
+					x_to_go = WED_TARGET_VOXEL_WIDTH;
 					y_to_go -= y_move;
 					z_to_go -= z_move;
 					voxel_x += x_voxel_step;
 					if( y_to_go == 0 )
 					{
-						y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+						y_to_go = WED_TARGET_VOXEL_HEIGHT;
 						voxel_y += y_voxel_step;
 					}
 				}
@@ -7600,30 +7631,30 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					z_move = delta_z / delta_y * y_to_go;
 					chord_length = z_move /delta_z * L_xyz;
 					x_to_go -= x_move;
-					y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+					y_to_go = WED_TARGET_VOXEL_HEIGHT;
 					z_to_go -= z_move;
 					voxel_y += y_voxel_step;
 				}				
 				if( FULL_PHANTOM )
 				{					
-					outside_image = (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) || (voxel_z >= RSP_IMAGE_SLICES );
+					outside_image = (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) || (voxel_z >= WED_TARGET_SLICES );
 					if( !outside_image )
 					{
 						WED += chord_length * RSP_Phantom_image_h[voxel];					
 						intersected_voxels[voxel] = true;
-						voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS + voxel_z * RSP_IMAGE_COLUMNS * RSP_IMAGE_ROWS);
+						voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS + voxel_z * WED_TARGET_COLUMNS * WED_TARGET_ROWS);
 						entered_target = ( voxel == target_voxel );	
 					}
 					end_WED = entered_target || outside_image;					
 				}
 				else
 				{					
-					outside_slice = ( (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) );
+					outside_slice = ( (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) );
 					if( !outside_slice )
 					{
 						WED += chord_length * RSP_Phantom_slice_h[voxel];
 						intersected_voxels[voxel] = true;
-						voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS );
+						voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS );
 						entered_target = ( voxel == target_voxel );
 					}
 					end_WED = ( entered_target || outside_slice );					
@@ -7649,12 +7680,12 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					y_move = delta_y / delta_x * x_to_go;
 					chord_length = x_move /delta_x * L_xyz;
 					//cout << chord_length << endl;
-					x_to_go = RSP_IMAGE_VOXEL_WIDTH;
+					x_to_go = WED_TARGET_VOXEL_WIDTH;
 					y_to_go -= y_move;
 					voxel_x += x_voxel_step;
 					if( y_to_go == 0 )
 					{
-						y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+						y_to_go = WED_TARGET_VOXEL_HEIGHT;
 						voxel_y += y_voxel_step;
 					}
 					//printf("Hello");
@@ -7667,30 +7698,30 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 					y_move = y_to_go;
 					chord_length = y_move /delta_y * L_xyz;
 					x_to_go -= x_move;
-					y_to_go = RSP_IMAGE_VOXEL_HEIGHT;
+					y_to_go = WED_TARGET_VOXEL_HEIGHT;
 					voxel_y += y_voxel_step;
 					//printf("Hello");
 				}
 				if( FULL_PHANTOM )
 				{					
-					outside_image = (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) || (voxel_z >= RSP_IMAGE_SLICES );
+					outside_image = (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) || (voxel_z >= WED_TARGET_SLICES );
 					if( !outside_image )
 					{
 						WED += chord_length * RSP_Phantom_image_h[voxel];					
 						intersected_voxels[voxel] = true;
-						voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS + voxel_z * RSP_IMAGE_COLUMNS * RSP_IMAGE_ROWS);
+						voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS + voxel_z * WED_TARGET_COLUMNS * WED_TARGET_ROWS);
 						entered_target = ( voxel == target_voxel );	
 					}
 					end_WED = entered_target || outside_image;					
 				}
 				else
 				{					
-					outside_slice = ( (voxel_x >= RSP_IMAGE_COLUMNS ) || (voxel_y >= RSP_IMAGE_ROWS ) );
+					outside_slice = ( (voxel_x >= WED_TARGET_COLUMNS ) || (voxel_y >= WED_TARGET_ROWS ) );
 					if( !outside_slice )
 					{
 						WED += chord_length * RSP_Phantom_slice_h[voxel];
 						intersected_voxels[voxel] = true;
-						voxel = int(voxel_x + voxel_y * RSP_IMAGE_COLUMNS );
+						voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS );
 						entered_target = ( voxel == target_voxel );
 					}
 					end_WED = ( entered_target || outside_slice );					
@@ -7706,6 +7737,7 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 		float remaining_x = x_move_direction * ( x_target - x );
 		float remaining_y = y_move_direction * ( y_target - y );
 		float remaining_z = z_move_direction * ( z_target - z );
+		cout << remaining_z << endl;
 		float remaining_L = sqrt( powf(remaining_x, 2.0) + powf(remaining_y, 2.0) + powf(remaining_z, 2.0) );
 		//cout << "remaining_x" << remaining_x << endl;
 		//cout << "remaining_y" << remaining_y << endl;
@@ -7715,7 +7747,10 @@ double calculate_WED_host( float x_target, float y_target, float z_target, float
 		//cout << "Phantom value at voxel = " << RSP_Phantom_slice_h[voxel] << endl;
 		//cout << "Phantom value at voxel+1 = " << RSP_Phantom_slice_h[voxel +1] << endl;
 		cout << "voxels passed through = " << i << endl << "WED = " << WED << endl;
-		WED += remaining_L * RSP_Phantom_slice_h[voxel];
+		if( FULL_PHANTOM )
+			WED += remaining_L * RSP_Phantom_image_h[voxel];
+		else
+			WED += remaining_L * RSP_Phantom_slice_h[voxel];
 		cout << "voxels passed through at least partially = " << i + 1<< endl << "WED = " << WED << endl;
 		return WED;
 }
@@ -7762,14 +7797,21 @@ double*& process_targets( int beam_angle)
 	//float* target_z_h, * target_z_d;
 	double* WED_values = (double*) calloc( num_targets, sizeof(double) );
 	int slice;
+	//num_targets = 1;
+	//num_targets-1
 	//cout << "num_targets = " << num_targets << endl;
 	for( int target = 0; target < num_targets; target++ )
 	{
 		cout << "processing target # " << target + 1 << " of " << num_targets << " for beam angle " << beam_angle << endl;;
-		slice = calculate_slice( target_z_h[target] );
-		read_slice( slice );		
-		WED_values[target] = calculate_WED_host( target_x_h[target], target_y_h[target], target_z_h[target], beam_angle );
-		cout << entry_voxel_x.size() << endl;
+		/*if( !FULL_PHANTOM )
+		{
+			slice = calculate_slice( target_z_h[target] );
+			cout << "Slice read = " << slice << endl;
+			read_slice( slice );
+		}*/
+		//WED_values[target] = calculate_WED_host( target_x_h[target], target_y_h[target], target_z_h[target], beam_angle );
+		WED_values[target] =  calculate_WED_host2( target_x_h[target], target_y_h[target], target_z_h[target], beam_angle, 0.0 );
+		//cout << entry_voxel_x.size() << endl;
 	}
 	return WED_values;
 }
@@ -7777,7 +7819,7 @@ void write_WED_values( double*& WED_values, int beam_angle)
 {
 	char output_filename[256];
 	std::ofstream output_file;
-	sprintf( output_filename, "%sWEDs_Angle_%d.txt", WED_output_dir, beam_angle );
+	sprintf( output_filename, "%sWEDs_Angle_%03d.txt", WED_output_dir, beam_angle );
 	output_file.open(output_filename);
 	//cout << "num_targets = " << num_targets << endl;
 	for(int target = 0; target < num_targets; target++)
@@ -7837,71 +7879,294 @@ void combine_image_slices(const char* directory, char* file_basename, char* comb
 } 
 void read_txt_Phantom()
 {
-	float line;
-	char text[20];
 	char data_filename[256];
-	RSP_Phantom_image_h = (float*) calloc( RSP_IMAGE_VOXELS, sizeof(float) );
-	//int elements = 0;
-	int total_voxels = 0;
-		sprintf( data_filename, "%sRStP_Phantom.txt", WED_input_dir );
-		printf("%s\n", data_filename);
-		FILE* input = fopen(data_filename, "r");
-		fread(RSP_Phantom_image_h, sizeof(float), RSP_IMAGE_VOXELS, input );
-		fclose(input);
-		//for( int i = 0; i < RSP_IMAGE_VOXELS; i++)
-			//printf("%3f\n", RSP_Phantom_image_h[i] );
-		//std::ifstream myfile (data_filename);
-		//if (myfile.is_open())
-		//{
-		//	puts("Hello\n");
-		//	while ( myfile >> line )
-		//	{
-		//		RSP_Phantom_image_h[total_voxels] = line;
-		//		//elements++;		
-		//		total_voxels++;
-		//	}
-		//	myfile.close();
-		//}
-		//cout << "Slice number " << slice << endl;
-		//cout << "Elements read = " << elements << endl;
-		//cout << "There should be " << RSP_IMAGE_VOXELS/128 << " voxels in this slice" << endl;
-		cout << "Total voxels thus far is = " << total_voxels << endl; //Prints the correct value every time
-	//cout << "Elements read = " << total_voxels << endl; // Prints wrong value, even though it printed correct right before exiting for loop
-	cout << "There should be " << RSP_IMAGE_VOXELS << " voxels in the phantom" << endl;
-	//fgets(text, sizeof text, stdin);
+	RSP_Phantom_image_h = (float*) calloc( WED_TARGET_VOXELS, sizeof(float) );
+	sprintf( data_filename, "%sRStP_Phantom2.txt", WED_input_dir );
+	FILE* input = fopen(data_filename, "r");
+	fread(RSP_Phantom_image_h, sizeof(float), WED_TARGET_VOXELS, input );
+	fclose(input);
 }
 void read_bin_Phantom()
 {
-	float line;
-	char text[20];
 	char data_filename[256];
-	RSP_Phantom_image_h = (float*) calloc( RSP_IMAGE_VOXELS, sizeof(float) );
-	//int elements = 0;
-	int total_voxels = 0;
-		sprintf( data_filename, "%sRStP_Phantom.bin", WED_input_dir );
-		printf("%s\n", data_filename);
-		FILE* input = fopen(data_filename, "rb");
-		fread(RSP_Phantom_image_h, sizeof(float), RSP_IMAGE_VOXELS, input );
-		fclose(input);
-		//for( int i = 0; i < RSP_IMAGE_VOXELS; i++)
-			//printf("%3f\n", RSP_Phantom_image_h[i] );
-		//std::ifstream myfile (data_filename);
-		//if (myfile.is_open())
-		//{
-		//	puts("Hello\n");
-		//	while ( myfile >> line )
-		//	{
-		//		RSP_Phantom_image_h[total_voxels] = line;
-		//		//elements++;		
-		//		total_voxels++;
-		//	}
-		//	myfile.close();
-		//}
-		//cout << "Slice number " << slice << endl;
-		//cout << "Elements read = " << elements << endl;
-		//cout << "There should be " << RSP_IMAGE_VOXELS/128 << " voxels in this slice" << endl;
-		cout << "Total voxels thus far is = " << total_voxels << endl; //Prints the correct value every time
-	//cout << "Elements read = " << total_voxels << endl; // Prints wrong value, even though it printed correct right before exiting for loop
-	cout << "There should be " << RSP_IMAGE_VOXELS << " voxels in the phantom" << endl;
-	//fgets(text, sizeof text, stdin);
+	RSP_Phantom_image_h = (float*) calloc( WED_TARGET_VOXELS, sizeof(float) );
+	sprintf( data_filename, "%sRStP_Phantom2.bin", WED_input_dir );
+	FILE* input = fopen(data_filename, "rb");
+	fread(RSP_Phantom_image_h, sizeof(float), WED_TARGET_VOXELS, input );
+	fclose(input);
+}
+double calculate_WED_host2( float x_target, float y_target, float z_target, float beam_angle_XY, float beam_angle_XZ )
+{
+		char text[20];
+		/****************************************************************************************************************************************/
+		/****************************************************** Path Characteristic Parameters **************************************************/
+		/****************************************************************************************************************************************/
+		double beam_angle_XY_radians = beam_angle_XY * ANGLE_TO_RADIANS;
+		double beam_angle_XZ_radians = beam_angle_XZ * ANGLE_TO_RADIANS;
+		double dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz;
+		double x, y, z;	
+		double x_to_go, y_to_go, z_to_go;	
+		int x_move_direction, y_move_direction, z_move_direction;
+		int voxel_x, voxel_y, voxel_z, voxel;
+		int voxel_x_out, voxel_y_out, voxel_z_out, voxel_out; 
+		/****************************************************************************************************************************************/
+		/******************************************************* Status Tracking Information ****************************************************/
+		/****************************************************************************************************************************************/
+		double RSP;
+		double chord_length;
+		double WED = 0;						
+		bool end_walk;	
+		/****************************************************************************************************************************************/
+		/********************************************** Initial Conditions and Movement Characteristics *****************************************/
+		/****************************************************************************************************************************************/
+		double x_start, y_start, z_start;
+		bool x_start_direction = cos( beam_angle_XY_radians) >= 0;
+		double x_intercept_1 , x_intercept_2, y_intercept_1, y_intercept_2;
+		bool x_diff;
+
+		double m_in = tan( beam_angle_XY_radians );	// proton entry path slope
+		double b_in = y_target - m_in * x_target;				// proton entry path y-intercept
+		
+		// Quadratic formula coefficients
+		double a = 1 + pow(m_in, 2);							// x^2 coefficient 
+		double b = 2 * m_in * b_in;							// x coefficient
+		double c = pow(b_in, 2) - pow(START_RADIUS, 2.0 );		// 1 coefficient
+		double entry_discriminant = pow(b, 2) - (4 * a * c);	// Quadratic formula discriminant		
+		bool entered = ( entry_discriminant > 0 );			// Proton path intersected twice
+		
+		// Find both intersection points of the circle; closest one to the entry SSDs is the entry position
+		if( entered )
+		{
+			// -b +- sqrt(b^2 - 4ac) => x1 = -(sqrt(b^2 - 4ac) + b)
+			//							x2 = sqrt(b^2 - 4ac) -b 
+			//y1 = m*x1+bin =  -m*(sqrt(b^2 - 4ac) + b) + bin
+			//y2 = m*x2 + bin = 
+			x_intercept_1 =   ( sqrtf(entry_discriminant) - b ) / ( 2 * a );
+			x_intercept_2 = - ( sqrtf(entry_discriminant) + b ) / ( 2 * a );
+			y_intercept_1 = m_in * x_intercept_1 + b_in;
+			y_intercept_2 = m_in * x_intercept_2 + b_in;
+
+			x_diff = x_intercept_1 > x_intercept_2;
+			x_start = ( (cos( beam_angle_XY_radians) >= 0) &&  (x_intercept_1 > x_intercept_2)) ? x_intercept_1 : x_intercept_2;
+			y_start = (x_start_direction == x_diff) ? y_intercept_1 : y_intercept_2;
+
+			z_start = z_target;
+		}	
+		cout << "x_start = " << x_start << " y_start = " << y_start << " z_start = " << z_start << endl;
+		/****************************************************************************************************************************************/
+		/******************************************* Initial Conditions and Movement Characteristics ********************************************/
+		/****************************************************************************************************************************************/
+		x = x_start;
+		y = y_start;
+		z = z_start;
+
+		x_move_direction = ( x_target >= x_start ) - ( x_target <= x_start );
+		y_move_direction = ( y_target >= y_start ) - ( y_target <= y_start );
+		z_move_direction = ( z_target >= z_start ) - ( z_target <= z_start );
+
+		voxel_x = calculate_voxel( WED_TARGET_X_MIN, x, WED_TARGET_VOXEL_WIDTH );
+		voxel_y = calculate_voxel( WED_TARGET_Y_MAX, y, WED_TARGET_VOXEL_HEIGHT );
+		voxel_z = calculate_voxel( WED_TARGET_Z_MAX, z, WED_TARGET_VOXEL_THICKNESS );
+		voxel = int(voxel_x + voxel_y * WED_TARGET_COLUMNS + voxel_z * WED_TARGET_COLUMNS * WED_TARGET_ROWS);	
+		cout << "voxel_x = " << voxel_x << " voxel_y = " << voxel_y << " voxel_z = " << voxel_z << endl;
+		
+		x_to_go = distance_remaining( WED_TARGET_X_MIN, x, X_INCREASING_DIRECTION, x_move_direction, WED_TARGET_VOXEL_WIDTH, voxel_x );
+		y_to_go = distance_remaining( WED_TARGET_Y_MAX, y, Y_INCREASING_DIRECTION, y_move_direction, WED_TARGET_VOXEL_HEIGHT, voxel_y );	
+		z_to_go = distance_remaining( WED_TARGET_Z_MAX, z, Z_INCREASING_DIRECTION, z_move_direction, WED_TARGET_VOXEL_THICKNESS, voxel_z );
+		
+		voxel_x_out = calculate_voxel( WED_TARGET_X_MIN, x_target, WED_TARGET_VOXEL_WIDTH );
+		voxel_y_out = calculate_voxel( WED_TARGET_Y_MAX, y_target, WED_TARGET_VOXEL_HEIGHT );
+		voxel_z_out = calculate_voxel( WED_TARGET_Z_MAX, z_target, WED_TARGET_VOXEL_THICKNESS );			
+		voxel_out = int(voxel_x_out + voxel_y_out * WED_TARGET_COLUMNS + voxel_z_out * WED_TARGET_COLUMNS * WED_TARGET_ROWS);
+		cout << "voxel_x_out = " << voxel_x_out << " voxel_y_out = " << voxel_y_out << " voxel_z_out = " << voxel_z_out << endl;
+
+		end_walk = ( voxel == voxel_out ) || ( voxel_x >= WED_TARGET_COLUMNS ) || ( voxel_y >= WED_TARGET_ROWS ) || ( voxel_z >= WED_TARGET_SLICES );
+		/****************************************************************************************************************************************/
+		/****************************************************** Path and Walk Information *******************************************************/
+		/****************************************************************************************************************************************/
+		// Slopes corresponging to each possible direction/reference.  Explicitly calculated inverses to avoid 1/# calculations later
+		dy_dx = tan(beam_angle_XY_radians);
+		dz_dx = tan(beam_angle_XZ_radians);
+		dz_dy = tan(beam_angle_XZ_radians)/tan(beam_angle_XY_radians);
+		dx_dy = pow(tan(beam_angle_XY_radians), -1.0);
+		dx_dz = pow(tan(beam_angle_XZ_radians), -1.0);
+		dy_dz = tan(beam_angle_XY_radians)/tan(beam_angle_XZ_radians);	
+		/****************************************************************************************************************************************/
+		/************************************************************ Voxel Walk Routine ********************************************************/
+		/****************************************************************************************************************************************/
+		int i = 0;
+		if( z_move_direction != 0 )
+		{
+			printf("z_exit[i] != z_entry[i]\n");
+			while( !end_walk )
+			{
+				RSP = RSP_Phantom_image_h[voxel];
+				WED_take_3D_step
+				( 
+					x_move_direction, y_move_direction, z_move_direction, dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz, 
+					x_start, y_start, z_start, x, y, z, voxel_x, voxel_y, voxel_z, voxel, x_to_go, y_to_go, z_to_go, chord_length
+				);	
+				if( RSP >= WED_TARGET_THRESHOLD_RSP )
+					WED += chord_length * RSP;
+				end_walk = ( voxel == voxel_out ) || ( voxel_x >= WED_TARGET_COLUMNS ) || ( voxel_y >= WED_TARGET_ROWS ) || ( voxel_z >= WED_TARGET_SLICES );
+				i++;
+			}// end !end_walk 
+		}
+		else
+		{
+			printf("z_exit[i] == z_entry[i]\n");
+			while( !end_walk )
+			{
+				RSP = RSP_Phantom_image_h[voxel];
+				WED_take_2D_step
+				( 
+					x_move_direction, y_move_direction, z_move_direction, dy_dx, dz_dx, dz_dy, dx_dy, dx_dz, dy_dz, x_start, y_start, z_start, 
+					x, y, z, voxel_x, voxel_y, voxel_z, voxel, x_to_go, y_to_go, z_to_go, chord_length
+				);							
+				if( RSP >= WED_TARGET_THRESHOLD_RSP )
+					WED += chord_length * RSP;
+				end_walk = ( voxel == voxel_out ) || ( voxel_x >= WED_TARGET_COLUMNS ) || ( voxel_y >= WED_TARGET_ROWS ) || ( voxel_z >= WED_TARGET_SLICES );
+				i++;
+			}// end: while( !end_walk )
+		}//end: else: z_start != z_end => z_start == z_end
+		/****************************************************************************************************************************************/
+		/************************************************ Step from final voxel edge to target **************************************************/
+		/****************************************************************************************************************************************/
+		cout << "voxels passed through = " << i << endl;
+		cout << "WED before last partial step = " << WED << endl;
+		double delta_x_sqd = pow(x - x_target, 2.0);
+		double delta_y_sqd = pow(y - y_target, 2.0);
+		double delta_z_sqd = pow(z - z_target, 2.0);
+		chord_length = sqrt( delta_x_sqd + delta_y_sqd + delta_z_sqd );
+		WED += chord_length* RSP_Phantom_image_h[voxel];
+		cout << "voxels passed through at least partially = " << i + 1<< endl;
+		cout << "WED after final partial step = " << WED << endl;	
+		return WED;
+}
+void WED_take_2D_step
+( 
+	const int x_move_direction, const int y_move_direction, const int z_move_direction,
+	const double dy_dx, const double dz_dx, const double dz_dy, 
+	const double dx_dy, const double dx_dz, const double dy_dz, 
+	const double x_start, const double y_start, const double z_start, 
+	double& x, double& y, double& z, 
+	int& voxel_x, int& voxel_y, int& voxel_z, int& voxel,
+	double& x_to_go, double& y_to_go, double& z_to_go, double& chord_length	
+)
+{
+	double previous_x = x, previous_y = y, previous_z = z;
+	// Change in x for Move to Voxel Edge in y
+	double y_extension = fabs( dx_dy ) * y_to_go;
+	//If Next Voxel Edge is in x or xy Diagonal
+	if( x_to_go <= y_extension )
+	{
+		//printf(" x_to_go <= y_extension \n");
+		voxel_x += x_move_direction;					
+		x = edge_coordinate( WED_TARGET_X_MIN, voxel_x, WED_TARGET_VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+		y = corresponding_coordinate( dy_dx, x, x_start, y_start );
+		x_to_go = WED_TARGET_VOXEL_WIDTH;
+		y_to_go = distance_remaining( WED_TARGET_Y_MAX, y, Z_INCREASING_DIRECTION, y_move_direction, WED_TARGET_VOXEL_HEIGHT, voxel_y );
+	}
+	// Else Next Voxel Edge is in y
+	else
+	{
+		//printf(" y_extension < x_extension \n");				
+		voxel_y -= y_move_direction;
+		y = edge_coordinate( WED_TARGET_Y_MAX, voxel_y, WED_TARGET_VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
+		x = corresponding_coordinate( dx_dy, y, y_start, x_start );
+		x_to_go = distance_remaining( WED_TARGET_X_MIN, x, X_INCREASING_DIRECTION, x_move_direction, WED_TARGET_VOXEL_WIDTH, voxel_x );
+		y_to_go = WED_TARGET_VOXEL_HEIGHT;
+	}
+	if( x_to_go == 0 )
+	{
+		x_to_go = WED_TARGET_VOXEL_WIDTH;
+		voxel_x += x_move_direction;
+	}
+	if( y_to_go == 0 )
+	{
+		y_to_go = WED_TARGET_VOXEL_HEIGHT;
+		voxel_y -= y_move_direction;
+	}
+	voxel_z = max(voxel_z, 0 );
+	voxel = voxel_x + voxel_y * WED_TARGET_COLUMNS + voxel_z * WED_TARGET_COLUMNS * WED_TARGET_ROWS;
+	double delta_x_sqd = pow(x - previous_x, 2.0);
+	double delta_y_sqd = pow(y - previous_y, 2.0);
+	double delta_z_sqd = pow(z - previous_z, 2.0);
+	chord_length = sqrt( delta_x_sqd + delta_y_sqd + delta_z_sqd );
+	//cout << "x = " << x << " y = " << y << " z = " << z << endl;
+	//cout << "x_to_go = " << x_to_go << " y_to_go = " << y_to_go << " z_to_go = " << z_to_go << endl;
+	//cout << "voxel_x = " << voxel_x << " voxel_y = " << voxel_y << " voxel_z = " << voxel_z << " voxel = " << voxel << endl;
+}
+void WED_take_3D_step
+( 
+	const int x_move_direction, const int y_move_direction, const int z_move_direction,
+	const double dy_dx, const double dz_dx, const double dz_dy, 
+	const double dx_dy, const double dx_dz, const double dy_dz, 
+	const double x_start, const double y_start, const double z_start, 
+	double& x, double& y, double& z, 
+	int& voxel_x, int& voxel_y, int& voxel_z, int& voxel,
+	double& x_to_go, double& y_to_go, double& z_to_go, double& chord_length		
+)
+{
+	double previous_x = x, previous_y = y, previous_z = z;
+	// Change in z for Move to Voxel Edge in x and y
+	double x_extension = fabs( dz_dx ) * x_to_go;
+	double y_extension = fabs( dz_dy ) * y_to_go;
+	if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
+	{
+		//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");				
+		voxel_z -= z_move_direction;					
+		z = edge_coordinate( WED_TARGET_Z_MAX, voxel_z, WED_TARGET_VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
+		x = corresponding_coordinate( dx_dz, z, z_start, x_start );
+		y = corresponding_coordinate( dy_dz, z, z_start, y_start );
+		x_to_go = distance_remaining( WED_TARGET_X_MIN, x, X_INCREASING_DIRECTION, x_move_direction, WED_TARGET_VOXEL_WIDTH, voxel_x );
+		y_to_go = distance_remaining( WED_TARGET_Y_MAX, y, Y_INCREASING_DIRECTION, y_move_direction, WED_TARGET_VOXEL_HEIGHT, voxel_y );	
+		z_to_go = parameters.VOXEL_THICKNESS_D;
+	}
+	//If Next Voxel Edge is in x or xy Diagonal
+	else if( x_extension <= y_extension )
+	{
+		//printf(" x_extension <= y_extension \n");					
+		voxel_x += x_move_direction;
+		x = edge_coordinate( WED_TARGET_X_MIN, voxel_x, WED_TARGET_VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+		y = corresponding_coordinate( dy_dx, x, x_start, y_start );
+		z = corresponding_coordinate( dz_dx, x, x_start, z_start );
+		x_to_go = WED_TARGET_VOXEL_WIDTH;
+		y_to_go = distance_remaining( WED_TARGET_Y_MAX, y, Y_INCREASING_DIRECTION, y_move_direction, WED_TARGET_VOXEL_HEIGHT, voxel_y );
+		z_to_go = distance_remaining( WED_TARGET_Z_MAX, z, Z_INCREASING_DIRECTION, z_move_direction, WED_TARGET_VOXEL_THICKNESS, voxel_z );
+	}
+	// Else Next Voxel Edge is in y
+	else
+	{
+		//printf(" y_extension < x_extension \n");
+		voxel_y -= y_move_direction;					
+		y = edge_coordinate( WED_TARGET_Y_MAX, voxel_y, WED_TARGET_VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
+		x = corresponding_coordinate( dx_dy, y, y_start, x_start );
+		z = corresponding_coordinate( dz_dy, y, y_start, z_start );
+		x_to_go = distance_remaining( WED_TARGET_X_MIN, x, X_INCREASING_DIRECTION, x_move_direction, WED_TARGET_VOXEL_WIDTH, voxel_x );
+		y_to_go = WED_TARGET_VOXEL_HEIGHT;					
+		z_to_go = distance_remaining( WED_TARGET_Z_MAX, z, Z_INCREASING_DIRECTION, z_move_direction, WED_TARGET_VOXEL_THICKNESS, voxel_z );
+	}
+	if( x_to_go == 0 )
+	{
+		x_to_go = WED_TARGET_VOXEL_WIDTH;
+		voxel_x += x_move_direction;
+	}
+	if( y_to_go == 0 )
+	{
+		y_to_go = WED_TARGET_VOXEL_HEIGHT;
+		voxel_y -= y_move_direction;
+	}
+	if( z_to_go == 0 )
+	{
+		z_to_go = WED_TARGET_VOXEL_THICKNESS;
+		voxel_z -= z_move_direction;
+	}
+	voxel_z = max(voxel_z, 0 );
+	voxel = voxel_x + voxel_y * WED_TARGET_COLUMNS + voxel_z * WED_TARGET_COLUMNS * WED_TARGET_ROWS;
+	double delta_x_sqd = pow(x - previous_x, 2.0);
+	double delta_y_sqd = pow(y - previous_y, 2.0);
+	double delta_z_sqd = pow(z - previous_z, 2.0);
+	chord_length = sqrt( delta_x_sqd + delta_y_sqd + delta_z_sqd );
+	//end_walk = ( voxel == voxel_out ) || ( voxel_x >= parameters.COLUMNS_D ) || ( voxel_y >= parameters.ROWS_D ) || ( voxel_z >= parameters.SLICES_D );
 }

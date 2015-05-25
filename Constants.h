@@ -177,26 +177,29 @@ const uint CONFIG_FIELD_WIDTHS[NUM_CONFIG_FIELDS] = {KEY_FIELD_WIDTH, EQUALS_FIE
 #define header_length		strlen(copyright_notice) + strlen(header_statement) + strlen(blake_contact) + strlen(reinhard_contact) + strlen(keith_contact) + strlen(paniz_contact)
 
 // Phantom Location
-#define RSP_IMAGE_WIDTH ( 192 ) //mm
-#define RSP_IMAGE_HEIGHT ( 192 ) //mm
-#define RSP_IMAGE_THICKNESS ( 160 ) //mm
-#define RSP_IMAGE_COLUMNS 1024
-#define RSP_IMAGE_ROWS 1024
-#define RSP_IMAGE_SLICES 128
-#define RSP_IMAGE_VOXELS ( RSP_IMAGE_COLUMNS * RSP_IMAGE_ROWS * RSP_IMAGE_SLICES )
-#define RSP_IMAGE_VOXEL_WIDTH ( 0.1875 ) // mm
-#define RSP_IMAGE_VOXEL_HEIGHT ( 0.1875 ) // mm
-#define RSP_IMAGE_VOXEL_THICKNESS ( 1.25) // mm
-#define RSP_IMAGE_SLICE_THICKNESS (1.25)// mm
-#define RSP_IMAGE_VOXEL_STEP_SIZE ( RSP_IMAGE_VOXEL_WIDTH / 2 ) // cm
-#define START_RADIUS RSP_IMAGE_WIDTH/2 //cm
-#define THESHOLD_RSP 0.01 
-#define RSP_IMAGE_INT_MEM_SIZE ( RSP_IMAGE_VOXELS * sizeof(int) )
-#define RSP_IMAGE_FLOAT_MEM_SIZE ( RSP_IMAGE_VOXELS * sizeof(float) )
-#define RSP_IMAGE_BOOL_MEM_SIZE ( RSP_IMAGE_VOXELS * sizeof(bool) )
-#define RSP_IMAGE_X_MIN -96.0 //mm
-#define RSP_IMAGE_X_MAX 96.0 //mm
-#define RSP_IMAGE_Y_MIN -96.0 //mm
-#define RSP_IMAGE_Y_MAX 96.0 //mm
-#define RSP_IMAGE_Z_MIN -166.875 //mm
-#define RSP_IMAGE_Z_MAX -6.875 //mm
+#define WED_TARGET_IMAGE_WIDTH ( 192 ) //mm
+#define WED_TARGET_IMAGE_HEIGHT ( 192 ) //mm
+#define WED_TARGET_IMAGE_THICKNESS ( 160 ) //mm
+#define WED_TARGET_COLUMNS 1024
+#define WED_TARGET_ROWS 1024
+#define WED_TARGET_SLICES 128
+#define WED_TARGET_VOXELS ( WED_TARGET_COLUMNS * WED_TARGET_ROWS * WED_TARGET_SLICES )
+#define WED_TARGET_VOXEL_WIDTH ( 0.1875 ) // mm
+#define WED_TARGET_VOXEL_HEIGHT ( 0.1875 ) // mm
+#define WED_TARGET_VOXEL_THICKNESS ( 1.25) // mm
+#define WED_TARGET_SLICE_THICKNESS (1.25)// mm
+#define WED_TARGET_VOXEL_STEP_SIZE ( WED_TARGET_VOXEL_WIDTH / 2 ) // cm
+#define START_RADIUS WED_TARGET_IMAGE_WIDTH/2 //cm
+#define WED_TARGET_THRESHOLD_RSP 0.01 
+#define WED_TARGET_INT_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(int) )
+#define WED_TARGET_FLOAT_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(float) )
+#define WED_TARGET_BOOL_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(bool) )
+#define WED_TARGET_X_MIN -96.0 //mm
+#define WED_TARGET_X_MAX 96.0 //mm
+#define WED_TARGET_Y_MIN -96.0 //mm
+#define WED_TARGET_Y_MAX 96.0 //mm
+#define WED_TARGET_Z_MIN -166.875 //mm
+#define WED_TARGET_Z_MAX -6.875 //mm
+#define WED_TARGET_X_ZERO_COORDINATE -96		// [mm] Coordinate in x direction corresponding to voxel 0
+#define WED_TARGET_Y_ZERO_COORDINATE 96			// [mm] Coordinate in y direction corresponding to voxel 0
+#define WED_TARGET_Z_ZERO_COORDINATE -6.875		// [mm] Coordinate in z direction corresponding to voxel 0
