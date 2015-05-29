@@ -1,0 +1,58 @@
+macro text_2_PNG_image
+{
+	run("Close All");
+	run("Clear Results");
+
+	// Path to images defined as macro argument or selected from dialog by user if no argument is provided
+	setBatchMode(true);
+	filename = getArgument();
+	if( filename == "" )
+	{
+		filepath = File.openDialog("Select a File");
+		filename = File.getName(filepath);
+		directory_path = File.getParent(filepath);
+		setBatchMode(false);
+	}
+	else
+		directory_path = File.getParent(filepath);
+		
+	// Image and reconstruction properties
+	slices = 32;
+	rows = 200;
+	columns = 200;
+	start_slice = 16;
+	end_slice = 16;
+	// Parameters of PNG image generated for specified slice of x
+	x_magnification = 5;
+	x_rows = x_magnification * rows;
+	x_columns = x_magnification * columns;
+	
+	for( slice = start_slice; slice <= end_slice; slice++ )
+	{
+		slice_focus = slice;						// Slice # (starting from 0) we are interested in analyzing
+		y_upper_LHS = (slice_focus - 1) * rows;// y-coordinate of upper left corner of slice to be analyzed
+
+		output_directory = directory_path + "\\" + "Slice_" + d2s(slice_focus,0) + "\\";
+		File.makeDirectory(output_directory);
+
+		run("Input/Output...", "jpeg=85 gif=-1 file=.csv copy_column copy_row save_column save_row");
+		run("Text Image... ", "open="+ directory_path + "\\" + filename );
+		extension_index = indexOf(filename, ".txt");
+		out_filename = substring(filename, 0, extension_index);
+		print(out_filename);
+		//replace(filename, ".txt", ".png")
+		// *************************************************************************************************************************************************************************************************//
+		// Extract and save PNG of the slice of x being analysed
+		// *************************************************************************************************************************************************************************************************//
+		
+		makeRectangle( 0, y_upper_LHS, columns, rows);
+
+		run("Duplicate...", "title=" + out_filename + ".png");
+		setMinAndMax(0.000,1.90);
+		run("Flip Horizontally");
+		run("Size...", "width=x_columns height=x_rows constrain average interpolation=Bilinear");
+		
+		saveAs("PNG", output_directory + out_filename + ".png");	
+		close();
+	}
+}

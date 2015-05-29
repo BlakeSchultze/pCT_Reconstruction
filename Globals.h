@@ -151,20 +151,21 @@ clock_t program_start, program_end, pause_cycles = 0;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 //C:\Users\Blake\Documents\Visual Studio 2010\Projects\robust_pct\robust_pct
 // WED calculations
+const char source_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\";
 const char targets_input_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\bap_coordinates\\";
 const char target_object_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\RStP_DICOM_PHANTOM\\";
 const char WED_results_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\bap_coordinates\\WED_Results\\";
 const char targets_base_name[] = "proxi_distal";	
 
 float* RSP_Phantom_image_h, *RSP_Phantom_image_d;
-float* RSP_Phantom_slice_h, *RSP_Phantom_slice_d;
-bool FULL_PHANTOM = true;
-float* target_x_h, * target_x_d;
-float* target_y_h, * target_y_d;
-float* target_z_h, * target_z_d;
+//float* RSP_Phantom_slice_h, *RSP_Phantom_slice_d;
+//bool FULL_PHANTOM = true;
 int num_targets;
+double* target_x_h, * target_x_d;
+double* target_y_h, * target_y_d;
+double* target_z_h, * target_z_d;
+double* WED_results;
 std::vector<int> entry_voxel_x;
 std::vector<int> entry_voxel_y;
 std::vector<int> entry_voxel_z;
 std::vector<int> beam_angles;
-double* WED_results;

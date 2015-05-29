@@ -57,8 +57,8 @@ struct configurations
 		uint max_gpu_histories_p		= 1500000,							// [#] Number of histories to process on the GPU at a time, based on GPU capacity
 		uint max_cuts_histories_p 		= 1500000,	
 		uint columns_p 					= 200,
-		uint rows_p 					= 200.4,
-		//uint slices_p 					= 32,
+		uint rows_p 					= 200,
+		uint slices_p 					= 32,
 		uint sigmas_2_keep_p 			= 3,
 		double gantry_angle_interval_p 	= 4,
 		double angular_bin_size_p 		= 4.0,
@@ -190,25 +190,25 @@ struct configurations
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//--------------------------------------------------------- Options/parameters dependent on others read from config file --------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
-	NUM_FILES_D( NUM_SCANS_D * GANTRY_ANGLES_D ),							// *[#] 1 file per gantry angle per translation
-	GANTRY_ANGLES_D(uint( 360 / GANTRY_ANGLE_INTERVAL_D )),					// *[#] Total number of projection angles
-	T_BINS_D(uint( ssd_t_size_p / t_bin_size_p + 0.5 )),					// *[#] Number of bins (i.e. quantization levels) for t (lateral) direction 
-	V_BINS_D(uint( ssd_v_size_p / v_bin_size_p + 0.5 )),					// *[#] Number of bins (i.e. quantization levels) for v (vertical) direction
-	ANGULAR_BINS_D(uint( 360 / ANGULAR_BIN_SIZE_D + 0.5 )),					// *[#] Number of bins (i.e. quantization levels) for path angle 
+	NUM_FILES_D( num_scans_p * GANTRY_ANGLES_D ),							// *[#] 1 file per gantry angle per translation
+	GANTRY_ANGLES_D(static_cast<uint>( 360 / gantry_angle_interval_p )),					// *[#] Total number of projection angles
+	T_BINS_D(static_cast<uint>( ssd_t_size_p / t_bin_size_p + 0.5 )),					// *[#] Number of bins (i.e. quantization levels) for t (lateral) direction 
+	V_BINS_D(static_cast<uint>( ssd_v_size_p / v_bin_size_p + 0.5 )),					// *[#] Number of bins (i.e. quantization levels) for v (vertical) direction
+	ANGULAR_BINS_D(static_cast<uint>( 360 / angular_bin_size_p + 0.5 )),					// *[#] Number of bins (i.e. quantization levels) for path angle 
 	NUM_BINS_D( ANGULAR_BINS_D * T_BINS_D * V_BINS_D ),						// *[#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN],
-	SLICES_D(uint( RECON_CYL_HEIGHT_D / slice_thickness_p)),				// *[#] Number of voxels in the z direction (i.e., number of slices) of image
-	NUM_VOXELS_D( COLUMNS_D * ROWS_D * SLICES_D ),							// *[#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image	
-	RECON_CYL_DIAMETER_D( 2 * RECON_CYL_RADIUS_D ),							// *[cm] Diameter of reconstruction cylinder
-	RECON_CYL_HEIGHT_D(SSD_V_SIZE_D - 1.0),									// *[cm] Height of reconstruction cylinder
-	IMAGE_WIDTH_D(RECON_CYL_DIAMETER_D),									// *[cm] Distance between left and right edges of each slice in image
-	IMAGE_HEIGHT_D(RECON_CYL_DIAMETER_D),									// *[cm] Distance between top and bottom edges of each slice in image
-	IMAGE_THICKNESS_D(RECON_CYL_HEIGHT_D),									// *[cm] Distance between bottom of bottom slice and top of the top slice of image
-	VOXEL_WIDTH_D(RECON_CYL_DIAMETER_D / COLUMNS_D),						// *[cm] distance between left and right edges of each voxel in image
-	VOXEL_HEIGHT_D(RECON_CYL_DIAMETER_D / ROWS_D),							// *[cm] distance between top and bottom edges of each voxel in image
-	X_ZERO_COORDINATE_D(-RECON_CYL_RADIUS_D),								// *[cm] x-coordinate corresponding to left edge of 1st voxel (i.e. column) in image space
-	Y_ZERO_COORDINATE_D(RECON_CYL_RADIUS_D),								// *[cm] y-coordinate corresponding to top edge of 1st voxel (i.e. row) in image space
-	Z_ZERO_COORDINATE_D(RECON_CYL_HEIGHT_D/2),								// *[cm] z-coordinate corresponding to top edge of 1st voxel (i.e. slice) in image space
-	RAM_LAK_TAU_D(2/sqrt(2.0) * T_BIN_SIZE_D),								// *[#] Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
+	SLICES_D(static_cast<uint>( RECON_CYL_HEIGHT_D / slice_thickness_p)),				// *[#] Number of voxels in the z direction (i.e., number of slices) of image
+	NUM_VOXELS_D( columns_p * rows_p * SLICES_D ),							// *[#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image	
+	RECON_CYL_DIAMETER_D( 2 * recon_cyl_radius_p ),							// *[cm] Diameter of reconstruction cylinder
+	RECON_CYL_HEIGHT_D(ssd_v_size_p - 1.0),									// *[cm] Height of reconstruction cylinder
+	IMAGE_WIDTH_D(recon_cyl_radius_p * 2),									// *[cm] Distance between left and right edges of each slice in image
+	IMAGE_HEIGHT_D(recon_cyl_radius_p * 2),									// *[cm] Distance between top and bottom edges of each slice in image
+	IMAGE_THICKNESS_D(ssd_v_size_p - 1.0),									// *[cm] Distance between bottom of bottom slice and top of the top slice of image
+	VOXEL_WIDTH_D(recon_cyl_radius_p * 2 / columns_p),						// *[cm] distance between left and right edges of each voxel in image
+	VOXEL_HEIGHT_D(recon_cyl_radius_p * 2 / rows_p),							// *[cm] distance between top and bottom edges of each voxel in image
+	X_ZERO_COORDINATE_D(-recon_cyl_radius_p),								// *[cm] x-coordinate corresponding to left edge of 1st voxel (i.e. column) in image space
+	Y_ZERO_COORDINATE_D(recon_cyl_radius_p),								// *[cm] y-coordinate corresponding to top edge of 1st voxel (i.e. row) in image space
+	Z_ZERO_COORDINATE_D((ssd_v_size_p - 1.0)/2),								// *[cm] z-coordinate corresponding to top edge of 1st voxel (i.e. slice) in image space
+	RAM_LAK_TAU_D(2/sqrt(2.0) * t_bin_size_p),								// *[#] Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//---------------------------------------------------------- Memory allocation size for arrays (binning, image) -----------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -1418,31 +1418,31 @@ void set_unsigned_integer_parameter( generic_IO_container &value )
 	{			
 		exit_program_if(print_scan_type(value.integer_input));
 		// EXPERIMENTAL = 0, GEANT4 = 1, TOPAS = 2
-		parameters.DATA_TYPE = SCAN_TYPES(value.integer_input);
+		parameters.DATA_TYPE = static_cast<SCAN_TYPES>(value.integer_input);
 	}
 	else if( strcmp (value.key, "HULL_TYPE") == 0 )
 	{
 		exit_program_if(print_hull_type(value.integer_input));
 		// IMPORT = 0, SC = 1, MSC = 2, SM = 3, FBP = 4
-		parameters.HULL_TYPE = HULL_TYPES(value.integer_input);
+		parameters.HULL_TYPE = static_cast<HULL_TYPES>(value.integer_input);
 	}
 	else if( strcmp (value.key, "FBP_FILTER_TYPE") == 0 )
 	{
 		exit_program_if(print_filter_type(value.integer_input));
 		// RAM_LAK = 0, SHEPP_LOGAN = 1, NONE = 2
-		parameters.FBP_FILTER_TYPE = FILTER_TYPES(value.integer_input);
+		parameters.FBP_FILTER_TYPE = static_cast<FILTER_TYPES>(value.integer_input);
 	}
 	else if( strcmp (value.key, "X_0_TYPE") == 0 )
 	{
 		exit_program_if(print_x_0_type(value.integer_input));
 		// IMPORT = 0, HULL = 1, FBP = 2, HYBRID = 3, ZEROS = 4
-		parameters.X_0_TYPE = X_0_TYPES(value.integer_input);
+		parameters.X_0_TYPE = static_cast<X_0_TYPES>(value.integer_input);
 	}
 	else if( strcmp (value.key, "RECONSTRUCTION_METHOD") == 0 )
 	{
 		exit_program_if(print_recon_algorithm(value.integer_input));
 		// ART = 0, DROP = 1, BIP = 2, SAP = 3, ROBUST1 = 4, ROBUST2 = 5 
-		parameters.RECONSTRUCTION_METHOD = RECON_ALGORITHMS(value.integer_input);
+		parameters.RECONSTRUCTION_METHOD = static_cast<RECON_ALGORITHMS>(value.integer_input);
 	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
@@ -1627,7 +1627,7 @@ void set_file_extension( char* file_extension, DISK_WRITE_MODE format )
 {
 	if( format == TEXT )
 		file_extension = ".txt";
-	else if( format == BINARY )
+	else
 		file_extension = ".bin";
 }
 void set_execution_date()
@@ -1644,15 +1644,15 @@ void set_execution_date()
 }
 void set_dependent_parameters()
 {
-	parameters.GANTRY_ANGLES_D		= uint( 360 / parameters.GANTRY_ANGLE_INTERVAL_D );								// [#] Total number of projection angles
+	parameters.GANTRY_ANGLES_D		= static_cast<uint>( 360 / parameters.GANTRY_ANGLE_INTERVAL_D );								// [#] Total number of projection angles
 	parameters.NUM_FILES_D			= parameters.NUM_SCANS_D * parameters.GANTRY_ANGLES_D;							// [#] 1 file per gantry angle per translation
-	parameters.T_BINS_D				= uint( parameters.SSD_T_SIZE_D / parameters.T_BIN_SIZE_D + 0.5 );				// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
-	parameters.V_BINS_D				= uint( parameters.SSD_V_SIZE_D/ parameters.V_BIN_SIZE_D + 0.5 );				// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
-	parameters.ANGULAR_BINS_D		= uint( 360 / parameters.ANGULAR_BIN_SIZE_D + 0.5 );							// [#] Number of bins (i.e. quantization levels) for path angle 
+	parameters.T_BINS_D				= static_cast<uint>( parameters.SSD_T_SIZE_D / parameters.T_BIN_SIZE_D + 0.5 );				// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
+	parameters.V_BINS_D				= static_cast<uint>( parameters.SSD_V_SIZE_D/ parameters.V_BIN_SIZE_D + 0.5 );				// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
+	parameters.ANGULAR_BINS_D		= static_cast<uint>( 360 / parameters.ANGULAR_BIN_SIZE_D + 0.5 );							// [#] Number of bins (i.e. quantization levels) for path angle 
 	parameters.NUM_BINS_D			= parameters.ANGULAR_BINS_D * parameters.T_BINS_D * parameters.V_BINS_D;		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
 	parameters.RECON_CYL_HEIGHT_D	= parameters.SSD_V_SIZE_D - 1.0;												// [cm] Height of reconstruction cylinder
 	parameters.RECON_CYL_DIAMETER_D	= 2 * parameters.RECON_CYL_RADIUS_D;											// [cm] Diameter of reconstruction cylinder
-	parameters.SLICES_D				= uint( parameters.RECON_CYL_HEIGHT_D / parameters.SLICE_THICKNESS_D);			// [#] Number of voxels in the z direction (i.e., number of slices) of image
+	parameters.SLICES_D				= static_cast<uint>( parameters.RECON_CYL_HEIGHT_D / parameters.SLICE_THICKNESS_D);			// [#] Number of voxels in the z direction (i.e., number of slices) of image
 	parameters.NUM_VOXELS_D			= parameters.COLUMNS_D * parameters.ROWS_D * parameters.SLICES_D;				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
 	parameters.IMAGE_WIDTH_D		= parameters.RECON_CYL_DIAMETER_D;												// [cm] Distance between left and right edges of each slice in image
 	parameters.IMAGE_HEIGHT_D		= parameters.RECON_CYL_DIAMETER_D;						// [cm] Distance between top and bottom edges of each slice in image

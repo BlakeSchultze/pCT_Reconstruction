@@ -187,19 +187,19 @@ const uint CONFIG_FIELD_WIDTHS[NUM_CONFIG_FIELDS] = {KEY_FIELD_WIDTH, EQUALS_FIE
 #define WED_TARGET_VOXEL_WIDTH ( 0.1875 ) // mm
 #define WED_TARGET_VOXEL_HEIGHT ( 0.1875 ) // mm
 #define WED_TARGET_VOXEL_THICKNESS ( 1.25) // mm
-#define WED_TARGET_SLICE_THICKNESS (1.25)// mm
-#define WED_TARGET_VOXEL_STEP_SIZE ( WED_TARGET_VOXEL_WIDTH / 2 ) // cm
-#define START_RADIUS WED_TARGET_IMAGE_WIDTH/2 //cm
+//#define WED_TARGET_VOXEL_STEP_SIZE ( WED_TARGET_VOXEL_WIDTH / 2 ) // cm
+//#define START_RADIUS WED_TARGET_IMAGE_WIDTH/2 //cm
 #define WED_TARGET_THRESHOLD_RSP 0.01 
-#define WED_TARGET_INT_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(int) )
-#define WED_TARGET_FLOAT_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(float) )
-#define WED_TARGET_BOOL_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(bool) )
-#define WED_TARGET_X_MIN -96.0 //mm
-#define WED_TARGET_X_MAX 96.0 //mm
-#define WED_TARGET_Y_MIN -96.0 //mm
-#define WED_TARGET_Y_MAX 96.0 //mm
-#define WED_TARGET_Z_MIN -166.875 //mm
-#define WED_TARGET_Z_MAX -6.875 //mm
+//#define WED_TARGET_INT_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(int) )
+//#define WED_TARGET_FLOAT_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(float) )
+//#define WED_TARGET_DOUBLE_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(double) )
+//#define WED_TARGET_BOOL_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(bool) )
+//#define WED_TARGET_X_MIN -96.0 //mm
+//#define WED_TARGET_X_MAX 96.0 //mm
+//#define WED_TARGET_Y_MIN -96.0 //mm
+//#define WED_TARGET_Y_MAX 96.0 //mm
+//#define WED_TARGET_Z_MIN -166.875 //mm
+//#define WED_TARGET_Z_MAX -6.875 //mm
 #define WED_TARGET_X_ZERO_COORDINATE -96		// [mm] Coordinate in x direction corresponding to voxel 0
 #define WED_TARGET_Y_ZERO_COORDINATE 96			// [mm] Coordinate in y direction corresponding to voxel 0
 #define WED_TARGET_Z_ZERO_COORDINATE -6.875		// [mm] Coordinate in z direction corresponding to voxel 0

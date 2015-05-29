@@ -1,4 +1,4 @@
-macro "Insert_Selection_Overlay"
+macro "Insert_Circle_Selection_Overlay"
 {
 	// Close any open images/windows, clear any results/measurements from previous analyses, and set global options
 	run("Close All");
@@ -50,7 +50,7 @@ insert_names = newArray("        Air", "        Air", "        PMP", "       LDP
 true_RSPs = newArray(0.0014, 0.0014, 0.869, 0.9973, 1.0386, 1.155, 1.354, 1.838);
 
 centersx =  newArray(        100,  100,  71.5,   41,   71.5,  129.5,  158.5,  129.5);
-centersy_offsets = newArray( 158.5,   41.5,   151,  100.5,   51,     51,  100.5,  151);
+centersy_offsets = newArray( 158.5,   41.5,   151,  100.5,   51,     50.5,  100.5,  151);
 for( n = 0; n < num_inserts; n++)
 	centersx[n] = columns - centersx[n] ;
 for( slice = start_slice; slice <= end_slice; slice++ )
@@ -65,16 +65,16 @@ for( slice = start_slice; slice <= end_slice; slice++ )
 		// *************************************************************************************************************************************************************************************************//
 		// Duplicate reconstructed image PNGs and add insert labels and draw profile line and circular selection region used to calculate insert RSP statistics
 		// *************************************************************************************************************************************************************************************************//
-		for (i=0; i < num_inserts; i++)
+		for (i=2; i < num_inserts; i++)
 		{
 			setColor("green");	
-			setLineWidth(x_magnification);	
-			Overlay.drawLine(x_magnification*(centersx[i] - profile_r),x_magnification*(centersy_offsets[i]) ,x_magnification*(centersx[i] + profile_r), x_magnification*(centersy_offsets[i]));
-			Overlay.show();
-			setLineWidth(1);
-			setColor("blue");
+			//setLineWidth(x_magnification);	
+			//Overlay.drawLine(x_magnification*(centersx[i] - profile_r),x_magnification*(centersy_offsets[i]) ,x_magnification*(centersx[i] + profile_r), x_magnification*(centersy_offsets[i]));
+			//Overlay.show();
+			setLineWidth(2);
+			//setColor("blue");
 			Overlay.drawEllipse(x_magnification*(centersx[i]-r), x_magnification*(centersy_offsets[i]-r), x_magnification*d, x_magnification*d);
-			fillOval(x_magnification*(centersx[i]-r), x_magnification*(centersy_offsets[i]-r), x_magnification*d, x_magnification*d);
+			//fillOval(x_magnification*(centersx[i]-r), x_magnification*(centersy_offsets[i]-r), x_magnification*d, x_magnification*d);
 			Overlay.show();
 			setColor("black");	
 			setFont("SansSerif", 28);//"SansSerif", "Serif" or "Monospaced"
@@ -82,7 +82,7 @@ for( slice = start_slice; slice <= end_slice; slice++ )
 			Overlay.show();		
 		}
 		//run("Flip Horizontally");
-		saveAs("PNG", output_directory + basename + "_Annotated.png");	
+		saveAs("PNG", output_directory + basename + "_Annotated2.png");	
 		close();
 	}
 	//runMacro("Insert_Selection_Overlay" , directory_path);

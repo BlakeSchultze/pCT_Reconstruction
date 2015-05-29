@@ -1,12 +1,12 @@
 macro "CTP404_Full_Analysis"
 {
 // Run options
-slice_2_PNG = false;
+slice_2_PNG = true;
 slices_2_PNG = false;
 convergence_analysis_on = true;
 gradient_analysis_on = true;
-setBatchMode(false);
-//setBatchMode(true);
+//setBatchMode(false);
+setBatchMode(true);
 
 // Image and reconstruction parameters
 iterations = 12;						// # of iterations to analyze from image reconstruction
@@ -20,15 +20,15 @@ insert_d = 12.2;						// diameter of inserts
 insert_r = insert_d/2;					// radius of inserts				
 voxel_2_coordinate = 0.5;
 
-start_slice = 16;
-end_slice = 16;
+start_slice = 13;
+end_slice = 20;
 
 // Define path to reconstructed images and output directory names
 directory_path = getArgument();
 if( directory_path == "" )
 {
 	directory_path = getDirectory("Choose a Directory");
-	setBatchMode(false);
+	//setBatchMode(false);
 }
 image_basename = "x_";
 input_image_file_extension = ".txt";

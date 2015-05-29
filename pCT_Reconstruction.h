@@ -32,6 +32,7 @@
 #include <initializer_list>
 #include <iostream>
 #include <iterator>
+#include <limits>
 #include <map>
 #include <new>			 
 #include <numeric>		// inner_product, partial_sum, adjacent_difference, accumulate
@@ -150,7 +151,7 @@ bool PATH_2_PCT_DATA_DIR_SET, PROJECTION_DATA_DIR_CONSTRUCTABLE, PREPROCESSING_D
 /******************************************************************************* Constants *********************************************************************************/
 /***************************************************************************************************************************************************************************/
 const bool SAMPLE_STD_DEV		= true;									// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
-unsigned int MAGIC_NUMBER_CHECK = int('DTCP');
+unsigned int MAGIC_NUMBER_CHECK = static_cast<unsigned int>('DTCP');
 #define STRIDE					5
 #define SIGMAS_2_KEEP			3										// [#] Number of standard deviations from mean to allow before cutting the history 
 #define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
