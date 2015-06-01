@@ -5,27 +5,27 @@
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------- Output filenames ----------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-char PCT_DATA_DIR_NAME[]		= "pCT_Data";
-char EXPERIMENTAL_DIR_NAME[]	= "Experimental";
-char SIMULATIONS_DIR_NAME[]		= "Simulated";
-char RUN_DIR_BASENAME[]			= "Run";
-char RAW_DATA_DIR_NAME[]		= "Input";
-char PROJECTION_DATA_DIR_NAME[]	= "Output";
-char RECONSTRUCTION_DIR_NAME[]	= "Reconstruction";
-char PCT_IMAGES_DIR_NAME[]		= "Images";
-char REF_IMAGES_DIR_NAME[]		= "Reference_Images";
+char PCTATAIR_NAME[]		= "pCTata";
+char EXPERIMENTALIR_NAME[]	= "Experimental";
+char SIMULATIONSIR_NAME[]		= "Simulated";
+char RUNIR_BASENAME[]			= "Run";
+char RAWATAIR_NAME[]		= "Input";
+char PROJECTIONATAIR_NAME[]	= "Output";
+char RECONSTRUCTIONIR_NAME[]	= "Reconstruction";
+char PCT_IMAGESIR_NAME[]		= "Images";
+char REF_IMAGESIR_NAME[]		= "Reference_Images";
 
 char CONFIG_FILENAME[]			= "settings.cfg";						// Name of the file used to control the program options/parameters as key=value pairs
 char CONFIG_OUT_FILENAME[]		= "settings_out.cfg";					// Name of the file used to control the program options/parameters as key=value pairs
 char LOG_FILENAME[]				= "log.csv";							// Name of the file logging the execution information associated with each data set generated
 char STDOUT_FILENAME[]			= "stdout.txt";							// Name of the file where the stdout strea is redirected
 char STDERR_FILENAME[]			= "stderr.txt";							// Name of the file where the stdout strea is redirected
-char PROJECTION_DATA_BASENAME[]	= "projection";							// Prefix of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+char PROJECTIONATA_BASENAME[]	= "projection";							// Prefix of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
 
 char RADIOGRAPHS_RAW_BASENAME[]	= "radiographs_raw";					// Prefix of the file containing the radiograph images from each projection angle prior to performing cuts 
 char RADIOGRAPHS_BASENAME[]		= "radiographs";						// Prefix of the file containing the radiograph images from each projection angle after performing cuts (i.e. rearranged sinogram)
-char WEPL_DISTS_RAW_BASENAME[]	= "WEPL_distributions_raw";				// Prefix of the file containing the WEPL distribution images from each projection angle prior to performing cuts 
-char WEPL_DISTS_BASENAME[]		= "WEPL_distributions";					// Prefix of the file containing the WEPL distribution images each projection angle after performing cuts 
+char WEPLISTS_RAW_BASENAME[]	= "WEPL_distributions_raw";				// Prefix of the file containing the WEPL distribution images from each projection angle prior to performing cuts 
+char WEPLISTS_BASENAME[]		= "WEPL_distributions";					// Prefix of the file containing the WEPL distribution images each projection angle after performing cuts 
 char SC_HULL_BASENAME[]			= "hull_SC";							// Prefix of the file containing the SC hull image
 char MSC_HULL_BASENAME[]		= "hull_MSC";							// Prefix of the file containing the MSC hull image 
 char SM_HULL_BASENAME[]			= "hull_SM";							// Prefix of the file containing the SM hull image 
@@ -37,9 +37,10 @@ char FBP_BASENAME[]				= "FBP";								// Prefix of the file containing the FBP 
 //char FBP_AVERAGE_BASENAME[]		= "FBP_avg";							// Prefix of the file containing the average filtered FBP image
 char X_0_BASENAME[]				= "x_0";								// Prefix of the file containing the FBP, hull, or FBP/hull hybrid initial iterate image as specified by the settings.cfg file
 char MLP_BASENAME[]				= "MLP";								// Prefix of the file containing the MLP path data
-char VOXELS_PER_PATH_BASENAME[]	= "voxels_per_path";								// Prefix of the file containing the # of intersected voxels per MLP path
-char WEPL_BASENAME[]			= "WEPL";								// Prefix of the file containing the WEPL data
+char WEPL_BASENAME[]			= "WEPL";								// Prefix of the file containing the WEPL measurements for each MLP path
 char HISTORIES_BASENAME[]		= "histories";							// Prefix of the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
+char VOXELS_PER_PATH_BASENAME[]	= "voxels_per_path";					// Prefix of the file containing the # of intersected voxels per MLP path
+char AVG_CHORDS_BASENAME[]		= "avg_chord_lengths";					// Prefix of the file containing the effective (average) chord length for each MLP path
 char X_BASENAME[]				= "x";									// Prefix of the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
 
 char MEDIAN_FILTER_2D_POSTFIX[]	= "med_2D_r";							// Postfix added to filename for 2D median filtered images
@@ -47,17 +48,18 @@ char MEDIAN_FILTER_3D_POSTFIX[]	= "med_3D_r";							// Postfix added to filename
 char AVERAGE_FILTER_2D_POSTFIX[]= "avg_2D_r";							// Postfix added to filename for 2D average filtered images
 char AVERAGE_FILTER_3D_POSTFIX[]= "avg_3D_r";							// Postfix added to filename for 3D average filtered images
 
-DISK_WRITE_MODE PROJECTION_DATA_WRITE_MODE	= BINARY;					// Disk write mode for the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+DISK_WRITE_MODE PROJECTIONATA_WRITE_MODE	= BINARY;					// Disk write mode for the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
 DISK_WRITE_MODE RADIOGRAPHS_WRITE_MODE		= TEXT;						// Disk write mode for the files containing the radiograph images from each projection angle before/after performing cuts
-DISK_WRITE_MODE WEPL_DISTS_WRITE_MODE		= TEXT;						// Disk write mode for the files containing the WEPL distribution images from each projection angle before/after performing cuts
+DISK_WRITE_MODE WEPLISTS_WRITE_MODE		= TEXT;						// Disk write mode for the files containing the WEPL distribution images from each projection angle before/after performing cuts
 DISK_WRITE_MODE HULL_WRITE_MODE				= TEXT;						// Disk write mode for the file containing the SC, MSC, SM, or FBP hull image as specified by the settings.cfg file 
 DISK_WRITE_MODE FBP_WRITE_MODE				= TEXT;						// Disk write mode for the file containing the FBP image
 DISK_WRITE_MODE FBP_MEDIANS_WRITE_MODE		= TEXT;						// Disk write mode for the file containing the median filtered FBP images
 DISK_WRITE_MODE X_0_WRITE_MODE				= TEXT;						// Disk write mode for the file containing the FBP, hull, or FBP/hull hybrid initial iterate image as specified by the settings.cfg file
 DISK_WRITE_MODE MLP_WRITE_MODE				= BINARY;					// Disk write mode for the file containing the MLP path data
-DISK_WRITE_MODE VOXELS_PER_PATH_WRITE_MODE	= BINARY;					// Disk write mode for the file containing the number of intersected voxels in each path
 DISK_WRITE_MODE HISTORIES_WRITE_MODE		= BINARY;					// Disk write mode for the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
-DISK_WRITE_MODE WEPL_WRITE_MODE				= BINARY;					// Disk write mode for the file containing the MLP path data
+DISK_WRITE_MODE WEPL_WRITE_MODE				= BINARY;					// Disk write mode for the file containing the WEPL measurement for each MLP data
+DISK_WRITE_MODE VOXELS_PER_PATH_WRITE_MODE	= BINARY;					// Disk write mode for the file containing the number of intersected voxels in each MLP path
+DISK_WRITE_MODE AVG_CHORDS_WRITE_MODE		= BINARY;					// Disk write mode for the file containing the effective (average) chord length for each MLP path
 DISK_WRITE_MODE X_WRITE_MODE				= TEXT;						// Disk write mode for the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*----------------------------------------------------------------------------- MLP Parameters ----------------------------------------------------------------------------*/
@@ -125,9 +127,9 @@ DISK_WRITE_MODE X_WRITE_MODE				= TEXT;						// Disk write mode for the file con
 #define LEFT					-1										// Specifies that moving left corresponds with a decrease in x position, used in voxel walk 
 #define UP						1										// Specifies that moving up corresponds with an increase in y/z position, used in voxel walk 
 #define DOWN					-1										// Specifies that moving down corresponds with a decrease in y/z position, used in voxel walk 
-#define X_INCREASING_DIRECTION	RIGHT									// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
-#define Y_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
-#define Z_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
+#define X_INCREASINGIRECTION	RIGHT									// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
+#define Y_INCREASINGIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
+#define Z_INCREASINGIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
 #define BOOL_FORMAT				"%d"									// Specifies format to use for writing/printing boolean data using {s/sn/f/v/vn}printf statements
 #define CHAR_FORMAT				"%c"									// Specifies format to use for writing/printing character data using {s/sn/f/v/vn}printf statements
 #define INT_FORMAT				"%d"									// Specifies format to use for writing/printing integer data using {s/sn/f/v/vn}printf statements
@@ -175,31 +177,3 @@ const uint CONFIG_FIELD_WIDTHS[NUM_CONFIG_FIELDS] = {KEY_FIELD_WIDTH, EQUALS_FIE
 #define KEITH_CONTACT		"Keith Schubert (Keith_Schubert@baylor.edu)"
 #define PANIZ_CONTACT		"Paniz Karbasi (Paniz_Karbasi@baylor.edu)"
 #define header_length		strlen(copyright_notice) + strlen(header_statement) + strlen(blake_contact) + strlen(reinhard_contact) + strlen(keith_contact) + strlen(paniz_contact)
-
-// Phantom Location
-#define WED_TARGET_IMAGE_WIDTH ( 192 ) //mm
-#define WED_TARGET_IMAGE_HEIGHT ( 192 ) //mm
-#define WED_TARGET_IMAGE_THICKNESS ( 160 ) //mm
-#define WED_TARGET_COLUMNS 1024
-#define WED_TARGET_ROWS 1024
-#define WED_TARGET_SLICES 128
-#define WED_TARGET_VOXELS ( WED_TARGET_COLUMNS * WED_TARGET_ROWS * WED_TARGET_SLICES )
-#define WED_TARGET_VOXEL_WIDTH ( 0.1875 ) // mm
-#define WED_TARGET_VOXEL_HEIGHT ( 0.1875 ) // mm
-#define WED_TARGET_VOXEL_THICKNESS ( 1.25) // mm
-//#define WED_TARGET_VOXEL_STEP_SIZE ( WED_TARGET_VOXEL_WIDTH / 2 ) // cm
-//#define START_RADIUS WED_TARGET_IMAGE_WIDTH/2 //cm
-#define WED_TARGET_THRESHOLD_RSP 0.01 
-//#define WED_TARGET_INT_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(int) )
-//#define WED_TARGET_FLOAT_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(float) )
-//#define WED_TARGET_DOUBLE_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(double) )
-//#define WED_TARGET_BOOL_MEM_SIZE ( WED_TARGET_VOXELS * sizeof(bool) )
-//#define WED_TARGET_X_MIN -96.0 //mm
-//#define WED_TARGET_X_MAX 96.0 //mm
-//#define WED_TARGET_Y_MIN -96.0 //mm
-//#define WED_TARGET_Y_MAX 96.0 //mm
-//#define WED_TARGET_Z_MIN -166.875 //mm
-//#define WED_TARGET_Z_MAX -6.875 //mm
-#define WED_TARGET_X_ZERO_COORDINATE -96		// [mm] Coordinate in x direction corresponding to voxel 0
-#define WED_TARGET_Y_ZERO_COORDINATE 96			// [mm] Coordinate in y direction corresponding to voxel 0
-#define WED_TARGET_Z_ZERO_COORDINATE -6.875		// [mm] Coordinate in z direction corresponding to voxel 0

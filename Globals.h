@@ -14,13 +14,13 @@ typedef unsigned int uint;
 bool RUN_ON						= false;						// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
 char EXECUTION_DATE[9];
 bool CONFIG_PATH_PASSED = false;			// [T/F] Path to "settings.cfg" passed as command line argument [T] or inferred from current directory [F]
-unsigned int NUM_RUN_ARGUMENTS;
-int NUM_PARAMETERS_2_CHANGE; 
+uint NUM_RUN_ARGUMENTS;
+uint NUM_PARAMETERS_2_CHANGE; 
 char** RUN_ARGUMENTS;
 std::stringstream BUFFER;
 
 int GENERATION_DATE, CALIBRATION_DATE;
-uint PHANTOM_NAME_SIZE, DATA_SOURCE_SIZE, ACQUIRED_BY_SIZE, CALIBRATED_BY_SIZE, SKIP_2_DATA_SIZE, VERSION_ID, PROJECTION_INTERVAL;
+uint PHANTOM_NAME_SIZE, DATA_SOURCE_SIZE, ACQUIRED_BY_SIZE, CALIBRATED_BY_SIZE, SKIP_2ATA_SIZE, VERSION_ID, PROJECTION_INTERVAL;
 float PROJECTION_ANGLE, BEAM_ENERGY_IN;
 char* PHANTOM_NAME, * DATA_SOURCE, * ACQUIRED_BY, * CALIBRATED_BY, * PREPROCESSED_BY, * RECONSTRUCTED_BY, * CONFIG_LINK, * COMMENTS;
 bool HULL_EXISTS, FBP_EXISTS, X_0_EXISTS, X_K_EXISTS, X_EXISTS, MLP_EXISTS, VOXELS_PER_PATH_EXISTS, WEPL_EXISTS, HISTORIES_EXISTS;
@@ -39,7 +39,8 @@ int* histories_per_projection, * histories_per_gantry_angle, * histories_per_fil
 int* recon_vol_histories_per_projection;
 int* histories_per_scan;
 uint post_cut_histories = 0;
-uint reconstruction_histories	= 0;
+uint reconstruction_histories = 0;
+ULL* history_sequence;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------- Declaration of array used to store tracking plane distances from rotation axis --------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -112,14 +113,23 @@ float* FBP_filtered_h, * FBP_filtered_d;
 float* FBP_median_filtered_2D_h, * FBP_median_filtered_2D_d;
 float* FBP_median_filtered_3D_h, * FBP_median_filtered_3D_d;
 
-double* x_update_h, * x_update_d;
+
 unsigned int* num_voxel_intersections_h, * num_voxel_intersections_d;
 unsigned int* intersection_counts_h, * intersection_counts_d;
 unsigned int* block_voxels_h, *block_voxels_d;
 unsigned int* block_counts_h, * block_counts_d;
 double* norm_Ai;
+
+float* block_WEPLs_h, * block_WEPLs_d;
+float* block_avg_chord_lengths_h, * block_avg_chord_lengths_d;
+int* block_voxels_per_path_h, * block_voxels_per_path_d;
+int * block_paths_h, * block_paths_d;
+float* x_update_h, * x_update_d;
 float* x_h, * x_d;
-ULL* history_sequence;
+int* S_h, * S_d;
+
+FILE* x_0_file, * hull_file, * MLP_file, * WEPL_file, * histories_file, * voxels_per_path_file, * avg_chord_lengths_file;
+long int begin_MLP_data, begin_WEPL_data, begin_histories_data, begin_voxels_per_path_data, begin_avg_chord_lengths_data;  
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------- Declaration of vectors used to accumulate data from histories that have passed currently applied cuts ---------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -142,6 +152,7 @@ std::vector<int> voxel_x_vector;
 std::vector<int> voxel_y_vector;
 std::vector<int> voxel_z_vector;
 std::vector<int> voxels_per_path_vector;
+std::vector<float> avg_chord_length_vector;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------- Execution timer variables ------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -153,7 +164,7 @@ clock_t program_start, program_end, pause_cycles = 0;
 // WED calculations
 const char source_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\";
 const char targets_input_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\bap_coordinates\\";
-const char target_object_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\RStP_DICOM_PHANTOM\\";
+const char target_object_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\RStPICOM_PHANTOM\\";
 const char WED_results_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\bap_coordinates\\WED_Results\\";
 const char targets_base_name[] = "proxi_distal";	
 

@@ -86,35 +86,35 @@ enum BIN_ANALYSIS_TYPE { MEANS, COUNTS, MEMBERS };							// Choices for what inf
 enum BIN_ANALYSIS_FOR { ALL_BINS, SPECIFIC_BINS };							// Choices for which bins the desired data should come from
 enum BIN_ORGANIZATION { BY_BIN, BY_HISTORY };								// Binned data is either organized in order by bin or by history w/ bin # specified separately
 enum BIN_ANALYSIS_OF { WEPLS, ANGLES, POSITIONS, BIN_NUMS };				// Choices for which type of binned data is desired
-enum IMAGE_DEFINED_BY { SIZE_VOXELS, DIMENSIONS_VOXELS, SIZE_DIMENSIONS};	// Image size defined by 2 of voxel dimenensions, image dimensions, and image discretization
+enum IMAGEEFINED_BY { SIZE_VOXELS, DIMENSIONS_VOXELS, SIZEIMENSIONS};	// Image size defined by 2 of voxel dimenensions, image dimensions, and image discretization
 
 enum SCAN_TYPES { EXPERIMENTAL, SIMULATED_G, SIMULATED_T, ST_END };			// Experimental or simulated data
 enum HULL_TYPES {IMPORT_HULL, SC_HULL, MSC_HULL, SM_HULL, FBP_HULL, HT_END};// Define valid choices for which hull to use in MLP calculations
 enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE, FT_END};						// Define the types of filters that are available for use in FBP
 enum X_0_TYPES { IMPORT_X_0, X_HULL, X_FBP, HYBRID, ZEROS, X0_END };		// Define valid choices for which hull to use in MLP calculations
 enum RECON_ALGORITHMS { ART, DROP, BIP, SAP, ROBUST1, ROBUST2, RA_END };	// Define valid choices for iterative projection algorithm to use
-enum LOG_ENTRIES {OBJECT_L, SCAN_TYPE_L, RUN_DATE_L, RUN_NUMBER_L, 
-	ACQUIRED_BY_L, PROJECTION_DATA_DATE_L, CALIBRATED_BY_L, 
-	PREPROCESS_DATE_L, PREPROCESSED_BY_L, RECONSTRUCTION_DATE_L, 
+enum LOG_ENTRIES {OBJECT_L, SCAN_TYPE_L, RUNATE_L, RUN_NUMBER_L, 
+	ACQUIRED_BY_L, PROJECTIONATAATE_L, CALIBRATED_BY_L, 
+	PREPROCESSATE_L, PREPROCESSED_BY_L, RECONSTRUCTIONATE_L, 
 	RECONSTRUCTED_BY_L, COMMENTS_L};
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------- Preprocessing option parameters -------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-char* OBJECT, *SCAN_TYPE, *RUN_DATE, *RUN_NUMBER, *PROJECTION_DATA_DATE, *PREPROCESS_DATE, *RECONSTRUCTION_DATE;
+char* OBJECT, *SCAN_TYPE, *RUNATE, *RUN_NUMBER, *PROJECTIONATAATE, *PREPROCESSATE, *RECONSTRUCTIONATE;
 char* USER_NAME;
-char* PATH_2_PCT_DATA_DIR, *DATA_TYPE_DIR, *PROJECTION_DATA_DIR, *PREPROCESSING_DIR, *RECONSTRUCTION_DIR;
-//char* OVERWRITING_PREPROCESS_DATE, OVERWRITING_RECON_DATE;
+char* PATH_2_PCTATAIR, *DATA_TYPEIR, *PROJECTIONATAIR, *PREPROCESSINGIR, *RECONSTRUCTIONIR;
+//char* OVERWRITING_PREPROCESSATE, OVERWRITING_RECONATE;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------- IO file extension character array variables -------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-char PROJECTION_DATA_FILE_EXTENSION[4], RADIOGRAPHS_FILE_EXTENSION[4], WEPL_DISTS_FILE_EXTENSION[4];
+char PROJECTIONATA_FILE_EXTENSION[4], RADIOGRAPHS_FILE_EXTENSION[4], WEPLISTS_FILE_EXTENSION[4];
 char HULL_FILE_EXTENSION[4], FBP_FILE_EXTENSION[4], FBP_MEDIANS_FILE_EXTENSION[4], X_0_FILE_EXTENSION[4], X_FILE_EXTENSION[4];	
-char MLP_FILE_EXTENSION[4], VOXELS_PER_PATH_FILE_EXTENSION[4], WEPL_FILE_EXTENSION[4], HISTORIES_FILE_EXTENSION[4];
+char MLP_FILE_EXTENSION[4], WEPL_FILE_EXTENSION[4], HISTORIES_FILE_EXTENSION[4], VOXELS_PER_PATH_FILE_EXTENSION[4], AVG_CHORDS_FILE_EXTENSION[4];
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*------------------------------------------------------------------ IO filename character array variables ----------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char* HULL_FILENAME, *FBP_FILENAME, *X_0_FILENAME, *X_K_FILENAME;
-char* MLP_FILENAME, *VOXELS_PER_PATH_FILENAME, *WEPL_FILENAME, *HISTORIES_FILENAME;
+char* MLP_FILENAME, *WEPL_FILENAME, *HISTORIES_FILENAME, *VOXELS_PER_PATH_FILENAME, *AVG_CHORDS_FILENAME;
 char* HULL_MEDIAN_2D_FILENAME, *FBP_MEDIAN_2D_FILENAME, *X_0_MEDIAN_2D_FILENAME, *X_K_MEDIAN_2D_FILENAME;
 char* HULL_MEDIAN_3D_FILENAME, *FBP_MEDIAN_3D_FILENAME, *X_0_MEDIAN_3D_FILENAME, *X_K_MEDIAN_3D_FILENAME;
 char* HULL_AVG_2D_FILENAME, *FBP_AVG_2D_FILENAME, *X_0_AVG_2D_FILENAME, *X_K_AVG_2D_FILENAME;
@@ -125,7 +125,7 @@ char* HULL_COMBO_3D_FILENAME, *FBP_COMBO_3D_FILENAME, *X_0_COMBO_3D_FILENAME, *X
 /*------------------------------------------------------------------ Full IO path character array variables ---------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char* CONFIG_PATH, *CONFIG_OUT_PATH, *LOG_PATH, *STDOUT_PATH, *STDERR_PATH;
-char* MLP_PATH, *VOXELS_PER_PATH_PATH, *WEPL_PATH, *HISTORIES_PATH;
+char* MLP_PATH, *WEPL_PATH, *HISTORIES_PATH, *VOXELS_PER_PATH_PATH, *AVG_CHORDS_PATH;
 char* HULL_PATH, *FBP_PATH, *X_0_PATH, *X_K_PATH;
 char* HULL_MEDIAN_2D_PATH, *FBP_MEDIAN_2D_PATH, *X_0_MEDIAN_2D_PATH, *X_K_MEDIAN_2D_PATH;
 char* HULL_MEDIAN_3D_PATH, *FBP_MEDIAN_3D_PATH, *X_0_MEDIAN_3D_PATH, *X_K_MEDIAN_3D_PATH;
@@ -143,22 +143,29 @@ char* HULL_2_USE_PATH, *FBP_2_USE_PATH, *X_0_2_USE_PATH, *X_K_2_USE_PATH, *X_2_U
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------- Preprocessing option parameters -------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-bool OBJECT_SET = false, RUN_DATE_SET = false, RUN_NUMBER_SET = false, USER_NAME_SET = false;
-bool PROJECTION_DATA_DATE_SET = false, PREPROCESS_DATE_SET = false, RECONSTRUCTION_DATE_SET = false;
-bool PROJECTION_DATA_DIR_SET = false, PREPROCESSING_DIR_SET = false, RECONSTRUCTION_DIR_SET = false;
-bool PATH_2_PCT_DATA_DIR_SET, PROJECTION_DATA_DIR_CONSTRUCTABLE, PREPROCESSING_DIR_CONSTRUCTABLE, RECONSTRUCTION_DIR_CONSTRUCTABLE;
+bool OBJECT_SET = false, RUNATE_SET = false, RUN_NUMBER_SET = false, USER_NAME_SET = false;
+bool PROJECTIONATAATE_SET = false, PREPROCESSATE_SET = false, RECONSTRUCTIONATE_SET = false;
+bool PROJECTIONATAIR_SET = false, PREPROCESSINGIR_SET = false, RECONSTRUCTIONIR_SET = false;
+bool PATH_2_PCTATAIR_SET, PROJECTIONATAIR_CONSTRUCTABLE, PREPROCESSINGIR_CONSTRUCTABLE, RECONSTRUCTIONIR_CONSTRUCTABLE;
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+//---------------------------------------------------------- Memory allocation size for arrays (binning, image) -----------------------------------------------------------//
+//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
+uint SIZE_BINS_CHAR, SIZE_BINS_BOOL, SIZE_BINS_INT, SIZE_BINS_UINT, SIZE_BINS_FLOAT, SIZE_BINS_DOUBLE;			// *[bytes] Memory required for binning arrays
+uint SIZE_IMAGE_CHAR, SIZE_IMAGE_BOOL, SIZE_IMAGE_INT, SIZE_IMAGE_UINT, SIZE_IMAGE_FLOAT, SIZE_IMAGE_DOUBLE;	// *[bytes] Memory required for image arrays
 /***************************************************************************************************************************************************************************/
 /******************************************************************************* Constants *********************************************************************************/
 /***************************************************************************************************************************************************************************/
-const bool SAMPLE_STD_DEV		= true;									// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
+const bool SAMPLE_STDEV		= true;									// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
+const char* MAGIC_NUMBER_CHARS = "PCTD";
 unsigned int MAGIC_NUMBER_CHECK = static_cast<unsigned int>('DTCP');
+std::string MAGIC_NUMBER_STRING = std::string("PCTD");
 #define STRIDE					5
-#define SIGMAS_2_KEEP			3										// [#] Number of standard deviations from mean to allow before cutting the history 
+//#define SIGMAS_2_KEEP			3										// [#] Number of standard deviations from mean to allow before cutting the history 
 #define THREADS_PER_BLOCK		1024									// [#] Number of threads assigned to each block on the GPU
 #define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
 #define SOURCE_RADIUS			260.7									// [cm] Distance  to source/scatterer 
 #define FBP_THRESHOLD			0.6										// [cm] RSP threshold used to generate FBP_hull from FBP
-#define MAX_INTERSECTIONS		1000									// Limit on the # of intersections expected for proton's MLP; = # voxels along image diagonal
+#define MAX_INTERSECTIONS		512									// Limit on the # of intersections expected for proton's MLP; = # voxels along image diagonal
 /***************************************************************************************************************************************************************************/
 /************************************************************************* For Use In Development **************************************************************************/
 /***************************************************************************************************************************************************************************/
