@@ -23,7 +23,7 @@ int GENERATION_DATE, CALIBRATION_DATE;
 uint PHANTOM_NAME_SIZE, DATA_SOURCE_SIZE, ACQUIRED_BY_SIZE, CALIBRATED_BY_SIZE, SKIP_2ATA_SIZE, VERSION_ID, PROJECTION_INTERVAL;
 float PROJECTION_ANGLE, BEAM_ENERGY_IN;
 char* PHANTOM_NAME, * DATA_SOURCE, * ACQUIRED_BY, * CALIBRATED_BY, * PREPROCESSED_BY, * RECONSTRUCTED_BY, * CONFIG_LINK, * COMMENTS;
-bool HULL_EXISTS, FBP_EXISTS, X_0_EXISTS, X_K_EXISTS, X_EXISTS, MLP_EXISTS, VOXELS_PER_PATH_EXISTS, WEPL_EXISTS, HISTORIES_EXISTS;
+bool HULL_EXISTS, FBP_EXISTS, X_0_EXISTS, X_K_EXISTS, X_EXISTS, MLP_EXISTS, WEPL_EXISTS, VOXELS_PER_PATH_EXISTS, AVG_CHORD_LENGTHS_EXISTS, HISTORIES_EXISTS;
 uint NUM_X_EXISTS = 0;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*------------------------------------------------------ Reconstruction history ordering and iterate update parameters ----------------------------------------------------*/

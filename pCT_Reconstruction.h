@@ -86,30 +86,30 @@ enum BIN_ANALYSIS_TYPE { MEANS, COUNTS, MEMBERS };							// Choices for what inf
 enum BIN_ANALYSIS_FOR { ALL_BINS, SPECIFIC_BINS };							// Choices for which bins the desired data should come from
 enum BIN_ORGANIZATION { BY_BIN, BY_HISTORY };								// Binned data is either organized in order by bin or by history w/ bin # specified separately
 enum BIN_ANALYSIS_OF { WEPLS, ANGLES, POSITIONS, BIN_NUMS };				// Choices for which type of binned data is desired
-enum IMAGEEFINED_BY { SIZE_VOXELS, DIMENSIONS_VOXELS, SIZEIMENSIONS};	// Image size defined by 2 of voxel dimenensions, image dimensions, and image discretization
+enum IMAGE_DEFINED_BY { SIZE_VOXELS, DIMENSIONS_VOXELS, SIZEIMENSIONS};	// Image size defined by 2 of voxel dimenensions, image dimensions, and image discretization
 
 enum SCAN_TYPES { EXPERIMENTAL, SIMULATED_G, SIMULATED_T, ST_END };			// Experimental or simulated data
 enum HULL_TYPES {IMPORT_HULL, SC_HULL, MSC_HULL, SM_HULL, FBP_HULL, HT_END};// Define valid choices for which hull to use in MLP calculations
 enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE, FT_END};						// Define the types of filters that are available for use in FBP
 enum X_0_TYPES { IMPORT_X_0, X_HULL, X_FBP, HYBRID, ZEROS, X0_END };		// Define valid choices for which hull to use in MLP calculations
 enum RECON_ALGORITHMS { ART, DROP, BIP, SAP, ROBUST1, ROBUST2, RA_END };	// Define valid choices for iterative projection algorithm to use
-enum LOG_ENTRIES {OBJECT_L, SCAN_TYPE_L, RUNATE_L, RUN_NUMBER_L, 
-	ACQUIRED_BY_L, PROJECTIONATAATE_L, CALIBRATED_BY_L, 
-	PREPROCESSATE_L, PREPROCESSED_BY_L, RECONSTRUCTIONATE_L, 
+enum LOG_ENTRIES {OBJECT_L, SCAN_TYPE_L, RUN_DATE_L, RUN_NUMBER_L, 
+	ACQUIRED_BY_L, PROJECTION_DATA_DATE_L, CALIBRATED_BY_L, 
+	PREPROCESS_DATE_L, PREPROCESSED_BY_L, RECONSTRUCTION_DATE_L, 
 	RECONSTRUCTED_BY_L, COMMENTS_L};
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------- Preprocessing option parameters -------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-char* OBJECT, *SCAN_TYPE, *RUNATE, *RUN_NUMBER, *PROJECTIONATAATE, *PREPROCESSATE, *RECONSTRUCTIONATE;
+char* OBJECT, *SCAN_TYPE, *RUN_DATE, *RUN_NUMBER, *PROJECTION_DATA_DATE, *PREPROCESS_DATE, *RECONSTRUCTION_DATE;
 char* USER_NAME;
-char* PATH_2_PCTATAIR, *DATA_TYPEIR, *PROJECTIONATAIR, *PREPROCESSINGIR, *RECONSTRUCTIONIR;
-//char* OVERWRITING_PREPROCESSATE, OVERWRITING_RECONATE;
+char* PATH_2_PCT_DATA_DIR, *DATA_TYPE_DIR, *PROJECTION_DATA_DIR, *PREPROCESSING_DIR, *RECONSTRUCTION_DIR;
+//char* OVERWRITING_PREPROCESS_DATE, OVERWRITING_RECONATE;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------- IO file extension character array variables -------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-char PROJECTIONATA_FILE_EXTENSION[4], RADIOGRAPHS_FILE_EXTENSION[4], WEPLISTS_FILE_EXTENSION[4];
-char HULL_FILE_EXTENSION[4], FBP_FILE_EXTENSION[4], FBP_MEDIANS_FILE_EXTENSION[4], X_0_FILE_EXTENSION[4], X_FILE_EXTENSION[4];	
-char MLP_FILE_EXTENSION[4], WEPL_FILE_EXTENSION[4], HISTORIES_FILE_EXTENSION[4], VOXELS_PER_PATH_FILE_EXTENSION[4], AVG_CHORDS_FILE_EXTENSION[4];
+char PROJECTION_DATA_FILE_EXTENSION[5], RADIOGRAPHS_FILE_EXTENSION[5], WEPL_DISTS_FILE_EXTENSION[5];
+char HULL_FILE_EXTENSION[5], FBP_FILE_EXTENSION[5], FBP_MEDIANS_FILE_EXTENSION[5], X_0_FILE_EXTENSION[5], X_FILE_EXTENSION[5];	
+char MLP_FILE_EXTENSION[5], WEPL_FILE_EXTENSION[5], HISTORIES_FILE_EXTENSION[5], VOXELS_PER_PATH_FILE_EXTENSION[5], AVG_CHORDS_FILE_EXTENSION[5];
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*------------------------------------------------------------------ IO filename character array variables ----------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -143,10 +143,10 @@ char* HULL_2_USE_PATH, *FBP_2_USE_PATH, *X_0_2_USE_PATH, *X_K_2_USE_PATH, *X_2_U
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------- Preprocessing option parameters -------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-bool OBJECT_SET = false, RUNATE_SET = false, RUN_NUMBER_SET = false, USER_NAME_SET = false;
-bool PROJECTIONATAATE_SET = false, PREPROCESSATE_SET = false, RECONSTRUCTIONATE_SET = false;
-bool PROJECTIONATAIR_SET = false, PREPROCESSINGIR_SET = false, RECONSTRUCTIONIR_SET = false;
-bool PATH_2_PCTATAIR_SET, PROJECTIONATAIR_CONSTRUCTABLE, PREPROCESSINGIR_CONSTRUCTABLE, RECONSTRUCTIONIR_CONSTRUCTABLE;
+bool OBJECT_SET = false, RUN_DATE_SET = false, RUN_NUMBER_SET = false, USER_NAME_SET = false;
+bool PROJECTION_DATA_DATE_SET = false, PREPROCESS_DATE_SET = false, RECONSTRUCTION_DATE_SET = false;
+bool PROJECTION_DATA_DIR_SET = false, PREPROCESSING_DIR_SET = false, RECONSTRUCTION_DIR_SET = false;
+bool PATH_2_PCT_DATA_DIR_SET, PROJECTION_DATA_DIR_CONSTRUCTABLE, PREPROCESSING_DIR_CONSTRUCTABLE, RECONSTRUCTION_DIR_CONSTRUCTABLE;
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 //---------------------------------------------------------- Memory allocation size for arrays (binning, image) -----------------------------------------------------------//
 //-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//

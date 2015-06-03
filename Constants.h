@@ -5,27 +5,27 @@
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------------------------------------- Output filenames ----------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-char PCTATAIR_NAME[]		= "pCTata";
-char EXPERIMENTALIR_NAME[]	= "Experimental";
-char SIMULATIONSIR_NAME[]		= "Simulated";
-char RUNIR_BASENAME[]			= "Run";
-char RAWATAIR_NAME[]		= "Input";
-char PROJECTIONATAIR_NAME[]	= "Output";
-char RECONSTRUCTIONIR_NAME[]	= "Reconstruction";
-char PCT_IMAGESIR_NAME[]		= "Images";
-char REF_IMAGESIR_NAME[]		= "Reference_Images";
+char PCT_DATA_DIR_NAME[]		= "pCT_Data";
+char EXPERIMENTAL_DIR_NAME[]	= "Experimental";
+char SIMULATIONS_DIR_NAME[]		= "Simulated";
+char RUN_DIR_BASENAME[]			= "Run";
+char RAW_DATA_DIR_NAME[]		= "Input";
+char PROJECTION_DATA_DIR_NAME[]	= "Output";
+char RECONSTRUCTION_DIR_NAME[]	= "Reconstruction";
+char PCT_IMAGES_DIR_NAME[]		= "Images";
+char REF_IMAGES_DIR_NAME[]		= "Reference_Images";
 
 char CONFIG_FILENAME[]			= "settings.cfg";						// Name of the file used to control the program options/parameters as key=value pairs
 char CONFIG_OUT_FILENAME[]		= "settings_out.cfg";					// Name of the file used to control the program options/parameters as key=value pairs
 char LOG_FILENAME[]				= "log.csv";							// Name of the file logging the execution information associated with each data set generated
 char STDOUT_FILENAME[]			= "stdout.txt";							// Name of the file where the stdout strea is redirected
 char STDERR_FILENAME[]			= "stderr.txt";							// Name of the file where the stdout strea is redirected
-char PROJECTIONATA_BASENAME[]	= "projection";							// Prefix of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+char PROJECTION_DATA_BASENAME[]	= "projection";							// Prefix of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
 
 char RADIOGRAPHS_RAW_BASENAME[]	= "radiographs_raw";					// Prefix of the file containing the radiograph images from each projection angle prior to performing cuts 
 char RADIOGRAPHS_BASENAME[]		= "radiographs";						// Prefix of the file containing the radiograph images from each projection angle after performing cuts (i.e. rearranged sinogram)
-char WEPLISTS_RAW_BASENAME[]	= "WEPL_distributions_raw";				// Prefix of the file containing the WEPL distribution images from each projection angle prior to performing cuts 
-char WEPLISTS_BASENAME[]		= "WEPL_distributions";					// Prefix of the file containing the WEPL distribution images each projection angle after performing cuts 
+char WEPL_DISTS_RAW_BASENAME[]	= "WEPL_distributions_raw";				// Prefix of the file containing the WEPL distribution images from each projection angle prior to performing cuts 
+char WEPL_DISTS_BASENAME[]		= "WEPL_distributions";					// Prefix of the file containing the WEPL distribution images each projection angle after performing cuts 
 char SC_HULL_BASENAME[]			= "hull_SC";							// Prefix of the file containing the SC hull image
 char MSC_HULL_BASENAME[]		= "hull_MSC";							// Prefix of the file containing the MSC hull image 
 char SM_HULL_BASENAME[]			= "hull_SM";							// Prefix of the file containing the SM hull image 
@@ -48,9 +48,9 @@ char MEDIAN_FILTER_3D_POSTFIX[]	= "med_3D_r";							// Postfix added to filename
 char AVERAGE_FILTER_2D_POSTFIX[]= "avg_2D_r";							// Postfix added to filename for 2D average filtered images
 char AVERAGE_FILTER_3D_POSTFIX[]= "avg_3D_r";							// Postfix added to filename for 3D average filtered images
 
-DISK_WRITE_MODE PROJECTIONATA_WRITE_MODE	= BINARY;					// Disk write mode for the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+DISK_WRITE_MODE PROJECTION_DATA_WRITE_MODE	= BINARY;					// Disk write mode for the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
 DISK_WRITE_MODE RADIOGRAPHS_WRITE_MODE		= TEXT;						// Disk write mode for the files containing the radiograph images from each projection angle before/after performing cuts
-DISK_WRITE_MODE WEPLISTS_WRITE_MODE		= TEXT;						// Disk write mode for the files containing the WEPL distribution images from each projection angle before/after performing cuts
+DISK_WRITE_MODE WEPL_DISTS_WRITE_MODE		= TEXT;						// Disk write mode for the files containing the WEPL distribution images from each projection angle before/after performing cuts
 DISK_WRITE_MODE HULL_WRITE_MODE				= TEXT;						// Disk write mode for the file containing the SC, MSC, SM, or FBP hull image as specified by the settings.cfg file 
 DISK_WRITE_MODE FBP_WRITE_MODE				= TEXT;						// Disk write mode for the file containing the FBP image
 DISK_WRITE_MODE FBP_MEDIANS_WRITE_MODE		= TEXT;						// Disk write mode for the file containing the median filtered FBP images
@@ -127,9 +127,9 @@ DISK_WRITE_MODE X_WRITE_MODE				= TEXT;						// Disk write mode for the file con
 #define LEFT					-1										// Specifies that moving left corresponds with a decrease in x position, used in voxel walk 
 #define UP						1										// Specifies that moving up corresponds with an increase in y/z position, used in voxel walk 
 #define DOWN					-1										// Specifies that moving down corresponds with a decrease in y/z position, used in voxel walk 
-#define X_INCREASINGIRECTION	RIGHT									// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
-#define Y_INCREASINGIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
-#define Z_INCREASINGIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
+#define X_INCREASING_DIRECTION	RIGHT									// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
+#define Y_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
+#define Z_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
 #define BOOL_FORMAT				"%d"									// Specifies format to use for writing/printing boolean data using {s/sn/f/v/vn}printf statements
 #define CHAR_FORMAT				"%c"									// Specifies format to use for writing/printing character data using {s/sn/f/v/vn}printf statements
 #define INT_FORMAT				"%d"									// Specifies format to use for writing/printing integer data using {s/sn/f/v/vn}printf statements

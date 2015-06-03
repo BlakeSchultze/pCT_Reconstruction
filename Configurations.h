@@ -16,8 +16,8 @@ struct configurations
 	//----------------------------------------------------------------------- Output option parameters ------------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	// 14 uint, 23 double,
-	//char* PROJECTIONATAIR, * PREPROCESSINGIR, * RECONSTRUCTIONIR;
-	//char* OBJECT, * RUNATE, * RUN_NUMBER, * PROJECTIONATAATE, * PREPROCESSATE, * RECONSTRUCTIONATE;
+	//char* PROJECTION_DATA_DIR, * PREPROCESSING_DIR, * RECONSTRUCTION_DIR;
+	//char* OBJECT, * RUN_DATE, * RUN_NUMBER, * PROJECTION_DATA_DATE, * PREPROCESS_DATE, * RECONSTRUCTION_DATE;
 	double RECON_CYL_RADIUS, RECON_CYLIAMETER, RECON_CYL_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_THICKNESS, VOXEL_WIDTH, VOXEL_HEIGHT, VOXEL_THICKNESS, SLICE_THICKNESS;
 	double X_ZERO_COORDINATE, Y_ZERO_COORDINATE, Z_ZERO_COORDINATE, RAM_LAK_TAU;
 	double GANTRY_ANGLE_INTERVAL, ANGULAR_BIN_SIZE, SSD_T_SIZE, SSD_V_SIZE, T_SHIFT, U_SHIFT, V_SHIFT, T_BIN_SIZE, V_BIN_SIZE;
@@ -32,7 +32,7 @@ struct configurations
 	uint ITERATIONS, BLOCK_SIZE;
 	uint HULL_MED_FILTER_RADIUS, FBP_MED_FILTER_RADIUS, X_0_MED_FILTER_RADIUS, X_K_MED_FILTER_RADIUS, X_MED_FILTER_RADIUS;
 	uint HULL_AVG_FILTER_RADIUS, FBP_AVG_FILTER_RADIUS, X_0_AVG_FILTER_RADIUS, X_K_AVG_FILTER_RADIUS, X_AVG_FILTER_RADIUS;
-	uint MSCIFF_THRESH;	
+	uint MSC_DIFF_THRESH;	
 
 	int PSI_SIGN;
 	SCAN_TYPES DATA_TYPE;									// Specify the type of input data: EXPERIMENTAL, SIMULATED_G, SIMULATED_T
@@ -45,8 +45,8 @@ struct configurations
 	bool IMPORT_PREPROCESSING, PERFORM_RECONSTRUCTION, PREPROCESS_OVERWRITE_OK, RECON_OVERWRITE_OK, MLP_IN_LOOP, IMPORT_DATA_ITERATIVELY;
 	bool MEDIAN_FILTER_HULL, MEDIAN_FILTER_FBP, MEDIAN_FILTER_X_0, MEDIAN_FILTER_X_K, MEDIAN_FILTER_X;
 	bool AVG_FILTER_HULL, AVG_FILTER_FBP, AVG_FILTER_X_0, AVG_FILTER_X_K, AVG_FILTER_X;
-	bool WRITE_MSC_COUNTS, WRITE_SM_COUNTS, WRITE_X_FBP, WRITE_FBP_HULL, WRITE_AVG_FBP, WRITE_MEDIAN_FBP, WRITE_BIN_WEPLS, WRITE_WEPLISTS, WRITE_SSD_ANGLES;	
-	bool ADDATA_LOG_ENTRY, STDOUT_2ISK, USER_INPUT_REQUESTS_OFF, DEBUG_TEXT_ON;
+	bool WRITE_MSC_COUNTS, WRITE_SM_COUNTS, WRITE_X_FBP, WRITE_FBP_HULL, WRITE_AVG_FBP, WRITE_MEDIAN_FBP, WRITE_BIN_WEPLS, WRITE_WEPL_DISTS, WRITE_SSD_ANGLES;	
+	bool ADD_DATA_LOG_ENTRY, STDOUT_2_DISK, USER_INPUT_REQUESTS_OFF, DEBUG_TEXT_ON;
 	bool EXIT_AFTER_BINNING, EXIT_AFTER_HULLS, EXIT_AFTER_CUTS, EXIT_AFTER_SINOGRAM, EXIT_AFTER_FBP;
 	//*************************************************************************************************************************************************************************//
 	//*********************************************************************** Output option parameters ************************************************************************//
@@ -231,7 +231,7 @@ struct configurations
 	//----------------------------------------------------------------------- Hull-detection parameters -----------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	HULL_RSP_THRESHOLD(hull_rsp_threshold_p),							// [#] Maximum RSP for voxels assumed to belong to hull
-	MSCIFF_THRESH(msc_diff_thresh_p),									// *[#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
+	MSC_DIFF_THRESH(msc_diff_thresh_p),									// *[#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
 	SC_THRESHOLD(sc_threshold_p),										// *[cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
 	MSC_THRESHOLD(msc_threshold_p),										// *[cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
 	SM_LOWER_THRESHOLD(sm_lower_threshold_p),							// *[cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
@@ -283,14 +283,14 @@ struct configurations
 	WRITE_AVG_FBP(write_avg_fbp_p),										// *[T/F] Write average filtered FBP image before thresholding to disk (T) or not (F)
 	WRITE_MEDIAN_FBP(write_median_fbp_p),								// *[T/F] Write median filtered FBP image to disk (T) or not (F)
 	WRITE_BIN_WEPLS(write_bin_wepls_p),									// *[T/F] Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
-	WRITE_WEPLISTS(write_wepl_dists_p),									// *[T/F] Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
+	WRITE_WEPL_DISTS(write_wepl_dists_p),									// *[T/F] Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
 	WRITE_SSD_ANGLES(write_ssd_angles_p),								// *[T/F] Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F)
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//---------------------------------------------------------------------- Program Execution Control  -----------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
-	STDOUT_2ISK(stdout_2_disk_p	),										// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)	
+	STDOUT_2_DISK(stdout_2_disk_p	),										// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)	
 	USER_INPUT_REQUESTS_OFF(user_input_requests_off_p),					// [T/F] Skip all functions that pause execution while waiting for user input (T) or allow user input requests (F)
-	ADDATA_LOG_ENTRY(add_data_log_entry_p),								// *[T/F] Add log entry for data generated during execution (T) or not (F)
+	ADD_DATA_LOG_ENTRY(add_data_log_entry_p),								// *[T/F] Add log entry for data generated during execution (T) or not (F)
 	DEBUG_TEXT_ON(debug_text_on_p),										// Provide (T) or suppress (F) print statements to console during execution
 	EXIT_AFTER_BINNING(exit_after_binning_p),							// Exit program early after completing data read and initial processing
 	EXIT_AFTER_HULLS(exit_after_hulls_p),								// Exit program early after completing hull-detection
@@ -650,7 +650,7 @@ int add_run_directory(char* pct_data_dir, char* object_name, char* run_date, cha
 		puts("ERROR: Invalid data type; must be EXPERIMENTAL or SIMULATED ");
 		exit(1);
 	}
-	sprintf(run_date_dir, "\"%s\\pCTata\\%s\\%s\\%s\\%s\"", pct_data_dir, object_name, data_type_dir, run_date, run_number );
+	sprintf(run_date_dir, "\"%s\\pCT_Data\\%s\\%s\\%s\\%s\"", pct_data_dir, object_name, data_type_dir, run_date, run_number );
 
 	char options[3] = {'q','c','d'};
 	char* cin_message = "Enter 'o' to overwrite any existing data, 'd' to create numbered duplicate of directory, or 'q' to quit program";
@@ -712,7 +712,7 @@ int add_pCT_Images_dir(char* pct_data_dir, char* object_name, char* run_date, ch
 		exit(1);
 	}
 	current_MMDDYYYY(pCT_Images_date);
-	sprintf(pCT_Images_directory, "\"%s\\pCTata\\%s\\%s\\%s\\%s\\Images\\pCT_Images\\%s\"", pct_data_dir, object_name, data_type_dir, run_date, run_number, pCT_Images_date );	
+	sprintf(pCT_Images_directory, "\"%s\\pCT_Data\\%s\\%s\\%s\\%s\\Images\\pCT_Images\\%s\"", pct_data_dir, object_name, data_type_dir, run_date, run_number, pCT_Images_date );	
 	return create_unique_dir( pCT_Images_directory );
 }
 
@@ -724,15 +724,15 @@ void read_config_file()
 	{
 		std::string str =  terminal_response("chdir");
 		const char* cstr = str.c_str();
-		PROJECTIONATAIR = (char*) calloc( strlen(cstr), sizeof(char));
-		std::copy( cstr, &cstr[strlen(cstr)-1], PROJECTIONATAIR );
+		PROJECTION_DATA_DIR = (char*) calloc( strlen(cstr), sizeof(char));
+		std::copy( cstr, &cstr[strlen(cstr)-1], PROJECTION_DATA_DIR );
 		print_section_header( "Config file location set to current execution directory :", '*' );	
 		print_section_separator('-');
-		printf("%s\n", PROJECTIONATAIR );
+		printf("%s\n", PROJECTION_DATA_DIR );
 		print_section_separator('-');
 	}
-	CONFIG_PATH  = (char*) calloc( strlen(PROJECTIONATAIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
-	sprintf(CONFIG_PATH, "%s/%s", PROJECTIONATAIR, CONFIG_FILENAME );
+	CONFIG_PATH  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
+	sprintf(CONFIG_PATH, "%s/%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
 	FILE* input_file = fopen(CONFIG_PATH, "r" );
 	print_section_header( "Reading key/value pairs from configuration file and setting corresponding execution parameters", '*' );
 	while( !feof(input_file) )
@@ -787,18 +787,21 @@ CONFIG_LINE split_config_comments(char* comment_line)
 void write_config( CONFIG_OBJECT config_object)
 {
 	std::ofstream config_file(CONFIG_PATH);
-	
+	int i;
+
 	if( !config_file.is_open() )
 		config_file.open(CONFIG_PATH);
 	else
 	{
-		for( int i = 0; i < config_object.size(); i++ )
+		for( i = 0; i < config_object.size() - 1; i++ )
 		{
 			config_file << std::noskipws;		
 			for( int j = 0; j < NUM_CONFIG_FIELDS; j++ )
 				config_file <<  config_object[i][j];
 			config_file << endl;
 		}
+		for( int j = 0; j < NUM_CONFIG_FIELDS; j++ )
+			config_file <<  config_object[i][j];
 	}
 	config_file.close();
 }
@@ -864,6 +867,7 @@ uint parse_config_file_line( FILE* input_file, CONFIG_OBJECT& config_object )
 			}
 		}
 	}
+	//
 	if( filled <= 3 )
 		comment_string = "";
 	else
@@ -897,53 +901,44 @@ CONFIG_OBJECT config_file_2_object()
 	{
 		std::string str =  terminal_response("chdir");
 		const char* cstr = str.c_str();
-		PROJECTIONATAIR = (char*) calloc( strlen(cstr), sizeof(char));
-		std::copy( cstr, &cstr[strlen(cstr) - 1], PROJECTIONATAIR );
+		PROJECTION_DATA_DIR = (char*) calloc( strlen(cstr), sizeof(char));
+		std::copy( cstr, &cstr[strlen(cstr) - 1], PROJECTION_DATA_DIR );
 		print_section_header( "Config file location set to current execution directory :", '*' );	
 		print_section_separator('-');
-		printf("%s\n", PROJECTIONATAIR );
+		printf("%s\n", PROJECTION_DATA_DIR );
 		print_section_separator('-');
 	}
-	//puts("It is at\n");
-	//puts(PROJECTIONATAIR);
-	CONFIG_PATH  = (char*) calloc( strlen(PROJECTIONATAIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
-	//sprintf(CONFIG_PATH, "C:/Users/Blake/Documents/pCTata/object_name/Experimental/MMDDYYYY/run_number/Output/MMDDYYYY/settings.cfg" );
-	sprintf(CONFIG_PATH, "%s\\%s", PROJECTIONATAIR, CONFIG_FILENAME );
-	
+	CONFIG_PATH  = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(CONFIG_FILENAME) + 1, sizeof(char) );
+	//sprintf(CONFIG_PATH, "C:/Users/Blake/Documents/pCT_Data/object_name/Experimental/MMDDYYYY/run_number/Output/MMDDYYYY/settings.cfg" );
+	sprintf(CONFIG_PATH, "%s\\%s", PROJECTION_DATA_DIR, CONFIG_FILENAME );
 	FILE* input_file = fopen(CONFIG_PATH, "r" );
 	print_section_header( "Reading key/value pairs from configuration file and setting corresponding execution parameters", '*' );
-	//puts(CONFIG_PATH);
 	while( !feof(input_file) )	
-	{
 		parameters_changed += parse_config_file_line(input_file, config_object);
-		//set_parameter( input_value );
-		//if( input_value.input_type_ID > STRING )
-			//puts("invalid type_ID");
-	}
 	fclose(input_file);
-	print_section_exit( "Finished reading configuration file and setting execution parameters", "====>" );
-	write_config( config_object);
+	print_section_exit( "Finished reading configuration file and setting execution parameters", "====>" );	
 	if( parameters_changed < NUM_PARAMETERS_2_CHANGE )
 	{
 		puts("ERROR: Parameter specified for value change does not have a valid key."); 
 		exit_program_if(true);
 	}
+	write_config( config_object);
 	return config_object;
 }
 bool key_is_string_parameter( char* key )
 {
 	if
 	( 
-			strcmp (key, "PROJECTIONATAIR") == 0 
-		||	strcmp (key, "PREPROCESSINGIR") == 0 
-		||	strcmp (key, "RECONSTRUCTIONIR") == 0 
-		||	strcmp (key, "PATH_2_PCTATAIR") == 0 
+			strcmp (key, "PROJECTION_DATA_DIR") == 0 
+		||	strcmp (key, "PREPROCESSING_DIR") == 0 
+		||	strcmp (key, "RECONSTRUCTION_DIR") == 0 
+		||	strcmp (key, "PATH_2_PCT_DATA_DIR") == 0 
 		||	strcmp (key, "OBJECT") == 0 
-		||	strcmp (key, "RUNATE") == 0 
+		||	strcmp (key, "RUN_DATE") == 0 
 		||	strcmp (key, "RUN_NUMBER") == 0 
-		||	strcmp (key, "PROJECTIONATAATE") == 0 
-		||	strcmp (key, "PREPROCESSATE") == 0 
-		||	strcmp (key, "RECONSTRUCTIONATE") == 0 
+		||	strcmp (key, "PROJECTION_DATA_DATE") == 0 
+		||	strcmp (key, "PREPROCESS_DATE") == 0 
+		||	strcmp (key, "RECONSTRUCTION_DATE") == 0 
 		||	strcmp (key, "USER_NAME") == 0
 	)
 		return true;
@@ -1015,7 +1010,7 @@ bool key_is_unsigned_integer_parameter( char* key )
 		||	strcmp (key, "X_0_AVG_FILTER_RADIUS") == 0
 		||	strcmp (key, "X_K_AVG_FILTER_RADIUS") == 0
 		||	strcmp (key, "X_AVG_FILTER_RADIUS") == 0							
-		||	strcmp (key, "MSCIFF_THRESH") == 0
+		||	strcmp (key, "MSC_DIFF_THRESH") == 0
 	)
 		return true;
 	else
@@ -1062,10 +1057,10 @@ bool key_is_boolean_parameter( char* key )
 		||	strcmp (key, "WRITE_AVG_FBP") == 0
 		||	strcmp (key, "WRITE_MEDIAN_FBP") == 0
 		||	strcmp (key, "WRITE_BIN_WEPLS") == 0
-		||	strcmp (key, "WRITE_WEPLISTS") == 0
+		||	strcmp (key, "WRITE_WEPL_DISTS") == 0
 		||	strcmp (key, "WRITE_SSD_ANGLES") == 0 
-		||	strcmp (key, "ADDATA_LOG_ENTRY") == 0
-		||	strcmp (key, "STDOUT_2ISK") == 0
+		||	strcmp (key, "ADD_DATA_LOG_ENTRY") == 0
+		||	strcmp (key, "STDOUT_2_DISK") == 0
 		||	strcmp (key, "USER_INPUT_REQUESTS_OFF") == 0
 		||	strcmp (key, "DEBUG_TEXT_ON") == 0
 		||	strcmp (key, "EXIT_AFTER_BINNING") == 0
@@ -1081,39 +1076,39 @@ bool key_is_boolean_parameter( char* key )
 void set_string_parameter( generic_IO_container &value )
 {
 	printf("set to \"%s\"\n", value.string_input);
-	if( strcmp (value.key, "PROJECTIONATAIR") == 0 )
+	if( strcmp (value.key, "PROJECTION_DATA_DIR") == 0 )
 	{		
 		//print_section_separator('-');
 		puts("");
-		PROJECTIONATAIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
-		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PROJECTIONATAIR );
-		PROJECTIONATAIR_SET = true;
-		puts("PROJECTIONATAIR_SET");
+		PROJECTION_DATA_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PROJECTION_DATA_DIR );
+		PROJECTION_DATA_DIR_SET = true;
+		puts("PROJECTION_DATA_DIR_SET");
 	}
-	else if( strcmp (value.key, "PREPROCESSINGIR") == 0 )
+	else if( strcmp (value.key, "PREPROCESSING_DIR") == 0 )
 	{
 		puts("");
 		//print_section_separator('-');
-		PREPROCESSINGIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
-		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PREPROCESSINGIR );
-		PREPROCESSINGIR_SET = true;
-		puts("PREPROCESSINGIR_SET");
+		PREPROCESSING_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PREPROCESSING_DIR );
+		PREPROCESSING_DIR_SET = true;
+		puts("PREPROCESSING_DIR_SET");
 	}
-	else if( strcmp (value.key, "RECONSTRUCTIONIR") == 0 )
+	else if( strcmp (value.key, "RECONSTRUCTION_DIR") == 0 )
 	{
 		puts("");
 		//print_section_separator('-');
-		RECONSTRUCTIONIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
-		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RECONSTRUCTIONIR );
-		RECONSTRUCTIONIR_SET = true;
-		puts("RECONSTRUCTIONIR_SET");
+		RECONSTRUCTION_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RECONSTRUCTION_DIR );
+		RECONSTRUCTION_DIR_SET = true;
+		puts("RECONSTRUCTION_DIR_SET");
 	}
-	else if( strcmp (value.key, "PATH_2_PCTATAIR") == 0 )
+	else if( strcmp (value.key, "PATH_2_PCT_DATA_DIR") == 0 )
 	{
-		PATH_2_PCTATAIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
-		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PATH_2_PCTATAIR );
-		PATH_2_PCTATAIR_SET = true;
-		puts("PATH_2_PCTATAIR_SET");
+		PATH_2_PCT_DATA_DIR = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PATH_2_PCT_DATA_DIR );
+		PATH_2_PCT_DATA_DIR_SET = true;
+		puts("PATH_2_PCT_DATA_DIR_SET");
 	}
 	else if( strcmp (value.key, "OBJECT") == 0 )
 	{
@@ -1122,12 +1117,12 @@ void set_string_parameter( generic_IO_container &value )
 		OBJECT_SET = true;
 		puts("OBJECT_SET");
 	}
-	else if( strcmp (value.key, "RUNATE") == 0 )
+	else if( strcmp (value.key, "RUN_DATE") == 0 )
 	{
-		RUNATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
-		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RUNATE );
-		RUNATE_SET = true;
-		puts("RUNATE_SET");
+		RUN_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RUN_DATE );
+		RUN_DATE_SET = true;
+		puts("RUN_DATE_SET");
 	}
 	else if( strcmp (value.key, "RUN_NUMBER") == 0 )
 	{
@@ -1136,26 +1131,26 @@ void set_string_parameter( generic_IO_container &value )
 		RUN_NUMBER_SET = true;
 		puts("RUN_NUMBER_SET");
 	}
-	else if( strcmp (value.key, "PROJECTIONATAATE") == 0 )
+	else if( strcmp (value.key, "PROJECTION_DATA_DATE") == 0 )
 	{
-		PROJECTIONATAATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
-		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PROJECTIONATAATE );
-		PROJECTIONATAATE_SET = true;
-		puts("PROJECTIONATAATE_SET");
+		PROJECTION_DATA_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PROJECTION_DATA_DATE );
+		PROJECTION_DATA_DATE_SET = true;
+		puts("PROJECTION_DATA_DATE_SET");
 	}
-	else if( strcmp (value.key, "PREPROCESSATE") == 0 )
+	else if( strcmp (value.key, "PREPROCESS_DATE") == 0 )
 	{
-		PREPROCESSATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
-		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PREPROCESSATE );
-		PREPROCESSATE_SET = true;
-		puts("PREPROCESSATE_SET");
+		PREPROCESS_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], PREPROCESS_DATE );
+		PREPROCESS_DATE_SET = true;
+		puts("PREPROCESS_DATE_SET");
 	}
-	else if( strcmp (value.key, "RECONSTRUCTIONATE") == 0 )
+	else if( strcmp (value.key, "RECONSTRUCTION_DATE") == 0 )
 	{
-		RECONSTRUCTIONATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
-		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RECONSTRUCTIONATE );
-		RECONSTRUCTIONATE_SET = true;
-		puts("RECONSTRUCTIONATE_SET");
+		RECONSTRUCTION_DATE = (char*) calloc( strlen(value.string_input) + 1, sizeof(char));
+		std::copy( value.string_input, &value.string_input[strlen(value.string_input)], RECONSTRUCTION_DATE );
+		RECONSTRUCTION_DATE_SET = true;
+		puts("RECONSTRUCTION_DATE_SET");
 	}
 	else if( strcmp (value.key, "USER_NAME") == 0 )
 	{
@@ -1502,8 +1497,8 @@ void set_unsigned_integer_parameter( generic_IO_container &value )
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
-	else if( strcmp (value.key, "MSCIFF_THRESH") == 0 )
-		parameters.MSCIFF_THRESH = value.integer_input;
+	else if( strcmp (value.key, "MSC_DIFF_THRESH") == 0 )
+		parameters.MSC_DIFF_THRESH = value.integer_input;
 	else
 	{
 		puts("ERROR: Procedure for setting this key is undefined");
@@ -1591,19 +1586,19 @@ void set_boolean_parameter( generic_IO_container &value )
 		parameters.WRITE_MEDIAN_FBP = value.boolean_input;
 	else if( strcmp (value.key, "WRITE_BIN_WEPLS") == 0 )
 		parameters.WRITE_BIN_WEPLS = value.boolean_input;
-	else if( strcmp (value.key, "WRITE_WEPLISTS") == 0 )
-		parameters.WRITE_WEPLISTS = value.boolean_input;
+	else if( strcmp (value.key, "WRITE_WEPL_DISTS") == 0 )
+		parameters.WRITE_WEPL_DISTS = value.boolean_input;
 	else if( strcmp (value.key, "WRITE_SSD_ANGLES") == 0 )
 		parameters.WRITE_SSD_ANGLES = value.boolean_input;
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
-	else if( strcmp (value.key, "STDOUT_2ISK") == 0 )
-		parameters.STDOUT_2ISK = value.boolean_input;
+	else if( strcmp (value.key, "STDOUT_2_DISK") == 0 )
+		parameters.STDOUT_2_DISK = value.boolean_input;
 	else if( strcmp (value.key, "USER_INPUT_REQUESTS_OFF") == 0 )
 		parameters.USER_INPUT_REQUESTS_OFF = value.boolean_input;
-	else if( strcmp (value.key, "ADDATA_LOG_ENTRY") == 0 )
-		parameters.ADDATA_LOG_ENTRY = value.boolean_input;
+	else if( strcmp (value.key, "ADD_DATA_LOG_ENTRY") == 0 )
+		parameters.ADD_DATA_LOG_ENTRY = value.boolean_input;
 	else if( strcmp (value.key, "DEBUG_TEXT_ON") == 0 )
 		parameters.DEBUG_TEXT_ON = value.boolean_input;
 	else if( strcmp (value.key, "EXIT_AFTER_BINNING") == 0 )
@@ -1629,6 +1624,8 @@ void set_parameter( generic_IO_container &value )
 		set_string_parameter(value);
 	else if( key_is_floating_point_parameter(value.key) )
 		set_floating_point_parameter(value);
+	else if( key_is_unsigned_integer_parameter(value.key) )
+		set_unsigned_integer_parameter(value);
 	else if( key_is_integer_parameter(value.key) )
 		set_integer_parameter(value);
 	else if( key_is_boolean_parameter(value.key) )
@@ -1636,7 +1633,7 @@ void set_parameter( generic_IO_container &value )
 	else
 		puts("\nNo match for this key");
 }
-void set_file_extension( char file_extension[4], DISK_WRITE_MODE format )
+void set_file_extension( char file_extension[5], DISK_WRITE_MODE format )
 {
 	if( format == TEXT )
 		sprintf( file_extension, ".txt" );
@@ -1648,12 +1645,12 @@ void set_execution_date()
 	current_MMDDYYYY( EXECUTION_DATE);
 
 	char* preprocess_date = EXECUTION_DATE;
-	PREPROCESSATE = (char*) calloc( strlen(preprocess_date) + 1, sizeof(char) ); 
-	std::copy( preprocess_date, preprocess_date + strlen(preprocess_date), PREPROCESSATE );	
+	PREPROCESS_DATE = (char*) calloc( strlen(preprocess_date) + 1, sizeof(char) ); 
+	std::copy( preprocess_date, preprocess_date + strlen(preprocess_date), PREPROCESS_DATE );	
 
 	char* reconstruction_date = EXECUTION_DATE;
-	RECONSTRUCTIONATE = (char*) calloc( strlen(reconstruction_date) + 1, sizeof(char) ); 
-	std::copy( reconstruction_date, reconstruction_date + strlen(reconstruction_date), RECONSTRUCTIONATE );
+	RECONSTRUCTION_DATE = (char*) calloc( strlen(reconstruction_date) + 1, sizeof(char) ); 
+	std::copy( reconstruction_date, reconstruction_date + strlen(reconstruction_date), RECONSTRUCTION_DATE );
 }
 void set_dependent_parameters()
 {
@@ -1702,9 +1699,9 @@ void set_dependent_parameters()
 }
 void set_IO_file_extensions()
 {
-	set_file_extension( PROJECTIONATA_FILE_EXTENSION, PROJECTIONATA_WRITE_MODE );	// File extension of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+	set_file_extension( PROJECTION_DATA_FILE_EXTENSION, PROJECTION_DATA_WRITE_MODE );	// File extension of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
 	set_file_extension( RADIOGRAPHS_FILE_EXTENSION, RADIOGRAPHS_WRITE_MODE );			// File extension of the files containing the radiograph images from each projection angle before/after performing cuts
-	set_file_extension( WEPLISTS_FILE_EXTENSION, WEPLISTS_WRITE_MODE );				// File extension of the files containing the WEPL distribution images from each projection angle before/after performing cuts
+	set_file_extension( WEPL_DISTS_FILE_EXTENSION, WEPL_DISTS_WRITE_MODE );				// File extension of the files containing the WEPL distribution images from each projection angle before/after performing cuts
 	set_file_extension( HULL_FILE_EXTENSION, HULL_WRITE_MODE );							// File extension of the file containing the SC, MSC, SM, or FBP hull image as specified by the settings.cfg file 
 	set_file_extension( FBP_FILE_EXTENSION, FBP_WRITE_MODE );							// File extension of the file containing the FBP image
 	set_file_extension( FBP_MEDIANS_FILE_EXTENSION, FBP_MEDIANS_WRITE_MODE );			// File extension of the file containing the median filtered FBP images
@@ -1727,9 +1724,9 @@ void set_IO_directories()
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//	
 	switch( parameters.DATA_TYPE )
 	{
-		case EXPERIMENTAL	: 	DATA_TYPEIR = EXPERIMENTALIR_NAME;	break;
-		case SIMULATED_G	: 	DATA_TYPEIR = SIMULATIONSIR_NAME;	break;
-		case SIMULATED_T	: 	DATA_TYPEIR = SIMULATIONSIR_NAME;	break;
+		case EXPERIMENTAL	: 	DATA_TYPE_DIR = EXPERIMENTAL_DIR_NAME;	break;
+		case SIMULATED_G	: 	DATA_TYPE_DIR = SIMULATIONS_DIR_NAME;	break;
+		case SIMULATED_T	: 	DATA_TYPE_DIR = SIMULATIONS_DIR_NAME;	break;
 		default				:	puts("ERROR: Invalid DATA_TYPE selected.  Must be EXPERIMENTAL, SIMULATED_G, or SIMULATED_T.");
 								exit(1);
 
@@ -1737,16 +1734,16 @@ void set_IO_directories()
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//-------------------- Determine if the individual key/value pairs associated with data directories can be combined to set their paths ---------------------//
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-	PROJECTIONATAIR_CONSTRUCTABLE = PATH_2_PCTATAIR_SET && OBJECT_SET && RUNATE_SET  && RUN_NUMBER_SET  && PROJECTIONATAATE_SET;
-	PREPROCESSINGIR_CONSTRUCTABLE = ( PROJECTIONATAIR_CONSTRUCTABLE || PROJECTIONATAIR_SET ) && PREPROCESSATE_SET;
-	RECONSTRUCTIONIR_CONSTRUCTABLE = ( PREPROCESSINGIR_CONSTRUCTABLE || PREPROCESSINGIR_SET ) && RECONSTRUCTIONATE_SET;
+	PROJECTION_DATA_DIR_CONSTRUCTABLE = PATH_2_PCT_DATA_DIR_SET && OBJECT_SET && RUN_DATE_SET  && RUN_NUMBER_SET  && PROJECTION_DATA_DATE_SET;
+	PREPROCESSING_DIR_CONSTRUCTABLE = ( PROJECTION_DATA_DIR_CONSTRUCTABLE || PROJECTION_DATA_DIR_SET ) && PREPROCESS_DATE_SET;
+	RECONSTRUCTION_DIR_CONSTRUCTABLE = ( PREPROCESSING_DIR_CONSTRUCTABLE || PREPROCESSING_DIR_SET ) && RECONSTRUCTION_DATE_SET;
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//---------------- Set projection data directory based on option (1) explicit path in config file, (2) individual object/run properties --------------------//
 	//--------------------- specified in config file, or (3) automatically based on current execution directory or command line argument -----------------------//
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-	if( PROJECTIONATAIR_SET )
+	if( PROJECTION_DATA_DIR_SET )
 	{
-		char* h1 = strstr( PROJECTIONATAIR, PCTATAIR_NAME );
+		char* h1 = strstr( PROJECTION_DATA_DIR, PCT_DATA_DIR_NAME );
 		char* h2 = strstr( h1, "/" )     + 1;
 		char* h3 = strstr( h2 + 1, "/" ) + 1;	
 		char* h4 = strstr( h3 + 1, "/" ) + 1;
@@ -1754,52 +1751,49 @@ void set_IO_directories()
 		char* h6 = strstr( h5 + 1, "/" ) + 1;
 		char* h7 = strstr( h6 + 1, "/" ) + 1;
 		
-		PATH_2_PCTATAIR		= (char*) calloc( (int)(h1 - PROJECTIONATAIR),	sizeof(char) ); 
+		PATH_2_PCT_DATA_DIR		= (char*) calloc( (int)(h1 - PROJECTION_DATA_DIR),	sizeof(char) ); 
 		OBJECT					= (char*) calloc( (int)(h3 - h2 + 1),				sizeof(char) );
 		SCAN_TYPE				= (char*) calloc( (int)(h4 - h3 + 1),				sizeof(char) ); 
-		RUNATE				= (char*) calloc( (int)(h5 - h4 + 1),				sizeof(char) ); 
+		RUN_DATE				= (char*) calloc( (int)(h5 - h4 + 1),				sizeof(char) ); 
 		RUN_NUMBER				= (char*) calloc( (int)(h6 - h5 + 1),				sizeof(char) ); 
-		PROJECTIONATAATE	= (char*) calloc( (int)(strlen(h7) + 1),			sizeof(char) ); 
+		PROJECTION_DATA_DATE	= (char*) calloc( (int)(strlen(h7) + 1),			sizeof(char) ); 
 		
-		puts("Hello");
-		
-
-		std::copy( PROJECTIONATAIR, h1 - 1, PATH_2_PCTATAIR );		 
+		std::copy( PROJECTION_DATA_DIR, h1 - 1, PATH_2_PCT_DATA_DIR );		 
 		std::copy( h2, h3 - 1, OBJECT );
 		std::copy( h3, h4 - 1, SCAN_TYPE );
-		std::copy( h4, h5 - 1, RUNATE );
+		std::copy( h4, h5 - 1, RUN_DATE );
 		std::copy( h5, h6 - 1, RUN_NUMBER );
-		std::copy( h7, h7 + strlen(h7), PROJECTIONATAATE );
+		std::copy( h7, h7 + strlen(h7), PROJECTION_DATA_DATE );
 
-		puts(PROJECTIONATAIR);
-		puts(PATH_2_PCTATAIR);
+		puts(PROJECTION_DATA_DIR);
+		puts(PATH_2_PCT_DATA_DIR);
 	}
-	else if( PROJECTIONATAIR_CONSTRUCTABLE )
+	else if( PROJECTION_DATA_DIR_CONSTRUCTABLE )
 	{		
-		size_t length = strlen(PATH_2_PCTATAIR) + strlen(PCTATAIR_NAME) + strlen(OBJECT) + strlen(SCAN_TYPE) + strlen(RUNATE) + strlen(RUN_NUMBER) + strlen(PROJECTIONATAIR_NAME) + strlen(PROJECTIONATAATE);
-		PROJECTIONATAIR = (char*) calloc( length + 1, sizeof(char) ); 
-		sprintf(PROJECTIONATAIR,"%s\\%s\\%s\\%s\\%s\\%s\\%s\\%s", PATH_2_PCTATAIR, PCTATAIR_NAME, OBJECT, SCAN_TYPE, RUNATE, RUN_NUMBER, PROJECTIONATAIR_NAME, PROJECTIONATAATE );		
+		size_t length = strlen(PATH_2_PCT_DATA_DIR) + strlen(PCT_DATA_DIR_NAME) + strlen(OBJECT) + strlen(SCAN_TYPE) + strlen(RUN_DATE) + strlen(RUN_NUMBER) + strlen(PROJECTION_DATA_DIR_NAME) + strlen(PROJECTION_DATA_DATE);
+		PROJECTION_DATA_DIR = (char*) calloc( length + 1, sizeof(char) ); 
+		sprintf(PROJECTION_DATA_DIR,"%s\\%s\\%s\\%s\\%s\\%s\\%s\\%s", PATH_2_PCT_DATA_DIR, PCT_DATA_DIR_NAME, OBJECT, SCAN_TYPE, RUN_DATE, RUN_NUMBER, PROJECTION_DATA_DIR_NAME, PROJECTION_DATA_DATE );		
 		puts("Construct\n");
-		puts(PROJECTIONATAIR);
+		puts(PROJECTION_DATA_DIR);
 	}
 	else
 		puts("Projection data directory was not (properly) specified in settings.cfg and is being set based on current execution directory and date to\n");		
 	print_section_separator('~');
-	printf("PROJECTIONATAIR = %s\n", PROJECTIONATAIR );
+	printf("PROJECTION_DATA_DIR = %s\n", PROJECTION_DATA_DIR );
 	print_section_separator('~');
 	
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//---- Set path parameter for preprocessing data using explicit name from config file or based on projection data directory and current execution date. ----// 
 	//---------- Create this directory if it doesn't exist, otherwise overwrite any existing data or create new directory with _i appended to its name  --------//
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-	if( !PREPROCESSINGIR_SET )
+	if( !PREPROCESSING_DIR_SET )
 	{
-		PREPROCESSINGIR = (char*) calloc( strlen(PROJECTIONATAIR) + strlen(RECONSTRUCTIONIR_NAME) + strlen(PREPROCESSATE) + 1, sizeof(char) ); 
-		sprintf(PREPROCESSINGIR,"%s\\%s\\%s", PROJECTIONATAIR, RECONSTRUCTIONIR_NAME, PREPROCESSATE);		
+		PREPROCESSING_DIR = (char*) calloc( strlen(PROJECTION_DATA_DIR) + strlen(RECONSTRUCTION_DIR_NAME) + strlen(PREPROCESS_DATE) + 1, sizeof(char) ); 
+		sprintf(PREPROCESSING_DIR,"%s\\%s\\%s", PROJECTION_DATA_DIR, RECONSTRUCTION_DIR_NAME, PREPROCESS_DATE);		
 	}		
 	if( parameters.PREPROCESS_OVERWRITE_OK )
 	{
-		sprintf(mkdir_command, "mkdir \"%s\"", PREPROCESSINGIR );
+		sprintf(mkdir_command, "mkdir \"%s\"", PREPROCESSING_DIR );
 		if( system( mkdir_command ) )
 			puts("\nNOTE: Any existing data in this directory will be overwritten");
 		//std::string text = buffer.str();
@@ -1807,32 +1801,32 @@ void set_IO_directories()
 		//printf( "Hello %s\n", text );
 	}
 	else
-		create_unique_dir( PREPROCESSINGIR );
+		create_unique_dir( PREPROCESSING_DIR );
 	print_section_separator('~');
-	printf("PREPROCESSINGIR = %s\n", PREPROCESSINGIR );
+	printf("PREPROCESSING_DIR = %s\n", PREPROCESSING_DIR );
 	print_section_separator('~');
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//---- Set path parameter for reconstruction data using explicit name from config file or based on projection data directory and current execution date. ---// 
 	//---------- Create this directory if it doesn't exist, otherwise overwrite any existing data or create new directory with _i appended to its name  --------//
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
-	if( !RECONSTRUCTIONIR_SET )
+	if( !RECONSTRUCTION_DIR_SET )
 	{
-		RECONSTRUCTIONIR = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(PCT_IMAGESIR_NAME) + strlen(RECONSTRUCTIONATE) + 1, sizeof(char) ); 
-		sprintf(RECONSTRUCTIONIR,"%s\\%s\\%s", PREPROCESSINGIR, PCT_IMAGESIR_NAME, RECONSTRUCTIONATE);		
+		RECONSTRUCTION_DIR = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(PCT_IMAGES_DIR_NAME) + strlen(RECONSTRUCTION_DATE) + 1, sizeof(char) ); 
+		sprintf(RECONSTRUCTION_DIR,"%s\\%s\\%s", PREPROCESSING_DIR, PCT_IMAGES_DIR_NAME, RECONSTRUCTION_DATE);		
 	}
 	if( parameters.RECON_OVERWRITE_OK )
 	{
-		sprintf(mkdir_command, "mkdir \"%s\"", RECONSTRUCTIONIR );
+		sprintf(mkdir_command, "mkdir \"%s\"", RECONSTRUCTION_DIR );
 		if( system( mkdir_command ) )
 			puts("\nNOTE: Any existing data in this directory will be overwritten");
 		//std::string text = buffer.str();
 		//printf( "Hello %s\n", text );
 	}
 	else
-		create_unique_dir( RECONSTRUCTIONIR );
+		create_unique_dir( RECONSTRUCTION_DIR );
 	puts("");
 	print_section_separator('~');
-	printf("RECONSTRUCTIONIR = %s\n", RECONSTRUCTIONIR );
+	printf("RECONSTRUCTION_DIR = %s\n", RECONSTRUCTION_DIR );
 	print_section_separator('~');
 
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -1840,12 +1834,12 @@ void set_IO_directories()
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//
 	print_section_header( "Directory names extracted from projection data path which characterize the data used as input to preprocessing and reconstruction", '*' );	
 	
-	printf("PATH_2_PCTATAIR = %s\n", PATH_2_PCTATAIR);
+	printf("PATH_2_PCT_DATA_DIR = %s\n", PATH_2_PCT_DATA_DIR);
 	printf("OBJECT = %s\n", OBJECT);
 	printf("SCAN_TYPE =  %s\n", SCAN_TYPE);
-	printf("RUNATE = %s\n", RUNATE);
+	printf("RUN_DATE = %s\n", RUN_DATE);
 	printf("RUN_NUMBER = %s\n", RUN_NUMBER);
-	printf("PROJECTIONATAATE = %s\n", PROJECTIONATAATE);
+	printf("PROJECTION_DATA_DATE = %s\n", PROJECTION_DATA_DATE);
 	print_section_exit("Finished setting paths to I/O data directories and creating associated folders", "====>" );
 }
 void set_IO_filenames()
@@ -1978,81 +1972,90 @@ void set_IO_filepaths()
 	//----------------------------------------------------------------------------------------------------------------------------------------------------------//	
 	print_section_header( "File names of preprocessing data generated as output", '*' );	
 
-	HULL_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(HULL_FILENAME) + 1, sizeof(char) );
-	HULL_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(HULL_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
-	HULL_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(HULL_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
-	HULL_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(HULL_AVG_2D_FILENAME) + 1, sizeof(char) );
-	HULL_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(HULL_AVG_3D_FILENAME) + 1, sizeof(char) );
-	HULL_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(HULL_COMBO_2D_FILENAME) + 1, sizeof(char) );
-	HULL_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(HULL_COMBO_3D_FILENAME) + 1, sizeof(char) );
+	HULL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_FILENAME) + 1, sizeof(char) );
+	HULL_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
+	HULL_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
+	HULL_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_AVG_2D_FILENAME) + 1, sizeof(char) );
+	HULL_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_AVG_3D_FILENAME) + 1, sizeof(char) );
+	HULL_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_COMBO_2D_FILENAME) + 1, sizeof(char) );
+	HULL_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HULL_COMBO_3D_FILENAME) + 1, sizeof(char) );
 			
-	FBP_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(FBP_FILENAME) + 1, sizeof(char) );
-	FBP_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(FBP_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
-	FBP_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(FBP_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
-	FBP_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(FBP_AVG_2D_FILENAME) + 1, sizeof(char) );
-	FBP_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(FBP_AVG_3D_FILENAME) + 1, sizeof(char) );
-	FBP_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(FBP_COMBO_2D_FILENAME) + 1, sizeof(char) );
-	FBP_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(FBP_COMBO_3D_FILENAME) + 1, sizeof(char) );
+	FBP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_FILENAME) + 1, sizeof(char) );
+	FBP_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
+	FBP_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
+	FBP_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_AVG_2D_FILENAME) + 1, sizeof(char) );
+	FBP_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_AVG_3D_FILENAME) + 1, sizeof(char) );
+	FBP_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_COMBO_2D_FILENAME) + 1, sizeof(char) );
+	FBP_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(FBP_COMBO_3D_FILENAME) + 1, sizeof(char) );
 	
-	X_0_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(X_0_FILENAME) + 1, sizeof(char) );	
-	X_0_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(X_0_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
-	X_0_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(X_0_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
-	X_0_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(X_0_AVG_2D_FILENAME) + 1, sizeof(char) );
-	X_0_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(X_0_AVG_3D_FILENAME) + 1, sizeof(char) );
-	X_0_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(X_0_COMBO_2D_FILENAME) + 1, sizeof(char) );
-	X_0_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(X_0_COMBO_3D_FILENAME) + 1, sizeof(char) );
+	X_0_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_FILENAME) + 1, sizeof(char) );	
+	X_0_MEDIAN_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_MEDIAN_2D_FILENAME) + 1, sizeof(char) );
+	X_0_MEDIAN_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_MEDIAN_3D_FILENAME) + 1, sizeof(char) );
+	X_0_AVG_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_AVG_2D_FILENAME) + 1, sizeof(char) );
+	X_0_AVG_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_AVG_3D_FILENAME) + 1, sizeof(char) );
+	X_0_COMBO_2D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_COMBO_2D_FILENAME) + 1, sizeof(char) );
+	X_0_COMBO_3D_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(X_0_COMBO_3D_FILENAME) + 1, sizeof(char) );
 	
-	X_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTIONIR) + strlen(X_FILENAME_BASE) + 1, sizeof(char) );
-	X_MEDIAN_2D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTIONIR) + strlen(X_MEDIAN_2D_FILENAME_BASE) + 1, sizeof(char) );
-	X_MEDIAN_3D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTIONIR) + strlen(X_MEDIAN_3D_FILENAME_BASE) + 1, sizeof(char) );
-	X_AVG_2D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTIONIR) + strlen(X_AVG_2D_FILENAME_BASE) + 1, sizeof(char) );
-	X_AVG_3D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTIONIR) + strlen(X_AVG_3D_FILENAME_BASE) + 1, sizeof(char) );
-	X_COMBO_2D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTIONIR) + strlen(X_COMBO_2D_FILENAME_BASE) + 1, sizeof(char) );
-	X_COMBO_3D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTIONIR) + strlen(X_COMBO_3D_FILENAME_BASE) + 1, sizeof(char) );
+	X_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_FILENAME_BASE) + 1, sizeof(char) );
+	X_MEDIAN_2D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_MEDIAN_2D_FILENAME_BASE) + 1, sizeof(char) );
+	X_MEDIAN_3D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_MEDIAN_3D_FILENAME_BASE) + 1, sizeof(char) );
+	X_AVG_2D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_AVG_2D_FILENAME_BASE) + 1, sizeof(char) );
+	X_AVG_3D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_AVG_3D_FILENAME_BASE) + 1, sizeof(char) );
+	X_COMBO_2D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_COMBO_2D_FILENAME_BASE) + 1, sizeof(char) );
+	X_COMBO_3D_PATH_BASE = (char*) calloc( strlen(RECONSTRUCTION_DIR) + strlen(X_COMBO_3D_FILENAME_BASE) + 1, sizeof(char) );
 
-	MLP_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(MLP_FILENAME) + 1, sizeof(char) );
-	WEPL_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(WEPL_FILENAME) + 1, sizeof(char) );
-	HISTORIES_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(HISTORIES_FILENAME) + 1, sizeof(char) );
-	VOXELS_PER_PATH_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(VOXELS_PER_PATH_FILENAME) + 1, sizeof(char) );
-	AVG_CHORDS_PATH = (char*) calloc( strlen(PREPROCESSINGIR) + strlen(AVG_CHORDS_FILENAME) + 1, sizeof(char) );
+	MLP_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(MLP_FILENAME) + 1, sizeof(char) );
+	WEPL_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(WEPL_FILENAME) + 1, sizeof(char) );
+	HISTORIES_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(HISTORIES_FILENAME) + 1, sizeof(char) );
+	VOXELS_PER_PATH_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(VOXELS_PER_PATH_FILENAME) + 1, sizeof(char) );
+	AVG_CHORDS_PATH = (char*) calloc( strlen(PREPROCESSING_DIR) + strlen(AVG_CHORDS_FILENAME) + 1, sizeof(char) );
 	
-	sprintf( HULL_PATH,"%s\\%s", PREPROCESSINGIR, HULL_FILENAME );
-	sprintf( HULL_MEDIAN_2D_PATH,"%s\\%s", PREPROCESSINGIR, HULL_MEDIAN_2D_FILENAME );
-	sprintf( HULL_MEDIAN_3D_PATH,"%s\\%s", PREPROCESSINGIR, HULL_MEDIAN_3D_FILENAME );
-	sprintf( HULL_AVG_2D_PATH,"%s\\%s", PREPROCESSINGIR, HULL_AVG_2D_FILENAME );
-	sprintf( HULL_AVG_3D_PATH,"%s\\%s", PREPROCESSINGIR, HULL_AVG_3D_FILENAME );
-	sprintf( HULL_COMBO_2D_PATH,"%s\\%s", PREPROCESSINGIR, HULL_COMBO_2D_FILENAME );
-	sprintf( HULL_COMBO_3D_PATH,"%s\\%s", PREPROCESSINGIR, HULL_COMBO_3D_FILENAME );
+	sprintf( HULL_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_FILENAME );
+	sprintf( HULL_MEDIAN_2D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_MEDIAN_2D_FILENAME );
+	sprintf( HULL_MEDIAN_3D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_MEDIAN_3D_FILENAME );
+	sprintf( HULL_AVG_2D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_AVG_2D_FILENAME );
+	sprintf( HULL_AVG_3D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_AVG_3D_FILENAME );
+	sprintf( HULL_COMBO_2D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_COMBO_2D_FILENAME );
+	sprintf( HULL_COMBO_3D_PATH,"%s\\%s", PREPROCESSING_DIR, HULL_COMBO_3D_FILENAME );
 	
-	sprintf( FBP_PATH,"%s\\%s", PREPROCESSINGIR, FBP_FILENAME );
-	sprintf( FBP_MEDIAN_2D_PATH,"%s\\%s", PREPROCESSINGIR, FBP_MEDIAN_2D_FILENAME );
-	sprintf( FBP_MEDIAN_3D_PATH,"%s\\%s", PREPROCESSINGIR, FBP_MEDIAN_3D_FILENAME );
-	sprintf( FBP_AVG_2D_PATH,"%s\\%s", PREPROCESSINGIR, FBP_AVG_2D_FILENAME );
-	sprintf( FBP_AVG_3D_PATH,"%s\\%s", PREPROCESSINGIR, FBP_AVG_3D_FILENAME );
-	sprintf( FBP_COMBO_2D_PATH,"%s\\%s", PREPROCESSINGIR, FBP_COMBO_2D_FILENAME );
-	sprintf( FBP_COMBO_3D_PATH,"%s\\%s", PREPROCESSINGIR, FBP_COMBO_3D_FILENAME );
+	sprintf( FBP_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_FILENAME );
+	sprintf( FBP_MEDIAN_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_MEDIAN_2D_FILENAME );
+	sprintf( FBP_MEDIAN_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_MEDIAN_3D_FILENAME );
+	sprintf( FBP_AVG_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_AVG_2D_FILENAME );
+	sprintf( FBP_AVG_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_AVG_3D_FILENAME );
+	sprintf( FBP_COMBO_2D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_COMBO_2D_FILENAME );
+	sprintf( FBP_COMBO_3D_PATH,"%s\\%s", PREPROCESSING_DIR, FBP_COMBO_3D_FILENAME );
 	
-	sprintf( X_0_PATH, "%s\\%s", PREPROCESSINGIR, X_0_FILENAME );
-	sprintf( X_0_MEDIAN_2D_PATH, "%s\\%s", PREPROCESSINGIR, X_0_MEDIAN_2D_FILENAME );
-	sprintf( X_0_MEDIAN_3D_PATH, "%s\\%s", PREPROCESSINGIR, X_0_MEDIAN_3D_FILENAME );
-	sprintf( X_0_AVG_2D_PATH, "%s\\%s", PREPROCESSINGIR, X_0_AVG_2D_FILENAME );
-	sprintf( X_0_AVG_3D_PATH, "%s\\%s", PREPROCESSINGIR, X_0_AVG_3D_FILENAME );
-	sprintf( X_0_COMBO_2D_PATH, "%s\\%s", PREPROCESSINGIR, X_0_COMBO_2D_FILENAME );
-	sprintf( X_0_COMBO_3D_PATH, "%s\\%s", PREPROCESSINGIR, X_0_COMBO_3D_FILENAME );
+	sprintf( X_0_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_FILENAME );
+	sprintf( X_0_MEDIAN_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_MEDIAN_2D_FILENAME );
+	sprintf( X_0_MEDIAN_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_MEDIAN_3D_FILENAME );
+	sprintf( X_0_AVG_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_AVG_2D_FILENAME );
+	sprintf( X_0_AVG_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_AVG_3D_FILENAME );
+	sprintf( X_0_COMBO_2D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_COMBO_2D_FILENAME );
+	sprintf( X_0_COMBO_3D_PATH, "%s\\%s", PREPROCESSING_DIR, X_0_COMBO_3D_FILENAME );
 		
-	sprintf( X_PATH_BASE,"%s\\%s", RECONSTRUCTIONIR, X_FILENAME_BASE);
-	sprintf( X_MEDIAN_2D_PATH_BASE,"%s\\%s", RECONSTRUCTIONIR, X_MEDIAN_2D_FILENAME_BASE);
-	sprintf( X_MEDIAN_3D_PATH_BASE,"%s\\%s", RECONSTRUCTIONIR, X_MEDIAN_3D_FILENAME_BASE);
-	sprintf( X_AVG_2D_PATH_BASE,"%s\\%s", RECONSTRUCTIONIR, X_AVG_2D_FILENAME_BASE);
-	sprintf( X_AVG_3D_PATH_BASE,"%s\\%s", RECONSTRUCTIONIR, X_AVG_3D_FILENAME_BASE);
-	sprintf( X_COMBO_2D_PATH_BASE,"%s\\%s", RECONSTRUCTIONIR, X_COMBO_2D_FILENAME_BASE);
-	sprintf( X_COMBO_3D_PATH_BASE,"%s\\%s", RECONSTRUCTIONIR, X_COMBO_3D_FILENAME_BASE);
+	sprintf( X_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_FILENAME_BASE);
+	sprintf( X_MEDIAN_2D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_MEDIAN_2D_FILENAME_BASE);
+	sprintf( X_MEDIAN_3D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_MEDIAN_3D_FILENAME_BASE);
+	sprintf( X_AVG_2D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_AVG_2D_FILENAME_BASE);
+	sprintf( X_AVG_3D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_AVG_3D_FILENAME_BASE);
+	sprintf( X_COMBO_2D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_COMBO_2D_FILENAME_BASE);
+	sprintf( X_COMBO_3D_PATH_BASE,"%s\\%s", RECONSTRUCTION_DIR, X_COMBO_3D_FILENAME_BASE);
 	
-	sprintf(MLP_PATH,"%s\\%s", PREPROCESSINGIR, MLP_FILENAME );
-	sprintf(WEPL_PATH,"%s\\%s", PREPROCESSINGIR, WEPL_FILENAME );
-	sprintf(HISTORIES_PATH,"%s\\%s", PREPROCESSINGIR, HISTORIES_FILENAME );
-	sprintf(VOXELS_PER_PATH_PATH,"%s\\%s", PREPROCESSINGIR, VOXELS_PER_PATH_FILENAME );
-	sprintf(AVG_CHORDS_PATH,"%s\\%s", PREPROCESSINGIR, AVG_CHORDS_FILENAME );
+	sprintf(MLP_PATH,"%s\\%s", PREPROCESSING_DIR, MLP_FILENAME );
+	sprintf(WEPL_PATH,"%s\\%s", PREPROCESSING_DIR, WEPL_FILENAME );
+	sprintf(HISTORIES_PATH,"%s\\%s", PREPROCESSING_DIR, HISTORIES_FILENAME );
+	sprintf(VOXELS_PER_PATH_PATH,"%s\\%s", PREPROCESSING_DIR, VOXELS_PER_PATH_FILENAME );
+	sprintf(AVG_CHORDS_PATH,"%s\\%s", PREPROCESSING_DIR, AVG_CHORDS_FILENAME );
+	
+	HULL_2_USE_FILENAME = HULL_FILENAME;
+	HULL_2_USE_PATH = HULL_PATH;
+	FBP_2_USE_FILENAME = FBP_FILENAME;
+	FBP_2_USE_PATH = FBP_PATH;
+	X_0_2_USE_FILENAME = X_0_AVG_2D_FILENAME;
+	X_0_2_USE_PATH = X_0_AVG_2D_PATH;
+	X_2_USE_FILENAME_BASE = X_FILENAME_BASE;
+	X_2_USE_PATH_BASE = X_PATH_BASE;
 	
 	printf("HULL_PATH = %s\n\n", HULL_PATH );	
 	printf("HULL_MEDIAN_2D_PATH = %s\n\n", HULL_MEDIAN_2D_PATH );	
@@ -2096,6 +2099,8 @@ void set_IO_filepaths()
 }
 void set_images_2_use()
 {
+	print_section_header( "Setting image file names and paths based on specified filtering options...", '*' );
+
 	// Hull image specification
 	if( parameters.MEDIAN_FILTER_HULL && parameters.AVG_FILTER_HULL )
 	{
@@ -2117,6 +2122,11 @@ void set_images_2_use()
 		HULL_2_USE_FILENAME = HULL_FILENAME;
 		HULL_2_USE_PATH = HULL_PATH;
 	}
+	print_section_separator('~');
+	printf("HULL_2_USE_FILENAME = %s\n", HULL_2_USE_FILENAME );
+	printf("HULL_2_USE_PATH = %s\n", HULL_2_USE_PATH );
+	print_section_separator('~');
+
 	// FBP image specification
 	if( parameters.MEDIAN_FILTER_FBP && parameters.AVG_FILTER_FBP )
 	{
@@ -2138,6 +2148,11 @@ void set_images_2_use()
 		FBP_2_USE_FILENAME = FBP_FILENAME;
 		FBP_2_USE_PATH = FBP_PATH;
 	}
+	print_section_separator('~');
+	printf("FBP_2_USE_FILENAME = %s\n", FBP_2_USE_FILENAME );
+	printf("FBP_2_USE_PATH = %s\n", FBP_2_USE_PATH );
+	print_section_separator('~');
+
 	// x_0 image specification
 	if( parameters.MEDIAN_FILTER_X_0 && parameters.AVG_FILTER_X_0 )
 	{
@@ -2159,27 +2174,37 @@ void set_images_2_use()
 		X_0_2_USE_FILENAME = X_0_FILENAME;
 		X_0_2_USE_PATH = X_0_PATH;
 	}
-	// x_k image specification
-	if( parameters.MEDIAN_FILTER_X_K && parameters.AVG_FILTER_X_K )
-	{
-		X_K_2_USE_FILENAME = X_K_COMBO_2D_FILENAME;
-		X_K_2_USE_PATH = X_K_COMBO_2D_PATH;
-	}
-	else if( parameters.MEDIAN_FILTER_X_K)
-	{
-		X_K_2_USE_FILENAME = X_K_MEDIAN_2D_FILENAME;
-		X_K_2_USE_PATH = X_K_MEDIAN_2D_PATH;
-	}
-	else if( parameters.AVG_FILTER_X_K)
-	{
-		X_K_2_USE_FILENAME = X_K_AVG_2D_FILENAME;
-		X_K_2_USE_PATH = X_K_AVG_2D_PATH;
-	}
-	else
-	{
-		X_K_2_USE_FILENAME = X_K_FILENAME;
-		X_K_2_USE_PATH = X_K_PATH;
-	}
+	print_section_separator('~');
+	printf("X_0_2_USE_FILENAME = %s\n", X_0_2_USE_FILENAME );
+	printf("X_0_2_USE_PATH = %s\n", X_0_2_USE_PATH );
+	print_section_separator('~');
+
+	//// x_k image specification
+	//if( parameters.MEDIAN_FILTER_X_K && parameters.AVG_FILTER_X_K )
+	//{
+	//	X_K_2_USE_FILENAME = X_K_COMBO_2D_FILENAME;
+	//	X_K_2_USE_PATH = X_K_COMBO_2D_PATH;
+	//}
+	//else if( parameters.MEDIAN_FILTER_X_K)
+	//{
+	//	X_K_2_USE_FILENAME = X_K_MEDIAN_2D_FILENAME;
+	//	X_K_2_USE_PATH = X_K_MEDIAN_2D_PATH;
+	//}
+	//else if( parameters.AVG_FILTER_X_K)
+	//{
+	//	X_K_2_USE_FILENAME = X_K_AVG_2D_FILENAME;
+	//	X_K_2_USE_PATH = X_K_AVG_2D_PATH;
+	//}
+	//else
+	//{
+	//	X_K_2_USE_FILENAME = X_K_FILENAME;
+	//	X_K_2_USE_PATH = X_K_PATH;
+	//}
+	//print_section_separator('~');
+	//printf("X_K_2_USE_FILENAME = %s\n", X_K_2_USE_FILENAME );
+	//printf("X_K_2_USE_PATH = %s\n", X_K_2_USE_PATH );
+	//print_section_separator('~');
+
 	// x image specification
 	if( parameters.MEDIAN_FILTER_X && parameters.AVG_FILTER_X )
 	{
@@ -2201,31 +2226,40 @@ void set_images_2_use()
 		X_2_USE_FILENAME_BASE = X_FILENAME_BASE;
 		X_2_USE_PATH_BASE = X_PATH_BASE;
 	}
+	print_section_separator('~');
+	printf("X_2_USE_FILENAME_BASE = %s\n", X_2_USE_FILENAME_BASE );
+	printf("X_2_USE_PATH_BASE = %s\n", X_2_USE_PATH_BASE );
+	print_section_separator('~');
 }
 void existing_data_check()
 {
 	//if( parameters.PERFORM_RECONSTRUCTION && !parameters.PREPROCESS_OVERWRITE_OK )
 	//{
-		char* existing_data_dir = "D:\\pCTata\\Output\\CTP404\\CTP404_merged\\";
-		//HULL_EXISTS = file_exists3(HULL_2_USE_PATH);
-		//FBP_EXISTS = file_exists3(FBP_2_USE_PATH);
-		//X_0_EXISTS = file_exists3(X_0_2_USE_PATH);
-		//MLP_EXISTS = file_exists3(MLP_PATH);
-		//WEPL_EXISTS = file_exists3(WEPL_PATH);
-		//HISTORIES_EXISTS = file_exists3(HISTORIES_PATH);
+		//char* existing_data_dir = "D:\\pCT_Data\\Output\\CTP404\\CTP404_merged\\";
+		HULL_EXISTS = file_exists3(HULL_2_USE_PATH);
+		FBP_EXISTS = file_exists3(FBP_2_USE_PATH);
+		X_0_EXISTS = file_exists3(X_0_2_USE_PATH);
+		MLP_EXISTS = file_exists3(MLP_PATH);
+		WEPL_EXISTS = file_exists3(WEPL_PATH);
+		VOXELS_PER_PATH_EXISTS = file_exists3(VOXELS_PER_PATH_PATH);
+		AVG_CHORD_LENGTHS_EXISTS = file_exists3(AVG_CHORDS_PATH);
+		HISTORIES_EXISTS = file_exists3(HISTORIES_PATH);
+
 		//X_K_EXISTS = file_exists3(X_K_2_USE_PATH);
-		X_2_USE_PATH_BASE = (char*)calloc(256,sizeof(char));
-		sprintf(X_2_USE_PATH_BASE, "%s%s", existing_data_dir, X_BASENAME);
+		// HULL_EXISTS, FBP_EXISTS, X_0_EXISTS, X_K_EXISTS, X_EXISTS, MLP_EXISTS, WEPL_EXISTS, VOXELS_PER_PATH_EXISTS, AVG_CHORD_LENGTHS_EXISTS, HISTORIES_EXISTS;
+		uint NUM_X_EXISTS = 0;
+		//X_2_USE_PATH_BASE = (char*)calloc(256,sizeof(char));
+		//sprintf(X_2_USE_PATH_BASE, "%s%s", RECONSTRUCTION_DIR, X_BASENAME);
 		char x_existing_check[256];
-		sprintf(X_FILE_EXTENSION, ".txt");
+		//sprintf(X_FILE_EXTENSION, ".txt");
 		sprintf( x_existing_check, "%s_%d%s", X_2_USE_PATH_BASE, NUM_X_EXISTS + 1, X_FILE_EXTENSION );
-		cout << x_existing_check << endl;
+		//cout << x_existing_check << endl;
 		while( file_exists3(x_existing_check) )
 			sprintf( x_existing_check, "%s_%d%s", X_2_USE_PATH_BASE, ++NUM_X_EXISTS + 1, X_FILE_EXTENSION );
 
 		if( NUM_X_EXISTS > 0 )
 			X_EXISTS = true;
-		cout << NUM_X_EXISTS << endl;
+		//cout << NUM_X_EXISTS << endl;
 		//cout << HULL_EXISTS << endl;
 		//cout << FBP_EXISTS << endl;
 		//cout << X_0_EXISTS << endl;
