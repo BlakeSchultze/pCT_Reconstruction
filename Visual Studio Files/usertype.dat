@@ -1,11 +1,13 @@
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\Common7\IDE\usertype.dat
 ULL
 uint
+generic_IO_container
 configurations
 __global__
 __device__
 __shared__
 __local__
+__constant__
 DATA_FORMATS
 DISK_WRITE_MODE
 BIN_ANALYSIS_TYPE
@@ -18,6 +20,8 @@ HULL_TYPES
 FILTER_TYPES
 X_0_TYPES
 RECON_ALGORITHMS
+CONFIG_OBJECT
+CONFIG_LINE
 LOG_ENTRIES
 LOG_LINE
 LOG_OBJECT

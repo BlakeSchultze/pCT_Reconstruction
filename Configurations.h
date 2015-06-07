@@ -19,10 +19,11 @@ struct configurations
 	//char* PROJECTION_DATA_DIR, * PREPROCESSING_DIR, * RECONSTRUCTION_DIR;
 	//char* OBJECT, * RUN_DATE, * RUN_NUMBER, * PROJECTION_DATA_DATE, * PREPROCESS_DATE, * RECONSTRUCTION_DATE;
 	double RECON_CYL_RADIUS, RECON_CYLIAMETER, RECON_CYL_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_THICKNESS, VOXEL_WIDTH, VOXEL_HEIGHT, VOXEL_THICKNESS, SLICE_THICKNESS;
-	double X_ZERO_COORDINATE, Y_ZERO_COORDINATE, Z_ZERO_COORDINATE, RAM_LAK_TAU;
 	double GANTRY_ANGLE_INTERVAL, ANGULAR_BIN_SIZE, SSD_T_SIZE, SSD_V_SIZE, T_SHIFT, U_SHIFT, V_SHIFT, T_BIN_SIZE, V_BIN_SIZE;
-	double LAMBDA, ETA;
+	double X_ZERO_COORDINATE, Y_ZERO_COORDINATE, Z_ZERO_COORDINATE;
 	double HULL_RSP_THRESHOLD, SC_THRESHOLD, MSC_THRESHOLD, SM_LOWER_THRESHOLD, SM_UPPER_THRESHOLD, SM_SCALE_THRESHOLD;
+	double IGNORE_WEPL_BELOW;
+	double LAMBDA, ETA, RAM_LAK_TAU;
 	double VOXEL_STEP_SIZE, MLP_U_STEP, CONSTANT_CHORD_NORM, CONSTANT_LAMBDA_SCALE;
 
 	uint NUM_SCANS, MAX_GPU_HISTORIES, MAX_CUTS_HISTORIES, T_BINS, V_BINS, COLUMNS, ROWS, SLICES, SIGMAS_2_KEEP;
@@ -42,7 +43,7 @@ struct configurations
 	RECON_ALGORITHMS RECONSTRUCTION_METHOD; 				// Specify which of the projection algorithms to use for image reconstruction
 	
 	bool FBP_ON, SC_ON, MSC_ON, SM_ON;
-	bool IMPORT_PREPROCESSING, PERFORM_RECONSTRUCTION, PREPROCESS_OVERWRITE_OK, RECON_OVERWRITE_OK, MLP_IN_LOOP, IMPORT_DATA_ITERATIVELY;
+	bool EXPORT_PREPROCESSING, IMPORT_PREPROCESSING, PERFORM_RECONSTRUCTION, PREPROCESS_OVERWRITE_OK, RECON_OVERWRITE_OK, MLP_IN_LOOP, IMPORT_DATA_ITERATIVELY, IMPORT_MLP_ITERATIVELY;
 	bool MEDIAN_FILTER_HULL, MEDIAN_FILTER_FBP, MEDIAN_FILTER_X_0, MEDIAN_FILTER_X_K, MEDIAN_FILTER_X;
 	bool AVG_FILTER_HULL, AVG_FILTER_FBP, AVG_FILTER_X_0, AVG_FILTER_X_K, AVG_FILTER_X;
 	bool WRITE_MSC_COUNTS, WRITE_SM_COUNTS, WRITE_X_FBP, WRITE_FBP_HULL, WRITE_AVG_FBP, WRITE_MEDIAN_FBP, WRITE_BIN_WEPLS, WRITE_WEPL_DISTS, WRITE_SSD_ANGLES;	
@@ -90,13 +91,14 @@ struct configurations
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		//----------------------------------------------------------------------- Hull-Detection Parameters -----------------------------------------------------------------------//
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
-		double hull_rsp_threshold_p		= 0.1,							// [#] Maximum RSP for voxels assumed to belong to hull
+		double ignore_WEPL_below_p		= -10.0,						// [cm] The WEPL threshold below which histories are ignored for hull detection
 		uint msc_diff_thresh_p			= 50,							// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
 		double sc_threshold_p			= 0.0,							// [cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
 		double msc_threshold_p			= 0.0,							// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
 		double sm_lower_threshold_p		= 6.0,							// [cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
 		double sm_upper_threshold_p		= 21.0,							// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
 		double sm_scale_threshold_p		= 1.0,							// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
+		double hull_rsp_threshold_p		= 0.1,							// [#] Maximum RSP for voxels assumed to belong to hull
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		//------------------------------------------------------------ Program execution behavior options/parameters ----------------------------------------------------------//
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -104,12 +106,14 @@ struct configurations
 		bool sc_on_p					= false,						// [T/F] Turn Space Carving on (T) or off (F)
 		bool msc_on_p					= true,							// [T/F] Turn Modified Space Carving on (T) or off (F)
 		bool sm_on_p					= false,						// [T/F] Turn Space Modeling on (T) or off (F)
+		bool export_preprocessing_p		= true,							// [T/F] Export preprocessed data, i.e. A/x0/b/hull/MLP), so it need not be generated again in the future (T) or not (F)    
 		bool import_preprocessing_p		= true,							// [T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
 		bool perform_reconstruction_p	= true,							// [T/F] Perform reconstruction (T) or not (F)
 		bool preprocess_overwrite_ok_p	= false,						// [T/F] Allow preprocessing data to be overwritten (T) or not (F)
 		bool recon_overwrite_ok_p 		= false,						// [T/F] Allow reconstruction data to be overwritten (T) or not (F)
 		bool mlp_in_loop_p				= false,						// [T/F] Perform MLP calculations for each GPU block/iteration (T) or not (F)
 		bool import_data_iteratively_p	= true,							// [T/F] Import preprocessing data directly into block arrays as needed (T) or in entirety (F)
+		bool import_MLP_iteratively_p	= false,                        // [T/F] Import MLP data directly into block arrays as needed (T) or in entirety (F)                          
 		//bool mlp_file_exists_p			= false,
 		//bool histories_file_exists_p	= false,	
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -225,18 +229,19 @@ struct configurations
 	BLOCK_SIZE(block_size_p),											// *[#] of paths to use for each update: e.g., ART = 1, 
 	PSI_SIGN(psi_sign_p),												// *[+1/-1] Sign specifying the sign to use for Psi in scaling residual for updates in robust technique to reconstruction	
 	LAMBDA(lambda_p),													// *[#] Relaxation parameter used in update calculations in reconstruction algorithms
-	//LAMBDA(lambda_p),													// *[#] Relaxation parameter used in update calculations in reconstruction algorithms
 	ETA(eta_p),															// *[#] Value used in calculation of Psi = (1-x_i) * ETA used in robust technique to reconstruction
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//----------------------------------------------------------------------- Hull-detection parameters -----------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
-	HULL_RSP_THRESHOLD(hull_rsp_threshold_p),							// [#] Maximum RSP for voxels assumed to belong to hull
+	
+	IGNORE_WEPL_BELOW(ignore_WEPL_below_p),								// [cm] The WEPL threshold below which histories are ignored for hull detection
 	MSC_DIFF_THRESH(msc_diff_thresh_p),									// *[#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
 	SC_THRESHOLD(sc_threshold_p),										// *[cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
 	MSC_THRESHOLD(msc_threshold_p),										// *[cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
 	SM_LOWER_THRESHOLD(sm_lower_threshold_p),							// *[cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
 	SM_UPPER_THRESHOLD(sm_upper_threshold_p),							// *[cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
 	SM_SCALE_THRESHOLD(sm_scale_threshold_p),							// *[cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
+	HULL_RSP_THRESHOLD(hull_rsp_threshold_p),							// [#] Maximum RSP for voxels assumed to belong to hull
 	//*************************************************************************************************************************************************************************//
 	//*********************************************************************** Preprocessing control options *******************************************************************//
 	//*************************************************************************************************************************************************************************//
@@ -244,12 +249,14 @@ struct configurations
 	SC_ON(sc_on_p),														// *[T/F] Turn Space Carving on (T) or off (F)
 	MSC_ON(msc_on_p),													// *[T/F] Turn Modified Space Carving on (T) or off (F)
 	SM_ON(sm_on_p),														// *[T/F] Turn Space Modeling on (T) or off (F)
+	EXPORT_PREPROCESSING(export_preprocessing_p),						// [T/F] Export preprocessed data, i.e. A/x0/b/hull/MLP), so it need not be generated again in the future (T) or not (F)    
 	IMPORT_PREPROCESSING(import_preprocessing_p),						// *[T/F] Import preprocessed data previously generated, i.e. A/x0/b/hull/MLP), (T) or generate it (F) 
 	PERFORM_RECONSTRUCTION(perform_reconstruction_p),					// *[T/F] Perform reconstruction (T) or not (F)
 	PREPROCESS_OVERWRITE_OK(preprocess_overwrite_ok_p),					// *[T/F] Allow preprocessing data to be overwritten (T) or not (F)
 	RECON_OVERWRITE_OK(recon_overwrite_ok_p),							// *[T/F] Allow reconstruction data to be overwritten (T) or not (F)
 	MLP_IN_LOOP(mlp_in_loop_p),											// [T/F] Perform MLP calculations for each GPU block/iteration (T) or not (F)
 	IMPORT_DATA_ITERATIVELY(import_data_iteratively_p),					// [T/F] Import preprocessing data directly into block arrays as needed (T) or in entirety (F)
+	IMPORT_MLP_ITERATIVELY(import_MLP_iteratively_p),                  // [T/F] Import MLP data directly into block arrays as needed (T) or in entirety (F)                          
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//----------------------------------------------------------------------- Filtering options/parameters ------------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -331,9 +338,13 @@ template<typename T> void add_circle( T*&, int, double, double, double, T );
 template<typename O> void import_image( O*&, char*, char*, DISK_WRITE_MODE );
 template<typename T> void binary_2_txt_images( char*, char*, T*& );
 
-// Preprocessing setup and initializations 
+// Program configuration and initialization 
 //void apply_execution_arguments();
+void configure_execution( unsigned int, char** );
 void apply_execution_arguments(unsigned int, char**);
+bool verify_preprocessed_data_sizes();
+
+// Preprocessing setup and initializations 
 void assign_SSD_positions();
 void initializations();
 void count_histories();	
@@ -376,6 +387,7 @@ void define_hull();
 void define_x_0();
 
 // Image filtering functions
+template<typename T> void average_filter_2D( T*&, unsigned int );
 template<typename H, typename D> void averaging_filter( H*&, D*&, int, bool, double );
 template<typename D> __global__ void averaging_filter_GPU( configurations*, D*, D*, int, bool, double );
 template<typename T> void median_filter_2D( T*&, unsigned int );
@@ -415,14 +427,18 @@ uint import_WEPL();
 uint import_histories();
 uint import_voxels_per_path();
 uint import_avg_chord_lengths();
-bool prepare_2_import_preprocessed_data( bool );
-void allocate_reconstruction_arrays(uint );
-uint vector_copy_block_arrays( uint, uint);
-uint import_block_arrays( uint);
+void acquire_preprocessed_data();
+bool init_iterative_read_2_block_array( bool );
+void allocate_precalculated_block_arrays(uint );
+void fill_precalculated_block_arrays( uint, uint );
 
 // Image Reconstruction (host)
-void image_reconstruction();
-void DROP_import_data();
+void image_reconstruction_import_preprocessing_blocks();
+void image_reconstruction_import_preprocessing();
+void DROP_single_block_precalculated_MLP_blocks( uint  );
+void DROP_precalculated_MLP_blocks( uint );
+void DROP_single_block_precalculated_MLP( uint, uint );
+void DROP_precalculated_MLP( uint block_histories, uint );
 template< typename T, typename L, typename R> T discrete_dot_product( L*&, R*&, unsigned int*&, unsigned int );
 template< typename A, typename X> double update_vector_multiplier( double, A*&, X*&, unsigned int*&, unsigned int );
 template< typename A, typename X> void update_iterate( double, A*&, X*&, unsigned int*&, unsigned int );
@@ -509,28 +525,35 @@ void add_object_directory(char*, char*);
 int add_run_directory(char*, char*, char*, char*, SCAN_TYPES );
 int add_pCT_Images_dir(char*, char*, char*, char*, SCAN_TYPES );
 
-CONFIG_LINE split_config_comments(char*);
+
+void read_config_file();
 void write_config( CONFIG_OBJECT);
+void view_config_file();
 void fgets_config(char*, int, FILE*, CONFIG_OBJECT&);
 uint parse_config_file_line( FILE*, CONFIG_OBJECT& );
+CONFIG_LINE split_config_comments(char*);
 CONFIG_OBJECT config_file_2_object();
 bool key_is_string_parameter( char* );
 bool key_is_floating_point_parameter( char* );
 bool key_is_unsigned_integer_parameter( char* );
 bool key_is_integer_parameter( char* );
 bool key_is_boolean_parameter( char* );
+bool key_is_nonnegative( char* );
 void set_string_parameter( generic_IO_container & );
 void set_floating_point_parameter( generic_IO_container & );
 void set_unsigned_integer_parameter( generic_IO_container & );
 void set_integer_parameter( generic_IO_container & );
 void set_boolean_parameter( generic_IO_container & );
 void set_parameter( generic_IO_container & );
-void set_file_extension( char*, DISK_WRITE_MODE );
-void set_execution_date();
-void set_IO_directories();
-void view_config_file();
 void set_dependent_parameters();
+void set_execution_date();
+void set_file_extension( char*, DISK_WRITE_MODE );
 void set_IO_file_extensions();
+void set_IO_filenames();
+void set_IO_filepaths();
+void set_IO_directories();
+void set_images_2_use();
+bool existing_data_check();
 void parameters_2_GPU();
 
 // Log file functions
@@ -587,10 +610,14 @@ __device__ int calculate_MLP_GPU( configurations*, int*&, double*&, double, doub
 __device__ void MLP_GPU(configurations*);
 
 // Image Reconstruction
-__global__ void DROP_calculate_update_GPU(configurations*, int*, int*, float*, float*, int*, float*, float* );
-__global__ void update_x_1D_GPU( configurations* parameters, int*&, float*&, float*& );
-__global__ void update_x_3D_GPU( configurations* parameters, int*&, float*&, float*&  );
-__global__ void DROP_apply_update_GPU(configurations*, int*, float*, float* );
+__global__ void DROP_calculate_update_GPU_blocks(configurations*, uint*, uint*, float*, float*, uint*, float*, float* );
+__global__ void DROP_single_block_GPU_blocks(configurations*, uint*, uint*, float*, float*, uint*, float*, float* );
+/********************************************************************************************************* ART *********************************************************************************************************/
+__global__ void DROP_calculate_update_GPU(configurations*, uint, uint, uint, uint*, uint*, float*, float*, uint*, float*, float* );
+__global__ void DROP_single_block_GPU(configurations*, uint, uint*, uint*, float*, float*, uint*, float*, float* );
+__global__ void DROP_apply_1D_update_GPU( configurations*, uint*&, float*&, float*& );
+__global__ void DROP_apply_3D_update_GPU( configurations*, uint*&, float*&, float*&  );
+//__global__ void DROP_apply_update_GPU(configurations*, int*, float*, float* );
 //template< typename X> __device__ double update_vector_multiplier2( configurations*, double, double, X*&, int*, int );
 __device__ double scalar_dot_product_GPU_2( configurations*, double, float*&, int*, int );
 __device__ double update_vector_multiplier_GPU_22( configurations*, double, double, float*&, int*, int );
@@ -758,32 +785,6 @@ void view_config_file()
     #endif
 	
 }
-CONFIG_LINE split_config_comments(char* comment_line)
-{
-	std::string entry_string(comment_line);
-	entry_string.pop_back(); // Pop off endline character
-	for( int i = 0; i < (int)entry_string.length(); i++)
-	{
-		if(entry_string[i] == '\t' )
-		{
-			entry_string[i] = ' ';
-			entry_string.insert(i, 3, ' ');
-		}
-		
-	}
-	entry_string.resize(CONFIG_LINE_WIDTH, ' ');
-	CONFIG_LINE parsed_comment;
-	std::string temp;
-	size_t comment_position = 0, temp_length = 0;
-	for( int i = 0; i < NUM_CONFIG_FIELDS; i++ )
-	{
-		temp_length = CONFIG_FIELD_WIDTHS[i];
-		temp = entry_string.substr(comment_position, temp_length );
-		parsed_comment.push_back(temp);
-		comment_position += temp_length;
-	}
-	return parsed_comment;
-}
 void write_config( CONFIG_OBJECT config_object)
 {
 	std::ofstream config_file(CONFIG_PATH);
@@ -892,6 +893,32 @@ uint parse_config_file_line( FILE* input_file, CONFIG_OBJECT& config_object )
 
 	return parameters_changed;
 }
+CONFIG_LINE split_config_comments(char* comment_line)
+{
+	std::string entry_string(comment_line);
+	entry_string.pop_back(); // Pop off endline character
+	for( int i = 0; i < (int)entry_string.length(); i++)
+	{
+		if(entry_string[i] == '\t' )
+		{
+			entry_string[i] = ' ';
+			entry_string.insert(i, 3, ' ');
+		}
+		
+	}
+	entry_string.resize(CONFIG_LINE_WIDTH, ' ');
+	CONFIG_LINE parsed_comment;
+	std::string temp;
+	size_t comment_position = 0, temp_length = 0;
+	for( int i = 0; i < NUM_CONFIG_FIELDS; i++ )
+	{
+		temp_length = CONFIG_FIELD_WIDTHS[i];
+		temp = entry_string.substr(comment_position, temp_length );
+		parsed_comment.push_back(temp);
+		comment_position += temp_length;
+	}
+	return parsed_comment;
+}
 CONFIG_OBJECT config_file_2_object()
 {		
 	// Extract current directory (executable path) terminal response from system command "chdir" 
@@ -969,12 +996,13 @@ bool key_is_floating_point_parameter( char* key )
 		||	strcmp (key, "SLICE_THICKNESS") == 0 
 		||	strcmp (key, "LAMBDA") == 0 
 		||	strcmp (key, "ETA") == 0 
-		||	strcmp (key, "HULL_RSP_THRESHOLD") == 0 
+		||	strcmp (key, "IGNORE_WEPL_BELOW") == 0 
 		||	strcmp (key, "SC_THRESHOLD") == 0 
 		||	strcmp (key, "MSC_THRESHOLD") == 0 
 		||	strcmp (key, "SM_LOWER_THRESHOLD") == 0 
 		||	strcmp (key, "SM_UPPER_THRESHOLD") == 0 
 		||	strcmp (key, "SM_SCALE_THRESHOLD") == 0  
+		||	strcmp (key, "HULL_RSP_THRESHOLD") == 0 
 	)
 		return true;
 	else
@@ -1018,10 +1046,7 @@ bool key_is_unsigned_integer_parameter( char* key )
 }
 bool key_is_integer_parameter( char* key )
 {
-	if
-	(	
-		strcmp (key, "PSI_SIGN") == 0
-	)
+	if(	strcmp (key, "PSI_SIGN") == 0 )
 		return true;
 	else
 		return false;
@@ -1034,12 +1059,14 @@ bool key_is_boolean_parameter( char* key )
 		||	strcmp (key, "SC_ON") == 0
 		||	strcmp (key, "MSC_ON") == 0
 		||	strcmp (key, "SM_ON") == 0
+		||	strcmp (key, "EXPORT_PREPROCESSING") == 0
 		||	strcmp (key, "IMPORT_PREPROCESSING") == 0
 		||	strcmp (key, "PERFORM_RECONSTRUCTION") == 0
 		||	strcmp (key, "PREPROCESS_OVERWRITE_OK") == 0
 		||	strcmp (key, "RECON_OVERWRITE_OK") == 0
 		||	strcmp (key, "MLP_IN_LOOP") == 0
 		||	strcmp (key, "IMPORT_DATA_ITERATIVELY") == 0
+		||	strcmp (key, "IMPORT_MLP_ITERATIVELY") == 0
 		||	strcmp (key, "MEDIAN_FILTER_HULL") == 0
 		||	strcmp (key, "MEDIAN_FILTER_FBP") == 0
 		||	strcmp (key, "MEDIAN_FILTER_X_0") == 0
@@ -1068,6 +1095,64 @@ bool key_is_boolean_parameter( char* key )
 		||	strcmp (key, "EXIT_AFTER_CUTS") == 0
 		||	strcmp (key, "EXIT_AFTER_SINOGRAM") == 0
 		||	strcmp (key, "EXIT_AFTER_FBP") == 0	
+	)
+		return true;
+	else
+		return false;
+}
+bool key_is_nonnegative( char* key )
+{
+	if
+	( 
+		// Enumerated (integer) values
+			strcmp (key, "DATA_TYPE") == 0
+		|| 	strcmp (key, "HULL_TYPE") == 0
+		||	strcmp (key, "FBP_FILTER_TYPE") == 0
+		||	strcmp (key, "X_0_TYPE") == 0
+		||	strcmp (key, "RECONSTRUCTION_METHOD") == 0
+		// Integer values
+		||	strcmp (key, "NUM_SCANS") == 0
+		||	strcmp (key, "MAX_GPU_HISTORIES") == 0
+		||	strcmp (key, "MAX_CUTS_HISTORIES") == 0
+		||	strcmp (key, "T_BINS") == 0
+		||	strcmp (key, "V_BINS") == 0
+		||	strcmp (key, "SIGMAS_2_KEEP") == 0
+		||	strcmp (key, "COLUMNS") == 0
+		||	strcmp (key, "ROWS") == 0
+		||	strcmp (key, "SLICES") == 0
+		||	strcmp (key, "ITERATIONS") == 0
+		||	strcmp (key, "BLOCK_SIZE") == 0
+		||	strcmp (key, "HULL_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "FBP_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_0_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_K_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_MED_FILTER_RADIUS") == 0
+		||	strcmp (key, "HULL_AVG_FILTER_RADIUS") == 0
+		||	strcmp (key, "FBP_AVG_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_0_AVG_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_K_AVG_FILTER_RADIUS") == 0
+		||	strcmp (key, "X_AVG_FILTER_RADIUS") == 0							
+		||	strcmp (key, "MSC_DIFF_THRESH") == 0
+		// Floating point values
+		||	strcmp (key, "GANTRY_ANGLE_INTERVAL") == 0 
+		||	strcmp (key, "SSD_T_SIZE") == 0 
+		||	strcmp (key, "SSD_V_SIZE") == 0 
+		||	strcmp (key, "T_BIN_SIZE") == 0 
+		||	strcmp (key, "V_BIN_SIZE") == 0 
+		||	strcmp (key, "ANGULAR_BIN_SIZE") == 0 
+		||	strcmp (key, "RECON_CYL_RADIUS") == 0 
+		||	strcmp (key, "RECON_CYL_HEIGHT") == 0 
+		||	strcmp (key, "IMAGE_WIDTH") == 0 
+		||	strcmp (key, "IMAGE_HEIGHT") == 0 
+		||	strcmp (key, "IMAGE_THICKNESS") == 0 
+		||	strcmp (key, "VOXEL_WIDTH") == 0 
+		||	strcmp (key, "VOXEL_HEIGHT") == 0 
+		||	strcmp (key, "VOXEL_THICKNESS") == 0 
+		||	strcmp (key, "SLICE_THICKNESS") == 0 
+		||	strcmp (key, "LAMBDA") == 0 
+		||	strcmp (key, "ETA") == 0 
+		||	strcmp (key, "SM_SCALE_THRESHOLD") == 0  
+		||	strcmp (key, "HULL_RSP_THRESHOLD") == 0 
 	)
 		return true;
 	else
@@ -1168,242 +1253,81 @@ void set_string_parameter( generic_IO_container &value )
 void set_floating_point_parameter( generic_IO_container &value )
 {
 	char buf[64];
+	// Check to see if negative value was specified for a strictly nonnegative parameter and exit program if so
+	if( key_is_nonnegative( value.key ) && ( value.double_input < 0.0 ) )
+	{
+		puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
+		exit_program_if(true);
+	}
+	// Notify the user that the specified integer value was converted to double if the struct member associated with this key is a floating point parameter
 	if( value.input_type_ID == INTEGER )
 		printf("converted to a double and ");
-	//printf("set to %s\n", minimize_trailing_zeros(value.double_input, buf));
-	printf("set to %s\n", minimize_trailing_zeros(value.double_input, buf));
-	if( strcmp (value.key, "GANTRY_ANGLE_INTERVAL") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//GANTRY_ANGLE_INTERVAL = value.double_input;
-		parameters.GANTRY_ANGLE_INTERVAL = value.double_input;
-	}
-	else if( strcmp (value.key, "SSD_T_SIZE") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//SSD_T_SIZE = value.double_input;
-		parameters.SSD_T_SIZE = value.double_input;
-	}
-	else if( strcmp (value.key, "SSD_V_SIZE") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//SSD_V_SIZE = value.double_input;
-		parameters.SSD_V_SIZE = value.double_input;
-	}
-	else if( strcmp (value.key, "T_SHIFT") == 0 )
-	{
-		//T_SHIFT = value.double_input;
-		parameters.T_SHIFT = value.double_input;
-	}
-	else if( strcmp (value.key, "U_SHIFT") == 0 )
-	{
-		//U_SHIFT = value.double_input;
-		parameters.U_SHIFT = value.double_input;
-	}
-	else if( strcmp (value.key, "V_SHIFT") == 0 )
-	{
-		//V_SHIFT = value.double_input;
-		parameters.V_SHIFT = value.double_input;
-	}
-	else if( strcmp (value.key, "T_BIN_SIZE") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//T_BIN_SIZE = value.double_input;
-		parameters.T_BIN_SIZE = value.double_input;
-	}
-	else if( strcmp (value.key, "V_BIN_SIZE") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//V_BIN_SIZE = value.double_input;
-		parameters.V_BIN_SIZE = value.double_input;
-	}
-	else if( strcmp (value.key, "ANGULAR_BIN_SIZE") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//ANGULAR_BIN_SIZE = value.double_input;
-		parameters.ANGULAR_BIN_SIZE = value.double_input;
-	}
-	else if( strcmp (value.key, "RECON_CYL_RADIUS") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//RECON_CYL_RADIUS = value.double_input;
-		parameters.RECON_CYL_RADIUS = value.double_input;
-	}
-	else if( strcmp (value.key, "RECON_CYL_HEIGHT") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//RECON_CYL_HEIGHT = value.double_input;
-		parameters.RECON_CYL_HEIGHT = value.double_input;
-	}
-	else if( strcmp (value.key, "IMAGE_WIDTH") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//IMAGE_WIDTH = value.double_input;
-		parameters.IMAGE_WIDTH = value.double_input;
-	}
-	else if( strcmp (value.key, "IMAGE_HEIGHT") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//IMAGE_HEIGHT = value.double_input;
-		parameters.IMAGE_HEIGHT = value.double_input;
-	}
-	else if( strcmp (value.key, "IMAGE_THICKNESS") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//IMAGE_THICKNESS = value.double_input;
-		parameters.IMAGE_THICKNESS = value.double_input;
-	}
-	else if( strcmp (value.key, "VOXEL_WIDTH") == 0 )
-	{
-		//VOXEL_WIDTH = value.double_input;
-		parameters.VOXEL_WIDTH = value.double_input;
-	}
-	else if( strcmp (value.key, "VOXEL_HEIGHT") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//VOXEL_HEIGHT = value.double_input;
-		parameters.VOXEL_HEIGHT = value.double_input;
-	}
-	else if( strcmp (value.key, "VOXEL_THICKNESS") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//VOXEL_THICKNESS = value.double_input;
-		parameters.VOXEL_THICKNESS =  value.double_input;
-		//SLICE_THICKNESS = value.double_input;
-		//parameters.SLICE_THICKNESS =  value.double_input;
-	}
-	else if( strcmp (value.key, "SLICE_THICKNESS") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//SLICE_THICKNESS = value.double_input;
-		parameters.SLICE_THICKNESS =  value.double_input;
-	}
 	
+	// Set struct member value associated with key
+	if( strcmp (value.key, "GANTRY_ANGLE_INTERVAL") == 0 )
+		parameters.GANTRY_ANGLE_INTERVAL = value.double_input;
+	else if( strcmp (value.key, "SSD_T_SIZE") == 0 )
+		parameters.SSD_T_SIZE = value.double_input;
+	else if( strcmp (value.key, "SSD_V_SIZE") == 0 )
+		parameters.SSD_V_SIZE = value.double_input;
+	else if( strcmp (value.key, "T_SHIFT") == 0 )
+		parameters.T_SHIFT = value.double_input;
+	else if( strcmp (value.key, "U_SHIFT") == 0 )
+		parameters.U_SHIFT = value.double_input;
+	else if( strcmp (value.key, "V_SHIFT") == 0 )
+		parameters.V_SHIFT = value.double_input;
+	else if( strcmp (value.key, "T_BIN_SIZE") == 0 )
+		parameters.T_BIN_SIZE = value.double_input;
+	else if( strcmp (value.key, "V_BIN_SIZE") == 0 )
+		parameters.V_BIN_SIZE = value.double_input;
+	else if( strcmp (value.key, "ANGULAR_BIN_SIZE") == 0 )
+		parameters.ANGULAR_BIN_SIZE = value.double_input;
+	else if( strcmp (value.key, "RECON_CYL_RADIUS") == 0 )
+		parameters.RECON_CYL_RADIUS = value.double_input;
+	else if( strcmp (value.key, "RECON_CYL_HEIGHT") == 0 )
+		parameters.RECON_CYL_HEIGHT = value.double_input;
+	else if( strcmp (value.key, "IMAGE_WIDTH") == 0 )
+		parameters.IMAGE_WIDTH = value.double_input;
+	else if( strcmp (value.key, "IMAGE_HEIGHT") == 0 )
+		parameters.IMAGE_HEIGHT = value.double_input;
+	else if( strcmp (value.key, "IMAGE_THICKNESS") == 0 )
+		parameters.IMAGE_THICKNESS = value.double_input;
+	else if( strcmp (value.key, "VOXEL_WIDTH") == 0 )
+		parameters.VOXEL_WIDTH = value.double_input;
+	else if( strcmp (value.key, "VOXEL_HEIGHT") == 0 )
+		parameters.VOXEL_HEIGHT = value.double_input;
+	else if( strcmp (value.key, "VOXEL_THICKNESS") == 0 )
+		parameters.VOXEL_THICKNESS =  value.double_input;
+		//parameters.SLICE_THICKNESS =  value.double_input;
+	else if( strcmp (value.key, "SLICE_THICKNESS") == 0 )
+		parameters.SLICE_THICKNESS =  value.double_input;
 	else if( strcmp (value.key, "LAMBDA") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//LAMBDA = value.double_input;
 		parameters.LAMBDA = value.double_input;
-		parameters.LAMBDA = value.double_input;
-	}
 	else if( strcmp (value.key, "ETA") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//ETA = value.double_input;
 		parameters.ETA = value.double_input;
-	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
-	else if( strcmp (value.key, "HULL_RSP_THRESHOLD") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//HULL_RSP_THRESHOLD = value.double_input;
-		parameters.HULL_RSP_THRESHOLD = value.double_input;
-	}
+	else if( strcmp (value.key, "IGNORE_WEPL_BELOW") == 0 )
+		parameters.IGNORE_WEPL_BELOW = value.double_input;
 	else if( strcmp (value.key, "SC_THRESHOLD") == 0 )
-	{
-		//SC_THRESHOLD = value.double_input;
 		parameters.SC_THRESHOLD = value.double_input;
-	}
 	else if( strcmp (value.key, "MSC_THRESHOLD") == 0 )
-	{
-		//MSC_THRESHOLD = value.double_input;
 		parameters.MSC_THRESHOLD = value.double_input;
-	}
 	else if( strcmp (value.key, "SM_LOWER_THRESHOLD") == 0 )
-	{
-		//SM_LOWER_THRESHOLD = value.double_input;
 		parameters.SM_LOWER_THRESHOLD = value.double_input;
-	}
 	else if( strcmp (value.key, "SM_UPPER_THRESHOLD") == 0 )
-	{
-		//SM_UPPER_THRESHOLD = value.double_input;
 		parameters.SM_UPPER_THRESHOLD = value.double_input;
-	}
 	else if( strcmp (value.key, "SM_SCALE_THRESHOLD") == 0 )
-	{
-		if( value.double_input < 0 )
-		{
-			puts("ERROR: Negative value give to parameter that should be positive.\n  Correct the configuration file and rerun program");
-			exit_program_if(true);
-		}
-		//SM_SCALE_THRESHOLD = value.double_input;
 		parameters.SM_SCALE_THRESHOLD = value.double_input;
-	}
+	else if( strcmp (value.key, "HULL_RSP_THRESHOLD") == 0 )
+		parameters.HULL_RSP_THRESHOLD = value.double_input;
 	else
 	{
 		puts("ERROR: Procedure for setting this key is undefined");
 		exit_program_if(true);
 	}
+	printf("set to %s\n", minimize_trailing_zeros(value.double_input, buf));
 }
 void set_unsigned_integer_parameter( generic_IO_container &value )
 {
@@ -1534,6 +1458,8 @@ void set_boolean_parameter( generic_IO_container &value )
 		parameters.MSC_ON = value.boolean_input;
 	else if( strcmp (value.key, "SM_ON") == 0 )
 		parameters.SM_ON = value.boolean_input;
+	else if( strcmp (value.key, "EXPORT_PREPROCESSING") == 0 )
+		parameters.EXPORT_PREPROCESSING = value.boolean_input;
 	else if( strcmp (value.key, "IMPORT_PREPROCESSING") == 0 )
 		parameters.IMPORT_PREPROCESSING = value.boolean_input;
 	else if( strcmp (value.key, "PERFORM_RECONSTRUCTION") == 0 )
@@ -1546,6 +1472,8 @@ void set_boolean_parameter( generic_IO_container &value )
 		parameters.MLP_IN_LOOP = value.boolean_input;
 	else if( strcmp (value.key, "IMPORT_DATA_ITERATIVELY") == 0 )
 		parameters.IMPORT_DATA_ITERATIVELY = value.boolean_input;
+	else if( strcmp (value.key, "IMPORT_MLP_ITERATIVELY") == 0 )
+		parameters.IMPORT_MLP_ITERATIVELY = value.boolean_input;
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
@@ -1633,25 +1561,6 @@ void set_parameter( generic_IO_container &value )
 	else
 		puts("\nNo match for this key");
 }
-void set_file_extension( char file_extension[5], DISK_WRITE_MODE format )
-{
-	if( format == TEXT )
-		sprintf( file_extension, ".txt" );
-	else if( format == BINARY )
-		sprintf( file_extension, ".bin" );
-}
-void set_execution_date()
-{
-	current_MMDDYYYY( EXECUTION_DATE);
-
-	char* preprocess_date = EXECUTION_DATE;
-	PREPROCESS_DATE = (char*) calloc( strlen(preprocess_date) + 1, sizeof(char) ); 
-	std::copy( preprocess_date, preprocess_date + strlen(preprocess_date), PREPROCESS_DATE );	
-
-	char* reconstruction_date = EXECUTION_DATE;
-	RECONSTRUCTION_DATE = (char*) calloc( strlen(reconstruction_date) + 1, sizeof(char) ); 
-	std::copy( reconstruction_date, reconstruction_date + strlen(reconstruction_date), RECONSTRUCTION_DATE );
-}
 void set_dependent_parameters()
 {
 	parameters.GANTRY_ANGLES		= static_cast<uint>( 360 / parameters.GANTRY_ANGLE_INTERVAL );								// [#] Total number of projection angles
@@ -1696,6 +1605,25 @@ void set_dependent_parameters()
 	parameters.MLP_U_STEP				= ( parameters.VOXEL_WIDTH / 2);						// Size of the step taken along u direction during MLP; depth difference between successive MLP points
 	parameters.CONSTANT_CHORD_NORM	= pow(parameters.VOXEL_WIDTH, 2.0);
 	parameters.CONSTANT_LAMBDA_SCALE	= parameters.VOXEL_WIDTH * parameters.LAMBDA;
+}
+void set_execution_date()
+{
+	current_MMDDYYYY( EXECUTION_DATE);
+
+	char* preprocess_date = EXECUTION_DATE;
+	PREPROCESS_DATE = (char*) calloc( strlen(preprocess_date) + 1, sizeof(char) ); 
+	std::copy( preprocess_date, preprocess_date + strlen(preprocess_date), PREPROCESS_DATE );	
+
+	char* reconstruction_date = EXECUTION_DATE;
+	RECONSTRUCTION_DATE = (char*) calloc( strlen(reconstruction_date) + 1, sizeof(char) ); 
+	std::copy( reconstruction_date, reconstruction_date + strlen(reconstruction_date), RECONSTRUCTION_DATE );
+}
+void set_file_extension( char file_extension[5], DISK_WRITE_MODE format )
+{
+	if( format == TEXT )
+		sprintf( file_extension, ".txt" );
+	else if( format == BINARY )
+		sprintf( file_extension, ".bin" );
 }
 void set_IO_file_extensions()
 {
@@ -2231,7 +2159,7 @@ void set_images_2_use()
 	printf("X_2_USE_PATH_BASE = %s\n", X_2_USE_PATH_BASE );
 	print_section_separator('~');
 }
-void existing_data_check()
+bool existing_data_check()
 {
 	//if( parameters.PERFORM_RECONSTRUCTION && !parameters.PREPROCESS_OVERWRITE_OK )
 	//{
@@ -2270,6 +2198,7 @@ void existing_data_check()
 		//cout << WEPL_EXISTS << endl;
 		//cout << HISTORIES_EXISTS << endl;
 	//}
+		return HULL_EXISTS && FBP_EXISTS && X_0_EXISTS && MLP_EXISTS && WEPL_EXISTS && VOXELS_PER_PATH_EXISTS && AVG_CHORD_LENGTHS_EXISTS && HISTORIES_EXISTS;
 }
 void parameters_2_GPU()
 {

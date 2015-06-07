@@ -18,8 +18,9 @@ char REF_IMAGES_DIR_NAME[]		= "Reference_Images";
 char CONFIG_FILENAME[]			= "settings.cfg";						// Name of the file used to control the program options/parameters as key=value pairs
 char CONFIG_OUT_FILENAME[]		= "settings_out.cfg";					// Name of the file used to control the program options/parameters as key=value pairs
 char LOG_FILENAME[]				= "log.csv";							// Name of the file logging the execution information associated with each data set generated
-char STDOUT_FILENAME[]			= "stdout.txt";							// Name of the file where the stdout strea is redirected
-char STDERR_FILENAME[]			= "stderr.txt";							// Name of the file where the stdout strea is redirected
+char STDOUT_FILENAME[]			= "stdout.txt";							// Name of the file where the standard output stream stdout is redirected
+char STDIN_FILENAME[]			= "stdin.txt";							// Name of the file where the standard input stream stdin is redirected
+char STDERR_FILENAME[]			= "stderr.txt";							// Name of the file where the standard error stream stderr is redirected
 char PROJECTION_DATA_BASENAME[]	= "projection";							// Prefix of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
 
 char RADIOGRAPHS_RAW_BASENAME[]	= "radiographs_raw";					// Prefix of the file containing the radiograph images from each projection angle prior to performing cuts 

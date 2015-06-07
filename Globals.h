@@ -11,17 +11,20 @@ typedef unsigned int uint;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------------------- Preprocessing and reconstruction configuration/parameter container definitions --------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-bool RUN_ON						= false;						// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
-char EXECUTION_DATE[9];
-bool CONFIG_PATH_PASSED = false;			// [T/F] Path to "settings.cfg" passed as command line argument [T] or inferred from current directory [F]
-uint NUM_RUN_ARGUMENTS;
-uint NUM_PARAMETERS_2_CHANGE; 
+char user_response[20];
+uint NUM_RUN_ARGUMENTS; 
 char** RUN_ARGUMENTS;
-std::stringstream BUFFER;
-
+//std::stringstream BUFFER;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------- Preprocessing and reconstruction configuration/parameter container definitions --------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+bool RUN_ON	= false;						// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
+bool CONFIG_PATH_PASSED = false;			// [T/F] Path to "settings.cfg" passed as command line argument [T] or inferred from current directory [F]
 int GENERATION_DATE, CALIBRATION_DATE;
+uint NUM_PARAMETERS_2_CHANGE; 
 uint PHANTOM_NAME_SIZE, DATA_SOURCE_SIZE, ACQUIRED_BY_SIZE, CALIBRATED_BY_SIZE, SKIP_2ATA_SIZE, VERSION_ID, PROJECTION_INTERVAL;
 float PROJECTION_ANGLE, BEAM_ENERGY_IN;
+char EXECUTION_DATE[9];
 char* PHANTOM_NAME, * DATA_SOURCE, * ACQUIRED_BY, * CALIBRATED_BY, * PREPROCESSED_BY, * RECONSTRUCTED_BY, * CONFIG_LINK, * COMMENTS;
 bool HULL_EXISTS, FBP_EXISTS, X_0_EXISTS, X_K_EXISTS, X_EXISTS, MLP_EXISTS, WEPL_EXISTS, VOXELS_PER_PATH_EXISTS, AVG_CHORD_LENGTHS_EXISTS, HISTORIES_EXISTS;
 uint NUM_X_EXISTS = 0;
@@ -122,14 +125,25 @@ double* norm_Ai;
 
 float* block_WEPLs_h, * block_WEPLs_d;
 float* block_avg_chord_lengths_h, * block_avg_chord_lengths_d;
-int* block_voxels_per_path_h, * block_voxels_per_path_d;
-int * block_paths_h, * block_paths_d;
+uint* block_voxels_per_path_h, * block_voxels_per_path_d;
+uint * block_paths_h, * block_paths_d;
+
+float* WEPLs_d;
+float* avg_chord_lengths_d;
+uint* voxels_per_path_d;
+uint* MLPs_d;
+
 float* x_update_h, * x_update_d;
 float* x_h, * x_d;
-int* S_h, * S_d;
+uint* S_h, * S_d;
 
+uint MLP_histories, WEPL_histories, voxels_per_path_histories, avg_chords_histories, hull_intersection_histories;
+uint current_MLP_voxel = 0;
 FILE* x_0_file, * hull_file, * MLP_file, * WEPL_file, * histories_file, * voxels_per_path_file, * avg_chord_lengths_file;
 long int begin_MLP_data, begin_WEPL_data, begin_histories_data, begin_voxels_per_path_data, begin_avg_chord_lengths_data;  
+//uint* MLP_block_sizes;
+uint GPU_blocks_per_DROP_block;
+uint num_DROP_blocks = 0;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*--------------------------------- Declaration of vectors used to accumulate data from histories that have passed currently applied cuts ---------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
@@ -151,32 +165,11 @@ std::vector<float>	xz_exit_angle_vector;
 std::vector<int> voxel_x_vector;
 std::vector<int> voxel_y_vector;
 std::vector<int> voxel_z_vector;
-std::vector<int> voxels_per_path_vector;
+std::vector<uint> voxels_per_path_vector;
 std::vector<float> avg_chord_length_vector;
+std::vector<uint> MLP_vector;
+std::vector<uint> MLP_block_sizes;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------- Execution timer variables ------------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 clock_t program_start, program_end, pause_cycles = 0;
-/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-/*---------------------------------------------------------------------- WED calculations variables -----------------------------------------------------------------------*/
-/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-//C:\Users\Blake\Documents\Visual Studio 2010\Projects\robust_pct\robust_pct
-// WED calculations
-const char source_directory[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\";
-const char targets_input_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\bap_coordinates\\";
-const char target_object_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\RStPICOM_PHANTOM\\";
-const char WED_results_dir[] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\robust_pct\\robust_pct\\bap_coordinates\\WED_Results\\";
-const char targets_base_name[] = "proxi_distal";	
-
-float* RSP_Phantom_image_h, *RSP_Phantom_image_d;
-//float* RSP_Phantom_slice_h, *RSP_Phantom_slice_d;
-//bool FULL_PHANTOM = true;
-int num_targets;
-double* target_x_h, * target_x_d;
-double* target_y_h, * target_y_d;
-double* target_z_h, * target_z_d;
-double* WED_results;
-std::vector<int> entry_voxel_x;
-std::vector<int> entry_voxel_y;
-std::vector<int> entry_voxel_z;
-std::vector<int> beam_angles;
