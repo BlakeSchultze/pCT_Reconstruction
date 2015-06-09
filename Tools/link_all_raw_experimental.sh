@@ -1,18 +1,17 @@
 #!/bin/bash
 run_date="$1"
-echo "$run_date"
-for i in {0..89}
+printf -v angles "%d" $(($2-1))
+printf -v angle_interval "%d" $3
+IFS='_'
+for ((i=0; i<=$angles; i++))
 do
-	
-	pnum=$((4*($i)))
-	pnumstr=$(printf "%03d" $pnum)
-	IFS='_'
-	extension=$pnumstr.dat.root.reco.root.bin
-	for file in *_$pnumstr.*
+	printf -v angle_str "%03d" $(($angle_interval*$i))
+	extension="$angle_str.dat.root.reco.root.bin"
+	for file in *_$angle_str.*
 	do
 		set -- $file
 		echo "$file"
-		if [ "$file" != "*_${pnumstr}.*" ]
+		if [ "$file" != "*_${angle_str}.*" ]
 		then
 			path_out="${1}/Experimental/${run_date}/Run_${2}"
 			if [ $3 != $extension ]
@@ -21,7 +20,7 @@ do
 			fi
 			path_out="${path_out}/Input"
 			mkdir -p "${path_out}"
-			ln -s $pnumstr.dat.root.reco.root.bin "${path_out}/projection_${pnumstr}.bin"
+			ln -s $angle_str.dat.root.reco.root.bin "${path_out}/projection_${angle_str}.bin"
 		fi
 	done
 done
