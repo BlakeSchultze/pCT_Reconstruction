@@ -3,6 +3,7 @@
 //#include <C:\Users\Blake\Documents\GitHub\pCT_Reconstruction\pCT_Reconstruction.h>
 #include <C:\Users\Blake\Documents\GitHub\pCT_Reconstruction\Constants.h>
 #include <C:\Users\Blake\Documents\GitHub\pCT_Reconstruction\Globals.h>
+//#include "C:\Users\Blake\Documents\Visual Studio 2010\Projects\robust_pct\robust_pct\RMS_Image_Analysis.cu"
 
 typedef unsigned long long ULL;
 typedef unsigned int uint;
@@ -335,7 +336,8 @@ void post_cut_memory_clean();
 template<typename T> void initialize_host_image( T*& );
 template<typename T> void add_ellipse( T*&, int, double, double, double, double, T );
 template<typename T> void add_circle( T*&, int, double, double, double, T );
-template<typename O> void import_image( O*&, char*, char*, DISK_WRITE_MODE );
+template<typename O> unsigned int import_image( O*&, char*, char*, DISK_WRITE_MODE );
+template<typename O> unsigned int import_image( std::vector<O>&, char*, char*, DISK_WRITE_MODE );
 template<typename T> void binary_2_txt_images( char*, char*, T*& );
 
 // Program configuration and initialization 
@@ -396,6 +398,9 @@ template<typename D> __global__ void median_filter_GPU( configurations*, D*, D*,
 template<typename T> void median_filter_3D( T*&, T*&, unsigned int );
 template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( configurations*, T*, T2* );
 template<typename T> void test_median_filter_radii(T*&, char* );
+template<typename I1, typename I2> double calculate_RMS_error( I1*&, I2*&, unsigned int );
+template<typename I1, typename I2> double calculate_RMS_error( std::vector<I1>, std::vector<I2>, unsigned int );
+double perform_RMS_analysis( char*, char*, char*, bool );
 
 // History Ordering
 void generate_history_sequence(ULL, ULL );
@@ -412,6 +417,8 @@ float EffectiveChordLength(float, float);
 template<typename O> bool find_MLP_endpoints( O*&, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool );
 void collect_MLP_endpoints();
 unsigned int calculate_MLP( unsigned int*&, float*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
+unsigned int calculate_MLP2( unsigned int*&, float*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
+unsigned int calculate_MLP3( unsigned int*&, float*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
 
 // Preprocessing Data I/O
 void export_hull();

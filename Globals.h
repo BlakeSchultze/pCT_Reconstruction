@@ -115,7 +115,15 @@ float* FBP_h, * FBP_d;
 float* FBP_filtered_h, * FBP_filtered_d;
 float* FBP_median_filtered_2D_h, * FBP_median_filtered_2D_d;
 float* FBP_median_filtered_3D_h, * FBP_median_filtered_3D_d;
-
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------- Declaration of image arrays for use on host(_h) or device (_d) -----------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+FILE* sin_table_file, * cos_table_file, * scattering_table_file, * poly_1_2_file, * poly_2_3_file, * poly_3_4_file, * poly_2_6_file, * poly_3_12_file;
+double* sin_table_h, * cos_table_h, * scattering_table_h, * poly_1_2_h, * poly_2_3_h, * poly_3_4_h, * poly_2_6_h, * poly_3_12_h;
+double* sin_table_d, * cos_table_d, * scattering_table_d, * poly_1_2_d, * poly_2_3_d, * poly_3_4_d, * poly_2_6_d, * poly_3_12_d;
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------- Declaration of image arrays for use on host(_h) or device (_d) -----------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 
 unsigned int* num_voxel_intersections_h, * num_voxel_intersections_d;
 unsigned int* intersection_counts_h, * intersection_counts_d;

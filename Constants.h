@@ -3,7 +3,7 @@
 //#include <C:\Users\Blake\Documents\GitHub\pCT_Reconstruction\pCT_Reconstruction.h>
 
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-/*--------------------------------------------------------------------------- Output filenames ----------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------- pCT data format directory names ------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char PCT_DATA_DIR_NAME[]		= "pCT_Data";
 char EXPERIMENTAL_DIR_NAME[]	= "Experimental";
@@ -14,15 +14,49 @@ char PROJECTION_DATA_DIR_NAME[]	= "Output";
 char RECONSTRUCTION_DIR_NAME[]	= "Reconstruction";
 char PCT_IMAGES_DIR_NAME[]		= "Images";
 char REF_IMAGES_DIR_NAME[]		= "Reference_Images";
-
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*---------------------------------------------------------------------- pCT data format input file names -----------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+char PROJECTION_DATA_BASENAME[]	= "projection";							// Prefix of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------- Configuration and execution logging file names ----------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char CONFIG_FILENAME[]			= "settings.cfg";						// Name of the file used to control the program options/parameters as key=value pairs
 char CONFIG_OUT_FILENAME[]		= "settings_out.cfg";					// Name of the file used to control the program options/parameters as key=value pairs
 char LOG_FILENAME[]				= "log.csv";							// Name of the file logging the execution information associated with each data set generated
 char STDOUT_FILENAME[]			= "stdout.txt";							// Name of the file where the standard output stream stdout is redirected
 char STDIN_FILENAME[]			= "stdin.txt";							// Name of the file where the standard input stream stdin is redirected
 char STDERR_FILENAME[]			= "stderr.txt";							// Name of the file where the standard error stream stderr is redirected
-char PROJECTION_DATA_BASENAME[]	= "projection";							// Prefix of the files containing the projection data (tracker/WEPL/gantry angle) used as input to preprocessing
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------------- Tabulated data file names ---------------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+char SIN_TABLE_FILENAME[]	= "sin_table.bin";							// Prefix of the file containing the tabulated values of sine function for angles [0, 2PI]
+char COS_TABLE_FILENAME[]	= "cos_table.bin";							// Prefix of the file containing the tabulated values of cosine function for angles [0, 2PI]
+char COEFFICIENT_FILENAME[]	= "coefficient.bin";						// Prefix of the file containing the tabulated values of the scattering coefficient for u_2-u_1/u_1 values in increments of 0.001
+char POLY_1_2_FILENAME[]	= "poly_1_2.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {1,2,3,4,5,6} in increments of 0.001
+char POLY_2_3_FILENAME[]	= "poly_2_3.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,3,4,5,6,7} in increments of 0.001
+char POLY_3_4_FILENAME[]	= "poly_3_4.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,4,5,6,7,8} in increments of 0.001
+char POLY_2_6_FILENAME[]	= "poly_2_6.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,6,12,20,30,42} in increments of 0.001
+char POLY_3_12_FILENAME[]	= "poly_3_12.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,12,30,60,105,168} in increments of 0.001
+#define TRIG_TABLE_MIN	-2 * PI											// [degrees] Minimum angle contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_MAX	4 * PI											// [degrees] Maximum angle contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_RANGE	(TRIG_TABLE_MAX - TRIG_TABLE_MIN)				// [degrees] Range of angles contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_STEP		(0.01 * ANGLE_TO_RADIANS)						// [degrees] Step of 1/4 degree for elements of sin/cos lookup table used for MLP
+#define TRIG_TABLE_ELEMENTS	static_cast<int>(TRIG_TABLE_RANGE / TRIG_TABLE_STEP + 0.5)			// [#] # of elements contained in the sin/cos lookup table used for MLP
+#define DEPTH_TABLE_RANGE	40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+#define DEPTH_TABLE_STEP		0.001										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define DEPTH_TABLE_ELEMENTS	static_cast<int>(DEPTH_TABLE_RANGE / DEPTH_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
+//#define DEPTH_TABLE_SHIFT	static_cast<int>(DEPTH_TABLE_RANGE / DEPTH_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
 
+#define POLY_TABLE_RANGE	40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+#define POLY_TABLE_STEP		0.0001										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define POLY_TABLE_ELEMENTS	static_cast<int>(POLY_TABLE_RANGE / POLY_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
+//#define POLY_TABLE_SHIFT	static_cast<int>(POLY_TABLE_RANGE / POLY_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
+//#define INDEX_SHIFT_4_U_1	50											// [#] Difference between the index of consecutive elements of the poly table for u_1 dependent terms
+//#define INDEX_SHIFT_4_U_1	0.05 / POLY_TABLE_STEP						// [#] Difference between the index of consecutive elements of the poly table for u_1 dependent terms
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*------------------------------------------------------------------- Preprocessing data IO file base names ---------------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char RADIOGRAPHS_RAW_BASENAME[]	= "radiographs_raw";					// Prefix of the file containing the radiograph images from each projection angle prior to performing cuts 
 char RADIOGRAPHS_BASENAME[]		= "radiographs";						// Prefix of the file containing the radiograph images from each projection angle after performing cuts (i.e. rearranged sinogram)
 char WEPL_DISTS_RAW_BASENAME[]	= "WEPL_distributions_raw";				// Prefix of the file containing the WEPL distribution images from each projection angle prior to performing cuts 
@@ -37,12 +71,12 @@ char FBP_BASENAME[]				= "FBP";								// Prefix of the file containing the FBP 
 //char FBP_MEDIAN_3D_BASENAME[]	= "FBP_median_3D";						// Prefix of the file containing the 3D median filtered FBP image
 //char FBP_AVERAGE_BASENAME[]		= "FBP_avg";							// Prefix of the file containing the average filtered FBP image
 char X_0_BASENAME[]				= "x_0";								// Prefix of the file containing the FBP, hull, or FBP/hull hybrid initial iterate image as specified by the settings.cfg file
+char X_BASENAME[]				= "x";									// Prefix of the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
 char MLP_BASENAME[]				= "MLP";								// Prefix of the file containing the MLP path data
 char WEPL_BASENAME[]			= "WEPL";								// Prefix of the file containing the WEPL measurements for each MLP path
 char HISTORIES_BASENAME[]		= "histories";							// Prefix of the file containing the x/y/z hull entry/exit coordinates/angles, x/y/z hull entry voxels, gantry angle, and bin # for each reconstruction history
 char VOXELS_PER_PATH_BASENAME[]	= "voxels_per_path";					// Prefix of the file containing the # of intersected voxels per MLP path
 char AVG_CHORDS_BASENAME[]		= "avg_chord_lengths";					// Prefix of the file containing the effective (average) chord length for each MLP path
-char X_BASENAME[]				= "x";									// Prefix of the file containing the reconstructed images after each of the N iterations (e.g., x_1, x_2, x_3, ..., x_N)
 
 char MEDIAN_FILTER_2D_POSTFIX[]	= "med_2D_r";							// Postfix added to filename for 2D median filtered images
 char MEDIAN_FILTER_3D_POSTFIX[]	= "med_3D_r";							// Postfix added to filename for 3D median filtered images
