@@ -4482,8 +4482,6 @@ unsigned int calculate_MLP3
 
 	if( u_in_object > u_out_object )
 	{
-		//if( debug_output )
-			//cout << "Switched directions" << endl;
 		xy_entry_angle += PI;
 		xy_exit_angle += PI;
 		trig_table_index =  (xy_entry_angle - TRIG_TABLE_MIN ) / TRIG_TABLE_STEP + 0.5;
@@ -4543,117 +4541,46 @@ unsigned int calculate_MLP3
 		Sigma_2I[2] = sigma_t2 / determinant_Sigma_2;
 
 		/**********************************************************************************************************************************************************/
-		// 12
-		// first_term_common_ij_k: i,j = rows common to, k = 1st/2nd of last 2 terms of 3 term summation in first_term calculation below
-		/*first_term_common_13_1 = Sigma_2I[0] * R_1[0] + Sigma_2I[1] * R_1[2];	// Sigma_2I[0] * 1 + Sigma_2I[1] * 0 = Sigma_2I[0]
-		first_term_common_13_2 = Sigma_2I[2] * R_1[0] + Sigma_2I[3] * R_1[2];	// Sigma_2I[2] * 1 + Sigma_2I[3] * 0 = Sigma_2I[2]
-		first_term_common_24_1 = Sigma_2I[0] * R_1[1] + Sigma_2I[1] * R_1[3];	// Sigma_2I[0] * (u_2-u_1) + Sigma_2I[1] * 1 = Sigma_2I[0] * (u_2-u_1) + Sigma_2I[1]
-		first_term_common_24_2 = Sigma_2I[2] * R_1[1] + Sigma_2I[3] * R_1[3];*/	// Sigma_2I[2] * (u_2-u_1) + Sigma_2I[3] * 1 = Sigma_2I[2] * (u_2-u_1) + Sigma_2I[3]
-		//first_term_common_13_1 = Sigma_2I[0];
-		//first_term_common_13_2 = Sigma_2I[2];
-
 		// 2 + 2 = 4			R_1[1] = R_1T[2] = u_2 - u_1
 		first_term_common_24_1 = Sigma_2I[0] * R_1T[2] + Sigma_2I[1];
 		first_term_common_24_2 = Sigma_2I[1] * R_1T[2] + Sigma_2I[2];
 
-		// 16
-		/*first_term[0] = Sigma_1I[0] + R_1T[0] * first_term_common_13_1 + R_1T[1] * first_term_common_13_2;	//Sigma_1I[0] + 1 * Sigma_2I[0] + 0 * Sigma_2I[2] = Sigma_1I[0] + Sigma_2I[0]
-		first_term[1] = Sigma_1I[1] + R_1T[0] * first_term_common_24_1 + R_1T[1] * first_term_common_24_2;		//Sigma_1I[1] + 1 * first_term_common_24_1 + 0 * first_term_common_24_2 = Sigma_1I[1] + first_term_common_24_1
-		first_term[2] = Sigma_1I[2] + R_1T[2] * first_term_common_13_1 + R_1T[3] * first_term_common_13_2;		// Sigma_1I[2] + (u_2-u_1) * Sigma_2I[0] + 1 * Sigma_2I[2] = Sigma_1I[2] + (u_2-u_1) * Sigma_2I[0] + Sigma_2I[2]
-		first_term[3] = Sigma_1I[3] + R_1T[2] * first_term_common_24_1 + R_1T[3] * first_term_common_24_2;*/	// Sigma_1I[3] + (u_2-u_1) * first_term_common_24_1 + 1 * first_term_common_24_2 = Sigma_1I[3] + (u_2-u_1) * first_term_common_24_1 + first_term_common_24_2
-		
 		// 1 + 1 + 3 + 3 = 8		R_1T[2] = (u_2-u_1)
 		first_term[0] = Sigma_1I[0] + Sigma_2I[0];
 		first_term[1] = Sigma_1I[1] + first_term_common_24_1;
 		first_term[2] = Sigma_1I[1] + R_1T[2] * Sigma_2I[0] + Sigma_2I[1];
 		first_term[3] = Sigma_1I[2] + R_1T[2] * first_term_common_24_1 + first_term_common_24_2;
 
-		// 3 + 5 = 8
-		//determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
-		//first_term_inversion_temp = first_term[0];
-		//first_term[0] = first_term[3] / determinant_first_term;
-		//first_term[1] = -first_term[1] / determinant_first_term;
-		//first_term[2] = -first_term[2] / determinant_first_term;
-		//first_term[3] = first_term_inversion_temp / determinant_first_term;
-
 		// 3
 		determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
 
-		// 12
-		// second_term_common_i: i = # of term of 4 term summation it is common to in second_term calculation below
-		/*second_term_common_1 = R_0[0] * T_0[0] + R_0[1] * T_0[1];				// 1 * t_in_object + u_1 * 0 = t_in_object
-		second_term_common_2 = R_0[2] * T_0[0] + R_0[3] * T_0[1];				// 0 * t_in_object + 1 * 0 = 0
-		second_term_common_3 = Sigma_2I[0] * T_2[0] + Sigma_2I[1] * T_2[1];		// Sigma_2I[0] * t_out_object + Sigma_2I[1] * (xy_exit_angle - xy_entry_angle)
-		second_term_common_4 = Sigma_2I[2] * T_2[0] + Sigma_2I[3] * T_2[1];*/	// Sigma_2I[2] * t_out_object + Sigma_2I[3] * (xy_exit_angle - xy_entry_angle)
-		
-		// 3 + 3 = 6		T_2[1] = (xy_exit_angle - xy_entry_angle)
 		second_term_common_3 = Sigma_2I[0] * t_out_object + Sigma_2I[1] * T_2[1];	
 		second_term_common_4 = Sigma_2I[1] * t_out_object + Sigma_2I[2] * T_2[1];
-
-		// 14
-		/*second_term[0] = Sigma_1I[0] * second_term_common_1				// Sigma_1I[0] * second_term_common_1 = Sigma_1I[0] * t_in_object
-						+ Sigma_1I[1] * second_term_common_2				// + Sigma_1I[1] * second_term_common_2 = 0
-						+ R_1T[0] * second_term_common_3					// + 1 * second_term_common_3 = second_term_common_3
-						+ R_1T[1] * second_term_common_4;*/					// + 0 * second_term_common_4 = 0
 		
 		// 2
 		second_term[0] = Sigma_1I[0] * t_in_object + second_term_common_3;
-		/*second_term[1] = Sigma_1I[2] * second_term_common_1				// Sigma_1I[2] * second_term_common_1 = Sigma_1I[2] * t_in_object
-						+ Sigma_1I[3] * second_term_common_2				// + Sigma_1I[3] * second_term_common_2 = 0
-						+ R_1T[2] * second_term_common_3					// + R_1T[2] * second_term_common_3 = (u_2-u_1) * second_term_common_3
-						+ R_1T[3] * second_term_common_4;*/					// + R_1T[3] * second_term_common_4; = second_term_common_4
 		
 		// 4					R_1T[2] = (u_2 - u_1)
 		second_term[1] = Sigma_1I[1] * t_in_object +  R_1T[2] * second_term_common_3 + second_term_common_4;
 		
-		// 3
-		// t_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
-		
 		// 4		first_term[0] -> first_term[3] & first_term[1] -> -first_term[1] 
 		t_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
-		//cout << "t_1 = " << t_1 << endl;
 		//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
 
 		// t: 65 -> 31
 		/**********************************************************************************************************************************************************/
-		// 12
 		// Do v MLP Now
-		/*second_term_common_1 = R_0[0] * V_0[0] + R_0[1] * V_0[1];				// v_in_object + u_1 * 0 = v_in_object
-		second_term_common_2 = R_0[2] * V_0[0] + R_0[3] * V_0[1];				// 0
-		second_term_common_3 = Sigma_2I[0] * V_2[0] + Sigma_2I[1] * V_2[1];		// Sigma_2I[0] * v_out_object + Sigma_2I[1] * (xz_exit_angle - xz_entry_angle)
-		second_term_common_4 = Sigma_2I[2] * V_2[0] + Sigma_2I[3] * V_2[1];*/	// Sigma_2I[2] * v_out_object + Sigma_2I[3] * (xz_exit_angle - xz_entry_angle)
 		
-		// 			V_2[1] = (xz_exit_angle - xz_entry_angle)
-		//second_term_common_1 = v_in_object;						
-		//second_term_common_2 = 0;	
-
 		// 3 + 3 = 6
 		second_term_common_3 =  Sigma_2I[0] * z_out_object + Sigma_2I[1] * V_2[1];
 		second_term_common_4 = Sigma_2I[1] * z_out_object + Sigma_2I[2] * V_2[1];
 
-		// 14
-		/*second_term[0]	= Sigma_1I[0] * second_term_common_1			// Sigma_1I[0] * v_in_object	
-						+ Sigma_1I[1] * second_term_common_2				// + Sigma_1I[1] * 0 = 0
-						+ R_1T[0] * second_term_common_3					// + 1 * second_term_common_3 = second_term_common_3
-						+ R_1T[1] * second_term_common_4;*/					// + 0 * second_term_common_4 = 0
-		//  2 
+		//  2 + 4
 		second_term[0] = Sigma_1I[0] * z_in_object + second_term_common_3;
-		
-		/*second_term[1]	= Sigma_1I[2] * second_term_common_1			// Sigma_1I[2] * v_in_object
-						+ Sigma_1I[3] * second_term_common_2				// + Sigma_1I[3] * 0 = 0
-						+ R_1T[2] * second_term_common_3					// + R_1T[2] * second_term_common_3
-						+ R_1T[3] * second_term_common_4;*/					// + 1 * second_term_common_4 = second_term_common_4
-		
-		// 4
 		second_term[1] = Sigma_1I[1] * z_in_object + R_1T[2] * second_term_common_3 + second_term_common_4;
-		
-		
-		// 3
-		//v_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
 
 		// 4
 		v_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
-
 		//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
 
 		// v: 29 -> 16
@@ -4736,14 +4663,7 @@ unsigned int calculate_MLP4
 	double u_2 = abs(u_out_object - u_in_object);
 	double depth_2_go = u_2 - u_1;
 	double u_shifted = u_in_object;	
-
-	// #define DEPTH_TABLE_RANGE	40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
-	//#define DEPTH_TABLE_STEP		0.001										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-	//#define DEPTH_TABLE_ELEMENTS	static_cast<int>(DEPTH_TABLE_RANGE / DEPTH_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
-	//#define POLY_TABLE_RANGE	40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
-	//#define POLY_TABLE_STEP		0.0001										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-	//#define POLY_TABLE_ELEMENTS	static_cast<int>(POLY_TABLE_RANGE / POLY_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
-	//#define INDEX_SHIFT_4_U_1	50											// [#] Difference between the index of consecutive elements of the poly table for u_1 dependent terms
+						// [#] Difference between the index of consecutive elements of the poly table for u_1 dependent terms
 	
 	// Scattering Coefficient tables indices
 	unsigned int sigma_table_index_step = static_cast<unsigned int>( parameters.MLP_U_STEP / DEPTH_TABLE_STEP + 0.5 );
@@ -4752,24 +4672,9 @@ unsigned int calculate_MLP4
 	unsigned int sigma_1_coefficient_index = sigma_table_index_step;
 	unsigned int sigma_2_coefficient_index = static_cast<unsigned int>( depth_2_go / DEPTH_TABLE_STEP + 0.5 );
 	
-	// Scattering polynomial indices
-	//unsigned int poly_table_index_step = static_cast<unsigned int>( parameters.MLP_U_STEP / POLY_TABLE_STEP + 0.5 );
-	//unsigned int poly_table_last_index = static_cast<unsigned int>( u_2 / POLY_TABLE_STEP + 0.5 );
-	//unsigned int depth_2_go_index;
-	//unsigned int depth_index =
-
-	//precalculated u_2 dependent terms (since u_2 does not change inside while loop)
-	//u_2 terms
-	//sigma_2_pre_1 =  pow(u_2, 3.0) * ( A_0_OVER_3 + u_2 * ( A_1_OVER_12 + u_2 * ( A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * ( A_4_OVER_105 + u_2 * A_5_OVER_168 )))));;	//u_2^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
-	//sigma_2_pre_2 =  pow(u_2, 2.0) * ( A_0_OVER_2 + u_2 * (A_1_OVER_6 + u_2 * (A_2_OVER_12 + u_2 * ( A_3_OVER_20 + u_2 * (A_4_OVER_30 + u_2 * A_5_OVER_42)))));	//u_2^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42
-	//sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + u_2 * A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
-	
 	sigma_2_pre_1 =  pow(u_2, 3.0) * ( A_0_OVER_3 + u_2 * ( A_1_OVER_12 + u_2 * ( A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * ( A_4_OVER_105 + u_2 * A_5_OVER_168 )))));;	//u_2^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
 	sigma_2_pre_2 =  pow(u_2, 2.0) * ( A_0_OVER_2 + u_2 * (A_1_OVER_6 + u_2 * (A_2_OVER_12 + u_2 * ( A_3_OVER_20 + u_2 * (A_4_OVER_30 + u_2 * A_5_OVER_42)))));	//u_2^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42
 	sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + u_2 * A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
-
-	//while( u_1 < u_2 - parameters.MLP_U_STEP)
-	//while( u_1 < u_2 - 0.001)
 	
 	while( depth_2_go > parameters.MLP_U_STEP )
 	{
@@ -4778,7 +4683,6 @@ unsigned int calculate_MLP4
 		//depth_index += depth_table_index_step;
 		//depth_2_go -= parameters.MLP_U_STEP;
 		// 26 + 15 + 13 + 12 + 12 + 3 = 81
-		//sigma_1_coefficient = pow( E_0 * ( 1 + 0.038 * log( u_1 / X0 ), 2.0 ) / X0;
 		sigma_1_coefficient = scattering_table_h[sigma_1_coefficient_index];
 		sigma_t1 = pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + u_1 * A_5_OVER_168 ) ))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
 		sigma_t1_theta1 =  pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + u_1 * A_5_OVER_42)))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
@@ -4788,12 +4692,9 @@ unsigned int calculate_MLP4
 		determinant_Sigma_1 = sigma_1_coefficient * ( sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 ) );//ad-bc
 		Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
 		Sigma_1I[1] = -sigma_t1_theta1 / determinant_Sigma_1;
-		//Sigma_1I[2] = -sigma_t1_theta1 / determinant_Sigma_1;
 		Sigma_1I[2] = sigma_t1 / determinant_Sigma_1;
 
 		// 26 + 11 + 12 + 12 + 8 + 4 + 2 + 3  = 78
-		//sigma 2 terms
-		//sigma_2_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_2 - u_1)/X0) ), 2.0 ) / X0;
 		sigma_2_coefficient = scattering_table_h[sigma_2_coefficient_index];
 		common_sigma_2_term_1 = u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6 )))));
 		common_sigma_2_term_2 = pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_3 + u_1 * (A_2_OVER_4 + u_1 * (A_3_OVER_5 + u_1 * (A_4_OVER_6 + u_1 * A_5_OVER_7 )))));
@@ -4806,133 +4707,54 @@ unsigned int calculate_MLP4
 		determinant_Sigma_2 = sigma_2_coefficient * ( sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 ) );//ad-bc
 		Sigma_2I[0] = sigma_theta2 / determinant_Sigma_2;
 		Sigma_2I[1] = -sigma_t2_theta2 / determinant_Sigma_2;
-		//Sigma_2I[2] = -sigma_t2_theta2 / determinant_Sigma_2;
 		Sigma_2I[2] = sigma_t2 / determinant_Sigma_2;
 
 		/**********************************************************************************************************************************************************/
-		// 12
-		// first_term_common_ij_k: i,j = rows common to, k = 1st/2nd of last 2 terms of 3 term summation in first_term calculation below
-		/*first_term_common_13_1 = Sigma_2I[0] * R_1[0] + Sigma_2I[1] * R_1[2];	// Sigma_2I[0] * 1 + Sigma_2I[1] * 0 = Sigma_2I[0]
-		first_term_common_13_2 = Sigma_2I[2] * R_1[0] + Sigma_2I[3] * R_1[2];	// Sigma_2I[2] * 1 + Sigma_2I[3] * 0 = Sigma_2I[2]
-		first_term_common_24_1 = Sigma_2I[0] * R_1[1] + Sigma_2I[1] * R_1[3];	// Sigma_2I[0] * (u_2-u_1) + Sigma_2I[1] * 1 = Sigma_2I[0] * (u_2-u_1) + Sigma_2I[1]
-		first_term_common_24_2 = Sigma_2I[2] * R_1[1] + Sigma_2I[3] * R_1[3];*/	// Sigma_2I[2] * (u_2-u_1) + Sigma_2I[3] * 1 = Sigma_2I[2] * (u_2-u_1) + Sigma_2I[3]
-		//first_term_common_13_1 = Sigma_2I[0];
-		//first_term_common_13_2 = Sigma_2I[2];
-
 		// 2 + 2 = 4			R_1[1] = R_1T[2] = u_2 - u_1
 		first_term_common_24_1 = Sigma_2I[0] * depth_2_go + Sigma_2I[1];
 		first_term_common_24_2 = Sigma_2I[1] * depth_2_go + Sigma_2I[2];
 
-		// 16
-		/*first_term[0] = Sigma_1I[0] + R_1T[0] * first_term_common_13_1 + R_1T[1] * first_term_common_13_2;	//Sigma_1I[0] + 1 * Sigma_2I[0] + 0 * Sigma_2I[2] = Sigma_1I[0] + Sigma_2I[0]
-		first_term[1] = Sigma_1I[1] + R_1T[0] * first_term_common_24_1 + R_1T[1] * first_term_common_24_2;		//Sigma_1I[1] + 1 * first_term_common_24_1 + 0 * first_term_common_24_2 = Sigma_1I[1] + first_term_common_24_1
-		first_term[2] = Sigma_1I[2] + R_1T[2] * first_term_common_13_1 + R_1T[3] * first_term_common_13_2;		// Sigma_1I[2] + (u_2-u_1) * Sigma_2I[0] + 1 * Sigma_2I[2] = Sigma_1I[2] + (u_2-u_1) * Sigma_2I[0] + Sigma_2I[2]
-		first_term[3] = Sigma_1I[3] + R_1T[2] * first_term_common_24_1 + R_1T[3] * first_term_common_24_2;*/	// Sigma_1I[3] + (u_2-u_1) * first_term_common_24_1 + 1 * first_term_common_24_2 = Sigma_1I[3] + (u_2-u_1) * first_term_common_24_1 + first_term_common_24_2
-		
 		// 1 + 1 + 3 + 3 = 8		R_1T[2] = (u_2-u_1)
 		first_term[0] = Sigma_1I[0] + Sigma_2I[0];
 		first_term[1] = Sigma_1I[1] + first_term_common_24_1;
 		first_term[2] = Sigma_1I[1] + depth_2_go * Sigma_2I[0] + Sigma_2I[1];
 		first_term[3] = Sigma_1I[2] + depth_2_go * first_term_common_24_1 + first_term_common_24_2;
 
-		// 3 + 5 = 8
-		//determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
-		//first_term_inversion_temp = first_term[0];
-		//first_term[0] = first_term[3] / determinant_first_term;
-		//first_term[1] = -first_term[1] / determinant_first_term;
-		//first_term[2] = -first_term[2] / determinant_first_term;
-		//first_term[3] = first_term_inversion_temp / determinant_first_term;
-
 		// 3
 		determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
 
-		// 12
-		// second_term_common_i: i = # of term of 4 term summation it is common to in second_term calculation below
-		/*second_term_common_1 = R_0[0] * T_0[0] + R_0[1] * T_0[1];				// 1 * t_in_object + u_1 * 0 = t_in_object
-		second_term_common_2 = R_0[2] * T_0[0] + R_0[3] * T_0[1];				// 0 * t_in_object + 1 * 0 = 0
-		second_term_common_3 = Sigma_2I[0] * T_2[0] + Sigma_2I[1] * T_2[1];		// Sigma_2I[0] * t_out_object + Sigma_2I[1] * (xy_exit_angle - xy_entry_angle)
-		second_term_common_4 = Sigma_2I[2] * T_2[0] + Sigma_2I[3] * T_2[1];*/	// Sigma_2I[2] * t_out_object + Sigma_2I[3] * (xy_exit_angle - xy_entry_angle)
-		
 		// 3 + 3 = 6		T_2[1] = (xy_exit_angle - xy_entry_angle)
 		second_term_common_3 = Sigma_2I[0] * t_out_object + Sigma_2I[1] * T_2[1];	
 		second_term_common_4 = Sigma_2I[1] * t_out_object + Sigma_2I[2] * T_2[1];
 
-		// 14
-		/*second_term[0] = Sigma_1I[0] * second_term_common_1				// Sigma_1I[0] * second_term_common_1 = Sigma_1I[0] * t_in_object
-						+ Sigma_1I[1] * second_term_common_2				// + Sigma_1I[1] * second_term_common_2 = 0
-						+ R_1T[0] * second_term_common_3					// + 1 * second_term_common_3 = second_term_common_3
-						+ R_1T[1] * second_term_common_4;*/					// + 0 * second_term_common_4 = 0
-		
-		// 2
-		second_term[0] = Sigma_1I[0] * t_in_object + second_term_common_3;
-		/*second_term[1] = Sigma_1I[2] * second_term_common_1				// Sigma_1I[2] * second_term_common_1 = Sigma_1I[2] * t_in_object
-						+ Sigma_1I[3] * second_term_common_2				// + Sigma_1I[3] * second_term_common_2 = 0
-						+ R_1T[2] * second_term_common_3					// + R_1T[2] * second_term_common_3 = (u_2-u_1) * second_term_common_3
-						+ R_1T[3] * second_term_common_4;*/					// + R_1T[3] * second_term_common_4; = second_term_common_4
-		
-		// 4					R_1T[2] = (u_2 - u_1)
+		// 2 + 4			R_1T[2] = (u_2 - u_1)
+		second_term[0] = Sigma_1I[0] * t_in_object + second_term_common_3;				
 		second_term[1] = Sigma_1I[1] * t_in_object +  depth_2_go * second_term_common_3 + second_term_common_4;
-		
-		// 3
-		// t_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
 		
 		// 4		first_term[0] -> first_term[3] & first_term[1] -> -first_term[1] 
 		t_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
-		//cout << "t_1 = " << t_1 << endl;
 		//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
 
 		// t: 65 -> 31
 		/**********************************************************************************************************************************************************/
-		// 12
 		// Do v MLP Now
-		/*second_term_common_1 = R_0[0] * V_0[0] + R_0[1] * V_0[1];				// v_in_object + u_1 * 0 = v_in_object
-		second_term_common_2 = R_0[2] * V_0[0] + R_0[3] * V_0[1];				// 0
-		second_term_common_3 = Sigma_2I[0] * V_2[0] + Sigma_2I[1] * V_2[1];		// Sigma_2I[0] * v_out_object + Sigma_2I[1] * (xz_exit_angle - xz_entry_angle)
-		second_term_common_4 = Sigma_2I[2] * V_2[0] + Sigma_2I[3] * V_2[1];*/	// Sigma_2I[2] * v_out_object + Sigma_2I[3] * (xz_exit_angle - xz_entry_angle)
-		
-		// 			V_2[1] = (xz_exit_angle - xz_entry_angle)
-		//second_term_common_1 = v_in_object;						
-		//second_term_common_2 = 0;	
-
 		// 3 + 3 = 6
 		second_term_common_3 =  Sigma_2I[0] * z_out_object + Sigma_2I[1] * V_2[1];
 		second_term_common_4 = Sigma_2I[1] * z_out_object + Sigma_2I[2] * V_2[1];
 
-		// 14
-		/*second_term[0]	= Sigma_1I[0] * second_term_common_1			// Sigma_1I[0] * v_in_object	
-						+ Sigma_1I[1] * second_term_common_2				// + Sigma_1I[1] * 0 = 0
-						+ R_1T[0] * second_term_common_3					// + 1 * second_term_common_3 = second_term_common_3
-						+ R_1T[1] * second_term_common_4;*/					// + 0 * second_term_common_4 = 0
-		//  2 
+		//  2 + 4
 		second_term[0] = Sigma_1I[0] * z_in_object + second_term_common_3;
-		
-		/*second_term[1]	= Sigma_1I[2] * second_term_common_1			// Sigma_1I[2] * v_in_object
-						+ Sigma_1I[3] * second_term_common_2				// + Sigma_1I[3] * 0 = 0
-						+ R_1T[2] * second_term_common_3					// + R_1T[2] * second_term_common_3
-						+ R_1T[3] * second_term_common_4;*/					// + 1 * second_term_common_4 = second_term_common_4
-		
-		// 4
 		second_term[1] = Sigma_1I[1] * z_in_object + depth_2_go * second_term_common_3 + second_term_common_4;
-		
-		
-		// 3
-		//v_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
 
 		// 4
 		v_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
-
 		//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
-
-		// v: 29 -> 16
-
-		// t + v: 94 -> 47
 		/**********************************************************************************************************************************************************/
 		// 47 -> 13
 		// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
 		// 1 + 1 + 1 + 3 + 3 = 9 -> 7 w/ precalculated sin/cos
 		
 		u_shifted += parameters.MLP_U_STEP;
-		//u_shifted += parameters.MLP_U_STEP;
 		x_1 = cos_term * u_shifted - sin_term * t_1;
 		y_1 = sin_term * u_shifted + cos_term * t_1;
 
@@ -4943,8 +4765,6 @@ unsigned int calculate_MLP4
 		voxel = voxel_x + voxel_y * parameters.COLUMNS + voxel_z * parameters.COLUMNS * parameters.ROWS;
 
 		// 4
-		//if( voxel != path[num_intersections - 1] )
-		//	path[num_intersections++] = voxel;	
 		if( voxel != path[num_intersections] )
 			path[++num_intersections] = voxel;	
 
@@ -4978,7 +4798,7 @@ unsigned int calculate_MLP5
 	path[num_intersections] = voxel;
 	//num_intersections++;
 
-	int trig_table_index =  (xy_entry_angle - TRIG_TABLE_MIN ) / TRIG_TABLE_STEP + 0.5;
+	unsigned int trig_table_index =  static_cast<unsigned int>((xy_entry_angle - TRIG_TABLE_MIN ) / TRIG_TABLE_STEP + 0.5);
 	double sin_term = sin_table_h[trig_table_index];
 	double cos_term = cos_table_h[trig_table_index];
 	 
@@ -4989,7 +4809,7 @@ unsigned int calculate_MLP5
 	{
 		xy_entry_angle += PI;
 		xy_exit_angle += PI;
-		trig_table_index =  (xy_entry_angle - TRIG_TABLE_MIN ) / TRIG_TABLE_STEP + 0.5;
+		trig_table_index =  static_cast<unsigned int>((xy_entry_angle - TRIG_TABLE_MIN ) / TRIG_TABLE_STEP + 0.5);
 		sin_term = sin_table_h[trig_table_index];
 		cos_term = cos_table_h[trig_table_index];
 		u_in_object = cos_term * x_in_object + sin_term * y_in_object;
@@ -5025,16 +4845,6 @@ unsigned int calculate_MLP5
 	//while( u_1 < u_2 - parameters.MLP_U_STEP)
 	while( depth_2_go > parameters.MLP_U_STEP )
 	{
-		//depth_2_go = u_2 - u_1;
-		//depth_2_go_index -= depth_table_index_step;
-		//depth_index += depth_table_index_step;
-		//depth_2_go -= parameters.MLP_U_STEP;
-
-		// Sigma_t: (u_1/2 - u)^2
-		// Sigma_t_theta: 1
-		// Sigma_theta: u_1/2 - u
-
-		// 2 
 		u_1_poly_1_2 = poly_1_2_h[u_1_poly_index];
 		u_1_poly_2_3 = poly_2_3_h[u_1_poly_index];
 
@@ -5062,7 +4872,6 @@ unsigned int calculate_MLP5
 
 		// Inverse Scattering Matrices: Total Ops = 2 + 3 + 11 + 7 + 7 = 30
 		/**********************************************************************************************************************************************************/
-		// 2 + 2 + 2 + 2 + 3 + 3 + 3 = 17
 		// 2 + 1 + 1 + 3 + 3 + 3 = 13
 		first_term_common_24_1 = Sigma_2I[0] * depth_2_go - Sigma_2I[1];
 		//first_term_common_24_2 = Sigma_2I[2] - Sigma_2I[1] * depth_2_go;
@@ -5079,18 +4888,15 @@ unsigned int calculate_MLP5
 		second_term[1] = depth_2_go * second_term_common_3 + Sigma_2I[2] * T_2[1] - Sigma_2I[1] * t_out_object - Sigma_1I[1] * t_in_object;	
 		t_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
 		//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
-
 		// t: Total Ops = 17 + 16 = 33
 		/**********************************************************************************************************************************************************/
 		// Do v MLP Now
-
 		// 3 + 2 + 7 + 4 = 16
 		second_term_common_3 = Sigma_2I[0] * z_out_object - Sigma_2I[1] * V_2[1];
 		second_term[0] = Sigma_1I[0] * z_in_object + second_term_common_3;
 		second_term[1] = depth_2_go * second_term_common_3 + Sigma_2I[2] * V_2[1] - Sigma_2I[1] * z_out_object - Sigma_1I[1] * z_in_object;
 		v_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
 		//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
-
 		// v: Total Ops = 16
 		/**********************************************************************************************************************************************************/
 		// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
@@ -8740,27 +8546,142 @@ void test_trig_table()
 	cout << error_round << endl;
 	cout << error_roundplus1 << endl;
 }
+void MLP5_test()
+{
+	double scattering_coefficient;
+	double u_1 = parameters.MLP_U_STEP;
+	double u_2 = 20.0;
+	double depth_2_go = u_2 - u_1;
+	double u_shifted = 5.0;	
+
+	double poly_1_2, poly_2_3, poly_3_4, poly_2_6, poly_3_12;
+	double u_1_poly_1_2, u_1_poly_2_3, u_1_poly_3_4, u_1_poly_2_6, u_1_poly_3_12;
+	double u_2_poly_1_2, u_2_poly_2_3, u_2_poly_3_4, u_2_poly_2_6, u_2_poly_3_12;
+
+	// Scattering Coefficient tables indices
+	unsigned int sigma_table_index_step = static_cast<unsigned int>( parameters.MLP_U_STEP / DEPTH_TABLE_STEP + 0.5 );
+	unsigned int sigma_1_coefficient_index = sigma_table_index_step;
+	unsigned int sigma_2_coefficient_index = static_cast<unsigned int>( depth_2_go / DEPTH_TABLE_STEP + 0.5 );
+	
+	// Scattering polynomial indices
+	unsigned int poly_table_index_step = static_cast<unsigned int>( parameters.MLP_U_STEP / POLY_TABLE_STEP + 0.5 );
+	unsigned int u_1_poly_index = poly_table_index_step;
+	unsigned int u_2_poly_index = static_cast<unsigned int>( u_2 / POLY_TABLE_STEP + 0.5 );
+
+	//precalculated u_2 dependent terms (since u_2 does not change inside while loop)
+	//double u_2_poly_3_12 = poly_3_12_h[u_2_poly_index];
+	//double u_2_poly_2_6 = poly_2_6_h[u_2_poly_index];
+	//double u_2_poly_1_2 = poly_1_2_h[u_2_poly_index];
+	//double u_1_poly_1_2, u_1_poly_2_3;
+
+	//while( u_1 < u_2 - parameters.MLP_U_STEP)
+	while( depth_2_go > parameters.MLP_U_STEP )
+	{
+		cout << "u_1 = " << u_1 << endl;
+		cout << "depth_2_go = " << depth_2_go << endl;
+		cout << "sigma_1_coefficient_index = " << sigma_1_coefficient_index << endl;
+		cout << "sigma_2_coefficient_index = " << sigma_2_coefficient_index << endl;
+		cout << "u_1_poly_index = " << u_1_poly_index << endl;
+		cout << "sigma_table_index_step = " << sigma_table_index_step << endl;
+		cout << "poly_table_index_step = " << poly_table_index_step << endl;
+			
+		poly_1_2  = u_1 * ( A_0		   + u_1 * (A_1_OVER_2  + u_1 * (A_2_OVER_3  + u_1 * (A_3_OVER_4  + u_1 * (A_4_OVER_5   + u_1 * A_5_OVER_6   )))) );	// 1, 2, 3, 4, 5, 6
+		poly_2_3  = pow(u_1, 2) * ( A_0_OVER_2 + u_1 * (A_1_OVER_3  + u_1 * (A_2_OVER_4  + u_1 * (A_3_OVER_5  + u_1 * (A_4_OVER_6   + u_1 * A_5_OVER_7   )))) );	// 2, 3, 4, 5, 6, 7
+		poly_3_4 = pow(u_1, 3) * ( A_0_OVER_3 + u_1 * (A_1_OVER_4  + u_1 * (A_2_OVER_5  + u_1 * (A_3_OVER_6  + u_1 * (A_4_OVER_7   + u_1 * A_5_OVER_8   )))) );	// 3, 4, 5, 6, 7, 8
+		poly_2_6 = pow(u_1, 2) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6  + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30  + u_1 * A_5_OVER_42  )))) );	// 2, 6, 12, 20, 30, 42
+		poly_3_12 = pow(u_1, 3) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + u_1 * A_5_OVER_168 )))) );	// 3, 12, 30, 60, 105, 168		
+		
+		u_1_poly_1_2 = poly_1_2_h[u_1_poly_index];
+		u_1_poly_2_3 = poly_2_3_h[u_1_poly_index];
+		u_1_poly_3_4 = poly_3_4_h[u_1_poly_index];
+		u_1_poly_2_6 = poly_2_6_h[u_1_poly_index];
+		u_1_poly_3_12 = poly_3_12_h[u_1_poly_index];
+
+		puts("u_1s");
+		scattering_coefficient = pow( E_0 * ( 1 + 0.038 * log(u_1 / X0) ), 2.0 ) / X0;
+		cout << scattering_coefficient << " vs. " << scattering_table_h[sigma_1_coefficient_index] << endl;
+		cout << poly_1_2 << " vs. " << u_1_poly_1_2 << endl;
+		cout << poly_2_3 << " vs. " << u_1_poly_2_3 << endl;
+		cout << poly_3_4 << " vs. " << u_1_poly_3_4 << endl;
+		cout << poly_2_6 << " vs. " << u_1_poly_2_6 << endl;
+		cout << poly_3_12 << " vs. " << u_1_poly_3_12 << endl;
+		
+		poly_1_2  = u_2 * ( A_0		   + u_2 * (A_1_OVER_2  + u_2 * (A_2_OVER_3  + u_2 * (A_3_OVER_4  + u_2 * (A_4_OVER_5   + u_2 * A_5_OVER_6   )))) );	// 1, 2, 3, 4, 5, 6
+		poly_2_3  = pow(u_2, 2) * ( A_0_OVER_2 + u_2 * (A_1_OVER_3  + u_2 * (A_2_OVER_4  + u_2 * (A_3_OVER_5  + u_2 * (A_4_OVER_6   + u_2 * A_5_OVER_7   )))) );	// 2, 3, 4, 5, 6, 7
+		poly_3_4 = pow(u_2, 3) * ( A_0_OVER_3 + u_2 * (A_1_OVER_4  + u_2 * (A_2_OVER_5  + u_2 * (A_3_OVER_6  + u_2 * (A_4_OVER_7   + u_2 * A_5_OVER_8   )))) );	// 3, 4, 5, 6, 7, 8
+		poly_2_6 = pow(u_2, 2) * ( A_0_OVER_2 + u_2 * (A_1_OVER_6  + u_2 * (A_2_OVER_12 + u_2 * (A_3_OVER_20 + u_2 * (A_4_OVER_30  + u_2 * A_5_OVER_42  )))) );	// 2, 6, 12, 20, 30, 42
+		poly_3_12 = pow(u_2, 3) * ( A_0_OVER_3 + u_2 * (A_1_OVER_12 + u_2 * (A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * (A_4_OVER_105 + u_2 * A_5_OVER_168 )))) );	// 3, 12, 30, 60, 105, 168		
+		
+		u_2_poly_1_2 = poly_1_2_h[u_2_poly_index];
+		u_2_poly_2_3 = poly_2_3_h[u_2_poly_index];
+		u_2_poly_3_4 = poly_3_4_h[u_2_poly_index];
+		u_2_poly_2_6 = poly_2_6_h[u_2_poly_index];
+		u_2_poly_3_12 = poly_3_12_h[u_2_poly_index];
+
+		puts("u_2s");
+		
+		scattering_coefficient = pow( E_0 * ( 1 + 0.038 * log((u_2-u_1) / X0) ), 2.0 ) / X0;
+		cout << scattering_coefficient << " vs. " << scattering_table_h[sigma_2_coefficient_index] << endl;
+		cout << poly_1_2 << " vs. " << u_2_poly_1_2 << endl;
+		cout << poly_2_3 << " vs. " << u_2_poly_2_3 << endl;
+		cout << poly_3_4 << " vs. " << u_2_poly_3_4 << endl;
+		cout << poly_2_6 << " vs. " << u_2_poly_2_6 << endl;
+		cout << poly_3_12 << " vs. " << u_2_poly_3_12 << endl;
+		// Sigma_1: 3
+		//sigma_t1 = poly_3_12_h[u_1_poly_index];										// poly_3_12(u_1)
+		//sigma_t1_theta1 =  poly_2_6_h[u_1_poly_index];								// poly_2_6(u_1) 
+		//sigma_theta1 = u_1_poly_1_2;												// poly_1_2(u_1)
+
+		//// Sigma_2: 7 + 3 + 1 = 11									//
+		//sigma_t2 =  u_2_poly_3_12 - pow(u_2, 2.0) * u_1_poly_1_2 + 2 * u_2 * u_1_poly_2_3 - poly_3_4_h[u_1_poly_index];	// poly_3_12(u_2) - u_2^2 * poly_1_2(u_1) +2u_2*(u_1) - poly_3_4(u_1)
+		//sigma_t2_theta2 =  u_2_poly_2_6 - u_2 * u_1_poly_1_2 + u_1_poly_2_3;											// poly_2_6(u_2) - u_2*poly_1_2(u_1) + poly_2_3(u_1)
+		//sigma_theta2 =  u_2_poly_1_2 - u_1_poly_1_2;																	// poly_1_2(u_2) - poly_1_2(u_1)	
+
+		//// 4 + 1 + 1 + 1 = 7
+		//determinant_Sigma_1 = scattering_table_h[sigma_1_coefficient_index] * ( sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 ) );//ad-bc
+		//Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
+		//Sigma_1I[1] = sigma_t1_theta1 / determinant_Sigma_1;	// negative sign is propagated to subsequent calculations instead of here 
+		//Sigma_1I[2] = sigma_t1 / determinant_Sigma_1;			
+		//	
+		//// 4 + 1 + 1 + 1 = 7
+		//determinant_Sigma_2 = scattering_table_h[sigma_2_coefficient_index] * ( sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 ) );//ad-bc
+		//Sigma_2I[0] = sigma_theta2 / determinant_Sigma_2;
+		//Sigma_2I[1] = sigma_t2_theta2 / determinant_Sigma_2;	// negative sign is propagated to subsequent calculations instead of here 
+		//Sigma_2I[2] = sigma_t2 / determinant_Sigma_2;
+
+		u_1 += parameters.MLP_U_STEP;
+		depth_2_go -= parameters.MLP_U_STEP;
+		sigma_1_coefficient_index += sigma_table_index_step;
+		sigma_2_coefficient_index -= sigma_table_index_step;
+		u_1_poly_index += poly_table_index_step;
+
+		
+		pause_execution();
+	}
+}
+
 void test_func()
 {	
 	generate_trig_tables();
-	free(sin_table_h);
-	free(cos_table_h);
-	import_trig_tables();
+	//free(sin_table_h);
+	//free(cos_table_h);
+	//import_trig_tables();
 	//test_trig_table();
-	uint i = 0;
+	//uint i = 0;
 	generate_scattering_coefficient_table();
-	cout << scattering_table_h[0] << endl;
-	cout << scattering_table_h[1] << endl;
-	cout << scattering_table_h[++i] << endl;
-	cout << i << endl;
-	cout << scattering_table_h[i++] << endl;
-	cout << i << endl;
-	cout << scattering_table_h[2] << endl;
-	cout << scattering_table_h[DEPTH_TABLE_ELEMENTS-1] << endl;
-	free(scattering_table_h);
-	import_scattering_coefficient_table();
-
+	//cout << scattering_table_h[0] << endl;
+	//cout << scattering_table_h[1] << endl;
+	//cout << scattering_table_h[++i] << endl;
+	//cout << i << endl;
+	//cout << scattering_table_h[i++] << endl;
+	//cout << i << endl;
+	//cout << scattering_table_h[2] << endl;
+	//cout << scattering_table_h[DEPTH_TABLE_ELEMENTS-1] << endl;
+	//free(scattering_table_h);
+	//import_scattering_coefficient_table();
 	generate_polynomial_tables();
+	//MLP5_test();
+	//import_polynomial_tables();
 	//for( int i = 0; i <= POLY_TABLE_ELEMENTS; i++ )
 	//{
 	//	cout << " i1 = " << (i*POLY_TABLE_STEP) << " = " << poly_1_2_h[i] << endl;
@@ -8785,7 +8706,7 @@ void test_func()
 	//cout << poly_1_2_h[1] << endl;
 	//cout << poly_1_2_h[POLY_TABLE_ELEMENTS-1] << endl;
 	//cout << (POLY_TABLE_ELEMENTS * POLY_TABLE_STEP)<< endl;
-	free(poly_1_2_h);
+	/*free(poly_1_2_h);
 	free(poly_2_3_h);
 	free(poly_3_4_h);
 	free(poly_2_6_h);
@@ -8809,7 +8730,7 @@ void test_func()
 
 	cout << poly_3_12_h[0] << endl;
 	cout << poly_3_12_h[1] << endl;
-	cout << poly_3_12_h[POLY_TABLE_ELEMENTS] << endl;
+	cout << poly_3_12_h[POLY_TABLE_ELEMENTS] << endl;*/
 
 	//int orig[] = {1,2,3,4,5,6,7,8};
 	//std::vector<int> orig_vec( orig, orig + 8);

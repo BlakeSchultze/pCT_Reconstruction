@@ -413,12 +413,21 @@ double mean_chord_length( double, double, double, double, double, double );
 double EffectiveChordLength(double, double);
 float EffectiveChordLength(float, float);
 
+void generate_trig_tables();
+void import_trig_tables();
+void generate_scattering_coefficient_table();
+void import_scattering_coefficient_table();
+void generate_polynomial_tables();
+void import_polynomial_tables();
+
 // MLP
 template<typename O> bool find_MLP_endpoints( O*&, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool );
 void collect_MLP_endpoints();
 unsigned int calculate_MLP( unsigned int*&, float*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
 unsigned int calculate_MLP2( unsigned int*&, float*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
 unsigned int calculate_MLP3( unsigned int*&, float*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
+unsigned int calculate_MLP4( unsigned int*&, float*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
+unsigned int calculate_MLP5( unsigned int*&, float*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
 
 // Preprocessing Data I/O
 void export_hull();

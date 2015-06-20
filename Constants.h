@@ -41,15 +41,15 @@ char POLY_3_12_FILENAME[]	= "poly_3_12.bin";							// Prefix of the file contain
 #define TRIG_TABLE_MIN	-2 * PI											// [degrees] Minimum angle contained in the sin/cos lookup table used for MLP
 #define TRIG_TABLE_MAX	4 * PI											// [degrees] Maximum angle contained in the sin/cos lookup table used for MLP
 #define TRIG_TABLE_RANGE	(TRIG_TABLE_MAX - TRIG_TABLE_MIN)				// [degrees] Range of angles contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_STEP		(0.01 * ANGLE_TO_RADIANS)						// [degrees] Step of 1/4 degree for elements of sin/cos lookup table used for MLP
+#define TRIG_TABLE_STEP		(0.001 * ANGLE_TO_RADIANS)						// [degrees] Step of 1/4 degree for elements of sin/cos lookup table used for MLP
 #define TRIG_TABLE_ELEMENTS	static_cast<int>(TRIG_TABLE_RANGE / TRIG_TABLE_STEP + 0.5)			// [#] # of elements contained in the sin/cos lookup table used for MLP
 #define DEPTH_TABLE_RANGE	40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
-#define DEPTH_TABLE_STEP		0.001										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define DEPTH_TABLE_STEP		0.00005										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
 #define DEPTH_TABLE_ELEMENTS	static_cast<int>(DEPTH_TABLE_RANGE / DEPTH_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
 //#define DEPTH_TABLE_SHIFT	static_cast<int>(DEPTH_TABLE_RANGE / DEPTH_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
 
 #define POLY_TABLE_RANGE	40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
-#define POLY_TABLE_STEP		0.0001										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define POLY_TABLE_STEP		0.00005										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
 #define POLY_TABLE_ELEMENTS	static_cast<int>(POLY_TABLE_RANGE / POLY_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
 //#define POLY_TABLE_SHIFT	static_cast<int>(POLY_TABLE_RANGE / POLY_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
 //#define INDEX_SHIFT_4_U_1	50											// [#] Difference between the index of consecutive elements of the poly table for u_1 dependent terms
