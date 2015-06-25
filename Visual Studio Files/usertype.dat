@@ -1,6 +1,8 @@
 C:\Program Files (x86)\Microsoft Visual Studio 10.0\Common7\IDE\usertype.dat
 ULL
 uint
+dim3
+cudaError_t
 generic_IO_container
 configurations
 __global__

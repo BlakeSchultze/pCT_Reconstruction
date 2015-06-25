@@ -2391,14 +2391,14 @@ __global__ void SC_GPU
 		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
 		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
 
-		voxel_x = calculate_voxel_GPU( parameters, parameters->X_ZERO_COORDINATE, x_entry[i], parameters->VOXEL_WIDTH );
-		voxel_y = calculate_voxel_GPU( parameters, parameters->Y_ZERO_COORDINATE, y_entry[i], parameters->VOXEL_HEIGHT );
-		voxel_z = calculate_voxel_GPU( parameters, parameters->Z_ZERO_COORDINATE, z_entry[i], parameters->VOXEL_THICKNESS );		
+		voxel_x = calculate_voxel_GPU( parameters->X_ZERO_COORDINATE, x_entry[i], parameters->VOXEL_WIDTH );
+		voxel_y = calculate_voxel_GPU( parameters->Y_ZERO_COORDINATE, y_entry[i], parameters->VOXEL_HEIGHT );
+		voxel_z = calculate_voxel_GPU( parameters->Z_ZERO_COORDINATE, z_entry[i], parameters->VOXEL_THICKNESS );		
 		voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
 
-		x_to_go = distance_remaining_GPU( parameters, parameters->X_ZERO_COORDINATE,	x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH,	 voxel_x );
-		y_to_go = distance_remaining_GPU( parameters, parameters->Y_ZERO_COORDINATE,	y, Y_INCREASING_DIRECTION,  y_move_direction, parameters->VOXEL_HEIGHT,	 voxel_y );
-		z_to_go = distance_remaining_GPU( parameters, parameters->Z_ZERO_COORDINATE,	z, Z_INCREASING_DIRECTION,  z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );				
+		x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE,	x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH,	 voxel_x );
+		y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE,	y, Y_INCREASING_DIRECTION,  y_move_direction, parameters->VOXEL_HEIGHT,	 voxel_y );
+		z_to_go = distance_remaining_GPU( parameters->Z_ZERO_COORDINATE,	z, Z_INCREASING_DIRECTION,  z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );				
 		/********************************************************************************************/
 		/***************************** Path and Walk Information ************************************/
 		/********************************************************************************************/
@@ -2412,9 +2412,9 @@ __global__ void SC_GPU
 		/********************************************************************************************/
 		/************************* Initialize and Check Exit Conditions *****************************/
 		/********************************************************************************************/
-		voxel_x_out = calculate_voxel_GPU( parameters, parameters->X_ZERO_COORDINATE, x_exit[i], parameters->VOXEL_WIDTH );
-		voxel_y_out = calculate_voxel_GPU( parameters, parameters->Y_ZERO_COORDINATE, y_exit[i], parameters->VOXEL_HEIGHT );
-		voxel_z_out = calculate_voxel_GPU( parameters, parameters->Z_ZERO_COORDINATE, z_exit[i], parameters->VOXEL_THICKNESS );
+		voxel_x_out = calculate_voxel_GPU( parameters->X_ZERO_COORDINATE, x_exit[i], parameters->VOXEL_WIDTH );
+		voxel_y_out = calculate_voxel_GPU( parameters->Y_ZERO_COORDINATE, y_exit[i], parameters->VOXEL_HEIGHT );
+		voxel_z_out = calculate_voxel_GPU( parameters->Z_ZERO_COORDINATE, z_exit[i], parameters->VOXEL_THICKNESS );
 		voxel_out = voxel_x_out + voxel_y_out * parameters->COLUMNS + voxel_z_out * parameters->COLUMNS * parameters->ROWS;
 
 		end_walk = ( voxel == voxel_out ) || ( voxel_x >= parameters->COLUMNS ) || ( voxel_y >= parameters->ROWS ) || ( voxel_z >= parameters->SLICES );
@@ -2521,14 +2521,14 @@ __global__ void MSC_GPU
 		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
 		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
 
-		voxel_x = calculate_voxel_GPU( parameters, parameters->X_ZERO_COORDINATE, x_entry[i], parameters->VOXEL_WIDTH );
-		voxel_y = calculate_voxel_GPU( parameters, parameters->Y_ZERO_COORDINATE, y_entry[i], parameters->VOXEL_HEIGHT );
-		voxel_z = calculate_voxel_GPU( parameters, parameters->Z_ZERO_COORDINATE, z_entry[i], parameters->VOXEL_THICKNESS );		
+		voxel_x = calculate_voxel_GPU( parameters->X_ZERO_COORDINATE, x_entry[i], parameters->VOXEL_WIDTH );
+		voxel_y = calculate_voxel_GPU( parameters->Y_ZERO_COORDINATE, y_entry[i], parameters->VOXEL_HEIGHT );
+		voxel_z = calculate_voxel_GPU( parameters->Z_ZERO_COORDINATE, z_entry[i], parameters->VOXEL_THICKNESS );		
 		voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
 
-		x_to_go = distance_remaining_GPU( parameters, parameters->X_ZERO_COORDINATE,	x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH,	 voxel_x );
-		y_to_go = distance_remaining_GPU( parameters, parameters->Y_ZERO_COORDINATE,	y, Y_INCREASING_DIRECTION,  y_move_direction, parameters->VOXEL_HEIGHT,	 voxel_y );
-		z_to_go = distance_remaining_GPU( parameters, parameters->Z_ZERO_COORDINATE,	z, Z_INCREASING_DIRECTION,  z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );				
+		x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE,	x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH,	 voxel_x );
+		y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE,	y, Y_INCREASING_DIRECTION,  y_move_direction, parameters->VOXEL_HEIGHT,	 voxel_y );
+		z_to_go = distance_remaining_GPU( parameters->Z_ZERO_COORDINATE,	z, Z_INCREASING_DIRECTION,  z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );				
 		/********************************************************************************************/
 		/***************************** Path and Walk Information ************************************/
 		/********************************************************************************************/
@@ -2542,9 +2542,9 @@ __global__ void MSC_GPU
 		/********************************************************************************************/
 		/************************* Initialize and Check Exit Conditions *****************************/
 		/********************************************************************************************/
-		voxel_x_out = calculate_voxel_GPU( parameters, parameters->X_ZERO_COORDINATE, x_exit[i], parameters->VOXEL_WIDTH );
-		voxel_y_out = calculate_voxel_GPU( parameters, parameters->Y_ZERO_COORDINATE, y_exit[i], parameters->VOXEL_HEIGHT );
-		voxel_z_out = calculate_voxel_GPU( parameters, parameters->Z_ZERO_COORDINATE, z_exit[i], parameters->VOXEL_THICKNESS );
+		voxel_x_out = calculate_voxel_GPU( parameters->X_ZERO_COORDINATE, x_exit[i], parameters->VOXEL_WIDTH );
+		voxel_y_out = calculate_voxel_GPU( parameters->Y_ZERO_COORDINATE, y_exit[i], parameters->VOXEL_HEIGHT );
+		voxel_z_out = calculate_voxel_GPU( parameters->Z_ZERO_COORDINATE, z_exit[i], parameters->VOXEL_THICKNESS );
 		voxel_out = voxel_x_out + voxel_y_out * parameters->COLUMNS + voxel_z_out * parameters->COLUMNS * parameters->ROWS;
 
 		end_walk = ( voxel == voxel_out ) || ( voxel_x >= parameters->COLUMNS ) || ( voxel_y >= parameters->ROWS ) || ( voxel_z >= parameters->SLICES );
@@ -2675,14 +2675,14 @@ __global__ void SM_GPU
 		y_move_direction = ( y_entry[i] <= y_exit[i] ) - ( y_entry[i] >= y_exit[i] );
 		z_move_direction = ( z_entry[i] <= z_exit[i] ) - ( z_entry[i] >= z_exit[i] );		
 
-		voxel_x = calculate_voxel_GPU( parameters, parameters->X_ZERO_COORDINATE, x_entry[i], parameters->VOXEL_WIDTH );
-		voxel_y = calculate_voxel_GPU( parameters, parameters->Y_ZERO_COORDINATE, y_entry[i], parameters->VOXEL_HEIGHT );
-		voxel_z = calculate_voxel_GPU( parameters, parameters->Z_ZERO_COORDINATE, z_entry[i], parameters->VOXEL_THICKNESS );		
+		voxel_x = calculate_voxel_GPU( parameters->X_ZERO_COORDINATE, x_entry[i], parameters->VOXEL_WIDTH );
+		voxel_y = calculate_voxel_GPU( parameters->Y_ZERO_COORDINATE, y_entry[i], parameters->VOXEL_HEIGHT );
+		voxel_z = calculate_voxel_GPU( parameters->Z_ZERO_COORDINATE, z_entry[i], parameters->VOXEL_THICKNESS );		
 		voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
 
-		x_to_go = distance_remaining_GPU( parameters, parameters->X_ZERO_COORDINATE,	x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH,	 voxel_x );
-		y_to_go = distance_remaining_GPU( parameters, parameters->Y_ZERO_COORDINATE,	y, Y_INCREASING_DIRECTION,  y_move_direction, parameters->VOXEL_HEIGHT,	 voxel_y );
-		z_to_go = distance_remaining_GPU( parameters, parameters->Z_ZERO_COORDINATE,	z, Z_INCREASING_DIRECTION,  z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );				
+		x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE,	x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH,	 voxel_x );
+		y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE,	y, Y_INCREASING_DIRECTION,  y_move_direction, parameters->VOXEL_HEIGHT,	 voxel_y );
+		z_to_go = distance_remaining_GPU( parameters->Z_ZERO_COORDINATE,	z, Z_INCREASING_DIRECTION,  z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );				
 		/********************************************************************************************/
 		/***************************** Path and Walk Information ************************************/
 		/********************************************************************************************/
@@ -2696,9 +2696,9 @@ __global__ void SM_GPU
 		/********************************************************************************************/
 		/************************* Initialize and Check Exit Conditions *****************************/
 		/********************************************************************************************/
-		voxel_x_out = calculate_voxel_GPU( parameters, parameters->X_ZERO_COORDINATE, x_exit[i], parameters->VOXEL_WIDTH );
-		voxel_y_out = calculate_voxel_GPU( parameters, parameters->Y_ZERO_COORDINATE, y_exit[i], parameters->VOXEL_HEIGHT );
-		voxel_z_out = calculate_voxel_GPU( parameters, parameters->Z_ZERO_COORDINATE, z_exit[i], parameters->VOXEL_THICKNESS );
+		voxel_x_out = calculate_voxel_GPU( parameters->X_ZERO_COORDINATE, x_exit[i], parameters->VOXEL_WIDTH );
+		voxel_y_out = calculate_voxel_GPU( parameters->Y_ZERO_COORDINATE, y_exit[i], parameters->VOXEL_HEIGHT );
+		voxel_z_out = calculate_voxel_GPU( parameters->Z_ZERO_COORDINATE, z_exit[i], parameters->VOXEL_THICKNESS );
 		voxel_out = voxel_x_out + voxel_y_out * parameters->COLUMNS + voxel_z_out * parameters->COLUMNS * parameters->ROWS;
 
 		end_walk = ( voxel == voxel_out ) || ( voxel_x >= parameters->COLUMNS ) || ( voxel_y >= parameters->ROWS ) || ( voxel_z >= parameters->SLICES );
@@ -3595,6 +3595,30 @@ void import_polynomial_tables()
 	fclose( poly_3_4_file  );
 	fclose( poly_2_6_file  );
 	fclose( poly_3_12_file );
+}
+void tables_2_GPU()
+{
+	unsigned int size_trig_tables			= ( TRIG_TABLE_ELEMENTS	 + 1 ) * sizeof(double);
+	unsigned int size_coefficient_tables	= ( DEPTH_TABLE_ELEMENTS + 1 ) * sizeof(double);
+	unsigned int size_poly_tables			= ( POLY_TABLE_ELEMENTS  + 1 ) * sizeof(double);
+
+	cudaMalloc( (void**) &sin_table_d,			size_trig_tables		);
+	cudaMalloc( (void**) &cos_table_d,			size_trig_tables		);
+	cudaMalloc( (void**) &scattering_table_d,	size_coefficient_tables );
+	cudaMalloc( (void**) &poly_1_2_d,			size_poly_tables		);
+	cudaMalloc( (void**) &poly_2_3_d,			size_poly_tables		);
+	cudaMalloc( (void**) &poly_3_4_d,			size_poly_tables		);	
+	cudaMalloc( (void**) &poly_2_6_d,			size_poly_tables		);
+	cudaMalloc( (void**) &poly_3_12_d,			size_poly_tables		);
+
+	cudaMemcpy( sin_table_d,		sin_table_h,		size_trig_tables,			cudaMemcpyHostToDevice );
+	cudaMemcpy( cos_table_d,		cos_table_h,		size_trig_tables,			cudaMemcpyHostToDevice );
+	cudaMemcpy( scattering_table_d, scattering_table_h, size_coefficient_tables,	cudaMemcpyHostToDevice );
+	cudaMemcpy( poly_1_2_d,			poly_1_2_h,			size_poly_tables,			cudaMemcpyHostToDevice );
+	cudaMemcpy( poly_2_3_d,			poly_2_3_h,			size_poly_tables,			cudaMemcpyHostToDevice );
+	cudaMemcpy( poly_3_4_d,			poly_3_4_h,			size_poly_tables,			cudaMemcpyHostToDevice );
+	cudaMemcpy( poly_2_6_d,			poly_2_6_h,			size_poly_tables,			cudaMemcpyHostToDevice );
+	cudaMemcpy( poly_3_12_d,		poly_3_12_h,		size_poly_tables,			cudaMemcpyHostToDevice );
 }
 /***********************************************************************************************************************************************************************************************************************/
 /***************************************************************************************************** Chord Length ****************************************************************************************************/
@@ -4825,6 +4849,7 @@ unsigned int calculate_MLP5
 	double u_2 = abs(u_out_object - u_in_object);
 	double depth_2_go = u_2 - u_1;
 	double u_shifted = u_in_object;	
+	unsigned int step_number = 1;
 
 	// Scattering Coefficient tables indices
 	unsigned int sigma_table_index_step = static_cast<unsigned int>( parameters.MLP_U_STEP / DEPTH_TABLE_STEP + 0.5 );
@@ -4902,7 +4927,8 @@ unsigned int calculate_MLP5
 		// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
 		
 		// 1 + 3 + 3 = 7
-		u_shifted += parameters.MLP_U_STEP;
+		//u_shifted += parameters.MLP_U_STEP;
+		u_shifted = u_in_object + u_1;
 		x_1 = cos_term * u_shifted - sin_term * t_1;
 		y_1 = sin_term * u_shifted + cos_term * t_1;
 
@@ -4917,8 +4943,11 @@ unsigned int calculate_MLP5
 			path[++num_intersections] = voxel;	
 
 		// 1 + 1 + 1 + 1 + 1 = 5
-		u_1 += parameters.MLP_U_STEP;
-		depth_2_go -= parameters.MLP_U_STEP;
+		//u_1 += parameters.MLP_U_STEP;
+		//depth_2_go -= parameters.MLP_U_STEP;
+		step_number++;
+		u_1 = step_number * parameters.MLP_U_STEP;
+		depth_2_go = u_2 - u_1;
 		sigma_1_coefficient_index += sigma_table_index_step;
 		sigma_2_coefficient_index -= sigma_table_index_step;
 		u_1_poly_index += poly_table_index_step;
@@ -4928,6 +4957,1570 @@ unsigned int calculate_MLP5
 	}
 	++num_intersections;
 	return num_intersections;
+}
+__device__ double EffectiveChordLength_GPU(configurations* parameters, double abs_angle_t, double abs_angle_v)
+{	
+	double eff_angle_t,eff_angle_v;	
+	eff_angle_t=abs_angle_t-((int)(abs_angle_t/(PI/2)))*(PI/2);
+	eff_angle_v=fabs(abs_angle_v);
+	
+	// Get the effective chord in the t-u plane
+	double step_fraction=parameters->MLP_U_STEP / parameters->VOXEL_WIDTH;
+	double chord_length_2D=(1/3.0)*((step_fraction*step_fraction*sinf(2*eff_angle_t)-6)/(step_fraction*sinf(2*eff_angle_t)-2*(cosf(eff_angle_t)+sinf(eff_angle_t))) + step_fraction*step_fraction*sinf(2*eff_angle_t)/(2*(cosf(eff_angle_t)+sinf(eff_angle_t))));
+	
+	// Multiply this by the effective chord in the v-u plane
+	double mean_pixel_width=parameters->VOXEL_WIDTH/(cosf(eff_angle_t)+sinf(eff_angle_t));
+	double height_fraction=parameters->VOXEL_THICKNESS/mean_pixel_width;
+	step_fraction=parameters->MLP_U_STEP/mean_pixel_width;
+	double chord_length_3D=(1/3.0)*((step_fraction*step_fraction*sinf(2*eff_angle_v)-6*height_fraction)/(step_fraction*sinf(2*eff_angle_v)-2*(height_fraction*cosf(eff_angle_v)+sinf(eff_angle_v))) + step_fraction*step_fraction*sinf(2*eff_angle_v)/(2*(height_fraction*cosf(eff_angle_v)+sinf(eff_angle_v))));
+	
+	return parameters->VOXEL_WIDTH*chord_length_2D*chord_length_3D;
+	 
+}
+template<typename O> __device__ bool find_MLP_endpoints_GPU
+(
+	configurations* parameters, O* image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
+	double& x_object, double& y_object, double& z_object, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
+)
+	{
+		//char user_response[20];
+		/********************************************************************************************/
+		/********************************* Voxel Walk Parameters ************************************/
+		/********************************************************************************************/
+		int x_move_direction, y_move_direction, z_move_direction;
+		double delta_yx, delta_zx, delta_zy;
+		/********************************************************************************************/
+		/**************************** Status Tracking Information ***********************************/
+		/********************************************************************************************/
+		double x = x_start, y = y_start, z = z_start;
+		double x_to_go, y_to_go, z_to_go;		
+		double x_extension, y_extension;	
+		//int voxel_x, voxel_y, voxel_z;
+		//int voxel_x_out, voxel_y_out, voxel_z_out; 
+		int voxel; 
+		bool hit_hull = false, end_walk, outside_image;
+		// true false
+		//bool debug_run = false;
+		//bool MLP_image_output = false;
+		/********************************************************************************************/
+		/******************** Initial Conditions and Movement Characteristics ***********************/
+		/********************************************************************************************/	
+		if( !entering )
+		{
+			xy_angle += PI;
+		}
+		x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
+		y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
+		z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
+		if( x_move_direction < 0 )
+		{
+			//if( debug_run )
+				//puts("z switched");
+			z_move_direction *= -1;
+		}
+		/*if( debug_run )
+		{
+			cout << "x_move_direction = " << x_move_direction << endl;
+			cout << "y_move_direction = " << y_move_direction << endl;
+			cout << "z_move_direction = " << z_move_direction << endl;
+		}*/
+		
+
+
+		voxel_x = calculate_voxel_GPU( parameters->X_ZERO_COORDINATE, x, parameters->VOXEL_WIDTH );
+		voxel_y = calculate_voxel_GPU( parameters->Y_ZERO_COORDINATE, y, parameters->VOXEL_HEIGHT );
+		voxel_z = calculate_voxel_GPU( parameters->Z_ZERO_COORDINATE, z, parameters->VOXEL_THICKNESS );
+
+		x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
+		y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );	
+		z_to_go = distance_remaining_GPU( parameters->Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );
+
+		voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
+		/********************************************************************************************/
+		/***************************** Path and Walk Information ************************************/
+		/********************************************************************************************/
+		// Lengths/Distances as x is Incremented One Voxel tan( xy_hit_hull_angle )
+		delta_yx = fabs(tan(xy_angle));
+		delta_zx = fabs(tan(xz_angle));
+		delta_zy = fabs( tan(xz_angle)/tan(xy_angle));
+
+		double dy_dx = tan(xy_angle);
+		double dz_dx = tan(xz_angle);
+		double dz_dy = tan(xz_angle)/tan(xy_angle);
+
+		double dx_dy = pow( tan(xy_angle), -1.0 );
+		double dx_dz = pow( tan(xz_angle), -1.0 );
+		double dy_dz = tan(xy_angle)/tan(xz_angle);
+
+		//if( debug_run )
+		//{
+		//	cout << "delta_yx = " << delta_yx << "delta_zx = " << delta_zx << "delta_zy = " << delta_zy << endl;
+		//	cout << "dy_dx = " << dy_dx << "dz_dx = " << dz_dx << "dz_dy = " << dz_dy << endl;
+		//	cout << "dx_dy = " << dx_dy << "dx_dz = " << dx_dz << "dy_dz = " << dy_dz << endl;
+		//}
+
+		/********************************************************************************************/
+		/************************* Initialize and Check Exit Conditions *****************************/
+		/********************************************************************************************/
+		outside_image = (voxel_x >= parameters->COLUMNS ) || (voxel_y >= parameters->ROWS ) || (voxel_z >= parameters->SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
+		if( !outside_image )
+		{
+			hit_hull = (image[voxel] == 1);		
+			//image[voxel] = 4;
+		}
+		end_walk = outside_image || hit_hull;
+		//int j = 0;
+		//int j_low_limit = 0;
+		//int j_high_limit = 250;
+		/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
+		{
+			printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
+			printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
+			printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
+		}*/
+		//if( debug_run )
+			//fgets(user_response, sizeof(user_response), stdin);
+		/********************************************************************************************/
+		/*********************************** Voxel Walk Routine *************************************/
+		/********************************************************************************************/
+		if( z_move_direction != 0 )
+		{
+			//if(debug_run && j <= j_high_limit && j >= j_low_limit )
+				//printf("z_end != z_start\n");
+			while( !end_walk )
+			{
+				// Change in z for Move to Voxel Edge in x and y
+				x_extension = delta_zx * x_to_go;
+				y_extension = delta_zy * y_to_go;
+				//if(debug_run && j <= j_high_limit && j >= j_low_limit )
+				//{
+				//	printf(" x_extension = %3f y_extension = %3f\n", x_extension, y_extension );
+				//	//printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
+				//	//printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
+				//}
+				if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
+				{
+					//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");					
+					voxel_z -= z_move_direction;
+					
+					z = edge_coordinate_GPU( parameters->Z_ZERO_COORDINATE, voxel_z, parameters->VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
+					x = corresponding_coordinate_GPU( dx_dz, z, z_start, x_start );
+					y = corresponding_coordinate_GPU( dy_dz, z, z_start, y_start );
+
+					/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
+					{
+						printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
+						printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
+						printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
+					}*/
+
+					x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
+					y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );	
+					z_to_go = parameters->VOXEL_THICKNESS;
+				}
+				//If Next Voxel Edge is in x or xy Diagonal
+				else if( x_extension <= y_extension )
+				{
+					//printf(" x_extension <= y_extension \n");			
+					voxel_x += x_move_direction;
+
+					x = edge_coordinate_GPU( parameters->X_ZERO_COORDINATE, voxel_x, parameters->VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+					y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
+					z = corresponding_coordinate_GPU( dz_dx, x, x_start, z_start );
+
+					x_to_go = parameters->VOXEL_WIDTH;
+					y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );
+					z_to_go = distance_remaining_GPU( parameters->Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");
+					voxel_y -= y_move_direction;
+					
+					y = edge_coordinate_GPU( parameters->Y_ZERO_COORDINATE, voxel_y, parameters->VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
+					x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
+					z = corresponding_coordinate_GPU( dz_dy, y, y_start, z_start );
+
+					x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
+					y_to_go = parameters->VOXEL_HEIGHT;					
+					z_to_go = distance_remaining_GPU( parameters->Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );
+				}
+				// <= VOXEL_ALLOWANCE
+				if( x_to_go == 0 )
+				{
+					x_to_go = parameters->VOXEL_WIDTH;
+					voxel_x += x_move_direction;
+				}
+				if( y_to_go == 0 )
+				{
+					y_to_go = parameters->VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				if( z_to_go == 0 )
+				{
+					z_to_go = parameters->VOXEL_THICKNESS;
+					voxel_z -= z_move_direction;
+				}
+				
+				voxel_z = max(voxel_z, 0 );
+				voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
+				//if(debug_run && j <= j_high_limit && j >= j_low_limit )
+				//{
+				//	printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
+				//	printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
+				//	printf("voxel_x = %d voxel_y = %d voxel_z = %d voxel = %d\n", voxel_x, voxel_y, voxel_z, voxel);
+				//}
+				outside_image = (voxel_x >= parameters->COLUMNS ) || (voxel_y >= parameters->ROWS ) || (voxel_z >= parameters->SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
+				if( !outside_image )
+				{
+					hit_hull = (image[voxel] == 1);	
+					//if( MLP_image_output )
+					//{
+						//image[voxel] = 4;
+					//}
+				}
+				end_walk = outside_image || hit_hull;
+				//j++;
+				//if( debug_run )
+					//fgets(user_response, sizeof(user_response), stdin);		
+			}// end !end_walk 
+		}
+		else
+		{
+			//if(debug_run && j <= j_high_limit && j >= j_low_limit )
+				//printf("z_end == z_start\n");
+			while( !end_walk )
+			{
+				// Change in x for Move to Voxel Edge in y
+				y_extension = y_to_go / delta_yx;
+				//If Next Voxel Edge is in x or xy Diagonal
+				if( x_to_go <= y_extension )
+				{
+					//printf(" x_to_go <= y_extension \n");
+					voxel_x += x_move_direction;
+					
+					x = edge_coordinate_GPU( parameters->X_ZERO_COORDINATE, voxel_x, parameters->VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+					y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
+
+					x_to_go = parameters->VOXEL_WIDTH;
+					y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );
+				}
+				// Else Next Voxel Edge is in y
+				else
+				{
+					//printf(" y_extension < x_extension \n");				
+					voxel_y -= y_move_direction;
+
+					y = edge_coordinate_GPU( parameters->Y_ZERO_COORDINATE, voxel_y, parameters->VOXEL_HEIGHT, Z_INCREASING_DIRECTION, y_move_direction );
+					x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
+
+					x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
+					y_to_go = parameters->VOXEL_HEIGHT;
+				}
+				// <= VOXEL_ALLOWANCE
+				if( x_to_go == 0 )
+				{
+					x_to_go = parameters->VOXEL_WIDTH;
+					voxel_x += x_move_direction;
+				}
+				if( y_to_go == 0 )
+				{
+					y_to_go = parameters->VOXEL_HEIGHT;
+					voxel_y -= y_move_direction;
+				}
+				voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;		
+				/*if(debug_run && j <= j_high_limit && j >= j_low_limit )
+				{
+					printf(" x = %3f y = %3f z = %3f\n",  x, y, z );
+					printf(" x_to_go = %3f y_to_go = %3f z_to_go = %3f\n",  x_to_go, y_to_go, z_to_go );
+					printf("voxel_x_in = %d voxel_y_in = %d voxel_z_in = %d\n", voxel_x, voxel_y, voxel_z);
+				}*/
+				outside_image = (voxel_x >= parameters->COLUMNS ) || (voxel_y >= parameters->ROWS ) || (voxel_z >= parameters->SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
+				if( !outside_image )
+				{
+					hit_hull = (image[voxel] == 1);		
+					//if( MLP_image_output )
+					//{
+						//image[voxel] = 4;
+					//}
+				}
+				end_walk = outside_image || hit_hull;
+				//j++;
+				//if( debug_run )
+					//fgets(user_response, sizeof(user_response), stdin);		
+			}// end: while( !end_walk )
+			//printf("i = %d", i );
+		}//end: else: z_start != z_end => z_start == z_end
+		if( hit_hull )
+		{
+			x_object = x;
+			y_object = y;
+			z_object = z;
+		}
+		return hit_hull;
+}
+
+__device__ void find_MLP_path_GPU 
+(
+	configurations* parameters, float* x, double b_i, unsigned int first_MLP_voxel_number,
+	double x_in_object, double y_in_object, double z_in_object, double x_out_object, double y_out_object, double z_out_object, 
+	double xy_entry_angle, double xz_entry_angle, double xy_exit_angle, double xz_exit_angle,
+	float lambda, unsigned int* path, float& update_value_history, int& num_intersections_historty
+) 
+{
+	num_intersections_historty = 0;
+	double u_0 = 0.0, u_1 = parameters->MLP_U_STEP,  u_2 = 0.0;
+	double T_0[2] = {0.0, 0.0};
+	double T_2[2] = {0.0, 0.0};
+	double V_0[2] = {0.0, 0.0};
+	double V_2[2] = {0.0, 0.0};
+	double R_0[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
+	double R_1[4] = { 1.0, 0.0, 0.0 , 1.0}; //a,b,c,d
+	double R_1T[4] = { 1.0, 0.0, 0.0 , 1.0};  //a,c,b,d
+
+	double sigma_2_pre_1, sigma_2_pre_2, sigma_2_pre_3;
+	double sigma_1_coefficient, sigma_t1, sigma_t1_theta1, sigma_theta1, determinant_Sigma_1, Sigma_1I[4];
+	double common_sigma_2_term_1, common_sigma_2_term_2, common_sigma_2_term_3;
+	double sigma_2_coefficient, sigma_t2, sigma_t2_theta2, sigma_theta2, determinant_Sigma_2, Sigma_2I[4]; 
+	double first_term_common_13_1, first_term_common_13_2, first_term_common_24_1, first_term_common_24_2, first_term[4], determinant_first_term;
+	double second_term_common_1, second_term_common_2, second_term_common_3, second_term_common_4, second_term[2];
+	double t_1, v_1, x_1, y_1, z_1;
+	double first_term_inversion_temp;
+	
+	double a_i_dot_x_k = 0.0;
+	double a_i_dot_a_i = 0.0;
+	
+	//double theta_1, phi_1;
+	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	double effective_chord_length = EffectiveChordLength_GPU( parameters, ( xy_entry_angle + xy_exit_angle ) / 2.0, ( xz_entry_angle + xz_exit_angle) / 2.0 );
+	double a_j_times_a_j = effective_chord_length * effective_chord_length;
+	
+	//double effective_chord_length = mean_chord_length( u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object );
+	//double effective_chord_length = VOXEL_WIDTH;
+
+	int voxel_x = 0, voxel_y = 0, voxel_z = 0;
+	
+	int voxel = first_MLP_voxel_number;
+	
+	path[num_intersections_historty] = voxel;
+	//path[num_intersections_historty] = voxel;
+	a_i_dot_x_k += x[voxel] * effective_chord_length;
+	a_i_dot_a_i += a_j_times_a_j;
+	//atomicAdd(S[voxel], 1);
+	//if(!constant_chord_lengths)
+		//chord_lengths[num_intersections] = VOXEL_WIDTH;
+	num_intersections_historty++;
+	//MLP_test_image_h[voxel] = 0;
+
+	double u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
+	double u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
+	double t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
+	double t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
+	double v_in_object = z_in_object;
+	double v_out_object = z_out_object;
+
+	if( u_in_object > u_out_object )
+	{
+		//if( debug_output )
+			//cout << "Switched directions" << endl;
+		xy_entry_angle += PI;
+		xy_exit_angle += PI;
+		u_in_object = ( cos( xy_entry_angle ) * x_in_object ) + ( sin( xy_entry_angle ) * y_in_object );
+		u_out_object = ( cos( xy_entry_angle ) * x_out_object ) + ( sin( xy_entry_angle ) * y_out_object );
+		t_in_object = ( cos( xy_entry_angle ) * y_in_object ) - ( sin( xy_entry_angle ) * x_in_object );
+		t_out_object = ( cos( xy_entry_angle ) * y_out_object ) - ( sin( xy_entry_angle ) * x_out_object );
+		v_in_object = z_in_object;
+		v_out_object = z_out_object;
+	}
+	T_0[0] = t_in_object;
+	T_2[0] = t_out_object;
+	T_2[1] = xy_exit_angle - xy_entry_angle;
+	V_0[0] = v_in_object;
+	V_2[0] = v_out_object;
+	V_2[1] = xz_exit_angle - xz_entry_angle;
+		
+	u_0 = 0.0;
+	u_1 = parameters->MLP_U_STEP;
+	u_2 = abs(u_out_object - u_in_object);		
+	//fgets(user_response, sizeof(user_response), stdin);
+
+	//output_file.open(filename);						
+				      
+	//precalculated u_2 dependent terms (since u_2 does not change inside while loop)
+	//u_2 terms
+	sigma_2_pre_1 =  u_2*u_2*u_2 * ( A_0_OVER_3 + u_2 * ( A_1_OVER_12 + u_2 * ( A_2_OVER_30 + u_2 * (A_3_OVER_60 + u_2 * ( A_4_OVER_105 + u_2 * A_5_OVER_168 )))));;	//u_2^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
+	sigma_2_pre_2 =  u_2*u_2 * ( A_0_OVER_2 + u_2 * (A_1_OVER_6 + u_2 * (A_2_OVER_12 + u_2 * ( A_3_OVER_20 + u_2 * (A_4_OVER_30 + u_2 * A_5_OVER_42)))));	//u_2^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42
+	sigma_2_pre_3 =  u_2 * ( A_0 +  u_2 * (A_1_OVER_2 +  u_2 * ( A_2_OVER_3 +  u_2 * ( A_3_OVER_4 +  u_2 * ( A_4_OVER_5 + u_2 * A_5_OVER_6 )))));			//u_2 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6
+
+	while( u_1 < u_2 - parameters->MLP_U_STEP)
+	//while( u_1 < u_2 - 0.001)
+	{
+		R_0[1] = u_1;
+		R_1[1] = u_2 - u_1;
+		R_1T[2] = u_2 - u_1;
+
+		sigma_1_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_1 - u_0)/X0) ), 2.0 ) / X0;
+		sigma_t1 =  sigma_1_coefficient * ( pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_12 + u_1 * (A_2_OVER_30 + u_1 * (A_3_OVER_60 + u_1 * (A_4_OVER_105 + u_1 * A_5_OVER_168 ) )))) );	//u_1^3 : 1/3, 1/12, 1/30, 1/60, 1/105, 1/168
+		sigma_t1_theta1 =  sigma_1_coefficient * ( pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_6 + u_1 * (A_2_OVER_12 + u_1 * (A_3_OVER_20 + u_1 * (A_4_OVER_30 + u_1 * A_5_OVER_42))))) );	//u_1^2 : 1/2, 1/6, 1/12, 1/20, 1/30, 1/42															
+		sigma_theta1 = sigma_1_coefficient * ( u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6))))) );			//u_1 : 1/1, 1/2, 1/3, 1/4, 1/5, 1/6																	
+		determinant_Sigma_1 = sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 );//ad-bc
+			
+		Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
+		Sigma_1I[1] = -sigma_t1_theta1 / determinant_Sigma_1;
+		Sigma_1I[2] = -sigma_t1_theta1 / determinant_Sigma_1;
+		Sigma_1I[3] = sigma_t1 / determinant_Sigma_1;
+
+		//sigma 2 terms
+		sigma_2_coefficient = pow( E_0 * ( 1 + 0.038 * log( (u_2 - u_1)/X0) ), 2.0 ) / X0;
+		common_sigma_2_term_1 = u_1 * ( A_0 + u_1 * (A_1_OVER_2 + u_1 * (A_2_OVER_3 + u_1 * (A_3_OVER_4 + u_1 * (A_4_OVER_5 + u_1 * A_5_OVER_6 )))));
+		common_sigma_2_term_2 = pow(u_1, 2.0) * ( A_0_OVER_2 + u_1 * (A_1_OVER_3 + u_1 * (A_2_OVER_4 + u_1 * (A_3_OVER_5 + u_1 * (A_4_OVER_6 + u_1 * A_5_OVER_7 )))));
+		common_sigma_2_term_3 = pow(u_1, 3.0) * ( A_0_OVER_3 + u_1 * (A_1_OVER_4 + u_1 * (A_2_OVER_5 + u_1 * (A_3_OVER_6 + u_1 * (A_4_OVER_7 + u_1 * A_5_OVER_8 )))));
+		sigma_t2 =  sigma_2_coefficient * ( sigma_2_pre_1 - pow(u_2, 2.0) * common_sigma_2_term_1 + 2 * u_2 * common_sigma_2_term_2 - common_sigma_2_term_3 );
+		sigma_t2_theta2 =  sigma_2_coefficient * ( sigma_2_pre_2 - u_2 * common_sigma_2_term_1 + common_sigma_2_term_2 );
+		sigma_theta2 =  sigma_2_coefficient * ( sigma_2_pre_3 - common_sigma_2_term_1 );				
+		determinant_Sigma_2 = sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 );//ad-bc
+
+		Sigma_2I[0] = sigma_theta2 / determinant_Sigma_2;
+		Sigma_2I[1] = -sigma_t2_theta2 / determinant_Sigma_2;
+		Sigma_2I[2] = -sigma_t2_theta2 / determinant_Sigma_2;
+		Sigma_2I[3] = sigma_t2 / determinant_Sigma_2;
+
+		// first_term_common_ij_k: i,j = rows common to, k = 1st/2nd of last 2 terms of 3 term summation in first_term calculation below
+		first_term_common_13_1 = Sigma_2I[0] * R_1[0] + Sigma_2I[1] * R_1[2];
+		first_term_common_13_2 = Sigma_2I[2] * R_1[0] + Sigma_2I[3] * R_1[2];
+		first_term_common_24_1 = Sigma_2I[0] * R_1[1] + Sigma_2I[1] * R_1[3];
+		first_term_common_24_2 = Sigma_2I[2] * R_1[1] + Sigma_2I[3] * R_1[3];
+
+		first_term[0] = Sigma_1I[0] + R_1T[0] * first_term_common_13_1 + R_1T[1] * first_term_common_13_2;
+		first_term[1] = Sigma_1I[1] + R_1T[0] * first_term_common_24_1 + R_1T[1] * first_term_common_24_2;
+		first_term[2] = Sigma_1I[2] + R_1T[2] * first_term_common_13_1 + R_1T[3] * first_term_common_13_2;
+		first_term[3] = Sigma_1I[3] + R_1T[2] * first_term_common_24_1 + R_1T[3] * first_term_common_24_2;
+
+
+		determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
+		first_term_inversion_temp = first_term[0];
+		first_term[0] = first_term[3] / determinant_first_term;
+		first_term[1] = -first_term[1] / determinant_first_term;
+		first_term[2] = -first_term[2] / determinant_first_term;
+		first_term[3] = first_term_inversion_temp / determinant_first_term;
+
+		// second_term_common_i: i = # of term of 4 term summation it is common to in second_term calculation below
+		second_term_common_1 = R_0[0] * T_0[0] + R_0[1] * T_0[1];
+		second_term_common_2 = R_0[2] * T_0[0] + R_0[3] * T_0[1];
+		second_term_common_3 = Sigma_2I[0] * T_2[0] + Sigma_2I[1] * T_2[1];
+		second_term_common_4 = Sigma_2I[2] * T_2[0] + Sigma_2I[3] * T_2[1];
+
+		second_term[0] = Sigma_1I[0] * second_term_common_1 
+						+ Sigma_1I[1] * second_term_common_2 
+						+ R_1T[0] * second_term_common_3 
+						+ R_1T[1] * second_term_common_4;
+		second_term[1] = Sigma_1I[2] * second_term_common_1 
+						+ Sigma_1I[3] * second_term_common_2 
+						+ R_1T[2] * second_term_common_3 
+						+ R_1T[3] * second_term_common_4;
+
+		t_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
+		//cout << "t_1 = " << t_1 << endl;
+		//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
+
+		// Do v MLP Now
+		second_term_common_1 = R_0[0] * V_0[0] + R_0[1] * V_0[1];
+		second_term_common_2 = R_0[2] * V_0[0] + R_0[3] * V_0[1];
+		second_term_common_3 = Sigma_2I[0] * V_2[0] + Sigma_2I[1] * V_2[1];
+		second_term_common_4 = Sigma_2I[2] * V_2[0] + Sigma_2I[3] * V_2[1];
+
+		second_term[0]	= Sigma_1I[0] * second_term_common_1
+						+ Sigma_1I[1] * second_term_common_2
+						+ R_1T[0] * second_term_common_3
+						+ R_1T[1] * second_term_common_4;
+		second_term[1]	= Sigma_1I[2] * second_term_common_1
+						+ Sigma_1I[3] * second_term_common_2
+						+ R_1T[2] * second_term_common_3
+						+ R_1T[3] * second_term_common_4;
+		v_1 = first_term[0] * second_term[0] + first_term[1] * second_term[1];
+		//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
+
+		// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
+		x_1 = ( cos( xy_entry_angle ) * (u_in_object + u_1) ) - ( sin( xy_entry_angle ) * t_1 );
+		y_1 = ( sin( xy_entry_angle ) * (u_in_object + u_1) ) + ( cos( xy_entry_angle ) * t_1 );
+		z_1 = v_1;
+
+		voxel_x = calculate_voxel_GPU( parameters->X_ZERO_COORDINATE, x_1, parameters->VOXEL_WIDTH );
+		voxel_y = calculate_voxel_GPU( parameters->Y_ZERO_COORDINATE, y_1, parameters->VOXEL_HEIGHT );
+		voxel_z = calculate_voxel_GPU( parameters->Z_ZERO_COORDINATE, z_1, parameters->VOXEL_THICKNESS);
+				
+		voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
+		//cout << "voxel_x = " << voxel_x << "voxel_y = " << voxel_y << "voxel_z = " << voxel_z << "voxel = " << voxel <<endl;
+		//fgets(user_response, sizeof(user_response), stdin);
+
+		if( voxel != path[num_intersections_historty - 1] )
+		{
+			//path[num_intersections_historty] = voxel;
+			path[num_intersections_historty] = voxel;
+			a_i_dot_x_k += x[voxel] * effective_chord_length;
+			a_i_dot_a_i += a_j_times_a_j;
+			//atomicAdd(S[voxel], 1);
+			//MLP_test_image_h[voxel] = 0;
+			//if(!constant_chord_lengths)
+				//chord_lengths[num_intersections] = effective_chord_length;						
+			num_intersections_historty++;
+		}
+		u_1 += parameters->MLP_U_STEP;
+	}
+	
+	
+	
+	update_value_history = effective_chord_length * (( b_i - a_i_dot_x_k ) /  a_i_dot_a_i) * lambda;
+	
+	//return update_value;
+	
+	
+  
+}
+__device__ void find_MLP_path_GPU_tabulated
+(
+	configurations* parameters, float* x, double b_i, unsigned int first_MLP_voxel_number,
+	double x_in_object, double y_in_object, double z_in_object, double x_out_object, double y_out_object, double z_out_object, 
+	double xy_entry_angle, double xz_entry_angle, double xy_exit_angle, double xz_exit_angle,
+	float lambda, unsigned int* path, float& update_value_history, int& num_intersections,
+	double* sin_table, double* cos_table, double* scattering_table, double* poly_1_2, double* poly_2_3, double* poly_3_4, double* poly_2_6, double* poly_3_12
+) 
+{
+	double sigma_t1, sigma_t1_theta1, sigma_theta1, determinant_Sigma_1, Sigma_1I[3];
+	double sigma_t2, sigma_t2_theta2, sigma_theta2, determinant_Sigma_2, Sigma_2I[3]; 
+	double first_term_common_24_1, first_term[4], determinant_first_term;
+	double second_term_common_3, second_term[2];
+	double t_1, v_1, x_1, y_1;
+	int voxel_x = 0, voxel_y = 0, voxel_z = 0;
+
+	unsigned int trig_table_index =  static_cast<unsigned int>((xy_entry_angle - TRIG_TABLE_MIN ) / TRIG_TABLE_STEP + 0.5);
+	double sin_term = sin_table[trig_table_index];
+	double cos_term = cos_table[trig_table_index];
+	 
+	double u_in_object = cos_term * x_in_object + sin_term * y_in_object;
+	double u_out_object = cos_term * x_out_object + sin_term * y_out_object;
+
+	if( u_in_object > u_out_object )
+	{
+		xy_entry_angle += PI;
+		xy_exit_angle += PI;
+		trig_table_index =  static_cast<unsigned int>((xy_entry_angle - TRIG_TABLE_MIN ) / TRIG_TABLE_STEP + 0.5);
+		sin_term = sin_table[trig_table_index];
+		cos_term = cos_table[trig_table_index];
+		u_in_object = cos_term * x_in_object + sin_term * y_in_object;
+		u_out_object = cos_term * x_out_object + sin_term * y_out_object;
+	}
+	double t_in_object = cos_term * y_in_object  - sin_term * x_in_object;
+	double t_out_object = cos_term * y_out_object - sin_term * x_out_object;
+	
+	double T_2[2] = {t_out_object, xy_exit_angle - xy_entry_angle};
+	double V_2[2] = {z_out_object, xz_exit_angle - xz_entry_angle};
+	double u_1 = parameters->MLP_U_STEP;
+	double u_2 = abs(u_out_object - u_in_object);
+	double depth_2_go = u_2 - u_1;
+	double u_shifted = u_in_object;	
+	unsigned int step_number = 1;
+
+	// Scattering Coefficient tables indices
+	unsigned int sigma_table_index_step = static_cast<unsigned int>( parameters->MLP_U_STEP / DEPTH_TABLE_STEP + 0.5 );
+	unsigned int sigma_1_coefficient_index = sigma_table_index_step;
+	unsigned int sigma_2_coefficient_index = static_cast<unsigned int>( depth_2_go / DEPTH_TABLE_STEP + 0.5 );
+	
+	// Scattering polynomial indices
+	unsigned int poly_table_index_step = static_cast<unsigned int>( parameters->MLP_U_STEP / POLY_TABLE_STEP + 0.5 );
+	unsigned int u_1_poly_index = poly_table_index_step;
+	unsigned int u_2_poly_index = static_cast<unsigned int>( u_2 / POLY_TABLE_STEP + 0.5 );
+
+	//precalculated u_2 dependent terms (since u_2 does not change inside while loop)
+	double u_2_poly_3_12 = poly_3_12[u_2_poly_index];
+	double u_2_poly_2_6 = poly_2_6[u_2_poly_index];
+	double u_2_poly_1_2 = poly_1_2[u_2_poly_index];
+	double u_1_poly_1_2, u_1_poly_2_3;
+
+	int voxel = first_MLP_voxel_number;
+	num_intersections = 0;
+	path[num_intersections] = voxel;
+	//num_intersections++;
+
+	double effective_chord_length = EffectiveChordLength_GPU( parameters, ( xy_entry_angle + xy_exit_angle ) / 2.0, ( xz_entry_angle + xz_exit_angle) / 2.0 );
+	//double a_j_times_a_j = effective_chord_length * effective_chord_length;
+	double a_i_dot_x_k = x[voxel];
+	double a_i_dot_a_i = effective_chord_length * effective_chord_length;
+	//double a_i_dot_x_k = x[voxel] * effective_chord_length;
+	//double a_i_dot_a_i = a_j_times_a_j;
+
+	//while( u_1 < u_2 - parameters.MLP_U_STEP)
+	while( depth_2_go > parameters->MLP_U_STEP )
+	{
+		u_1_poly_1_2 = poly_1_2[u_1_poly_index];
+		u_1_poly_2_3 = poly_2_3[u_1_poly_index];
+
+		sigma_t1 = poly_3_12[u_1_poly_index];										// poly_3_12(u_1)
+		sigma_t1_theta1 =  poly_2_6[u_1_poly_index];								// poly_2_6(u_1) 
+		sigma_theta1 = u_1_poly_1_2;												// poly_1_2(u_1)
+
+		sigma_t2 =  u_2_poly_3_12 - pow(u_2, 2.0) * u_1_poly_1_2 + 2 * u_2 * u_1_poly_2_3 - poly_3_4[u_1_poly_index];	// poly_3_12(u_2) - u_2^2 * poly_1_2(u_1) +2u_2*(u_1) - poly_3_4(u_1)
+		sigma_t2_theta2 =  u_2_poly_2_6 - u_2 * u_1_poly_1_2 + u_1_poly_2_3;											// poly_2_6(u_2) - u_2*poly_1_2(u_1) + poly_2_3(u_1)
+		sigma_theta2 =  u_2_poly_1_2 - u_1_poly_1_2;																	// poly_1_2(u_2) - poly_1_2(u_1)	
+
+		determinant_Sigma_1 = scattering_table[sigma_1_coefficient_index] * ( sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 ) );//ad-bc
+		Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
+		Sigma_1I[1] = sigma_t1_theta1 / determinant_Sigma_1;	// negative sign is propagated to subsequent calculations instead of here 
+		Sigma_1I[2] = sigma_t1 / determinant_Sigma_1;			
+			
+		determinant_Sigma_2 = scattering_table[sigma_2_coefficient_index] * ( sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 ) );//ad-bc
+		Sigma_2I[0] = sigma_theta2 / determinant_Sigma_2;
+		Sigma_2I[1] = sigma_t2_theta2 / determinant_Sigma_2;	// negative sign is propagated to subsequent calculations instead of here 
+		Sigma_2I[2] = sigma_t2 / determinant_Sigma_2;
+		/**********************************************************************************************************************************************************/
+		first_term_common_24_1 = Sigma_2I[0] * depth_2_go - Sigma_2I[1];
+		first_term[0] = Sigma_1I[0] + Sigma_2I[0];
+		first_term[1] = first_term_common_24_1 - Sigma_1I[1];
+		first_term[2] = depth_2_go * Sigma_2I[0] - Sigma_1I[1] - Sigma_2I[1];
+		first_term[3] = Sigma_1I[2] + Sigma_2I[2] + depth_2_go * ( first_term_common_24_1 - Sigma_2I[1]);	
+		determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
+		
+		// Calculate MLP t coordinate
+		second_term_common_3 = Sigma_2I[0] * t_out_object - Sigma_2I[1] * T_2[1];	
+		second_term[0] = Sigma_1I[0] * t_in_object + second_term_common_3;
+		second_term[1] = depth_2_go * second_term_common_3 + Sigma_2I[2] * T_2[1] - Sigma_2I[1] * t_out_object - Sigma_1I[1] * t_in_object;	
+		t_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
+		//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
+		/**********************************************************************************************************************************************************/
+		// Calculate MLP v coordinate
+		second_term_common_3 = Sigma_2I[0] * z_out_object - Sigma_2I[1] * V_2[1];
+		second_term[0] = Sigma_1I[0] * z_in_object + second_term_common_3;
+		second_term[1] = depth_2_go * second_term_common_3 + Sigma_2I[2] * V_2[1] - Sigma_2I[1] * z_out_object - Sigma_1I[1] * z_in_object;
+		v_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
+		//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
+		/**********************************************************************************************************************************************************/
+		// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
+		//u_shifted += parameters.MLP_U_STEP;
+		u_shifted = u_in_object + u_1;
+		x_1 = cos_term * u_shifted - sin_term * t_1;
+		y_1 = sin_term * u_shifted + cos_term * t_1;
+
+		voxel_x = calculate_voxel_GPU( parameters->X_ZERO_COORDINATE, x_1, parameters->VOXEL_WIDTH );
+		voxel_y = calculate_voxel_GPU( parameters->Y_ZERO_COORDINATE, y_1, parameters->VOXEL_HEIGHT );
+		voxel_z = calculate_voxel_GPU( parameters->Z_ZERO_COORDINATE, v_1, parameters->VOXEL_THICKNESS);			
+		voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
+
+		if( voxel != path[num_intersections] )
+		{
+			path[++num_intersections] = voxel;	
+			//a_i_dot_x_k += x[voxel] * effective_chord_length;
+			a_i_dot_x_k += x[voxel];
+			//a_i_dot_a_i += a_j_times_a_j;
+		}
+		//u_1 += parameters.MLP_U_STEP;
+		//depth_2_go -= parameters.MLP_U_STEP;
+		step_number++;
+		u_1 = step_number * parameters->MLP_U_STEP;
+		depth_2_go = u_2 - u_1;
+		sigma_1_coefficient_index += sigma_table_index_step;
+		sigma_2_coefficient_index -= sigma_table_index_step;
+		u_1_poly_index += poly_table_index_step;
+	}
+	++num_intersections;
+	a_i_dot_x_k *= effective_chord_length;
+	a_i_dot_a_i *= num_intersections;
+	update_value_history = effective_chord_length * (( b_i - a_i_dot_x_k ) /  a_i_dot_a_i) * lambda;
+}
+__global__ void collect_MLP_endpoints_GPU
+(
+	configurations* parameters, bool* intersected_hull, unsigned int* first_MLP_voxel, bool* x_hull, 
+	float* x_entry, float* y_entry, float* z_entry, float* xy_entry_angle, float* xz_entry_angle, 
+	float* x_exit, float* y_exit, float* z_exit, float* xy_exit_angle, float* xz_exit_angle, int start_proton_id, int num_histories
+)
+{
+  
+	bool entered_object = false, exited_object = false;
+	int voxel_x = 0, voxel_y = 0, voxel_z = 0, voxel_x_int = 0, voxel_y_int = 0, voxel_z_int = 0;
+	double x_in_object = 0.0, y_in_object = 0.0, z_in_object = 0.0, x_out_object = 0.0, y_out_object = 0.0, z_out_object = 0.0;
+		
+	int proton_id = blockIdx.x * blockDim.x + threadIdx.x + start_proton_id;
+		
+	if( proton_id < num_histories ) 
+	{
+		intersected_hull[proton_id] = false;
+		first_MLP_voxel[proton_id] = parameters->NUM_VOXELS;
+		entered_object = find_MLP_endpoints_GPU( parameters, x_hull, x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], xy_entry_angle[proton_id], xz_entry_angle[proton_id], x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
+		exited_object = find_MLP_endpoints_GPU( parameters, x_hull, x_exit[proton_id], y_exit[proton_id], z_exit[proton_id], xy_exit_angle[proton_id], xz_exit_angle[proton_id], x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
+				
+		if( entered_object && exited_object ) 
+		{	  
+			intersected_hull[proton_id] = true;
+			first_MLP_voxel[proton_id] = voxel_x + parameters->COLUMNS * voxel_y + parameters->ROWS * parameters->COLUMNS * voxel_z;
+			x_entry[proton_id] = x_in_object;
+			y_entry[proton_id] = y_in_object;
+			z_entry[proton_id] = z_in_object;
+			x_exit[proton_id] = x_out_object;
+			y_exit[proton_id] = y_out_object;
+			z_exit[proton_id] = z_out_object;
+		}	  
+	}
+}
+__global__ void block_update_GPU
+(
+	configurations* parameters, float* x, float* x_entry, float* y_entry, float* z_entry, float* xy_entry_angle, float* xz_entry_angle, 
+	float* x_exit, float* y_exit, float* z_exit, float* xy_exit_angle, float* xz_exit_angle, float* WEPL, unsigned int* first_MLP_voxel, 
+	float* x_update, unsigned int* intersection_counts, int start_proton_id, int post_cut_protons, float lambda
+) 
+{
+	// Shared memory
+	//__shared__ double* x_block_update;
+	//__shared__ unsigned int* voxel_intersections;
+	
+	//x_block_update = (double*)malloc( NUM_VOXELS * sizeof(double));
+	//voxel_intersections = (unsigned int*)malloc( MAX_INTERSECTIONS * sizeof(unsigned int));
+
+	if( start_proton_id < post_cut_protons ) 
+	{	  
+		unsigned int* a_i;
+		a_i = (unsigned int*)malloc( MAX_INTERSECTIONS * sizeof(unsigned int));
+		
+		// Initialize arrays to zero
+		for(int j = 0 ; j < MAX_INTERSECTIONS; ++j) 
+		      a_i[j] = 0;		
+		
+		for( int history = 0; history < HISTORIES_PER_THREAD; history++ ) 
+		{
+		
+			//int proton_id = blockIdx.x * blockDim.x + threadIdx.x + start_proton_id;  
+			//int proton_id =  history + threadIdx.x * HISTORIES_PER_THREAD + start_proton_id; 		
+			int proton_id =  start_proton_id + history + threadIdx.x * HISTORIES_PER_THREAD + blockIdx.x * HISTORIES_PER_BLOCK;
+			
+			if( proton_id < post_cut_protons ) 
+			{  
+				float update_value_history = 0.0;
+				int num_intersections_historty = 0;
+	
+				//collect_MLP_endpoints_GPU(x, x_hull, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_exit, y_exit, z_exit,  xy_exit_angle, 
+					//	xz_exit_angle, WEPL, lambda, proton_id, post_cut_protons, a_i, update_value_history, num_intersections_historty); // Each thread runs a proton	
+				find_MLP_path_GPU(parameters, x, WEPL[proton_id], first_MLP_voxel[proton_id] ,x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], x_exit[proton_id], y_exit[proton_id], z_exit[proton_id], xy_entry_angle[proton_id],
+						      xz_entry_angle[proton_id], xy_exit_angle[proton_id], xz_exit_angle[proton_id], lambda, a_i, update_value_history, num_intersections_historty);
+
+				// Copy a_i to global	
+				for (int j = 0 ; j < num_intersections_historty; ++j) 
+				{	  
+					atomicAdd( &( intersection_counts[a_i[j]]), 1 );
+					atomicAdd( &( x_update[a_i[j]]) , update_value_history ); 
+				}	
+			}	
+		}
+		free(a_i);  	
+	}
+}
+__global__ void block_update_GPU_tabulated
+(
+	configurations* parameters, float* x, float* x_entry, float* y_entry, float* z_entry, float* xy_entry_angle, float* xz_entry_angle, 
+	float* x_exit, float* y_exit, float* z_exit, float* xy_exit_angle, float* xz_exit_angle, float* WEPL, unsigned int* first_MLP_voxel, 
+	float* x_update, unsigned int* intersection_counts, int start_proton_id, int post_cut_protons, float lambda,
+	double* sin_table, double* cos_table, double* scattering_table, double* poly_1_2, double* poly_2_3, double* poly_3_4, double* poly_2_6, double* poly_3_12
+) 
+{
+	// Shared memory
+	//__shared__ double* x_block_update;
+	//__shared__ unsigned int* voxel_intersections;
+	
+	//x_block_update = (double*)malloc( NUM_VOXELS * sizeof(double));
+	//voxel_intersections = (unsigned int*)malloc( MAX_INTERSECTIONS * sizeof(unsigned int));
+
+	if( start_proton_id < post_cut_protons ) 
+	{	  
+		unsigned int* a_i;
+		a_i = (unsigned int*)malloc( MAX_INTERSECTIONS * sizeof(unsigned int));
+		
+		// Initialize arrays to zero
+		for(int j = 0 ; j < MAX_INTERSECTIONS; ++j) 
+		      a_i[j] = 0;		
+		
+		for( int history = 0; history < HISTORIES_PER_THREAD; history++ ) 
+		{
+		
+			//int proton_id = blockIdx.x * blockDim.x + threadIdx.x + start_proton_id;  
+			//int proton_id =  history + threadIdx.x * HISTORIES_PER_THREAD + start_proton_id; 		
+			int proton_id =  start_proton_id + history + threadIdx.x * HISTORIES_PER_THREAD + blockIdx.x * HISTORIES_PER_BLOCK;
+			
+			if( proton_id < post_cut_protons ) 
+			{  
+				float update_value_history = 0.0;
+				int num_intersections_historty = 0;
+	
+				//collect_MLP_endpoints_GPU(x, x_hull, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_exit, y_exit, z_exit,  xy_exit_angle, 
+					//	xz_exit_angle, WEPL, lambda, proton_id, post_cut_protons, a_i, update_value_history, num_intersections_historty); // Each thread runs a proton	
+				find_MLP_path_GPU_tabulated
+				(
+					parameters, x, WEPL[proton_id], first_MLP_voxel[proton_id] ,x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], x_exit[proton_id], y_exit[proton_id], z_exit[proton_id], xy_entry_angle[proton_id],
+					xz_entry_angle[proton_id], xy_exit_angle[proton_id], xz_exit_angle[proton_id], lambda, a_i, update_value_history, num_intersections_historty,
+					sin_table, cos_table, scattering_table, poly_1_2, poly_2_3, poly_3_4, poly_2_6, poly_3_12
+				);
+
+				// Copy a_i to global	
+				for (int j = 0 ; j < num_intersections_historty; ++j) 
+				{	  
+					atomicAdd( &( intersection_counts[a_i[j]]), 1 );
+					atomicAdd( &( x_update[a_i[j]]) , update_value_history ); 
+				}	
+			}	
+		}
+		free(a_i);  	
+	}
+}
+// x_d, x_update, and voxel_intersections are global
+__global__ void image_update_GPU (configurations* parameters, float* x, float* x_update, unsigned int* voxel_intersections) {
+  
+        int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = column + row * parameters->COLUMNS + slice * parameters->COLUMNS * parameters->ROWS;
+	/*int voxel = 0;
+	int column_start = VOXELS_PER_THREAD * blockIdx.x;
+	int row = blockIdx.y;
+	int slice = threadIdx.x;
+	int voxel_start = column_start  + row * COLUMNS + slice * ROWS * COLUMNS;
+	*/
+	for( int shift = 0; shift < VOXELS_PER_THREAD; shift++ ) {
+	  
+		//voxel = (column_start  + shift) +  row * COLUMNS + slice * ROWS * COLUMNS;
+		
+		if(voxel < parameters->NUM_VOXELS && voxel_intersections[voxel] > 0 ) {
+		  
+			atomicAdd(&(x[voxel]) , x_update[voxel] / voxel_intersections[voxel]);
+			x_update[voxel] = 0.0;
+			voxel_intersections[voxel]=0;
+		}
+
+	}
+
+
+	
+	//if( voxel < NUM_VOXELS && num_intersections[voxel] > 0 )
+		//x_k[voxel] += x_update[voxel] / num_intersections[voxel];
+
+	//int voxel = threadIdx.x;
+       /* if(voxel < NUM_VOXELS && voxel_intersections[voxel] > 0 ) {
+	  atomicAdd(&(x[voxel]) , x_update[voxel] / voxel_intersections[voxel]);
+	  x_update[voxel] = 0.0;
+	  voxel_intersections[voxel]=0;
+	}*/
+}
+void gpu_memory_allocation( const int num_histories ) {
+  
+	  cudaFree(x_d);
+	  cudaFree(x_update_d);
+	  cudaFree(intersection_counts_d);
+	  cudaFree(hull_d);
+	  
+	  unsigned int size_floats		= sizeof(float) * num_histories;
+	  unsigned int size_ints		= sizeof(int) * num_histories;
+	  unsigned int size_bool		= sizeof(bool) * num_histories;
+  
+	  
+	  
+	  
+  
+	  cudaMalloc( (void**) &x_d, 				parameters.NUM_VOXELS *sizeof(float));
+	  cudaMalloc( (void**) &x_update_d, 			parameters.NUM_VOXELS *sizeof(float));
+	  cudaMalloc( (void**) &intersection_counts_d, 		parameters.NUM_VOXELS *sizeof(unsigned int));
+	  cudaMalloc( (void**) &hull_d, 			parameters.NUM_VOXELS *sizeof(bool));
+	  
+	  cudaMalloc( (void**) &x_entry_d,			size_floats );
+	  cudaMalloc( (void**) &y_entry_d,			size_floats );
+	  cudaMalloc( (void**) &z_entry_d,			size_floats );
+	  cudaMalloc( (void**) &x_exit_d,			size_floats );
+	  cudaMalloc( (void**) &y_exit_d,			size_floats );
+	  cudaMalloc( (void**) &z_exit_d,			size_floats );
+	  
+	  
+	  cudaMalloc( (void**) &intersected_hull_d, 		size_bool );
+	  cudaMalloc( (void**) &first_MLP_voxel_d, 		size_ints );
+	  
+	  
+	  //cudaMalloc( (void**) &WEPL_d,				size_floats );
+	  cudaMalloc( (void**) &xy_entry_angle_d,		size_floats );
+	  cudaMalloc( (void**) &xz_entry_angle_d,		size_floats );
+	  cudaMalloc( (void**) &xy_exit_angle_d,		size_floats );
+	  cudaMalloc( (void**) &xz_exit_angle_d,		size_floats );
+	  
+
+}	
+void transfer_host_to_device( const int start_position, const int num_histories ) {
+  
+	  
+	
+	  unsigned int size_floats		= sizeof(float) * num_histories;
+	  unsigned int size_ints		= sizeof(int) * num_histories;
+	  unsigned int size_bool		= sizeof(bool) * num_histories;
+	  //int start_position = 0;
+	  
+	  intersected_hull_h = (bool*)calloc( num_histories, sizeof(bool) );
+	  cudaMemcpy( intersected_hull_d, intersected_hull_h, num_histories *sizeof(bool),cudaMemcpyHostToDevice );
+	  
+	  
+	  cudaMemcpy( x_d, x_h, parameters.NUM_VOXELS *sizeof(float),cudaMemcpyHostToDevice ); // copy initial iterate from host to device
+	  cudaMemcpy( hull_d, hull_h, parameters.NUM_VOXELS *sizeof(bool),cudaMemcpyHostToDevice );
+	  
+	  
+	  
+	  cudaMemcpy( x_entry_d,				&x_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	  cudaMemcpy( y_entry_d,				&y_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	  cudaMemcpy( z_entry_d,				&z_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	  cudaMemcpy( x_exit_d,					&x_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	  cudaMemcpy( y_exit_d,					&y_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	  cudaMemcpy( z_exit_d,					&z_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	  //cudaMemcpy( WEPL_d,					&WEPL_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	  cudaMemcpy( xy_entry_angle_d,				&xy_entry_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	  cudaMemcpy( xz_entry_angle_d,				&xz_entry_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	  cudaMemcpy( xy_exit_angle_d,				&xy_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	  cudaMemcpy( xz_exit_angle_d,				&xz_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	  
+	  
+}
+void transfer_image_device_to_host() {
+
+	  cudaMemcpy( x_h, x_d, parameters.NUM_VOXELS *sizeof(float), cudaMemcpyDeviceToHost);
+	  
+  
+}
+void transfer_intermediate_results_device_to_host( const int start_position, const int num_histories ) {
+  
+	unsigned int size_floats		= sizeof(float) * num_histories;
+	unsigned int size_ints			= sizeof(int) * num_histories;
+	unsigned int size_bool			= sizeof(bool) * num_histories;
+  
+	
+	first_MLP_voxel_vector.resize( num_histories );
+	  
+	cudaMemcpy(intersected_hull_h, intersected_hull_d, size_bool, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&first_MLP_voxel_vector[start_position], first_MLP_voxel_d, size_ints, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&x_entry_vector[start_position], x_entry_d, size_floats, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&y_entry_vector[start_position], y_entry_d, size_floats, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&z_entry_vector[start_position], z_entry_d, size_floats, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&x_exit_vector[start_position], x_exit_d, size_floats, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&y_exit_vector[start_position], y_exit_d, size_floats, cudaMemcpyDeviceToHost);
+	cudaMemcpy(&z_exit_vector[start_position], z_exit_d, size_floats, cudaMemcpyDeviceToHost);
+	
+	cudaFree(intersected_hull_d);
+	cudaFree(first_MLP_voxel_d);
+	//cudaFree(WEPL_d);
+	cudaFree(x_entry_d);
+	cudaFree(y_entry_d);
+	cudaFree(z_entry_d);
+	cudaFree(x_exit_d);
+	cudaFree(y_exit_d);
+	cudaFree(z_exit_d);
+	cudaFree(xy_entry_angle_d);
+	cudaFree(xz_entry_angle_d);
+	cudaFree(xy_exit_angle_d);
+	cudaFree(xz_exit_angle_d);
+
+
+}
+void transfer_intermediate_results_host_to_device( const int num_histories ) {
+  
+	unsigned int size_floats		= sizeof(float) * num_histories;
+	unsigned int size_ints			= sizeof(int) * num_histories;
+	unsigned int size_bool			= sizeof(bool) * num_histories;
+	int start_position = 0;
+	
+	
+	/*cudaFree(intersected_hull_d);
+	cudaFree(first_MLP_voxel_d);
+	//cudaFree(WEPL_d);
+	cudaFree(x_entry_d);
+	cudaFree(y_entry_d);
+	cudaFree(z_entry_d);
+	cudaFree(x_exit_d);
+	cudaFree(y_exit_d);
+	cudaFree(z_exit_d);
+	cudaFree(xy_entry_angle_d);
+	cudaFree(xz_entry_angle_d);
+	cudaFree(xy_exit_angle_d);
+	cudaFree(xz_exit_angle_d);*/
+  
+	//cudaFree(WEPL_d);
+	
+	cudaMalloc( (void**) &x_entry_d,			size_floats );
+	cudaMalloc( (void**) &y_entry_d,			size_floats );
+	cudaMalloc( (void**) &z_entry_d,			size_floats );
+	cudaMalloc( (void**) &x_exit_d,				size_floats );
+	cudaMalloc( (void**) &y_exit_d,				size_floats );
+	cudaMalloc( (void**) &z_exit_d,				size_floats );
+	
+	cudaMalloc( (void**) &xy_entry_angle_d,			size_floats );
+	cudaMalloc( (void**) &xz_entry_angle_d,			size_floats );
+	cudaMalloc( (void**) &xy_exit_angle_d,			size_floats );
+	cudaMalloc( (void**) &xz_exit_angle_d,			size_floats );
+	
+	cudaMalloc( (void**) &WEPL_d,				size_floats );
+	cudaMalloc( (void**) &first_MLP_voxel_d, 		size_ints );
+	
+	cudaMemcpy( x_entry_d,					&x_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( y_entry_d,					&y_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( z_entry_d,					&z_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( x_exit_d,					&x_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( y_exit_d,					&y_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( z_exit_d,					&z_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	
+	cudaMemcpy( xy_entry_angle_d,				&xy_entry_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xz_entry_angle_d,				&xz_entry_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xy_exit_angle_d,				&xy_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xz_exit_angle_d,				&xz_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	
+	cudaMemcpy( WEPL_d,					&WEPL_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( first_MLP_voxel_d,				&first_MLP_voxel_vector[start_position],	size_ints,	cudaMemcpyHostToDevice );
+	
+	  
+}
+__global__ void init_image_GPU(configurations* parameters, float* x_update, unsigned int* intersection_counts) {
+
+	 int row = blockIdx.x, column = blockIdx.y, slice = threadIdx.x;
+	 int voxel = column + row * parameters->COLUMNS + slice * parameters->COLUMNS * parameters->ROWS;
+	 
+	/*int voxel = 0;
+	int column_start = VOXELS_PER_THREAD * blockIdx.x;
+	int row = blockIdx.y;
+	int slice = threadIdx.x;
+	int voxel_start = column_start  + row * COLUMNS + slice * ROWS * COLUMNS;
+	 */
+	for( int shift = 0; shift < VOXELS_PER_THREAD; shift++ ) {
+	  
+		//voxel = (column_start  + shift) +  row * COLUMNS + slice * ROWS * COLUMNS;
+		
+		if( voxel < parameters->NUM_VOXELS ) {
+	   
+			x_update[voxel] = 0.0;
+			intersection_counts[voxel] = 0;
+			
+		}
+	 
+	 }
+  
+}
+void reconstruction_cuts (const int start_position, const int num_histories) 
+{
+	unsigned int size_floats		= sizeof(float) * num_histories;
+	unsigned int size_ints			= sizeof(int) * num_histories;
+	unsigned int size_bool			= sizeof(bool) * num_histories;
+	
+	cudaMalloc( (void**) &x_entry_d,			size_floats );
+	cudaMalloc( (void**) &y_entry_d,			size_floats );
+	cudaMalloc( (void**) &z_entry_d,			size_floats );
+	cudaMalloc( (void**) &x_exit_d,				size_floats );
+	cudaMalloc( (void**) &y_exit_d,				size_floats );
+	cudaMalloc( (void**) &z_exit_d,				size_floats );
+	cudaMalloc( (void**) &xy_entry_angle_d,			size_floats );
+	cudaMalloc( (void**) &xz_entry_angle_d,			size_floats );
+	cudaMalloc( (void**) &xy_exit_angle_d,			size_floats );
+	cudaMalloc( (void**) &xz_exit_angle_d,			size_floats );
+	cudaMalloc( (void**) &intersected_hull_d, 		size_bool );
+	cudaMalloc( (void**) &first_MLP_voxel_d, 		size_ints );
+ 
+	intersected_hull_h = (bool*)calloc( num_histories, sizeof(bool) );
+	cudaMemcpy( intersected_hull_d, 	intersected_hull_h, 					size_bool,		cudaMemcpyHostToDevice );  
+	cudaMemcpy( x_entry_d,				&x_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( y_entry_d,				&y_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( z_entry_d,				&z_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( x_exit_d,				&x_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( y_exit_d,				&y_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( z_exit_d,				&z_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xy_entry_angle_d,		&xy_entry_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xz_entry_angle_d,		&xz_entry_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
+		
+	puts("Collecting MLP endpoints...");
+	
+	dim3 dimBlock(THREADS_PER_BLOCK);
+	dim3 dimGrid( static_cast<int>( (num_histories - 1 + THREADS_PER_BLOCK ) / THREADS_PER_BLOCK  ) );  
+	collect_MLP_endpoints_GPU<<< dimGrid, dimBlock >>>
+	( 
+		parameters_d, intersected_hull_d, first_MLP_voxel_d, hull_d, 
+		x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, 
+		x_exit_d, y_exit_d, z_exit_d, xy_exit_angle_d, xz_exit_angle_d, 0, 	num_histories
+	);
+	cudaError_t err = cudaGetLastError();
+	if (err != cudaSuccess) 
+		printf("Error: %s\n", cudaGetErrorString(err));	  
+	puts("Memory device to host...");  
+
+	//Transfer from device to host
+	cudaMemcpy(intersected_hull_h,						intersected_hull_d, size_bool,		cudaMemcpyDeviceToHost);
+	cudaMemcpy(&first_MLP_voxel_vector[start_position], first_MLP_voxel_d,	size_ints,		cudaMemcpyDeviceToHost);
+	cudaMemcpy(&x_entry_vector[start_position],			x_entry_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&y_entry_vector[start_position],			y_entry_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&z_entry_vector[start_position],			z_entry_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&x_exit_vector[start_position],			x_exit_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&y_exit_vector[start_position],			y_exit_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&z_exit_vector[start_position],			z_exit_d,			size_floats,	cudaMemcpyDeviceToHost);
+	
+	//first_MLP_voxel_vector.resize( num_histories );
+	
+	puts("Free GPU memory...");
+	//Free GPU memory
+	cudaFree(intersected_hull_d);
+	cudaFree(first_MLP_voxel_d);
+	cudaFree(x_entry_d);
+	cudaFree(y_entry_d);
+	cudaFree(z_entry_d);
+	cudaFree(x_exit_d);
+	cudaFree(y_exit_d);
+	cudaFree(z_exit_d);
+	cudaFree(xy_entry_angle_d);
+	cudaFree(xz_entry_angle_d);
+	cudaFree(xy_exit_angle_d);
+	cudaFree(xz_exit_angle_d);
+		
+	puts("Vectors manupilating...");
+	
+	for( int i = 0; i < num_histories; i++ ) 
+	{	    
+		if( intersected_hull_h[i] ) 
+		{
+			first_MLP_voxel_vector.at(reconstruction_histories) = first_MLP_voxel_vector.at( i + start_position );
+			//printf("%d\n",first_MLP_voxel_vector[i] );
+			bin_number_vector[reconstruction_histories] = bin_number_vector[ i + start_position ];
+			gantry_angle_vector[reconstruction_histories] = gantry_angle_vector[ i + start_position ];
+			WEPL_vector[reconstruction_histories] = WEPL_vector[ i + start_position ];
+			x_entry_vector[reconstruction_histories] = x_entry_vector[ i + start_position ];
+			y_entry_vector[reconstruction_histories] = y_entry_vector[ i + start_position ];
+			z_entry_vector[reconstruction_histories] = z_entry_vector[ i + start_position ];
+			x_exit_vector[reconstruction_histories] = x_exit_vector[ i + start_position ];
+			y_exit_vector[reconstruction_histories] = y_exit_vector[ i + start_position ];
+			z_exit_vector[reconstruction_histories] = z_exit_vector[ i + start_position ];
+			xy_entry_angle_vector[reconstruction_histories] = xy_entry_angle_vector[ i + start_position ];
+			xz_entry_angle_vector[reconstruction_histories] = xz_entry_angle_vector[ i + start_position ];
+			xy_exit_angle_vector[reconstruction_histories] = xy_exit_angle_vector[ i + start_position ];
+			xz_exit_angle_vector[reconstruction_histories] = xz_exit_angle_vector[ i + start_position ];
+			reconstruction_histories++;
+		}
+	}
+	free(intersected_hull_h);
+}
+void reconstruction_cuts2 (const int start_position, const int num_histories) 
+{
+	unsigned int size_floats		= sizeof(float) * num_histories;
+	unsigned int size_ints			= sizeof(int) * num_histories;
+	unsigned int size_bool			= sizeof(bool) * num_histories;
+	
+	cudaMalloc( (void**) &x_entry_d,			size_floats );
+	cudaMalloc( (void**) &y_entry_d,			size_floats );
+	cudaMalloc( (void**) &z_entry_d,			size_floats );
+	cudaMalloc( (void**) &x_exit_d,				size_floats );
+	cudaMalloc( (void**) &y_exit_d,				size_floats );
+	cudaMalloc( (void**) &z_exit_d,				size_floats );
+	cudaMalloc( (void**) &xy_entry_angle_d,			size_floats );
+	cudaMalloc( (void**) &xz_entry_angle_d,			size_floats );
+	cudaMalloc( (void**) &xy_exit_angle_d,			size_floats );
+	cudaMalloc( (void**) &xz_exit_angle_d,			size_floats );
+	//cudaMalloc( (void**) &intersected_hull_d, 		size_bool );
+	cudaMalloc( (void**) &first_MLP_voxel_d, 		size_ints );
+ 
+	//intersected_hull_h = (bool*)calloc( num_histories, sizeof(bool) );
+	//cudaMemcpy( intersected_hull_d, 	intersected_hull_h, 					size_bool,		cudaMemcpyHostToDevice );  
+	first_MLP_voxel_h = (unsigned int*)calloc( num_histories, sizeof(unsigned int) );
+	
+	cudaMemcpy( first_MLP_voxel_d, 		first_MLP_voxel_h, 						size_ints,		cudaMemcpyHostToDevice );  
+	cudaMemcpy( x_entry_d,				&x_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( y_entry_d,				&y_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( z_entry_d,				&z_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( x_exit_d,				&x_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( y_exit_d,				&y_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( z_exit_d,				&z_exit_vector[start_position],			size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xy_entry_angle_d,		&xy_entry_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xz_entry_angle_d,		&xz_entry_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
+	cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle_vector[start_position],	size_floats,	cudaMemcpyHostToDevice );
+		
+	puts("Collecting MLP endpoints...");
+
+	dim3 dimBlock(THREADS_PER_BLOCK);
+	dim3 dimGrid( static_cast<int>( (num_histories - 1 + THREADS_PER_BLOCK ) / THREADS_PER_BLOCK  ) );  
+	collect_MLP_endpoints_GPU<<< dimGrid, dimBlock >>>
+	( 
+		parameters_d, intersected_hull_d, first_MLP_voxel_d, hull_d, 
+		x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, 
+		x_exit_d, y_exit_d, z_exit_d, xy_exit_angle_d, xz_exit_angle_d, 0, 	num_histories
+	);
+	cudaError_t err = cudaGetLastError();
+	if (err != cudaSuccess) 
+		printf("Error: %s\n", cudaGetErrorString(err));	  
+	puts("Memory device to host...");  
+
+	//Transfer from device to host
+	//cudaMemcpy(intersected_hull_h,						intersected_hull_d, size_bool,		cudaMemcpyDeviceToHost);
+	//cudaMemcpy(&first_MLP_voxel_vector[start_position], first_MLP_voxel_d,	size_ints,		cudaMemcpyDeviceToHost);
+	cudaMemcpy(first_MLP_voxel_h,						first_MLP_voxel_d,	size_ints,		cudaMemcpyDeviceToHost);
+	cudaMemcpy(&x_entry_vector[start_position],			x_entry_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&y_entry_vector[start_position],			y_entry_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&z_entry_vector[start_position],			z_entry_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&x_exit_vector[start_position],			x_exit_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&y_exit_vector[start_position],			y_exit_d,			size_floats,	cudaMemcpyDeviceToHost);
+	cudaMemcpy(&z_exit_vector[start_position],			z_exit_d,			size_floats,	cudaMemcpyDeviceToHost);
+	
+	//first_MLP_voxel_vector.resize( num_histories );
+	
+	puts("Free GPU memory...");
+	//Free GPU memory
+	//cudaFree(intersected_hull_d);
+	cudaFree(first_MLP_voxel_d);
+	cudaFree(x_entry_d);
+	cudaFree(y_entry_d);
+	cudaFree(z_entry_d);
+	cudaFree(x_exit_d);
+	cudaFree(y_exit_d);
+	cudaFree(z_exit_d);
+	cudaFree(xy_entry_angle_d);
+	cudaFree(xz_entry_angle_d);
+	cudaFree(xy_exit_angle_d);
+	cudaFree(xz_exit_angle_d);
+		
+	puts("Vectors manupilating...");
+	
+	for( int i = 0; i < num_histories; i++ ) 
+	{	    
+		//if( intersected_hull_h[i] ) 
+		if( first_MLP_voxel_h[i] != parameters.NUM_VOXELS ) 
+		{
+			//first_MLP_voxel_vector.at(reconstruction_histories) = first_MLP_voxel_vector.at( i + start_position );
+			//printf("%d\n",first_MLP_voxel_vector[i] );
+			first_MLP_voxel_vector[reconstruction_histories] = first_MLP_voxel_h[i];
+			bin_number_vector[reconstruction_histories] = bin_number_vector[ i + start_position ];
+			gantry_angle_vector[reconstruction_histories] = gantry_angle_vector[ i + start_position ];
+			WEPL_vector[reconstruction_histories] = WEPL_vector[ i + start_position ];
+			x_entry_vector[reconstruction_histories] = x_entry_vector[ i + start_position ];
+			y_entry_vector[reconstruction_histories] = y_entry_vector[ i + start_position ];
+			z_entry_vector[reconstruction_histories] = z_entry_vector[ i + start_position ];
+			x_exit_vector[reconstruction_histories] = x_exit_vector[ i + start_position ];
+			y_exit_vector[reconstruction_histories] = y_exit_vector[ i + start_position ];
+			z_exit_vector[reconstruction_histories] = z_exit_vector[ i + start_position ];
+			xy_entry_angle_vector[reconstruction_histories] = xy_entry_angle_vector[ i + start_position ];
+			xz_entry_angle_vector[reconstruction_histories] = xz_entry_angle_vector[ i + start_position ];
+			xy_exit_angle_vector[reconstruction_histories] = xy_exit_angle_vector[ i + start_position ];
+			xz_exit_angle_vector[reconstruction_histories] = xz_exit_angle_vector[ i + start_position ];
+			reconstruction_histories++;
+		}
+	}
+	free(first_MLP_voxel_h);
+	//free(intersected_hull_h);
+}
+void image_reconstruction_GPU() 
+{	  
+	char iterate_filename[256];
+	clock_t begin1, end1, begin2, end2;
+	float time_spent1, time_spent2;
+	int i = 0; 
+	reconstruction_histories = 0;
+	  
+	//sprintf(iterate_filename, "%s%d", "x_", 0 );
+	sprintf(iterate_filename, "%s_%d", X_2_USE_PATH_BASE, 0, X_FILE_EXTENSION );
+	if( WRITE_X_KI ) 
+	{
+		//transfer_device_to_host();		
+		array_2_disk(iterate_filename, PREPROCESSING_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true ); 
+	}
+	printf("%d\n",post_cut_histories);  
+  
+	//post_cut_histories = 50000000;	
+	//num_histories = 60000000;
+	  	 
+	//int num_blocks = static_cast<int>( (post_cut_histories - 1 + THREADS_PER_BLOCK )/ THREADS_PER_BLOCK ) ;
+	//int num_blocks = static_cast<int>((BLOCK_SIZE + HISTORIES_PER_BLOCK - 1)/HISTORIES_PER_BLOCK);
+	//int num_blocks = static_cast<int>((BLOCK_SIZE - 1 + THREADS_PER_BLOCK) / THREADS_PER_BLOCK);
+	  
+	first_MLP_voxel_vector.resize( post_cut_histories );  
+	cudaFree(x_d);
+	//cudaFree(x_update_d);
+	//cudaFree(intersection_counts_d);
+	cudaFree(hull_d);
+	  
+	cudaMalloc( (void**) &x_d, 					parameters.NUM_VOXELS *sizeof(float));
+	cudaMalloc( (void**) &x_update_d, 			parameters.NUM_VOXELS *sizeof(float));
+	cudaMalloc( (void**) &intersection_counts_d, 	parameters.NUM_VOXELS *sizeof(unsigned int));
+	cudaMalloc( (void**) &hull_d, 				parameters.NUM_VOXELS *sizeof(bool));
+	  
+	cudaMemcpy( hull_d, hull_h, parameters.NUM_VOXELS *sizeof(bool),cudaMemcpyHostToDevice );
+	cudaMemcpy( x_d, x_h, parameters.NUM_VOXELS *sizeof(float),cudaMemcpyHostToDevice );
+	
+	puts("Starting collecting MLP endpoints...");
+	int remaining_histories = post_cut_histories, start_position = 0, histories_to_process = 0;
+	  
+	printf("start remaining histories: %d\n", remaining_histories);
+	  
+	while( remaining_histories > 0 )
+	{
+		printf("*******\n");
+	 
+		if( remaining_histories > parameters.MAX_GPU_HISTORIES )
+			histories_to_process = parameters.MAX_GPU_HISTORIES;
+		else
+			histories_to_process = remaining_histories;			
+		reconstruction_cuts( start_position, histories_to_process );		
+		remaining_histories -= parameters.MAX_GPU_HISTORIES;
+		start_position		+= parameters.MAX_GPU_HISTORIES;
+	}
+		
+	puts("MLP endpoints finished cuts complete.");
+	printf("RECON hist %d\n", reconstruction_histories);
+
+	first_MLP_voxel_vector.resize( reconstruction_histories );
+	resize_vectors(reconstruction_histories);
+	
+	transfer_intermediate_results_host_to_device( reconstruction_histories );
+	
+	cudaError_t err = cudaGetLastError();
+		if (err != cudaSuccess) 
+			printf("Error: %s\n", cudaGetErrorString(err));
+	  
+	i=0;
+	cudaEvent_t start, stop;
+	float time;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	
+	dim3 dimBlock( parameters.SLICES );
+	dim3 dimGrid( parameters.COLUMNS, parameters.ROWS );
+	//dim3 dimGrid( COLUMNS/VOXELS_PER_THREAD, ROWS );
+	
+	init_image_GPU<<< dimGrid, dimBlock >>>(parameters_d, x_update_d, intersection_counts_d);
+	err = cudaGetLastError();
+	if (err != cudaSuccess) 
+		printf("Error: %s\n", cudaGetErrorString(err));
+	  
+	 //int remaining_histories = BLOCK_SIZE % THREADS_PER_BLOCK;
+	  
+	 //history_sequence = (ULL*)calloc( reconstruction_histories, sizeof(ULL));
+	 //generate_history_sequence(post_cut_histories, PRIME_OFFSET, history_sequence );
+	int num_blocks;
+	//int num_blocks = static_cast<int>((BLOCK_SIZE_RECON + HISTORIES_PER_BLOCK - 1)/HISTORIES_PER_BLOCK);
+	
+	//begin = clock();
+	for(int iteration = 1; iteration <= parameters.ITERATIONS ; ++iteration) {
+	    
+		float total_time1=0.0, total_time2 = 0.0;
+		i=0;
+		printf("Performing iteration %u of image reconstruction\n", iteration);
+		begin1 = clock();
+		//transfer_intermediate_results_host_to_device( reconstruction_histories );
+		
+		remaining_histories = reconstruction_histories;
+		//dim3 dimBlock( SLICES );
+		//dim3 dimGrid( COLUMNS/VOXELS_PER_THREAD, ROWS );
+		while( remaining_histories > 0 )
+		{
+			if( remaining_histories > parameters.BLOCK_SIZE )
+				histories_to_process = parameters.BLOCK_SIZE;
+			else
+				histories_to_process = remaining_histories;	
+			
+			num_blocks = static_cast<int>( (histories_to_process - 1 + HISTORIES_PER_BLOCK) / HISTORIES_PER_BLOCK);  			
+			block_update_GPU<<< num_blocks, HISTORIES_PER_BLOCK >>>(parameters_d, x_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, x_exit_d, y_exit_d, z_exit_d,  xy_exit_angle_d, 
+					 xz_exit_angle_d, WEPL_d, first_MLP_voxel_d, x_update_d, intersection_counts_d, i, reconstruction_histories, parameters.LAMBDA);	
+			
+			err = cudaGetLastError();
+			if (err != cudaSuccess) 
+				printf("Error: %s\n", cudaGetErrorString(err));
+
+			cudaEventRecord(start, 0);
+			image_update_GPU<<< dimGrid, dimBlock >>>(parameters_d, x_d, x_update_d, intersection_counts_d);
+			cudaEventRecord(stop, 0);
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&time, start, stop);
+			
+			//time_spent2 = (float)(end2 - begin2) / CLOCKS_PER_SEC;
+			total_time2+=time;
+			remaining_histories -= parameters.BLOCK_SIZE;
+		}
+		//while ( i < reconstruction_histories ) 
+		//{	
+
+		//	//begin1 = clock();
+		//  
+		//	block_update_GPU<<< num_blocks, HISTORIES_PER_BLOCK >>>(parameters_d, x_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, x_exit_d, y_exit_d, z_exit_d,  xy_exit_angle_d, 
+		//			 xz_exit_angle_d, WEPL_d, first_MLP_voxel_d, x_update_d, intersection_counts_d, i, reconstruction_histories, parameters.LAMBDA);					  
+		//	//end1 = clock();
+		//	//time_spent1 = (float)(end1 - begin1) / CLOCKS_PER_SEC;
+		//	//total_time1+=time_spent1;
+		//	//printf( "time spent on block_update_GPU: %lf\n", time_spent );
+		//	
+		//	err = cudaGetLastError();
+		//	if (err != cudaSuccess) 
+		//		printf("Error: %s\n", cudaGetErrorString(err));
+
+		//	cudaEventRecord(start, 0);
+		//	image_update_GPU<<< dimGrid, dimBlock >>>(parameters_d, x_d, x_update_d, intersection_counts_d);
+		//	cudaEventRecord(stop, 0);
+		//	cudaEventSynchronize(stop);
+		//	cudaEventElapsedTime(&time, start, stop);
+		//	
+		//	//time_spent2 = (float)(end2 - begin2) / CLOCKS_PER_SEC;
+		//	total_time2+=time;
+		//	//printf( "time spent on image_update_GPU: %lf\n", time_spent );
+		//  
+		//	i+=num_blocks*HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD;
+		//}
+		end1 = clock();
+		time_spent1 = (float)(end1 - begin1) / CLOCKS_PER_SEC;
+	  
+		//printf( "time spent on block_update: %lf ,and image_update: %lf milliseconds\n", 0.0f, total_time2 );
+		printf( "time spent on iteration %d : %lf seconds\n", iteration, time_spent1 );
+		
+		//sprintf(iterate_filename, "%s%d", "x_", iteration );
+		
+		if( WRITE_X_KI ) 
+		{
+			transfer_image_device_to_host();
+			//array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true ); 
+			sprintf(iterate_filename, "%s_%d", X_2_USE_PATH_BASE, iteration, X_FILE_EXTENSION );		
+			array_2_disk(iterate_filename, RECONSTRUCTION_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true );
+		}  
+	}
+}
+void image_reconstruction_GPU_tabulated() 
+{	  
+	char iterate_filename[256];
+	clock_t begin1, end1, begin2, end2;
+	float time_spent1, time_spent2;
+	reconstruction_histories = 0;
+	//------------------------------------------------------------------------------------------------------------------------//
+	//------------------------------------------ Export preprocessing images  ------------------------------------------------//
+	//------------------------------------------------------------------------------------------------------------------------//	  
+	export_hull();
+	export_x_0();
+	//------------------------------------------------------------------------------------------------------------------------//
+	//------------------------- Clear global GPU memory and allocate for reconstruction image data  --------------------------//
+	//------------------------------------------------------------------------------------------------------------------------//	  
+	cudaFree(x_d);
+	cudaFree(hull_d);
+	  
+	cudaMalloc( (void**) &x_d, 					parameters.NUM_VOXELS *sizeof(float));
+	cudaMalloc( (void**) &x_update_d, 			parameters.NUM_VOXELS *sizeof(float));
+	cudaMalloc( (void**) &intersection_counts_d, 	parameters.NUM_VOXELS *sizeof(unsigned int));
+	cudaMalloc( (void**) &hull_d, 				parameters.NUM_VOXELS *sizeof(bool));
+	  
+	cudaMemcpy( hull_d, hull_h, parameters.NUM_VOXELS *sizeof(bool),cudaMemcpyHostToDevice );
+	cudaMemcpy( x_d, x_h, parameters.NUM_VOXELS *sizeof(float),cudaMemcpyHostToDevice );
+	//------------------------------------------------------------------------------------------------------------------------//
+	//----------------------------- Collect MLP endpoints and remove histories missing the hull  -----------------------------//
+	//------------------------------------------------------------------------------------------------------------------------//	
+	printf("Starting collecting MLP endpoints for %d histories...\n", post_cut_histories);
+	int remaining_histories = post_cut_histories, start_position = 0, histories_to_process = 0;
+	first_MLP_voxel_vector.resize( post_cut_histories );  
+
+	while( remaining_histories > 0 )
+	{
+		if( remaining_histories > parameters.MAX_GPU_HISTORIES )
+			histories_to_process = parameters.MAX_GPU_HISTORIES;
+		else
+			histories_to_process = remaining_histories;			
+		reconstruction_cuts( start_position, histories_to_process );		
+		remaining_histories -= parameters.MAX_GPU_HISTORIES;
+		start_position		+= parameters.MAX_GPU_HISTORIES;
+	}
+		
+	printf("MLP endpoints calculated and reconstruction cuts complete.  Total reconstruction histories = %d\n", reconstruction_histories );
+
+	first_MLP_voxel_vector.resize( reconstruction_histories );
+	resize_vectors(reconstruction_histories)
+	//------------------------------------------------------------------------------------------------------------------------//
+	//-------------------------------------- Generate and transfer MLP lookup tables to GPU ----------------------------------//
+	//------------------------------------------------------------------------------------------------------------------------//
+	generate_trig_tables();
+	//import_trig_tables();
+	generate_scattering_coefficient_table();
+	//import_scattering_coefficient_table();
+	generate_polynomial_tables();
+	//import_polynomial_tables();
+	tables_2_GPU();
+	//------------------------------------------------------------------------------------------------------------------------//
+	//------------------------------------------------ Begin image reconstruction --------------------------------------------//
+	//------------------------------------------------------------------------------------------------------------------------//
+	transfer_intermediate_results_host_to_device( reconstruction_histories );
+	
+	cudaError_t err = cudaGetLastError();
+	if (err != cudaSuccess) 
+		printf("Error: %s\n", cudaGetErrorString(err));
+	cudaEvent_t start, stop;
+	float time;
+	cudaEventCreate(&start);
+	cudaEventCreate(&stop);
+	
+	dim3 dimBlock( parameters.SLICES );
+	dim3 dimGrid( parameters.COLUMNS, parameters.ROWS );
+	//dim3 dimGrid( COLUMNS/VOXELS_PER_THREAD, ROWS );
+	
+	init_image_GPU<<< dimGrid, dimBlock >>>(parameters_d, x_update_d, intersection_counts_d);
+	err = cudaGetLastError();
+	if (err != cudaSuccess) 
+		printf("Error: %s\n", cudaGetErrorString(err));
+  
+	 //history_sequence = (ULL*)calloc( reconstruction_histories, sizeof(ULL));
+	 //generate_history_sequence(post_cut_histories, PRIME_OFFSET, history_sequence );
+	
+	int num_blocks, i;
+	//begin = clock();
+	for(int iteration = 1; iteration <= parameters.ITERATIONS ; ++iteration) 
+	{
+	    i = 0;
+		float total_time1 = 0.0, total_time2 = 0.0;
+		printf("Performing iteration %u of image reconstruction\n", iteration);
+		begin1 = clock();
+		//transfer_intermediate_results_host_to_device( reconstruction_histories );
+		
+		remaining_histories = reconstruction_histories;
+		//dim3 dimBlock( SLICES );
+		//dim3 dimGrid( COLUMNS/VOXELS_PER_THREAD, ROWS );
+		while( remaining_histories > 0 )
+		{
+			if( remaining_histories > parameters.BLOCK_SIZE )
+				histories_to_process = parameters.BLOCK_SIZE;
+			else
+				histories_to_process = remaining_histories;	
+			
+			num_blocks = static_cast<int>( (histories_to_process - 1 + HISTORIES_PER_BLOCK) / HISTORIES_PER_BLOCK);  			
+			//begin1 = clock();
+			block_update_GPU_tabulated<<< num_blocks, HISTORIES_PER_BLOCK >>>
+			(
+				parameters_d, x_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, x_exit_d, y_exit_d, z_exit_d,  xy_exit_angle_d, 
+				xz_exit_angle_d, WEPL_d, first_MLP_voxel_d, x_update_d, intersection_counts_d, i, reconstruction_histories, parameters.LAMBDA,
+				sin_table_d, cos_table_d, scattering_table_d, poly_1_2_d, poly_2_3_d, poly_3_4_d, poly_2_6_d, poly_3_12_d
+			);	
+			//end1 = clock();
+			//time_spent1 = (float)(end1 - begin1) / CLOCKS_PER_SEC;
+			//total_time1+=time_spent1;
+			//printf( "time spent on block_update_GPU: %lf\n", time_spent );
+			
+			err = cudaGetLastError();
+			if (err != cudaSuccess) 
+				printf("Error: %s\n", cudaGetErrorString(err));
+
+			cudaEventRecord(start, 0);
+			image_update_GPU<<< dimGrid, dimBlock >>>(parameters_d, x_d, x_update_d, intersection_counts_d);
+			cudaEventRecord(stop, 0);
+			cudaEventSynchronize(stop);
+			cudaEventElapsedTime(&time, start, stop);
+			
+			//time_spent2 = (float)(end2 - begin2) / CLOCKS_PER_SEC;
+			total_time2 += time;
+			//printf( "time spent on image_update_GPU: %lf\n", time_spent );
+			remaining_histories -= parameters.BLOCK_SIZE;
+			i += parameters.BLOCK_SIZE;
+		}
+		end1 = clock();
+		time_spent1 = (float)(end1 - begin1) / CLOCKS_PER_SEC;
+	  
+		//printf( "time spent on block_update: %lf ,and image_update: %lf milliseconds\n", 0.0f, total_time2 );
+		printf( "time spent on iteration %d : %lf seconds\n", iteration, time_spent1 );
+
+		if( WRITE_X_KI ) 
+		{
+			transfer_image_device_to_host();
+			//array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true ); 
+			sprintf(iterate_filename, "%s_%d", X_2_USE_PATH_BASE, iteration, X_FILE_EXTENSION );		
+			array_2_disk(iterate_filename, RECONSTRUCTION_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true );
+		}  
+	}
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************************ Preprocessing Data I/O ***********************************************************************************************/
@@ -5421,7 +7014,7 @@ void image_reconstruction_import_preprocessing_blocks()
 		}
 		cudaMemcpy( x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
 		sprintf(iterate_filename, "%s_%d", X_2_USE_PATH_BASE, iteration, X_FILE_EXTENSION );		
-		array_2_disk(iterate_filename, PREPROCESSING_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true );
+		array_2_disk(iterate_filename, RECONSTRUCTION_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true );
 	}
 	fclose(MLP_file);
 	puts("Image reconstruction complete.  Writing reconstructed image to disk...");
@@ -5475,7 +7068,7 @@ void image_reconstruction_import_preprocessing()
 			fseek( MLP_file, begin_MLP_data, SEEK_SET );
 		cudaMemcpy( x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
 		sprintf(iterate_filename, "%s_%d", X_2_USE_PATH_BASE, iteration, X_FILE_EXTENSION );		
-		array_2_disk(iterate_filename, PREPROCESSING_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true );
+		array_2_disk(iterate_filename, RECONSTRUCTION_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true );
 	}
 	fclose(MLP_file);
 	puts("Image reconstruction complete.  Writing reconstructed image to disk...");
@@ -5529,7 +7122,7 @@ void image_reconstruction_import_preprocessing_test()
 			fseek( MLP_file, begin_MLP_data, SEEK_SET );
 		cudaMemcpy( x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
 		sprintf(iterate_filename, "%s_%d", X_2_USE_PATH_BASE, iteration, X_FILE_EXTENSION );		
-		array_2_disk(iterate_filename, PREPROCESSING_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true );
+		array_2_disk(iterate_filename, RECONSTRUCTION_DIR, X_WRITE_MODE, x_h, parameters.COLUMNS, parameters.ROWS, parameters.SLICES, parameters.NUM_VOXELS, true );
 	}
 	fclose(MLP_file);
 	puts("Image reconstruction complete.  Writing reconstructed image to disk...");
@@ -6190,7 +7783,7 @@ double voxel_2_radius_squared( int voxel )
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************* Image Position/Voxel Calculation Functions (Device) *********************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-__device__ int calculate_voxel_GPU( configurations* parameters, double zero_coordinate, double current_position, double voxel_size )
+__device__ int calculate_voxel_GPU( double zero_coordinate, double current_position, double voxel_size )
 {
 	return abs( current_position - zero_coordinate ) / voxel_size;
 }
@@ -6405,7 +7998,7 @@ void take_3D_step
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************* Voxel Walk Functions (Device) *******************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-__device__ double distance_remaining_GPU( configurations* parameters, double zero_coordinate, double current_position, int increasing_direction, int step_direction, double voxel_size, int current_voxel )
+__device__ double distance_remaining_GPU( double zero_coordinate, double current_position, int increasing_direction, int step_direction, double voxel_size, int current_voxel )
 {
 	/* Determine distance from current position to the next voxel edge.  Based on the dimensions of a voxel and the current (x,y,z) position, we can determine how far it is to
 	// the next edge in the x, y, and z directions.  Since the points where a path crosses one of these edges each have a corresponding (x,y,z) coordinate, we can determine
@@ -6416,23 +8009,23 @@ __device__ double distance_remaining_GPU( configurations* parameters, double zer
 	// function will return 0 for remaining distance and we can advance the voxel number upon review of its return value.
 	*/
 	int next_voxel = current_voxel + increasing_direction * step_direction;
-	double next_edge = edge_coordinate_GPU( parameters, zero_coordinate, next_voxel, voxel_size, increasing_direction, step_direction );
+	double next_edge = edge_coordinate_GPU( zero_coordinate, next_voxel, voxel_size, increasing_direction, step_direction );
 	return abs( next_edge - current_position );
 }
-__device__ double edge_coordinate_GPU( configurations* parameters, double zero_coordinate, int voxel_entered, double voxel_size, int increasing_direction, int step_direction )
+__device__ double edge_coordinate_GPU( double zero_coordinate, int voxel_entered, double voxel_size, int increasing_direction, int step_direction )
 {
 	int on_edge = ( step_direction == increasing_direction ) ? voxel_entered : voxel_entered + 1;
 	return zero_coordinate + ( increasing_direction * on_edge * voxel_size );
 }
-__device__ double path_projection_GPU( configurations* parameters, double m, double x0, double zero_coordinate, int current_voxel, double voxel_size, int increasing_direction, int step_direction )
+__device__ double path_projection_GPU( double m, double x0, double zero_coordinate, int current_voxel, double voxel_size, int increasing_direction, int step_direction )
 {
 
 	int next_voxel = current_voxel + increasing_direction * step_direction;
-	double x_next_edge = edge_coordinate_GPU( parameters, zero_coordinate, next_voxel, voxel_size, increasing_direction, step_direction );
+	double x_next_edge = edge_coordinate_GPU( zero_coordinate, next_voxel, voxel_size, increasing_direction, step_direction );
 	// y = mx + b: x(2) = [Dx(2)/Dx(1)]*[x(1) - x(1,0)] + x(2,0) => x = (Dx/Dy)*(y - y0) + x0
 	return m * ( x_next_edge - x0 );
 }
-__device__ double corresponding_coordinate_GPU( configurations* parameters, double m, double x, double x0, double y0 )
+__device__ double corresponding_coordinate_GPU( double m, double x, double x0, double y0 )
 {
 	// Using the coordinate returned by edge_coordinate, call this function to determine one of the other coordinates using 
 	// y = m(x-x0)+y0 equation determine coordinates in other directions by subsequent calls to this function
@@ -6456,19 +8049,19 @@ __device__ void take_2D_step_GPU
 	{
 		//printf(" x_to_go <= y_extension \n");
 		voxel_x += x_move_direction;					
-		x = edge_coordinate_GPU( parameters, parameters->X_ZERO_COORDINATE, voxel_x, parameters->VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
-		y = corresponding_coordinate_GPU( parameters, dy_dx, x, x_start, y_start );
+		x = edge_coordinate_GPU( parameters->X_ZERO_COORDINATE, voxel_x, parameters->VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+		y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
 		x_to_go = parameters->VOXEL_WIDTH;
-		y_to_go = distance_remaining_GPU( parameters, parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );
+		y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );
 	}
 	// Else Next Voxel Edge is in y
 	else
 	{
 		//printf(" y_extension < x_extension \n");				
 		voxel_y -= y_move_direction;
-		y = edge_coordinate_GPU( parameters, parameters->Y_ZERO_COORDINATE, voxel_y, parameters->VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
-		x = corresponding_coordinate_GPU( parameters, dx_dy, y, y_start, x_start );
-		x_to_go = distance_remaining_GPU( parameters, parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
+		y = edge_coordinate_GPU( parameters->Y_ZERO_COORDINATE, voxel_y, parameters->VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
+		x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
+		x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
 		y_to_go = parameters->VOXEL_HEIGHT;
 	}
 	if( x_to_go == 0 )
@@ -6502,11 +8095,11 @@ __device__ void take_3D_step_GPU
 	{
 		//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");				
 		voxel_z -= z_move_direction;					
-		z = edge_coordinate_GPU( parameters, parameters->Z_ZERO_COORDINATE, voxel_z, parameters->VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
-		x = corresponding_coordinate_GPU( parameters, dx_dz, z, z_start, x_start );
-		y = corresponding_coordinate_GPU( parameters, dy_dz, z, z_start, y_start );
-		x_to_go = distance_remaining_GPU( parameters, parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
-		y_to_go = distance_remaining_GPU( parameters, parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );	
+		z = edge_coordinate_GPU( parameters->Z_ZERO_COORDINATE, voxel_z, parameters->VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
+		x = corresponding_coordinate_GPU( dx_dz, z, z_start, x_start );
+		y = corresponding_coordinate_GPU( dy_dz, z, z_start, y_start );
+		x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
+		y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );	
 		z_to_go = parameters->VOXEL_THICKNESS;
 	}
 	//If Next Voxel Edge is in x or xy Diagonal
@@ -6514,24 +8107,24 @@ __device__ void take_3D_step_GPU
 	{
 		//printf(" x_extension <= y_extension \n");					
 		voxel_x += x_move_direction;
-		x = edge_coordinate_GPU( parameters, parameters->X_ZERO_COORDINATE, voxel_x, parameters->VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
-		y = corresponding_coordinate_GPU( parameters, dy_dx, x, x_start, y_start );
-		z = corresponding_coordinate_GPU( parameters, dz_dx, x, x_start, z_start );
+		x = edge_coordinate_GPU( parameters->X_ZERO_COORDINATE, voxel_x, parameters->VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+		y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
+		z = corresponding_coordinate_GPU( dz_dx, x, x_start, z_start );
 		x_to_go = parameters->VOXEL_WIDTH;
-		y_to_go = distance_remaining_GPU( parameters, parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );
-		z_to_go = distance_remaining_GPU( parameters, parameters->Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );
+		y_to_go = distance_remaining_GPU( parameters->Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, parameters->VOXEL_HEIGHT, voxel_y );
+		z_to_go = distance_remaining_GPU( parameters->Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );
 	}
 	// Else Next Voxel Edge is in y
 	else
 	{
 		//printf(" y_extension < x_extension \n");
 		voxel_y -= y_move_direction;					
-		y = edge_coordinate_GPU( parameters, parameters->Y_ZERO_COORDINATE, voxel_y, parameters->VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
-		x = corresponding_coordinate_GPU( parameters, dx_dy, y, y_start, x_start );
-		z = corresponding_coordinate_GPU( parameters, dz_dy, y, y_start, z_start );
-		x_to_go = distance_remaining_GPU( parameters, parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
+		y = edge_coordinate_GPU( parameters->Y_ZERO_COORDINATE, voxel_y, parameters->VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
+		x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
+		z = corresponding_coordinate_GPU( dz_dy, y, y_start, z_start );
+		x_to_go = distance_remaining_GPU( parameters->X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, parameters->VOXEL_WIDTH, voxel_x );
 		y_to_go = parameters->VOXEL_HEIGHT;					
-		z_to_go = distance_remaining_GPU( parameters, parameters->Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );
+		z_to_go = distance_remaining_GPU( parameters->Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, parameters->VOXEL_THICKNESS, voxel_z );
 	}
 	if( x_to_go == 0 )
 	{

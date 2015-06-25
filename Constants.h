@@ -2,6 +2,15 @@
 
 //#include <C:\Users\Blake\Documents\GitHub\pCT_Reconstruction\pCT_Reconstruction.h>
 
+//#define BLOCK_SIZE				320000//15000000//3840// # of paths to use for each update: ART = 1, 
+#define DROP_BLOCK_SIZE			3200//3840// # of paths to use for each update: ART = 1, 
+//#define THREADS_PER_BLOCK			320
+#define HISTORIES_PER_BLOCK 			320
+#define ENDPOINTS_PER_BLOCK 			1
+#define HISTORIES_PER_THREAD 			1
+#define ENDPOINTS_PER_THREAD 			1
+#define VOXELS_PER_THREAD 			1
+const bool WRITE_X_KI			= true;
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------- pCT data format directory names ------------------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/

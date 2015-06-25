@@ -448,6 +448,18 @@ bool init_iterative_read_2_block_array( bool );
 void allocate_precalculated_block_arrays(uint );
 void fill_precalculated_block_arrays( uint, uint );
 
+
+// x_d, x_update, and voxel_intersections are global
+void tables_2_GPU();
+void gpu_memory_allocation( const int );
+void transfer_host_to_device( const int, const int );
+void transfer_image_device_to_host();
+void transfer_intermediate_results_device_to_host( const int, const int );
+void transfer_intermediate_results_host_to_device( const int );
+void reconstruction_cuts(const int, const int);
+void reconstruction_cuts2(const int, const int);
+void image_reconstruction_GPU();
+
 // Image Reconstruction (host)
 void image_reconstruction_import_preprocessing_blocks();
 void image_reconstruction_import_preprocessing();
@@ -621,9 +633,19 @@ template<typename H, typename D> __global__ void averaging_filter_GPU( configura
 template<typename D> __global__ void apply_averaging_filter_GPU( configurations*, D*, D* );
 
 // MLP: IN DEVELOPMENT
-template<typename O> __device__ bool find_MLP_endpoints_GPU( configurations*, O*&, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool);
+//template<typename O> __device__ bool find_MLP_endpoints_GPU( configurations*, O*&, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool);
 __device__ int calculate_MLP_GPU( configurations*, int*&, double*&, double, double, double, double, double, double, double, double, double, double, int, int, int );
 __device__ void MLP_GPU(configurations*);
+//NEW VERSION
+__device__ double EffectiveChordLength_GPU(configurations*, double, double);
+template<typename O> __device__ bool find_MLP_endpoints_GPU (configurations*, O*, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool);
+__device__ void find_MLP_path_GPU(configurations*, float*, double, unsigned int, double, double, double, double, double, double, double, double, double, double, float, unsigned int*, float&, int&);
+__device__ void find_MLP_path_GPU_tabulated(configurations*, float*, double, unsigned int, double, double, double, double, double, double, double, double, double, double, float, unsigned int*, float&, int&, double*, double*, double*, double*, double*, double*, double*, double* );
+__global__ void collect_MLP_endpoints_GPU(configurations*, bool*, unsigned int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, int, int);
+__global__ void block_update_GPU(configurations*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, unsigned int*, float*, unsigned int*, int, int, float);
+__global__ void block_update_GPU_tabulated(configurations*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, unsigned int*, float*, unsigned int*, int, int, float, double*, double*, double*, double*, double*, double*, double*, double*);
+__global__ void image_update_GPU (configurations*, float*, float*, unsigned int*);
+__global__ void init_image_GPU(configurations*, float*, unsigned int*);
 
 // Image Reconstruction
 __global__ void DROP_calculate_update_GPU_blocks(configurations*, uint*, uint*, float*, float*, uint*, float*, float* );
@@ -641,7 +663,7 @@ __device__ double update_vector_multiplier_GPU_22( configurations*, double, doub
 __device__ void update_iterate_GPU_22( configurations*, double, double, float*&, int*, int );
 
 // Image position/voxel calculation functions
-__device__ int calculate_voxel_GPU( configurations*, double, double, double );
+__device__ int calculate_voxel_GPU( double, double, double );
 __device__ int positions_2_voxels_GPU(configurations*, const double, const double, const double, int&, int&, int& );
 __device__ int position_2_voxel_GPU( configurations*, double, double, double );
 __device__ void voxel_2_3D_voxels_GPU( configurations*, int, int&, int&, int& );
@@ -650,10 +672,10 @@ __device__ void voxel_2_positions_GPU( configurations*, int, double&, double&, d
 __device__ double voxel_2_radius_squared_GPU( configurations*, int );
 
 // Voxel walk algorithm functions
-__device__ double distance_remaining_GPU( configurations*, double, double, int, int, double, int );
-__device__ double edge_coordinate_GPU( configurations*, double, int, double, int, int );
-__device__ double path_projection_GPU( configurations*, double, double, double, int, double, int, int );
-__device__ double corresponding_coordinate_GPU( configurations*, double, double, double, double );
+__device__ double distance_remaining_GPU(double, double, int, int, double, int );
+__device__ double edge_coordinate_GPU( double, int, double, int, int );
+__device__ double path_projection_GPU( double, double, double, int, double, int, int );
+__device__ double corresponding_coordinate_GPU( double, double, double, double );
 __device__ void take_2D_step_GPU( configurations*, const int, const int, const int, const double, const double, const double, const double, const double, const double, const double, const double, const double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
 __device__ void take_3D_step_GPU( configurations*, const int, const int, const int, const double, const double, const double, const double, const double, const double, const double, const double, const double, double&, double&, double&, int&, int&, int&, int&, double&, double&, double& );
 
