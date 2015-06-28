@@ -446,8 +446,8 @@ double* norm_Ai;
 float LAMBDA = 0.001;// Relaxation parameter to use in image iterative projection reconstruction algorithms	
 #define ITERATIONS				12										// # of iterations through the entire set of histories to perform in iterative image reconstruction
 
-#define BLOCK_SIZE			static_cast<int>(320000)//15000000//3840// # of paths to use for each update: ART = 1, 
-#define BLOCK_SIZE_RECON		static_cast<int>(3200)//3840// # of paths to use for each update: ART = 1, 
+//#define BLOCK_SIZE			static_cast<int>(320000)//15000000//3840// # of paths to use for each update: ART = 1, 
+//#define BLOCK_SIZE_RECON		static_cast<int>(3200)//3840// # of paths to use for each update: ART = 1, 
 #define DROP_BLOCK_SIZE			static_cast<int>(3200)//3840// # of paths to use for each update: ART = 1, 
 
 #define CONSTANT_CHORD_NORM		pow(VOXEL_WIDTH, 2.0)
