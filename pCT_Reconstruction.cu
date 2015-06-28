@@ -3434,7 +3434,7 @@ void print_history_sequence(ULL print_start, ULL print_end )
 		printf("history_sequence[i] = %llu\n", history_sequence[i]);
 }
 /***********************************************************************************************************************************************************************************************************************/
-/***************************************************************************************************** Chord Length ****************************************************************************************************/
+/****************************************************************************************** Generate/Export/Import MLP Lookup Tables ***********************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
 void generate_trig_tables()
 {
@@ -6293,7 +6293,7 @@ void image_reconstruction_GPU()
 	 //history_sequence = (ULL*)calloc( reconstruction_histories, sizeof(ULL));
 	 //generate_history_sequence(post_cut_histories, PRIME_OFFSET, history_sequence );
 	int num_blocks;
-	//int num_blocks = static_cast<int>((BLOCK_SIZE_RECON + HISTORIES_PER_BLOCK - 1)/HISTORIES_PER_BLOCK);
+	//int num_blocks = static_cast<int>((DROP_BLOCK_SIZE + HISTORIES_PER_BLOCK - 1)/HISTORIES_PER_BLOCK);
 	
 	//begin = clock();
 	for(int iteration = 1; iteration <= parameters.ITERATIONS ; ++iteration) {
@@ -6422,7 +6422,7 @@ void image_reconstruction_GPU_tabulated()
 	printf("MLP endpoints calculated and reconstruction cuts complete.  Total reconstruction histories = %d\n", reconstruction_histories );
 
 	first_MLP_voxel_vector.resize( reconstruction_histories );
-	resize_vectors(reconstruction_histories)
+	resize_vectors(reconstruction_histories);
 	//------------------------------------------------------------------------------------------------------------------------//
 	//-------------------------------------- Generate and transfer MLP lookup tables to GPU ----------------------------------//
 	//------------------------------------------------------------------------------------------------------------------------//
