@@ -162,8 +162,10 @@ bool MODIFY_MLP = true;
 /***************************************************************************************************************************************************************************/
 /******************************************************************* Path to the input/output directories ******************************************************************/
 /***************************************************************************************************************************************************************************/
-const char INPUT_DIRECTORY[]   = "//home//karbasi//Public//";
-const char OUTPUT_DIRECTORY[]  = "//home//karbasi//Public//";
+//const char INPUT_DIRECTORY[]   = "//home//karbasi//Public//";
+//const char OUTPUT_DIRECTORY[]  = "//home//karbasi//Public//";
+const char INPUT_DIRECTORY[]   = "//home//share//";///home/share/CTP404/input_CTP404_4M
+const char OUTPUT_DIRECTORY[]  = "//home//share//";///home/share/CTP404/input_CTP404_4M
 /***************************************************************************************************************************************************************************/
 /******************************************** Name of the folder where the input data resides and output data is to be written *********************************************/
 /***************************************************************************************************************************************************************************/
@@ -177,8 +179,8 @@ const char OUTPUT_DIRECTORY[]  = "//home//karbasi//Public//";
 //const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordInf";
 //const char INPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordSup";
 //const char OUTPUT_FOLDER[]	   = "beam-Sep2014\\bin-CIRSFordSup";
-const char INPUT_FOLDER[]	   = "input_CTP404_4M";
-const char OUTPUT_FOLDER[]         = "cuda_test_blake";
+const char INPUT_FOLDER[]	   = "CTP404//input_CTP404_4M";
+const char OUTPUT_FOLDER[]         = "Output//CTP404//input_CTP404_4M";
 //const char INPUT_FOLDER[]	   = "output_HeadPhantom";
 //const char OUTPUT_FOLDER[]	   = "output_HeadPhantom";
 //const char INPUT_FOLDER[]	   = "PedHead-july";
@@ -224,7 +226,7 @@ const DATA_FORMATS				DATA_FORMAT = VERSION_0;				// Specify which data format t
 unsigned int PHANTOM_NAME_SIZE;
 unsigned int DATA_SOURCE_SIZE;
 unsigned int PREPARED_BY_SIZE;
-unsigned int MAGIC_NUMBER_CHECK = int('DTCP');
+unsigned int MAGIC_NUMBER_CHECK = atoi("DTCP");
 unsigned int SKIP_2_DATA_SIZE;
 unsigned int VERSION_ID;
 unsigned int PROJECTION_INTERVAL;

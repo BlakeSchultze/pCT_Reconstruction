@@ -18,10 +18,10 @@
 
 // Execution Control Functions
 bool is_bad_angle( const int );	// Just for use with Micah's simultated data
-void timer( bool, clock_t&, clock_t&, double&, char*);
+void timer( bool, clock_t&, clock_t&, double&, const char*);
 void exit_program_if( bool);
 void pause_execution();
-void exit_program_if( bool, char* );
+void exit_program_if( bool, const char* );
 
 // Memory transfers and allocations/deallocations
 void initial_processing_memory_clean();
@@ -174,7 +174,7 @@ template< typename T, typename T2> T max_n( int, T2, ...);
 template< typename T, typename T2> T min_n( int, T2, ...);
 template<typename T> T* sequential_numbers( int, int );
 void bin_2_indexes( int, int&, int&, int& );
-inline const char * const bool_2_string( bool b ){ return b ? "true" : "false"; }
+inline const char * bool_2_string( bool b ){ return b ? "true" : "false"; }
 
 // New routine test functions
 void command_line_settings( unsigned int, char** );
@@ -334,7 +334,7 @@ __global__ void test_func_device( double*, double*, double* );
 /***********************************************************************************************************************************************************************************************************************/
 /***************************************************************************************************** Program Main ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-int main(unsigned int argc, char** argv)
+int main(int argc, char** argv)
 {
 	if( DIRECT_IMAGE_RECONSTRUCTION )
 	{
@@ -510,8 +510,9 @@ int main(unsigned int argc, char** argv)
 		//image_reconstruction_GPU_tabulated();
 		//image_reconstruction_GPU_testing();
 		timer( STOP, begin_reconstruction, end_reconstruction, execution_time_reconstruction, "for complete image reconstruction");
-		if( WRITE_X )
-			array_2_disk("x", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		if( WRITE_X ) {
+		   char x[] ={"x"};
+			array_2_disk(x, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
 	}
 	else
 	{
@@ -561,7 +562,7 @@ bool is_bad_angle( const int angle )
 	static const int bad_angles[] = {0, 80, 84, 88, 92, 96, 100, 180, 260, 264, 268, 272, 276};
 	return std::binary_search( bad_angles, bad_angles + sizeof(bad_angles) / sizeof(int), angle );
 }
-void timer( bool start, clock_t& start_time, clock_t& end_time, double& execution_time, char* statement )
+void timer( bool start, clock_t& start_time, clock_t& end_time, double& execution_time, const char* statement )
 {
 	if( start )
 		start_time = clock();
@@ -586,7 +587,7 @@ void pause_execution()
 	pause_end = clock();
 	pause_cycles += pause_end - pause_start;
 }
-void exit_program_if( bool early_exit, char* statement)
+void exit_program_if( bool early_exit, const char* statement)
 {
 	if( early_exit )
 	{
@@ -1561,7 +1562,7 @@ void combine_data_sets()
 	const char INPUT_FOLDER1[]	   = "input_CTP404";
 	const char INPUT_FOLDER2[]	   = "CTP404_4M";
 	const char MERGED_FOLDER[]	   = "my_merged";
-	unsigned int gantry_position, gantry_angle, scan_number, file_histories, array_index = 0, histories_read = 0;
+	//unsigned int gantry_position, gantry_angle, scan_number, file_histories, array_index = 0, histories_read = 0; //Warning: Not used in function
 
 	char magic_number1[4], magic_number2[4];
 	int version_id1, version_id2;
@@ -1862,11 +1863,12 @@ void apply_tuv_shifts( unsigned int num_histories)
 		sprintf(data_filename, "%s_%03d%s", "ut_entry_angle", gantry_angle, ".txt" );
 		array_2_disk( data_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, ut_entry_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 		sprintf(data_filename, "%s_%03d%s", "uv_entry_angle", gantry_angle, ".txt" );
-		array_2_disk( "ut_entry_angle", OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_entry_angle, COLUMNS, ROWS, SLICES, num_histories, true );
+		char ut_entry_angle[] = {"ut_entry_angle"};
+		array_2_disk( ut_entry_angle, OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_entry_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 		sprintf(data_filename, "%s_%03d%s", "ut_exit_angle", gantry_angle, ".txt" );
-		array_2_disk( "ut_entry_angle", OUTPUT_DIRECTORY, OUTPUT_FOLDER, ut_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
+		array_2_disk( ut_entry_angle, OUTPUT_DIRECTORY, OUTPUT_FOLDER, ut_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 		sprintf(data_filename, "%s_%03d%s", "uv_exit_angle", gantry_angle, ".txt" );
-		array_2_disk( "ut_entry_angle", OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
+		array_2_disk( ut_entry_angle, OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 	}
 }
 void read_data_chunk( const int num_histories, const int start_file_num, const int end_file_num )
@@ -2916,7 +2918,7 @@ void calculate_means()
 	if( WRITE_WEPL_DISTS )
 	{
 		cudaMemcpy( mean_WEPL_h,	mean_WEPL_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
-		int* empty_parameter;
+		//int* empty_parameter; //Warning: declared but not used
 		//bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
 	}
 	bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
@@ -2924,11 +2926,16 @@ void calculate_means()
 	cudaMemcpy( mean_WEPL_h,	mean_WEPL_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	cudaMemcpy( mean_rel_ut_angle_h,	mean_rel_ut_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	cudaMemcpy( mean_rel_uv_angle_h,	mean_rel_uv_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
-
-	array_2_disk("bin_counts_h_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("mean_WEPL_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("mean_rel_ut_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("mean_rel_uv_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	
+	char bin_counts[] = {"bin_counts_h_pre"};
+	char mean_wepl[] = {"mean_WEPL_h"};
+	char mean_rel_ut[] ={"mean_rel_ut_angle_h"};
+	char mean_rel_uv[] = {"mean_rel_uv_angle_h"};
+	
+	array_2_disk(bin_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(mean_wepl, OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(mean_rel_ut, OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(mean_rel_uv, OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	free(bin_counts_h);
 	free(mean_WEPL_h);
@@ -3029,10 +3036,14 @@ void calculate_standard_deviations()
 	cudaMemcpy( stddev_rel_ut_angle_h,	stddev_rel_ut_angle_d,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
 	cudaMemcpy( stddev_rel_uv_angle_h,	stddev_rel_uv_angle_d,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
 	cudaMemcpy( stddev_WEPL_h,			stddev_WEPL_d,			SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
+	
+	char stddev_rel_ut[]={"stddev_rel_ut_angle_h"};
+	char stddev_rel_uv[]={"stddev_rel_uv_angle_h"};
+	char stddev_wepl[]={"stddev_WEPL_h"};
 
-	array_2_disk("stddev_rel_ut_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("stddev_rel_uv_angle_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk("stddev_WEPL_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(stddev_rel_ut, OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(stddev_rel_uv, OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(stddev_wepl, OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	//cudaFree( bin_counts_d );
 }
 
@@ -3208,10 +3219,12 @@ void construct_sinogram()
 	puts("Recalculating the mean WEPL for each bin and constructing the sinogram...");
 	bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
-	array_2_disk( "bin_counts_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	char bin_counts_pre[] ={"bin_counts_pre"};
+	array_2_disk( bin_counts_pre, OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
-	array_2_disk("sinogram_pre", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	char sinogram_pre[]={"sinogram_pre"};
+	array_2_disk(sinogram_pre, OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
@@ -3220,14 +3233,16 @@ void construct_sinogram()
 	if( WRITE_WEPL_DISTS )
 	{
 		cudaMemcpy( sinogram_h,	sinogram_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
-		int* empty_parameter;
+		//int* empty_parameter; //Warning: declared but never used
 		//bins_2_disk( "WEPL_dist_post_test2", empty_parameter, sinogram_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
 	}
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
-	array_2_disk("sinogram", OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	char sinogram[]={"sinogram"};
+	array_2_disk(sinogram, OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
-	array_2_disk( "bin_counts_post", OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	char bin_counts_post[]={"bin_counts_post"};
+	array_2_disk( bin_counts_post, OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	cudaFree(bin_counts_d);
 }
 __global__ void construct_sinogram_GPU( int* bin_counts, float* sinogram )
@@ -3266,7 +3281,8 @@ void FBP()
 	if( WRITE_FBP_IMAGE )
 	{
 		cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
-		array_2_disk( "FBP_image_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+		char fbp_image[]={"FBP_image_h"};
+		array_2_disk( fbp_image, OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 	}
 
 	if( IMPORT_FILTERED_FBP)
@@ -3279,7 +3295,8 @@ void FBP()
 		sprintf(IMPORT_FBP_PATH,"%s%s/%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, IMPORT_FBP_FILENAME, 2*FBP_MEDIAN_RADIUS+1,".bin" );
 		import_image( image, IMPORT_FBP_PATH );
 		FBP_image_h = image;
-		array_2_disk( "FBP_after", OUTPUT_DIRECTORY, OUTPUT_FOLDER, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		char fbp_after[]={"FBP_after"};
+		array_2_disk( fbp_after, OUTPUT_DIRECTORY, OUTPUT_FOLDER, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
 	else if( AVG_FILTER_FBP )
 	{
@@ -3300,7 +3317,8 @@ void FBP()
 			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			cudaMemcpy(FBP_image_filtered_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			//cout << FBP_image_d << endl;
-			array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			char fbp_image_filter[]={"FBP_image_filtered"};
+			array_2_disk( fbp_image_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//FBP_image_h = FBP_image_filtered_h;
 		}
 		cudaFree(FBP_image_filtered_d);
@@ -3324,7 +3342,8 @@ void FBP()
 			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//cudaMemcpy(FBP_median_filtered_h, FBP_median_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			//cout << FBP_image_d << endl;
-			array_2_disk( "FBP_median_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_median_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			char fbp_median_filter[]={"FBP_median_filtered"};
+			array_2_disk( fbp_median_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_median_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//FBP_image_h = FBP_image_filtered_h;
 		}
 		cudaFree(FBP_image_filtered_d);
@@ -3560,8 +3579,9 @@ void FBP_image_2_hull()
 	FBP_image_2_hull_GPU<<< dimGrid, dimBlock >>>( FBP_image_d, FBP_hull_d );	
 	cudaMemcpy( FBP_hull_h, FBP_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost );
 	
-	if( WRITE_FBP_HULL )
-		array_2_disk( "x_FBP", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	if( WRITE_FBP_HULL ) {
+		char x_fbp[]={"x_FBP"};
+		array_2_disk( x_fbp, OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
 
 	if( MLP_HULL != FBP_HULL)	
 		free(FBP_hull_h);
@@ -4114,7 +4134,8 @@ void SM_edge_detection_2()
 
 	// Copy the space modeled image from the GPU to the CPU and write it to file.
 	cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-	array_2_disk("SM_counts", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
+	char sm_counts[]={"SM_counts"};
+	array_2_disk(sm_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
 
 	int* SM_differences_h = (int*) calloc( NUM_VOXELS, sizeof(int) );
 	int* SM_differences_d;
@@ -4162,8 +4183,9 @@ void SM_edge_detection_2()
 	free(SM_differences_h);
 	free(SM_thresholds_h);
 	
-	if( WRITE_SM_HULL )
-		array_2_disk("x_SM", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	if( WRITE_SM_HULL ) {
+	  char x_sm[]={"x_SM"};
+		array_2_disk(x_sm, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
 	if( MLP_HULL != SM_HULL)
 		free(SM_counts_h);	
 }
@@ -4219,7 +4241,8 @@ void hull_detection_finish()
 		if( WRITE_SC_HULL )
 		{
 			puts("Writing SC hull to disk...");
-			array_2_disk("x_SC", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			char x_sc[]={"x_SC"};
+			array_2_disk(x_sc, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 		if( MLP_HULL != SC_HULL )
 			free( SC_hull_h );
@@ -4232,7 +4255,8 @@ void hull_detection_finish()
 		{		
 			puts("Writing MSC counts to disk...");		
 			cudaMemcpy(MSC_counts_h,  MSC_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-			array_2_disk("MSC_counts_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+			char msc_counts[]={"MSC_counts_h"};
+			array_2_disk(msc_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 		}
 		if( WRITE_MSC_HULL || (MLP_HULL == MSC_HULL) )
 		{
@@ -4240,8 +4264,9 @@ void hull_detection_finish()
 			cudaMemcpy(MSC_counts_h,  MSC_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
 			if( WRITE_MSC_HULL )
 			{
-				puts("Writing MSC hull to disk...");		
-				array_2_disk("x_MSC", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+				puts("Writing MSC hull to disk...");	
+				char x_msc[]={"x_MSC"};
+				array_2_disk(x_msc, OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 			}
 			cudaFree(MSC_counts_d);
 		}
@@ -4255,7 +4280,8 @@ void hull_detection_finish()
 		{		
 			puts("Writing SM counts to disk...");
 			cudaMemcpy(SM_counts_h,  SM_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-			array_2_disk("SM_counts_h", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+			char sm_counts[]={"SM_counts_h"};
+			array_2_disk(sm_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 		}
 		if( WRITE_SM_HULL || (MLP_HULL == SM_HULL) )
 		{
@@ -4263,8 +4289,9 @@ void hull_detection_finish()
 			cudaMemcpy(SM_counts_h,  SM_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
 			if( WRITE_SM_HULL )
 			{
-				puts("Writing SM hull to disk...");		
-				array_2_disk("x_SM", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+				puts("Writing SM hull to disk...");	
+				char x_sm[]={"x_SM"};
+				array_2_disk(x_sm, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 			}
 			cudaFree(SM_counts_d);
 		}
@@ -4287,7 +4314,8 @@ void hull_selection()
 	if( WRITE_X_HULL )
 	{
 		puts("Writing selected hull to disk...");
-		array_2_disk("hull", OUTPUT_DIRECTORY, OUTPUT_FOLDER, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		char hull[]={"hull"};
+		array_2_disk(hull, OUTPUT_DIRECTORY, OUTPUT_FOLDER, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
 
 	// Allocate memory for and transfer hull to the GPU
@@ -4303,8 +4331,9 @@ void hull_selection()
 		if( WRITE_FILTERED_HULL )
 		{
 			puts("Writing filtered hull to disk...");
-			cudaMemcpy(hull_h, hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost) ;
-			array_2_disk( "hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			cudaMemcpy(hull_h, hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
+			char hull_filter[]={"hull_filtered"};
+			array_2_disk( hull_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 	}
 	puts("Hull selection complete."); 
@@ -5512,8 +5541,8 @@ void reconstruction_cuts_allocations( const int num_histories)
 void reconstruction_cuts_host_2_device(const int start_position, const int num_histories) 
 {
 	unsigned int size_floats		= sizeof(float) * num_histories;
-	unsigned int size_ints			= sizeof(int) * num_histories;
-	unsigned int size_bool			= sizeof(bool) * num_histories;
+	//unsigned int size_ints			= sizeof(int) * num_histories; //Warning: declared but never used
+	//unsigned int size_bool			= sizeof(bool) * num_histories;
 
 	puts("CPU to GPU Transfer...");  
 	//cudaMemcpy( intersected_hull_d, 		intersected_hull_h, 				size_bool,cudaMemcpyHostToDevice );  
@@ -5709,7 +5738,7 @@ void reconstruction_cuts_allocations_nobool( const int num_histories)
 void reconstruction_cuts_host_2_device_nobool(const int start_position, const int num_histories) 
 {
 	unsigned int size_floats		= sizeof(float) * num_histories;
-	unsigned int size_ints			= sizeof(int) * num_histories;
+	//unsigned int size_ints			= sizeof(int) * num_histories;
 
 	puts("CPU to GPU Transfer...");  
 	cudaMemcpy( x_entry_d,				&x_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
@@ -6114,8 +6143,8 @@ void transfer_host_to_device( const int start_position, const int num_histories 
 	  
 	
 	  unsigned int size_floats		= sizeof(float) * num_histories;
-	  unsigned int size_ints		= sizeof(int) * num_histories;
-	  unsigned int size_bool		= sizeof(bool) * num_histories;
+	  //unsigned int size_ints		= sizeof(int) * num_histories;
+	  //unsigned int size_bool		= sizeof(bool) * num_histories;
 	  //int start_position = 0;
 	  
 	  intersected_hull_h = (bool*)calloc( num_histories, sizeof(bool) );
@@ -6183,7 +6212,7 @@ void transfer_intermediate_results_host_to_device( const int num_histories ) {
   
 	unsigned int size_floats		= sizeof(float) * num_histories;
 	unsigned int size_ints			= sizeof(int) * num_histories;
-	unsigned int size_bool			= sizeof(bool) * num_histories;
+	//unsigned int size_bool			= sizeof(bool) * num_histories;
 	int start_position = 0;
 	
 	
@@ -6858,7 +6887,7 @@ void drop_cuts (const int start_position, const int num_histories) {
   
 	unsigned int size_floats		= sizeof(float) * num_histories;
 	unsigned int size_ints			= sizeof(int) * num_histories;
-	unsigned int size_bool			= sizeof(bool) * num_histories;
+	//unsigned int size_bool			= sizeof(bool) * num_histories;
 	
 	cudaMalloc( (void**) &x_entry_d,			size_floats );
 	cudaMalloc( (void**) &y_entry_d,			size_floats );
@@ -6894,7 +6923,7 @@ void drop_cuts_preallocations(const int max_histories)
 {
 	unsigned int size_floats		= sizeof(float) * max_histories;
 	unsigned int size_ints			= sizeof(int) * max_histories;
-	unsigned int size_bool			= sizeof(bool) * max_histories;
+	//unsigned int size_bool			= sizeof(bool) * max_histories;
 	
 	cudaMalloc( (void**) &x_entry_d,			size_floats );
 	cudaMalloc( (void**) &y_entry_d,			size_floats );
@@ -6916,7 +6945,7 @@ void drop_cuts_preallocated(const int start_position, const int num_histories) {
   
 	unsigned int size_floats		= sizeof(float) * num_histories;
 	unsigned int size_ints			= sizeof(int) * num_histories;
-	unsigned int size_bool			= sizeof(bool) * num_histories;
+	//unsigned int size_bool			= sizeof(bool) * num_histories;
 		
 	cudaMemcpy( x_entry_d,					&x_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( y_entry_d,					&y_entry_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
@@ -7024,7 +7053,7 @@ void DROP_full_tx(const int num_histories)
 {
 	cudaError_t cudaStatus;
 	char iterate_filename[256];
-	int i, remaining_histories, start_position = 0, histories_2_process, num_blocks;
+	int remaining_histories, start_position = 0, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( column_blocks, ROWS );
@@ -7034,7 +7063,7 @@ void DROP_full_tx(const int num_histories)
 	DROP_host_2_device( start_position, num_histories);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		i = 0;
+		//i = 0;
 		printf("Performing iteration %u of image reconstruction\n", iteration);
 		//transfer_intermediate_results_host_to_device( reconstruction_histories );
 		remaining_histories = num_histories;
@@ -7087,7 +7116,7 @@ void DROP_partial_tx( const int num_histories )
 {
 	cudaError_t cudaStatus;
 	char iterate_filename[256];
-	int i, remaining_histories, start_position, histories_2_process, num_blocks;
+	int remaining_histories, start_position, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( column_blocks, ROWS );
@@ -7095,7 +7124,7 @@ void DROP_partial_tx( const int num_histories )
 	//DROP_full_tx_setup(reconstruction_histories);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		i = 0;
+		//i = 0;
 		printf("Performing iteration %u of image reconstruction\n", iteration);
 		//transfer_intermediate_results_host_to_device( reconstruction_histories );
 		remaining_histories = num_histories;
@@ -7152,7 +7181,7 @@ void DROP_partial_tx_preallocated( const int num_histories )
 { 
 	cudaError_t cudaStatus;
 	char iterate_filename[256];
-	int i, remaining_histories, start_position, histories_2_process, num_blocks;
+	int remaining_histories, start_position, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( column_blocks, ROWS );
@@ -7161,7 +7190,7 @@ void DROP_partial_tx_preallocated( const int num_histories )
 	DROP_allocations(DROP_BLOCK_SIZE);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		i = 0;
+		//i = 0;
 		printf("Performing iteration %u of image reconstruction\n", iteration);
 		//transfer_intermediate_results_host_to_device( reconstruction_histories );
 		remaining_histories = num_histories;
@@ -7216,7 +7245,7 @@ void DROP_full_tx_tabulated(const int num_histories)
 {
 	cudaError_t cudaStatus;
 	char iterate_filename[256];
-	int i, remaining_histories, start_position = 0, histories_2_process, num_blocks;
+	int remaining_histories, start_position = 0, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( column_blocks, ROWS );
@@ -7225,7 +7254,7 @@ void DROP_full_tx_tabulated(const int num_histories)
 	DROP_host_2_device( start_position, num_histories);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		i = 0;
+		//i = 0;
 		printf("Performing iteration %u of image reconstruction\n", iteration);
 		//transfer_intermediate_results_host_to_device( reconstruction_histories );
 		remaining_histories = num_histories;
@@ -7278,7 +7307,7 @@ void DROP_partial_tx_tabulated( const int num_histories )
 { 
 	cudaError_t cudaStatus;
 	char iterate_filename[256];
-	int i, remaining_histories, start_position, histories_2_process, num_blocks;
+	int remaining_histories, start_position, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( column_blocks, ROWS );
@@ -7286,7 +7315,7 @@ void DROP_partial_tx_tabulated( const int num_histories )
 	//DROP_full_tx_setup(reconstruction_histories);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		i = 0;
+		//i = 0;
 		printf("Performing iteration %u of image reconstruction\n", iteration);
 		//transfer_intermediate_results_host_to_device( reconstruction_histories );
 		remaining_histories = num_histories;
@@ -7344,7 +7373,7 @@ void DROP_partial_tx_preallocated_tabulated( const int num_histories )
 {
 	cudaError_t cudaStatus;
 	char iterate_filename[256];
-	int i, remaining_histories, start_position, histories_2_process, num_blocks;
+	int remaining_histories, start_position, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( column_blocks, ROWS );
@@ -7353,7 +7382,7 @@ void DROP_partial_tx_preallocated_tabulated( const int num_histories )
 	DROP_allocations(DROP_BLOCK_SIZE);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		i = 0;
+		//i = 0;
 		printf("Performing iteration %u of image reconstruction\n", iteration);
 		//transfer_intermediate_results_host_to_device( reconstruction_histories );
 		remaining_histories = num_histories;
@@ -7414,9 +7443,9 @@ void image_reconstruction_GPU()
 	 // #endif
 	  cudaSetDevice(0);
 	  char iterate_filename[256];
-      clock_t begin1, end1, begin2, end2;
-	  float time_spent1, time_spent2;
-	  int i = 0; 
+	  clock_t begin1, end1; //begin2, end2;
+	  float time_spent1; //time_spent2;
+	  //int i = 0; 
 	  reconstruction_histories = 0;
 	  
 	  sprintf(iterate_filename, "%s%d", "x_", 0 );
@@ -7474,6 +7503,7 @@ void image_reconstruction_GPU()
 	  time_spent1 = (float)(end1 - begin1) / CLOCKS_PER_SEC;
 	  printf( "time spent on reconstruction_cuts : %lf seconds\n", time_spent1 );
 	  printf("RECON hist %d\n", reconstruction_histories);
+	  
 	  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////COPY to MEMORY ALL AT ONCE////////////////////////////////////////////////////////////////////////////////////////////
 	  /*gpu_memory_allocation( post_cut_histories );
 	  
@@ -7639,7 +7669,7 @@ void image_reconstruction_GPU()
 		if (err != cudaSuccess) 
 			printf("Error: %s\n", cudaGetErrorString(err));
 	  
-	i=0;
+	//i=0;
 	 
 	
 	cudaEvent_t start, stop;
@@ -7666,8 +7696,8 @@ void image_reconstruction_GPU()
 	//begin = clock();
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) {
 	    
-		float total_time1=0.0, total_time2 = 0.0;
-		i=0;
+		float /*total_time1=0.0,*/ total_time2 = 0.0;
+		//i=0;
 		printf("Performing iteration %u of image reconstruction\n", iteration);
 		begin1 = clock();
 		remaining_histories = reconstruction_histories;
@@ -7739,9 +7769,9 @@ void image_reconstruction_GPU()
 void image_reconstruction_GPU_tabulated() 
 {  
 	char iterate_filename[256];
-	clock_t begin1, end1, begin2, end2;
-	float time_spent1, time_spent2;
-	int i = 0; 
+	clock_t begin1, end1;// begin2, end2;
+	float time_spent1;// time_spent2;
+	//int i = 0; 
 	reconstruction_histories = 0;
 	  
 	sprintf(iterate_filename, "%s%d", "x_", 0 );
@@ -7833,8 +7863,8 @@ void image_reconstruction_GPU_tabulated()
 	drop_cuts_preallocations(DROP_BLOCK_SIZE);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{    
-		float total_time1=0.0, total_time2 = 0.0;
-		i=0;
+		//float total_time1=0.0, total_time2 = 0.0;
+		//i=0;
 		printf("Performing iteration %u of image reconstruction\n", iteration);
 		begin1 = clock();
 		//transfer_intermediate_results_host_to_device( reconstruction_histories );
@@ -8191,8 +8221,9 @@ void create_hull_image_hybrid()
 	create_hull_image_hybrid_GPU<<< dimGrid, dimBlock >>>( hull_d, FBP_image_d );
 	cudaMemcpy( x_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
 
-	if( WRITE_X_0 )
-		array_2_disk("x_k0", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	if( WRITE_X_0 ) {
+		char x_k0[]={"x_k0"};
+		array_2_disk(x_k0, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
 }
 __global__ void create_hull_image_hybrid_GPU( bool*& hull, float*& FBP_image)
 {
@@ -8252,8 +8283,9 @@ void define_initial_iterate()
 	//	}
 	//}
 
-	if( WRITE_X_0 )
-		array_2_disk("x_0", OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	if( WRITE_X_0 ) {
+		char x_0[]={"x_0"};
+		array_2_disk(x_0, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
 	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
 	//cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
 }
@@ -8352,7 +8384,7 @@ double mean_chord_length( double x_entry, double y_entry, double z_entry, double
 	double xy_angle = atan2( y_exit - y_entry, x_exit - x_entry);
 	double xz_angle = atan2( z_exit - z_entry, x_exit - x_entry);
 
-	double int_part;
+	//double int_part;
 	//double reduced_angle = modf( xy_angle/(PI/2), &int_part );
 	double reduced_angle = xy_angle - ( int( xy_angle/(PI/2) ) ) * (PI/2);
 	double effective_angle_ut = fabs(reduced_angle);
@@ -8493,7 +8525,7 @@ void image_reconstruction()
 		puts("ERROR: Memory allocation for one or more image reconstruction arrays failed.");
 		exit_program_if(true);
 	}
-	unsigned int block_intersections = 0;
+	//unsigned int block_intersections = 0;
 	unsigned int path_intersections = 0;
 	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
 	//cudaMalloc((void**) &x_update_d, SIZE_IMAGE_DOUBLE );
@@ -8546,7 +8578,7 @@ void image_reconstruction()
 	FILE* read_MLP_paths_error;
 	unsigned int num_paths;
 	double effective_chord_length  = VOXEL_WIDTH;
-	double u_0, t_0, v_0, u_2, t_2, v_2;
+	//double u_0, t_0, v_0, u_2, t_2, v_2;
 	for( unsigned int iteration = 1; iteration <= ITERATIONS; iteration++ )
 	{
 		printf("Performing iteration %u of image reconstruction\n", iteration);
@@ -8963,11 +8995,11 @@ void DROP_update3( float*& x_k, double*& x_update, unsigned int*& block_voxels, 
 	unsigned int count;
 	for( unsigned int block_intersection = 0; block_intersection < block_intersections; block_intersection++ )
 	{
-		count = std::count(block_voxels, block_voxels + block_intersections, block_voxels[block_intersection] );
+		count = static_cast<unsigned int>(std::count(block_voxels, block_voxels + block_intersections, block_voxels[block_intersection] ));
 		x_k[block_voxels[block_intersection]] += x_update[block_voxels[block_intersection]] / count;
 		//x_update[block_intersection] = 0;
 	}
-	memset(x_update, 0.0, NUM_VOXELS );
+	memset(x_update, 0, NUM_VOXELS );
 	block_intersections = 0;
 }
 void DROP_blocks2
@@ -9206,7 +9238,7 @@ template<typename T> void vector_2_disk( char* filename_base, const char* direct
 }
 template<typename T> void t_bins_2_disk( FILE* output_file, const std::vector<int>& bin_numbers, const std::vector<T>& data, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
 {
-	char* data_format = FLOAT_FORMAT;
+	const char* data_format = FLOAT_FORMAT;
 	if( typeid(T) == typeid(int) )
 		data_format = INT_FORMAT;
 	if( typeid(T) == typeid(bool))
@@ -9310,7 +9342,7 @@ template<typename T> void bins_2_disk( const char* filename_base, const std::vec
 }
 template<typename T> void t_bins_2_disk( FILE* output_file, int*& bin_numbers, T*& data, const unsigned int data_elements, const BIN_ANALYSIS_TYPE type, const BIN_ORGANIZATION bin_order, int bin )
 {
-	char* data_format = FLOAT_FORMAT;
+	const char* data_format = FLOAT_FORMAT;
 	if( typeid(T) == typeid(int) )
 		data_format = INT_FORMAT;
 	if( typeid(T) == typeid(bool))
@@ -9425,7 +9457,7 @@ template<typename T> void path_data_2_disk(char* data_filename, FILE* pFile, uns
 {
 	// Writes either voxel intersection numbers or chord lengths in either dense or sparse format
 	T data_value;	
-	char* data_format = FLOAT_FORMAT;
+	const char* data_format = FLOAT_FORMAT;
 	if( typeid(T) == typeid(int) )
 		data_format = INT_FORMAT;
 	if( typeid(T) == typeid(bool))
@@ -9488,7 +9520,7 @@ void execution_times_2_disk()
 /***********************************************************************************************************************************************************************************************************************/
 int calculate_voxel( double zero_coordinate, double current_position, double voxel_size )
 {
-	return abs( current_position - zero_coordinate ) / voxel_size;
+	return static_cast<int>(abs( current_position - zero_coordinate ) / voxel_size);
 }
 int positions_2_voxels(const double x, const double y, const double z, int& voxel_x, int& voxel_y, int& voxel_z )
 {
@@ -9972,8 +10004,7 @@ void bin_2_indexes( int& bin_num, int& t_bin, int& v_bin, int& angular_bin )
 /***********************************************************************************************************************************************************************************************************************/
 void test_func()
 {
-
-	for( int i = 0; i < 10; i++ )
+	/*for( int i = 0; i < 10; i++ )
 	{
 		double val = 0;
 		timer( START, begin_DROP_iteration, end_DROP_iteration, execution_time_DROP_iteration, "for DROP iteration");
@@ -9984,7 +10015,7 @@ void test_func()
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
 	for( int i = 0; i < execution_times_DROP_iterations.size(); i++ )
-		printf("time = %4.2f\n", execution_times_DROP_iterations[i] );
+		printf("time = %4.2f\n", execution_times_DROP_iterations[i] );*/
 	//char filename[256];
 	//char* name = "FBP_med7";
 	//sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, name, ".bin" );
