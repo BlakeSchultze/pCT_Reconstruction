@@ -233,15 +233,19 @@ void tables_2_GPU();
 void free_GPU_tables();
 
 void image_reconstruction_GPU_tabulated();//*
-//template<typename O> __device__ bool find_MLP_endpoints_GPU( O*, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool);                                            			//*
-__device__ bool find_MLP_endpoints_GPU( bool*, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool); 
-__device__ void find_MLP_path_GPU(float*, double, unsigned int, double, double, double, double, double, double, double, double, double, double, double, float, unsigned int*, int&, double&, double&, double& );                        		//*
+template<typename O> __device__ bool find_MLP_endpoints_GPU( O*, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool);                                            			//*
+//__device__ bool find_MLP_endpoints_GPU( bool*, double, double, double, double, double, double&, double&, double&, int&, int&, int&, bool); 
+__device__ void find_MLP_path_GPU(float*, double, unsigned int, double, double, double, double, double, double, double, double, double, double, double, double, unsigned int*, int&, double&, double&, double& );                        		//*
+//__device__ void find_MLP_path_GPU(float*, double, unsigned int, double, double, double, double, double, double, double, double, double, double, double, float, unsigned int*, int&, double&, double&, double& );                        		//*
 __device__ void find_MLP_path_GPU_tabulated(float*, double, unsigned int, double, double, double, double, double, double, double, double, double, double, double, float, unsigned int*, int&, double&, double&, double&, double* sin_table, double* cos_table, double* scattering_table, double* poly_1_2, double* poly_2_3, double* poly_3_4, double* poly_2_6, double* poly_3_12);
 //__device__ void find_MLP_path_GPU_tabulated(float*, double, unsigned int, double, double, double, double, double, double, double, double, double, double, float, unsigned int*, float&, int&, double*, double*, double*, double*, double*, double*, double*, double*);
 __global__ void collect_MLP_endpoints_GPU(bool*, unsigned int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* , int, int );                               	//*
 __global__ void collect_MLP_endpoints_GPU_nobool(unsigned int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* , int, int );                               	//*
-__global__ void block_update_GPU(float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, unsigned int*, float*, unsigned int*, int, int, float);                                          	//*
-__global__ void block_update_GPU_tabulated(float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, unsigned int*, float*, unsigned int*, int, int, float, double*, double*, double*, double*, double*, double*, double*, double*);
+//__global__ void block_update_GPU(float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, unsigned int*, float*, unsigned int*, int, int, float);                                          	//*
+//__global__ void block_update_GPU_tabulated(float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, unsigned int*, float*, unsigned int*, int, int, float, double*, double*, double*, double*, double*, double*, double*, double*);
+__global__ void block_update_GPU(float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, unsigned int*, float*, unsigned int*, int, int, double);                                          	//*
+__global__ void block_update_GPU_tabulated(float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, unsigned int*, float*, unsigned int*, int, int, double, double*, double*, double*, double*, double*, double*, double*, double*);
+
 __global__ void image_update_GPU(float*, double*, unsigned int*); 
 void gpu_memory_allocation( const int );//*
 void transfer_host_to_device( const int ); 
@@ -5094,406 +5098,9 @@ void import_hull()
 /**************************************************************************************************************************************************************************/
 /**************************************************************************** MLP Endpoints Routines **********************************************************************/
 /**************************************************************************************************************************************************************************/
-//template<typename O> __device__ bool find_MLP_endpoints_GPU
-//(
-//	O* image, float x_start, float y_start, float z_start, float xy_angle, float xz_angle, 
-//	float& x_object, float& y_object, float& z_object, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
-//)
-//{
-//	/********************************************************************************************/
-//	/********************************* Voxel Walk Parameters ************************************/
-//	/********************************************************************************************/
-//	int x_move_direction, y_move_direction, z_move_direction;
-//	float delta_yx, delta_zx, delta_zy;
-//	/********************************************************************************************/
-//	/**************************** Status Tracking Information ***********************************/
-//	/********************************************************************************************/
-//	float x = x_start, y = y_start, z = z_start;
-//	float x_to_go, y_to_go, z_to_go;		
-//	float x_extension, y_extension;	
-//	int voxel; 
-//	bool hit_hull = false, end_walk, outside_image;
-//	/********************************************************************************************/
-//	/******************** Initial Conditions and Movement Characteristics ***********************/
-//	/********************************************************************************************/	
-//	if( !entering )
-//	{
-//		xy_angle += PI;
-//	}
-//	x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
-//	y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
-//	z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
-//	if( x_move_direction < 0 )
-//		z_move_direction *= -1;
-//		
-//	voxel_x = calculate_voxel_GPU( X_ZERO_COORDINATE, x, VOXEL_WIDTH );
-//	voxel_y = calculate_voxel_GPU( Y_ZERO_COORDINATE, y, VOXEL_HEIGHT );
-//	voxel_z = calculate_voxel_GPU( Z_ZERO_COORDINATE, z, VOXEL_THICKNESS );
-//
-//	x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//	y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
-//	z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
-//
-//	voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-//	/********************************************************************************************/
-//	/***************************** Path and Walk Information ************************************/
-//	/********************************************************************************************/
-//	// Lengths/Distances as x is Incremented One Voxel tan( xy_hit_hull_angle )
-//	delta_yx = fabs(tan(xy_angle));
-//	delta_zx = fabs(tan(xz_angle));
-//	delta_zy = fabs( tan(xz_angle)/tan(xy_angle));
-//
-//	float dy_dx = tan(xy_angle);
-//	float dz_dx = tan(xz_angle);
-//	float dz_dy = tan(xz_angle)/tan(xy_angle);
-//
-//	float dx_dy = powf( tan(xy_angle), -1.0 );
-//	float dx_dz = powf( tan(xz_angle), -1.0 );
-//	float dy_dz = tanf(xy_angle)/tan(xz_angle);
-//	/********************************************************************************************/
-//	/************************* Initialize and Check Exit Conditions *****************************/
-//	/********************************************************************************************/
-//	outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
-//	if( !outside_image )
-//		hit_hull = (image[voxel] == 1);		
-//	end_walk = outside_image || hit_hull;
-//	/********************************************************************************************/
-//	/*********************************** Voxel Walk Routine *************************************/
-//	/********************************************************************************************/
-//	if( z_move_direction != 0 )
-//	{
-//		//printf("z_end != z_start\n");
-//		while( !end_walk )
-//		{
-//			// Change in z for Move to Voxel Edge in x and y
-//			x_extension = delta_zx * x_to_go;
-//			y_extension = delta_zy * y_to_go;
-//			if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
-//			{
-//				//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");					
-//				voxel_z -= z_move_direction;
-//					
-//				z = edge_coordinate_GPU( Z_ZERO_COORDINATE, voxel_z, VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
-//				x = corresponding_coordinate_GPU( dx_dz, z, z_start, x_start );
-//				y = corresponding_coordinate_GPU( dy_dz, z, z_start, y_start );
-//
-//				x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//				y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
-//				z_to_go = VOXEL_THICKNESS;
-//			}
-//			//If Next Voxel Edge is in x or xy Diagonal
-//			else if( x_extension <= y_extension )
-//			{
-//				//printf(" x_extension <= y_extension \n");			
-//				voxel_x += x_move_direction;
-//
-//				x = edge_coordinate_GPU( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
-//				y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
-//				z = corresponding_coordinate_GPU( dz_dx, x, x_start, z_start );
-//
-//				x_to_go = VOXEL_WIDTH;
-//				y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
-//				z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
-//			}
-//			// Else Next Voxel Edge is in y
-//			else
-//			{
-//				//printf(" y_extension < x_extension \n");
-//				voxel_y -= y_move_direction;
-//					
-//				y = edge_coordinate_GPU( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
-//				x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
-//				z = corresponding_coordinate_GPU( dz_dy, y, y_start, z_start );
-//
-//				x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//				y_to_go = VOXEL_HEIGHT;					
-//				z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
-//			}
-//			// <= VOXEL_ALLOWANCE
-//			if( x_to_go == 0 )
-//			{
-//				x_to_go = VOXEL_WIDTH;
-//				voxel_x += x_move_direction;
-//			}
-//			if( y_to_go == 0 )
-//			{
-//				y_to_go = VOXEL_HEIGHT;
-//				voxel_y -= y_move_direction;
-//			}
-//			if( z_to_go == 0 )
-//			{
-//				z_to_go = VOXEL_THICKNESS;
-//				voxel_z -= z_move_direction;
-//			}
-//				
-//			voxel_z = max(voxel_z, 0 );
-//			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-//
-//			outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
-//			if( !outside_image )
-//				hit_hull = (image[voxel] == 1);	
-//			end_walk = outside_image || hit_hull;	
-//		}// end !end_walk 
-//	}
-//	else
-//	{
-//		//printf("z_end == z_start\n");
-//		while( !end_walk )
-//		{
-//			// Change in x for Move to Voxel Edge in y
-//			y_extension = y_to_go / delta_yx;
-//			//If Next Voxel Edge is in x or xy Diagonal
-//			if( x_to_go <= y_extension )
-//			{
-//				//printf(" x_to_go <= y_extension \n");
-//				voxel_x += x_move_direction;
-//					
-//				x = edge_coordinate_GPU( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
-//				y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
-//
-//				x_to_go = VOXEL_WIDTH;
-//				y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
-//			}
-//			// Else Next Voxel Edge is in y
-//			else
-//			{
-//				//printf(" y_extension < x_extension \n");				
-//				voxel_y -= y_move_direction;
-//
-//				y = edge_coordinate_GPU( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Z_INCREASING_DIRECTION, y_move_direction );
-//				x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
-//
-//				x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//				y_to_go = VOXEL_HEIGHT;
-//			}
-//			// <= VOXEL_ALLOWANCE
-//			if( x_to_go == 0 )
-//			{
-//				x_to_go = VOXEL_WIDTH;
-//				voxel_x += x_move_direction;
-//			}
-//			if( y_to_go == 0 )
-//			{
-//				y_to_go = VOXEL_HEIGHT;
-//				voxel_y -= y_move_direction;
-//			}
-//			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
-//			outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
-//			if( !outside_image )
-//				hit_hull = (image[voxel] == 1);		
-//			end_walk = outside_image || hit_hull;
-//		}// end: while( !end_walk )
-//		//printf("i = %d", i );
-//	}//end: else: z_start != z_end => z_start == z_end
-//	if( hit_hull )
-//	{
-//		x_object = x;
-//		y_object = y;
-//		z_object = z;
-//	}
-//	return hit_hull;
-//}
-//template<typename O> __device__ bool find_MLP_endpoints_GPU
-//(
-//	O* image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
-//	double& x_object, double& y_object, double& z_object, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
-//)
-//{
-//	/********************************************************************************************/
-//	/********************************* Voxel Walk Parameters ************************************/
-//	/********************************************************************************************/
-//	int x_move_direction, y_move_direction, z_move_direction;
-//	double delta_yx, delta_zx, delta_zy;
-//	/********************************************************************************************/
-//	/**************************** Status Tracking Information ***********************************/
-//	/********************************************************************************************/
-//	double x = x_start, y = y_start, z = z_start;
-//	double x_to_go, y_to_go, z_to_go;		
-//	double x_extension, y_extension;	
-//	int voxel; 
-//	bool hit_hull = false, end_walk, outside_image;
-//	/********************************************************************************************/
-//	/******************** Initial Conditions and Movement Characteristics ***********************/
-//	/********************************************************************************************/	
-//	if( !entering )
-//	{
-//		xy_angle += PI;
-//	}
-//	x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
-//	y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
-//	z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
-//	if( x_move_direction < 0 )
-//		z_move_direction *= -1;
-//
-//	voxel_x = calculate_voxel_GPU( X_ZERO_COORDINATE, x, VOXEL_WIDTH );
-//	voxel_y = calculate_voxel_GPU( Y_ZERO_COORDINATE, y, VOXEL_HEIGHT );
-//	voxel_z = calculate_voxel_GPU( Z_ZERO_COORDINATE, z, VOXEL_THICKNESS );
-//
-//	x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//	y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
-//	z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
-//
-//	voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-//	/********************************************************************************************/
-//	/***************************** Path and Walk Information ************************************/
-//	/********************************************************************************************/
-//	// Lengths/Distances as x is Incremented One Voxel tan( xy_hit_hull_angle )
-//	delta_yx = fabs(tan(xy_angle));
-//	delta_zx = fabs(tan(xz_angle));
-//	delta_zy = fabs( tan(xz_angle)/tan(xy_angle));
-//
-//	double dy_dx = tan(xy_angle);
-//	double dz_dx = tan(xz_angle);
-//	double dz_dy = tan(xz_angle)/tan(xy_angle);
-//
-//	double dx_dy = powf( tan(xy_angle), -1.0 );
-//	double dx_dz = powf( tan(xz_angle), -1.0 );
-//	double dy_dz = tanf(xy_angle)/tan(xz_angle);
-//	/********************************************************************************************/
-//	/************************* Initialize and Check Exit Conditions *****************************/
-//	/********************************************************************************************/
-//	outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
-//	if( !outside_image )
-//		hit_hull = (image[voxel] == 1);		
-//	end_walk = outside_image || hit_hull;
-//	/********************************************************************************************/
-//	/*********************************** Voxel Walk Routine *************************************/
-//	/********************************************************************************************/
-//	if( z_move_direction != 0 )
-//	{
-//		//printf("z_end != z_start\n");
-//		while( !end_walk )
-//		{
-//			// Change in z for Move to Voxel Edge in x and y
-//			x_extension = delta_zx * x_to_go;
-//			y_extension = delta_zy * y_to_go;
-//			if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
-//			{
-//				//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");					
-//				voxel_z -= z_move_direction;
-//					
-//				z = edge_coordinate_GPU( Z_ZERO_COORDINATE, voxel_z, VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
-//				x = corresponding_coordinate_GPU( dx_dz, z, z_start, x_start );
-//				y = corresponding_coordinate_GPU( dy_dz, z, z_start, y_start );
-//
-//				x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//				y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
-//				z_to_go = VOXEL_THICKNESS;
-//			}
-//			//If Next Voxel Edge is in x or xy Diagonal
-//			else if( x_extension <= y_extension )
-//			{
-//				//printf(" x_extension <= y_extension \n");			
-//				voxel_x += x_move_direction;
-//
-//				x = edge_coordinate_GPU( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
-//				y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
-//				z = corresponding_coordinate_GPU( dz_dx, x, x_start, z_start );
-//
-//				x_to_go = VOXEL_WIDTH;
-//				y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
-//				z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
-//			}
-//			// Else Next Voxel Edge is in y
-//			else
-//			{
-//				//printf(" y_extension < x_extension \n");
-//				voxel_y -= y_move_direction;
-//					
-//				y = edge_coordinate_GPU( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
-//				x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
-//				z = corresponding_coordinate_GPU( dz_dy, y, y_start, z_start );
-//
-//				x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//				y_to_go = VOXEL_HEIGHT;					
-//				z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
-//			}
-//			// <= VOXEL_ALLOWANCE
-//			if( x_to_go == 0 )
-//			{
-//				x_to_go = VOXEL_WIDTH;
-//				voxel_x += x_move_direction;
-//			}
-//			if( y_to_go == 0 )
-//			{
-//				y_to_go = VOXEL_HEIGHT;
-//				voxel_y -= y_move_direction;
-//			}
-//			if( z_to_go == 0 )
-//			{
-//				z_to_go = VOXEL_THICKNESS;
-//				voxel_z -= z_move_direction;
-//			}
-//				
-//			voxel_z = max(voxel_z, 0 );
-//			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-//
-//			outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
-//			if( !outside_image )
-//				hit_hull = (image[voxel] == 1);	
-//			end_walk = outside_image || hit_hull;	
-//		}// end !end_walk 
-//	}
-//	else
-//	{
-//		//printf("z_end == z_start\n");
-//		while( !end_walk )
-//		{
-//			// Change in x for Move to Voxel Edge in y
-//			y_extension = y_to_go / delta_yx;
-//			//If Next Voxel Edge is in x or xy Diagonal
-//			if( x_to_go <= y_extension )
-//			{
-//				//printf(" x_to_go <= y_extension \n");
-//				voxel_x += x_move_direction;
-//					
-//				x = edge_coordinate_GPU( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
-//				y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
-//
-//				x_to_go = VOXEL_WIDTH;
-//				y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
-//			}
-//			// Else Next Voxel Edge is in y
-//			else
-//			{
-//				//printf(" y_extension < x_extension \n");				
-//				voxel_y -= y_move_direction;
-//
-//				y = edge_coordinate_GPU( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Z_INCREASING_DIRECTION, y_move_direction );
-//				x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
-//
-//				x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
-//				y_to_go = VOXEL_HEIGHT;
-//			}
-//			// <= VOXEL_ALLOWANCE
-//			if( x_to_go == 0 )
-//			{
-//				x_to_go = VOXEL_WIDTH;
-//				voxel_x += x_move_direction;
-//			}
-//			if( y_to_go == 0 )
-//			{
-//				y_to_go = VOXEL_HEIGHT;
-//				voxel_y -= y_move_direction;
-//			}
-//			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
-//			outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
-//			if( !outside_image )
-//				hit_hull = (image[voxel] == 1);		
-//			end_walk = outside_image || hit_hull;	
-//		}// end: while( !end_walk )
-//	}//end: else: z_start != z_end => z_start == z_end
-//	if( hit_hull )
-//	{
-//		x_object = x;
-//		y_object = y;
-//		z_object = z;
-//	}
-//	return hit_hull;
-//}
-__device__ bool find_MLP_endpoints_GPU
+template<typename O> __device__ bool find_MLP_endpoints_GPU
 (
-	bool* image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
+	O* image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
 	double& x_object, double& y_object, double& z_object, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
 )
 {
@@ -5552,7 +5159,7 @@ __device__ bool find_MLP_endpoints_GPU
 	/********************************************************************************************/
 	outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
 	if( !outside_image )
-		hit_hull = (image[voxel] == true);		
+		hit_hull = (image[voxel] == 1);		
 	end_walk = outside_image || hit_hull;
 	/********************************************************************************************/
 	/*********************************** Voxel Walk Routine *************************************/
@@ -5628,7 +5235,7 @@ __device__ bool find_MLP_endpoints_GPU
 
 			outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
 			if( !outside_image )
-				hit_hull = (image[voxel] == true);	
+				hit_hull = (image[voxel] == 1);	
 			end_walk = outside_image || hit_hull;	
 		}// end !end_walk 
 	}
@@ -5677,7 +5284,7 @@ __device__ bool find_MLP_endpoints_GPU
 			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
 			outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
 			if( !outside_image )
-				hit_hull = (image[voxel] == true);		
+				hit_hull = (image[voxel] == 1);		
 			end_walk = outside_image || hit_hull;	
 		}// end: while( !end_walk )
 	}//end: else: z_start != z_end => z_start == z_end
@@ -5689,6 +5296,204 @@ __device__ bool find_MLP_endpoints_GPU
 	}
 	return hit_hull;
 }
+//__device__ bool find_MLP_endpoints_GPU
+//(
+//	bool* image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
+//	double& x_object, double& y_object, double& z_object, int& voxel_x, int& voxel_y, int& voxel_z, bool entering
+//)
+//{
+//	/********************************************************************************************/
+//	/********************************* Voxel Walk Parameters ************************************/
+//	/********************************************************************************************/
+//	int x_move_direction, y_move_direction, z_move_direction;
+//	double delta_yx, delta_zx, delta_zy;
+//	/********************************************************************************************/
+//	/**************************** Status Tracking Information ***********************************/
+//	/********************************************************************************************/
+//	double x = x_start, y = y_start, z = z_start;
+//	double x_to_go, y_to_go, z_to_go;		
+//	double x_extension, y_extension;	
+//	int voxel; 
+//	bool hit_hull = false, end_walk, outside_image;
+//	/********************************************************************************************/
+//	/******************** Initial Conditions and Movement Characteristics ***********************/
+//	/********************************************************************************************/	
+//	if( !entering )
+//	{
+//		xy_angle += PI;
+//	}
+//	x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
+//	y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
+//	z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
+//	if( x_move_direction < 0 )
+//		z_move_direction *= -1;
+//
+//	voxel_x = calculate_voxel_GPU( X_ZERO_COORDINATE, x, VOXEL_WIDTH );
+//	voxel_y = calculate_voxel_GPU( Y_ZERO_COORDINATE, y, VOXEL_HEIGHT );
+//	voxel_z = calculate_voxel_GPU( Z_ZERO_COORDINATE, z, VOXEL_THICKNESS );
+//
+//	x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
+//	y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
+//	z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
+//
+//	voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+//	/********************************************************************************************/
+//	/***************************** Path and Walk Information ************************************/
+//	/********************************************************************************************/
+//	// Lengths/Distances as x is Incremented One Voxel tan( xy_hit_hull_angle )
+//	delta_yx = fabs(tan(xy_angle));
+//	delta_zx = fabs(tan(xz_angle));
+//	delta_zy = fabs( tan(xz_angle)/tan(xy_angle));
+//
+//	double dy_dx = tan(xy_angle);
+//	double dz_dx = tan(xz_angle);
+//	double dz_dy = tan(xz_angle)/tan(xy_angle);
+//
+//	double dx_dy = powf( tan(xy_angle), -1.0 );
+//	double dx_dz = powf( tan(xz_angle), -1.0 );
+//	double dy_dz = tanf(xy_angle)/tan(xz_angle);
+//	/********************************************************************************************/
+//	/************************* Initialize and Check Exit Conditions *****************************/
+//	/********************************************************************************************/
+//	outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
+//	if( !outside_image )
+//		hit_hull = (image[voxel] == true);		
+//	end_walk = outside_image || hit_hull;
+//	/********************************************************************************************/
+//	/*********************************** Voxel Walk Routine *************************************/
+//	/********************************************************************************************/
+//	if( z_move_direction != 0 )
+//	{
+//		//printf("z_end != z_start\n");
+//		while( !end_walk )
+//		{
+//			// Change in z for Move to Voxel Edge in x and y
+//			x_extension = delta_zx * x_to_go;
+//			y_extension = delta_zy * y_to_go;
+//			if( (z_to_go <= x_extension  ) && (z_to_go <= y_extension) )
+//			{
+//				//printf("z_to_go <= x_extension && z_to_go <= y_extension\n");					
+//				voxel_z -= z_move_direction;
+//					
+//				z = edge_coordinate_GPU( Z_ZERO_COORDINATE, voxel_z, VOXEL_THICKNESS, Z_INCREASING_DIRECTION, z_move_direction );					
+//				x = corresponding_coordinate_GPU( dx_dz, z, z_start, x_start );
+//				y = corresponding_coordinate_GPU( dy_dz, z, z_start, y_start );
+//
+//				x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
+//				y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
+//				z_to_go = VOXEL_THICKNESS;
+//			}
+//			//If Next Voxel Edge is in x or xy Diagonal
+//			else if( x_extension <= y_extension )
+//			{
+//				//printf(" x_extension <= y_extension \n");			
+//				voxel_x += x_move_direction;
+//
+//				x = edge_coordinate_GPU( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+//				y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
+//				z = corresponding_coordinate_GPU( dz_dx, x, x_start, z_start );
+//
+//				x_to_go = VOXEL_WIDTH;
+//				y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
+//				z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
+//			}
+//			// Else Next Voxel Edge is in y
+//			else
+//			{
+//				//printf(" y_extension < x_extension \n");
+//				voxel_y -= y_move_direction;
+//					
+//				y = edge_coordinate_GPU( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Y_INCREASING_DIRECTION, y_move_direction );
+//				x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
+//				z = corresponding_coordinate_GPU( dz_dy, y, y_start, z_start );
+//
+//				x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
+//				y_to_go = VOXEL_HEIGHT;					
+//				z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
+//			}
+//			// <= VOXEL_ALLOWANCE
+//			if( x_to_go == 0 )
+//			{
+//				x_to_go = VOXEL_WIDTH;
+//				voxel_x += x_move_direction;
+//			}
+//			if( y_to_go == 0 )
+//			{
+//				y_to_go = VOXEL_HEIGHT;
+//				voxel_y -= y_move_direction;
+//			}
+//			if( z_to_go == 0 )
+//			{
+//				z_to_go = VOXEL_THICKNESS;
+//				voxel_z -= z_move_direction;
+//			}
+//				
+//			voxel_z = max(voxel_z, 0 );
+//			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+//
+//			outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
+//			if( !outside_image )
+//				hit_hull = (image[voxel] == true);	
+//			end_walk = outside_image || hit_hull;	
+//		}// end !end_walk 
+//	}
+//	else
+//	{
+//		//printf("z_end == z_start\n");
+//		while( !end_walk )
+//		{
+//			// Change in x for Move to Voxel Edge in y
+//			y_extension = y_to_go / delta_yx;
+//			//If Next Voxel Edge is in x or xy Diagonal
+//			if( x_to_go <= y_extension )
+//			{
+//				//printf(" x_to_go <= y_extension \n");
+//				voxel_x += x_move_direction;
+//					
+//				x = edge_coordinate_GPU( X_ZERO_COORDINATE, voxel_x, VOXEL_WIDTH, X_INCREASING_DIRECTION, x_move_direction );
+//				y = corresponding_coordinate_GPU( dy_dx, x, x_start, y_start );
+//
+//				x_to_go = VOXEL_WIDTH;
+//				y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );
+//			}
+//			// Else Next Voxel Edge is in y
+//			else
+//			{
+//				//printf(" y_extension < x_extension \n");				
+//				voxel_y -= y_move_direction;
+//
+//				y = edge_coordinate_GPU( Y_ZERO_COORDINATE, voxel_y, VOXEL_HEIGHT, Z_INCREASING_DIRECTION, y_move_direction );
+//				x = corresponding_coordinate_GPU( dx_dy, y, y_start, x_start );
+//
+//				x_to_go = distance_remaining_GPU( X_ZERO_COORDINATE, x, X_INCREASING_DIRECTION, x_move_direction, VOXEL_WIDTH, voxel_x );
+//				y_to_go = VOXEL_HEIGHT;
+//			}
+//			// <= VOXEL_ALLOWANCE
+//			if( x_to_go == 0 )
+//			{
+//				x_to_go = VOXEL_WIDTH;
+//				voxel_x += x_move_direction;
+//			}
+//			if( y_to_go == 0 )
+//			{
+//				y_to_go = VOXEL_HEIGHT;
+//				voxel_y -= y_move_direction;
+//			}
+//			voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;		
+//			outside_image = (voxel_x >= COLUMNS ) || (voxel_y >= ROWS ) || (voxel_z >= SLICES ) || (voxel_x < 0  ) || (voxel_y < 0 ) || (voxel_z < 0 );		
+//			if( !outside_image )
+//				hit_hull = (image[voxel] == true);		
+//			end_walk = outside_image || hit_hull;	
+//		}// end: while( !end_walk )
+//	}//end: else: z_start != z_end => z_start == z_end
+//	if( hit_hull )
+//	{
+//		x_object = x;
+//		y_object = y;
+//		z_object = z;
+//	}
+//	return hit_hull;
+//}
 __global__ void collect_MLP_endpoints_GPU
 (
 	bool* intersected_hull, unsigned int* first_MLP_voxel, bool* hull, float* x_entry, float* y_entry, float* z_entry, float* xy_entry_angle, float* xz_entry_angle, 
@@ -6610,7 +6415,7 @@ __device__ void find_MLP_path_GPU
 (
 	float* x, double b_i, unsigned int first_MLP_voxel_number, double x_in_object, double y_in_object, double z_in_object, 
 	double x_out_object, double y_out_object, double z_out_object, double xy_entry_angle, double xz_entry_angle, double xy_exit_angle, double xz_exit_angle,
-	float lambda, unsigned int* path, int& number_of_intersections, double& effective_chord_length ,double& a_i_dot_x_k_partially, double& a_i_dot_a_i_partially
+	double lambda, unsigned int* path, int& number_of_intersections, double& effective_chord_length ,double& a_i_dot_x_k_partially, double& a_i_dot_a_i_partially
 ) 
 {
   
@@ -6833,7 +6638,7 @@ __device__ void find_MLP_path_GPU_tabulated
 (
 	float* x, double b_i, unsigned int first_MLP_voxel_number, double x_in_object, double y_in_object, double z_in_object, 
 	double x_out_object, double y_out_object, double z_out_object, double xy_entry_angle, double xz_entry_angle, double xy_exit_angle, double xz_exit_angle,
-	float lambda, unsigned int* path, int& number_of_intersections, double& effective_chord_length, double& a_i_dot_x_k_partially, double& a_i_dot_a_i_partially,
+	double lambda, unsigned int* path, int& number_of_intersections, double& effective_chord_length, double& a_i_dot_x_k_partially, double& a_i_dot_a_i_partially,
 	double* sin_table, double* cos_table, double* scattering_table, double* poly_1_2, double* poly_2_3, double* poly_3_4, double* poly_2_6, double* poly_3_12
 ) 
 {
@@ -6992,7 +6797,7 @@ __global__ void block_update_GPU
 (
 	float* x, float* x_entry, float* y_entry, float* z_entry, float* xy_entry_angle, float* xz_entry_angle, 
 	float* x_exit, float* y_exit, float* z_exit, float* xy_exit_angle, float* xz_exit_angle, float* WEPL, 
-	unsigned int* first_MLP_voxel, float* x_update, unsigned int* S, int start_proton_id, int num_histories, float lambda
+	unsigned int* first_MLP_voxel, float* x_update, unsigned int* S, int start_proton_id, int num_histories, double lambda
 ) 
 {
 
@@ -7065,7 +6870,7 @@ __global__ void block_update_GPU_tabulated
 (
 	float* x, float* x_entry, float* y_entry, float* z_entry, float* xy_entry_angle, float* xz_entry_angle, 
 	float* x_exit, float* y_exit, float* z_exit, float* xy_exit_angle, float* xz_exit_angle, float* WEPL, 
-	unsigned int* first_MLP_voxel, float* x_update, unsigned int* S, int start_proton_id, int num_histories, float lambda,
+	unsigned int* first_MLP_voxel, float* x_update, unsigned int* S, int start_proton_id, int num_histories, double lambda,
 	double* sin_table, double* cos_table, double* scattering_table, double* poly_1_2, double* poly_2_3, double* poly_3_4, double* poly_2_6, double* poly_3_12
 ) 
 {	
