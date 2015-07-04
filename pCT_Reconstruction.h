@@ -86,13 +86,16 @@ enum BIN_ANALYSIS_TYPE { MEANS, COUNTS, MEMBERS };							// Choices for what inf
 enum BIN_ANALYSIS_FOR { ALL_BINS, SPECIFIC_BINS };							// Choices for which bins the desired data should come from
 enum BIN_ORGANIZATION { BY_BIN, BY_HISTORY };								// Binned data is either organized in order by bin or by history w/ bin # specified separately
 enum BIN_ANALYSIS_OF { WEPLS, ANGLES, POSITIONS, BIN_NUMS };				// Choices for which type of binned data is desired
-enum IMAGE_DEFINED_BY { SIZE_VOXELS, DIMENSIONS_VOXELS, SIZEIMENSIONS};	// Image size defined by 2 of voxel dimenensions, image dimensions, and image discretization
+enum IMAGE_DEFINED_BY { SIZE_VOXELS, DIMENSIONS_VOXELS, SIZEIMENSIONS};		// Image size defined by 2 of voxel dimenensions, image dimensions, and image discretization
 
 enum SCAN_TYPES { EXPERIMENTAL, SIMULATED_G, SIMULATED_T, ST_END };			// Experimental or simulated data
 enum HULL_TYPES {IMPORT_HULL, SC_HULL, MSC_HULL, SM_HULL, FBP_HULL, HT_END};// Define valid choices for which hull to use in MLP calculations
 enum FILTER_TYPES {RAM_LAK, SHEPP_LOGAN, NONE, FT_END};						// Define the types of filters that are available for use in FBP
 enum X_0_TYPES { IMPORT_X_0, X_HULL, X_FBP, HYBRID, ZEROS, X0_END };		// Define valid choices for which hull to use in MLP calculations
 enum RECON_ALGORITHMS { ART, DROP, BIP, SAP, ROBUST1, ROBUST2, RA_END };	// Define valid choices for iterative projection algorithm to use
+enum TX_OPTIONS	{ FULL_TX, PARTIAL_TX, PARTIAL_TX_PREALLOCATED	};			// Define valid choices for the host->GPU data transfer method
+enum ENDPOINTS_ALGORITHMS { BOOL, NO_BOOL };								// Define the method used to identify protons that miss/hit the hull in MLP endpoints calculations
+enum MLP_ALGORITHMS	{ STANDARD, TABULATED };								// Define whether standard explicit calculations or lookup tables are used in MLP calculations
 enum LOG_ENTRIES {OBJECT_L, SCAN_TYPE_L, RUN_DATE_L, RUN_NUMBER_L, 
 	ACQUIRED_BY_L, PROJECTION_DATA_DATE_L, CALIBRATED_BY_L, 
 	PREPROCESS_DATE_L, PREPROCESSED_BY_L, RECONSTRUCTION_DATE_L, 
@@ -238,6 +241,41 @@ bool print_recon_algorithm( uint n)
 		case 3:		puts("set to SAP");					break;
 		case 4:		puts("set to ROBUST1");				break;
 		case 5:		puts("set to ROBUST2");				break;
+		default:	puts("ERROR: Invalid RECON_ALGORITHM selection.\n\n=>Correct the configuration file and rerun the program.\n");
+					return true;
+	}
+	return false;
+
+bool print_tx_mode( uint n)
+{
+	switch(n)
+	{
+		case 0:		puts("set to FULL_YX");						break;
+		case 1:		puts("set to PARTIAL_TX");					break;
+		case 2:		puts("set to PARTIAL_TX_PREALLOCATED");		break;
+		default:	puts("ERROR: Invalid RECON_ALGORITHM selection.\n\n=>Correct the configuration file and rerun the program.\n");
+					return true;
+	}
+	return false;
+}
+bool print_endpoint_alg( uint n)
+{
+	switch(n)
+	{
+		case 0:		puts("set to BOOL");				break;
+		case 1:		puts("set to NO_BOOL");				break;
+		default:	puts("ERROR: Invalid RECON_ALGORITHM selection.\n\n=>Correct the configuration file and rerun the program.\n");
+					return true;
+	}
+	return false;
+}
+
+bool print_MLP_alg( uint n)
+{
+	switch(n)
+	{
+		case 0:		puts("set to STANDARD");				break;
+		case 1:		puts("set to TABULATED");				break;
 		default:	puts("ERROR: Invalid RECON_ALGORITHM selection.\n\n=>Correct the configuration file and rerun the program.\n");
 					return true;
 	}

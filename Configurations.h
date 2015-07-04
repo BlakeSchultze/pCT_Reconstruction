@@ -17,21 +17,21 @@ struct configurations
 	//----------------------------------------------------------------------- Output option parameters ------------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	// 14 uint, 23 double,
-	//char* PROJECTION_DATA_DIR, * PREPROCESSING_DIR, * RECONSTRUCTION_DIR;
-	//char* OBJECT, * RUN_DATE, * RUN_NUMBER, * PROJECTION_DATA_DATE, * PREPROCESS_DATE, * RECONSTRUCTION_DATE;
 	double RECON_CYL_RADIUS, RECON_CYLIAMETER, RECON_CYL_HEIGHT, IMAGE_WIDTH, IMAGE_HEIGHT, IMAGE_THICKNESS, VOXEL_WIDTH, VOXEL_HEIGHT, VOXEL_THICKNESS, SLICE_THICKNESS;
 	double GANTRY_ANGLE_INTERVAL, ANGULAR_BIN_SIZE, SSD_T_SIZE, SSD_V_SIZE, T_SHIFT, U_SHIFT, V_SHIFT, T_BIN_SIZE, V_BIN_SIZE;
 	double X_ZERO_COORDINATE, Y_ZERO_COORDINATE, Z_ZERO_COORDINATE;
-	double HULL_RSP_THRESHOLD, SC_THRESHOLD, MSC_THRESHOLD, SM_LOWER_THRESHOLD, SM_UPPER_THRESHOLD, SM_SCALE_THRESHOLD;
-	double IGNORE_WEPL_BELOW;
+	double HULL_RSP_THRESHOLD, SC_LOWER_THRESHOLD, SC_UPPER_THRESHOLD, MSC_LOWER_THRESHOLD, MSC_UPPER_THRESHOLD, SM_LOWER_THRESHOLD, SM_UPPER_THRESHOLD, SM_SCALE_THRESHOLD;
 	double LAMBDA, ETA, RAM_LAK_TAU;
-	double VOXEL_STEP_SIZE, MLP_U_STEP, CONSTANT_CHORD_NORM, CONSTANT_LAMBDA_SCALE;
+	double VOXEL_STEP_SIZE, MLP_U_STEP, CONSTANT_CHORD_NORM, CONSTANT_LAMBDA_SCALE;		
+	double TRIG_TABLE_STEP_DEGREES, DEPTH_TABLE_RANGE, DEPTH_TABLE_STEP, POLY_TABLE_RANGE, POLY_TABLE_STEP;		
 
-	uint NUM_SCANS, MAX_GPU_HISTORIES, MAX_CUTS_HISTORIES, T_BINS, V_BINS, COLUMNS, ROWS, SLICES, SIGMAS_2_KEEP;
+	uint NUM_SCANS, T_BINS, V_BINS, COLUMNS, ROWS, SLICES, SIGMAS_2_KEEP;
 	uint GANTRY_ANGLES, NUM_FILES, ANGULAR_BINS, NUM_BINS, NUM_VOXELS;
-	//uint SIZE_BINS_CHAR, SIZE_BINS_BOOL, SIZE_BINS_INT, SIZE_BINS_UINT, SIZE_BINS_FLOAT, SIZE_IMAGE_CHAR;
-	//uint SIZE_IMAGE_BOOL, SIZE_IMAGE_INT, SIZE_IMAGE_UINT, SIZE_IMAGE_FLOAT, SIZE_IMAGE_DOUBLE;
 	uint ITERATIONS, BLOCK_SIZE;
+	uint MAX_GPU_HISTORIES , MAX_CUTS_HISTORIES, MAX_ENDPOINTS_HISTORIES;
+	uint DROP_BLOCK_SIZE, THREADS_PER_BLOCK, ENDPOINTS_PER_BLOCK, HISTORIES_PER_BLOCK;
+	uint ENDPOINTS_PER_THREAD, HISTORIES_PER_THREAD, VOXELS_PER_THREAD;
+	uint TRIG_TABLE_MIN, TRIG_TABLE_MAX;
 	uint HULL_MED_FILTER_RADIUS, FBP_MED_FILTER_RADIUS, X_0_MED_FILTER_RADIUS, X_K_MED_FILTER_RADIUS, X_MED_FILTER_RADIUS;
 	uint HULL_AVG_FILTER_RADIUS, FBP_AVG_FILTER_RADIUS, X_0_AVG_FILTER_RADIUS, X_K_AVG_FILTER_RADIUS, X_AVG_FILTER_RADIUS;
 	uint MSC_DIFF_THRESH;	
@@ -42,7 +42,9 @@ struct configurations
 	FILTER_TYPES FBP_FILTER_TYPE;		  					// Specifies which of the defined filters will be used in FBP
 	X_0_TYPES	X_0_TYPE;									// Specify which of the HULL_TYPES to use in this run's MLP calculations
 	RECON_ALGORITHMS RECONSTRUCTION_METHOD; 				// Specify which of the projection algorithms to use for image reconstruction
-	
+	TX_OPTIONS ENDPOINTS_TX_MODE;							// Specifies GPU data tx mode for MLP endpoints (FULL_TX = 0, PARTIAL_TX = 1, PARTIAL_TX_PREALLOCATED = 2)
+	ENDPOINTS_ALGORITHMS ENDPOINTS_ALG;						// Specifies if boolean array is used to store whether a proton hit/missed the hull or uses the 1st MLP voxel (BOOL = 0, NO_BOOL = 1)
+	MLP_ALGORITHMS MLP_ALGORITHM;							// Specifies whether calculations are performed explicitly or if lookup tables are used for MLP calculations (STANDARD = 0, TABULATED = 1)
 	bool FBP_ON, SC_ON, MSC_ON, SM_ON;
 	bool EXPORT_PREPROCESSING, IMPORT_PREPROCESSING, PERFORM_RECONSTRUCTION, PREPROCESS_OVERWRITE_OK, RECON_OVERWRITE_OK, MLP_IN_LOOP, IMPORT_DATA_ITERATIVELY, IMPORT_MLP_ITERATIVELY;
 	bool MEDIAN_FILTER_HULL, MEDIAN_FILTER_FBP, MEDIAN_FILTER_X_0, MEDIAN_FILTER_X_K, MEDIAN_FILTER_X;
@@ -81,6 +83,10 @@ struct configurations
 		FILTER_TYPES fbp_filter_type_p				= SHEPP_LOGAN,		// Specifies which of the defined filters to use in FBP (RAM_LAK = 0, SHEPP_LOGAN = 1, NONE = 2)
 		X_0_TYPES x_0_type_p						= HYBRID,			// Specify which initial iterate to use for reconstruction (IMPORT = 0, HULL = 1, FBP = 2, HYBRID = 3, ZEROS = 4)
 		RECON_ALGORITHMS reconstruction_method_p	= DROP,				// Specify algorithm to use for image reconstruction (ART = 0, DROP = 1, BIP = 2, SAP = 3, ROBUST1 = 4, ROBUST2 = 5)
+		TX_OPTIONS endpoints_tx_mode_p				= PARTIAL_TX_PREALLOCATED,	// Specifies GPU data tx mode for MLP endpoints (FULL_TX = 0, PARTIAL_TX = 1, PARTIAL_TX_PREALLOCATED = 2)
+		TX_OPTIONS drop_tx_mode_p					= FULL_TX,			// Specifies GPU data tx mode for MLP endpoints (FULL_TX = 0, PARTIAL_TX = 1, PARTIAL_TX_PREALLOCATED = 2)
+		ENDPOINTS_ALGORITHMS endpoints_alg_p		= NO_BOOL,			// Specifies if boolean array is used to store whether a proton hit/missed the hull or uses the 1st MLP voxel (BOOL = 0, NO_BOOL = 1)
+		MLP_ALGORITHMS mlp_algorithm_p				= TABULATED,		// Specifies whether calculations are performed explicitly or if lookup tables are used for MLP calculations (STANDARD = 0, TABULATED = 1)
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		//---------------------------------------------------------- Reconstruction and image filtering parameters/options --------------------------------------------------------//
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -89,15 +95,39 @@ struct configurations
 		int psi_sign_p					= 1,
 		double lambda_p 				= 0.0001,
 		double eta_p                    = 0.0001,
+		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------// 
+		//------------------------------------------------------------------------------- MLP endpoints and MLP+DROP Parameters -----------------------------------------------------------------------------// 
+		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------// 
+		uint drop_block_size_p			= 3200,							// # of paths to use for each update: ART = 1,                                                                          
+		uint max_gpu_histories_p		= 2500000,						// [#] Number of histories to process on the GPU at a time for preprocessing, based on GPU capacity
+		uint max_cuts_histories_p		= 1500000,						// [#] Number of histories to process on the GPU at a time for statistical cuts, based on GPU capacity
+		uint max_endpoints_histories_p	= 10240000,						// [#] Number of histories to process on the GPU at a time for MLP endpoints, based on GPU capacity
+		uint threads_per_block_p		= 1024,							// # of threads per GPU block for preprocessing kernels
+		uint endpoints_per_block_p 		= 320,							// # of threads per GPU block for collect_MLP_endpoints_GPU kernel
+		uint histories_per_block_p 		= 320,							// # of threads per GPU block for block_update_GPU kernel
+		uint endpoints_per_thread_p		= 1,							// # of MLP endpoints each thread is responsible for calculating in collect_MLP_endpoints_GPU kernel
+		uint histories_per_thread_p 	= 1,							// # of histories each thread is responsible for in MLP/DROP kernel block_update_GPU
+		uint voxels_per_thread_p 		= 1,							// # of voxels each thread is responsible for updating for reconstruction image initialization/updates
+		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------// 
+		//-------------------------------------------------------------------------------- MLP lookup table specifications ----------------------------------------------------------------------------------// 
+		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------// 
+		double trig_table_min_p			= -2 * PI						// [radians/PI] Minimum angle contained in the sin/cos lookup table used for MLP
+		double trig_table_max_p			= 4 * PI						// [radians/PI] Maximum angle contained in the sin/cos lookup table used for MLP
+		double trig_table_step_p		= (0.001 * ANGLE_TO_RADIANS)	// [degrees] Step size in of 1/4 degree for elements of sin/cos lookup table used for MLP
+		double depth_table_range_p		= 20.0							// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+		double depth_table_step_p		= 0.00005						// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+		double poly_table_range_p		= 20.0							// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+		double poly_table_step_p		= 0.00005						// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 		//----------------------------------------------------------------------- Hull-Detection Parameters -----------------------------------------------------------------------//
 		//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
-		double ignore_WEPL_below_p		= -10.0,						// [cm] The WEPL threshold below which histories are ignored for hull detection
 		uint msc_diff_thresh_p			= 50,							// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
-		double sc_threshold_p			= 0.0,							// [cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
-		double msc_threshold_p			= 0.0,							// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
-		double sm_lower_threshold_p		= 6.0,							// [cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
-		double sm_upper_threshold_p		= 21.0,							// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
+		double sc_lower_threshold_p		= -10.0,						// [cm] Defines the SC threshold below which the proton is assumed to be associated with pileup event or measurement error
+		double sc_upper_threshold_p		= 0.0,							// [cm] Defines the SC threshold above which the proton is assumed to have passed through the hull
+		double msc_lower_threshold_p	= -10.0,						// [cm] Defines the MSC threshold below which the proton is assumed to be associated with pileup event or measurement error
+		double msc_upper_threshold_p	= 0.0,							// [cm] Defines the MSC threshold above which the proton is assumed to have passed through the hull
+		double sm_lower_threshold_p		= 6.0,							// [cm] Defines the SM threshold below which the proton is assumed to be associated with pileup event or measurement error
+		double sm_upper_threshold_p		= 21.0,							// [cm] Defines the SM threshold above which the proton is assumed to have passed through the hull
 		double sm_scale_threshold_p		= 1.0,							// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
 		double hull_rsp_threshold_p		= 0.1,							// [#] Maximum RSP for voxels assumed to belong to hull
 		//---------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -169,8 +199,6 @@ struct configurations
 	//*********************************************************************** Parameter Instantiations ************************************************************************//
 	//*************************************************************************************************************************************************************************//
 	NUM_SCANS(num_scans_p),												// *[#] Total number of scans of same object	
-	MAX_GPU_HISTORIES(max_gpu_histories_p),								// *[#] Number of histories to process on the GPU at a time, based on GPU capacity
-	MAX_CUTS_HISTORIES(max_cuts_histories_p),							// *[#] Number of histories to process on the GPU at a time, based on GPU capacity
 	GANTRY_ANGLE_INTERVAL(gantry_angle_interval_p),						// *[degrees] Angle between successive projection angles	
 	ANGULAR_BIN_SIZE(angular_bin_size_p),								// *[degrees] Angle between adjacent bins in angular (rotation) direction
 	SSD_T_SIZE(ssd_t_size_p),											// *[cm] Length of SSD in t (lateral) direction
@@ -194,6 +222,10 @@ struct configurations
 	FBP_FILTER_TYPE(fbp_filter_type_p),		  							// Specifies which of the defined filters to use in FBP (RAM_LAK = 0, SHEPP_LOGAN = 1, NONE = 2)
 	X_0_TYPE(x_0_type_p),												// Specify which initial iterate to use for reconstruction (IMPORT = 0, HULL = 1, FBP = 2, HYBRID = 3, ZEROS = 4)
 	RECONSTRUCTION_METHOD(reconstruction_method_p),						// Specify algorithm to use for image reconstruction (ART = 0, DROP = 1, BIP = 2, SAP = 3, ROBUST1 = 4, ROBUST2 = 5)
+	ENDPOINTS_TX_MODE(endpoints_tx_mode_p),								// Specifies GPU data tx mode for MLP endpoints (FULL_TX = 0, PARTIAL_TX = 1, PARTIAL_TX_PREALLOCATED = 2)
+	DROP_TX_MODE(drop_tx_mode_p),										// Specifies GPU data tx mode for MLP endpoints (FULL_TX = 0, PARTIAL_TX = 1, PARTIAL_TX_PREALLOCATED = 2)
+	ENDPOINTS_ALG(endpoints_alg_p),										// Specifies if boolean array is used to store whether a proton hit/missed the hull or uses the 1st MLP voxel (BOOL = 0, NO_BOOL = 1)
+	MLP_ALGORITHM(mlp_algorithm_p),										// Specifies whether calculations are performed explicitly or if lookup tables are used for MLP calculations (STANDARD = 0, TABULATED = 1)
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//--------------------------------------------------------- Options/parameters dependent on others read from config file --------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -231,19 +263,40 @@ struct configurations
 	PSI_SIGN(psi_sign_p),												// *[+1/-1] Sign specifying the sign to use for Psi in scaling residual for updates in robust technique to reconstruction	
 	LAMBDA(lambda_p),													// *[#] Relaxation parameter used in update calculations in reconstruction algorithms
 	ETA(eta_p),															// *[#] Value used in calculation of Psi = (1-x_i) * ETA used in robust technique to reconstruction
+	//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------// 
+	//------------------------------------------------------------------------------- MLP endpoints and MLP+DROP Parameters -----------------------------------------------------------------------------// 
+	//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------// 
+	DROP_BLOCK_SIZE(drop_block_size_p),									// # of paths to use for each update: ART = 1,                                                                          
+	MAX_GPU_HISTORIES(max_gpu_histories_p),								// [#] Number of histories to process on the GPU at a time for preprocessing, based on GPU capacity
+	MAX_CUTS_HISTORIES(max_cuts_histories_p),							// [#] Number of histories to process on the GPU at a time for statistical cuts, based on GPU capacity
+	MAX_ENDPOINTS_HISTORIES(max_endpoints_histories_p),					// [#] Number of histories to process on the GPU at a time for MLP endpoints, based on GPU capacity
+	THREADS_PER_BLOCK(threads_per_block_p),								// # of threads per GPU block for preprocessing kernels
+	ENDPOINTS_PER_BLOCK(endpoints_per_block_p),							// # of threads per GPU block for collect_MLP_endpoints_GPU kernel
+	HISTORIES_PER_BLOCK(histories_per_block_p)							// # of threads per GPU block for block_update_GPU kernel
+	ENDPOINTS_PER_THREAD(endpoints_per_thread_p),						// # of MLP endpoints each thread is responsible for calculating in collect_MLP_endpoints_GPU kernel
+	HISTORIES_PER_THREAD(histories_per_thread_p),						// # of histories each thread is responsible for in MLP/DROP kernel block_update_GPU
+	VOXELS_PER_THREAD(VOXELS_PER_THREAD_p),								// # of voxels each thread is responsible for updating for reconstruction image initialization/updates
+	//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------// 
+	//-------------------------------------------------------------------------------- MLP lookup table specifications ----------------------------------------------------------------------------------// 
+	//---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------// 
+	TRIG_TABLE_MIN(trig_table_min_p),									// [radians/PI] Minimum angle contained in the sin/cos lookup table used for MLP
+	TRIG_TABLE_MAX(trig_table_max_p),									// [radians/PI] Maximum angle contained in the sin/cos lookup table used for MLP
+	TRIG_TABLE_STEP(trig_table_step_p),									// [degrees] Step size in of 1/4 degree for elements of sin/cos lookup table used for MLP
+	DEPTH_TABLE_RANGE(depth_table_range_p),								// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+	DEPTH_TABLE_STEP(depth_table_step_p),								// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+	POLY_TABLE_RANGE(poly_table_range_p),								// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+	POLY_TABLE_STEP(poly_table_step_p),									// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//----------------------------------------------------------------------- Hull-detection parameters -----------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
-	
-	IGNORE_WEPL_BELOW(ignore_WEPL_below_p),								// [cm] The WEPL threshold below which histories are ignored for hull detection
 	MSC_DIFF_THRESH(msc_diff_thresh_p),									// *[#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
-	SC_THRESHOLD(sc_threshold_p),										// *[cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
-	MSC_THRESHOLD(msc_threshold_p),										// *[cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
-	SM_LOWER_THRESHOLD(sm_lower_threshold_p),							// *[cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
-	SM_UPPER_THRESHOLD(sm_upper_threshold_p),							// *[cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
-	SM_SCALE_THRESHOLD(sm_scale_threshold_p),							// *[cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
-	HULL_RSP_THRESHOLD(hull_rsp_threshold_p),							// [#] Maximum RSP for voxels assumed to belong to hull
-	//*************************************************************************************************************************************************************************//
+	SC_LOWER_THRESHOLD(sc_threshold_p),									// [cm] Defines the SC threshold below which the proton is assumed to be associated with pileup event or measurement error
+	SC_UPPER_THRESHOLD(sc_threshold_p),									// [cm] Defines the SC threshold above which the proton is assumed to have passed through the hull
+	MSC_LOWER_THRESHOLD(msc_lower_threshold_p),							// [cm] Defines the MSC threshold below which the proton is assumed to be associated with pileup event or measurement error
+	MSC_UPPER_THRESHOLD(msc_upper_threshold_p),							// [cm] Defines the MSC threshold above which the proton is assumed to have passed through the hull
+	SM_LOWER_THRESHOLD(sm_lower_threshold_p),							// [cm] Defines the SM threshold below which the proton is assumed to be associated with pileup event or measurement error
+	SM_UPPER_THRESHOLD(sm_upper_threshold_p),							// [cm] Defines the SM threshold above which the proton is assumed to have passed through the hull
+		//*************************************************************************************************************************************************************************//
 	//*********************************************************************** Preprocessing control options *******************************************************************//
 	//*************************************************************************************************************************************************************************//
 	FBP_ON(fbp_on_p),													// *[T/F] Turn FBP on (T) or off (F)
@@ -257,7 +310,7 @@ struct configurations
 	RECON_OVERWRITE_OK(recon_overwrite_ok_p),							// *[T/F] Allow reconstruction data to be overwritten (T) or not (F)
 	MLP_IN_LOOP(mlp_in_loop_p),											// [T/F] Perform MLP calculations for each GPU block/iteration (T) or not (F)
 	IMPORT_DATA_ITERATIVELY(import_data_iteratively_p),					// [T/F] Import preprocessing data directly into block arrays as needed (T) or in entirety (F)
-	IMPORT_MLP_ITERATIVELY(import_MLP_iteratively_p),                  // [T/F] Import MLP data directly into block arrays as needed (T) or in entirety (F)                          
+	IMPORT_MLP_ITERATIVELY(import_MLP_iteratively_p),					// [T/F] Import MLP data directly into block arrays as needed (T) or in entirety (F)                          
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//----------------------------------------------------------------------- Filtering options/parameters ------------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
@@ -291,14 +344,14 @@ struct configurations
 	WRITE_AVG_FBP(write_avg_fbp_p),										// *[T/F] Write average filtered FBP image before thresholding to disk (T) or not (F)
 	WRITE_MEDIAN_FBP(write_median_fbp_p),								// *[T/F] Write median filtered FBP image to disk (T) or not (F)
 	WRITE_BIN_WEPLS(write_bin_wepls_p),									// *[T/F] Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
-	WRITE_WEPL_DISTS(write_wepl_dists_p),									// *[T/F] Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
+	WRITE_WEPL_DISTS(write_wepl_dists_p),								// *[T/F] Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
 	WRITE_SSD_ANGLES(write_ssd_angles_p),								// *[T/F] Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F)
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
 	//---------------------------------------------------------------------- Program Execution Control  -----------------------------------------------------------------------//
 	//-------------------------------------------------------------------------------------------------------------------------------------------------------------------------//
-	STDOUT_2_DISK(stdout_2_disk_p	),										// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)	
+	STDOUT_2_DISK(stdout_2_disk_p	),									// [T/F] Redirect console window output to text file (T) or leave it as stdout (F)	
 	USER_INPUT_REQUESTS_OFF(user_input_requests_off_p),					// [T/F] Skip all functions that pause execution while waiting for user input (T) or allow user input requests (F)
-	ADD_DATA_LOG_ENTRY(add_data_log_entry_p),								// *[T/F] Add log entry for data generated during execution (T) or not (F)
+	ADD_DATA_LOG_ENTRY(add_data_log_entry_p),							// *[T/F] Add log entry for data generated during execution (T) or not (F)
 	DEBUG_TEXT_ON(debug_text_on_p),										// Provide (T) or suppress (F) print statements to console during execution
 	EXIT_AFTER_BINNING(exit_after_binning_p),							// Exit program early after completing data read and initial processing
 	EXIT_AFTER_HULLS(exit_after_hulls_p),								// Exit program early after completing hull-detection
@@ -1033,10 +1086,18 @@ bool key_is_floating_point_parameter( char* key )
 		||	strcmp (key, "VOXEL_THICKNESS") == 0 
 		||	strcmp (key, "SLICE_THICKNESS") == 0 
 		||	strcmp (key, "LAMBDA") == 0 
-		||	strcmp (key, "ETA") == 0 
-		||	strcmp (key, "IGNORE_WEPL_BELOW") == 0 
-		||	strcmp (key, "SC_THRESHOLD") == 0 
-		||	strcmp (key, "MSC_THRESHOLD") == 0 
+		||	strcmp (key, "ETA") == 0 		
+		||	strcmp (key, "TRIG_TABLE_MIN_PIS") == 0
+		||	strcmp (key, "TRIG_TABLE_MAX_PIS") == 0
+		||	strcmp (key, "TRIG_TABLE_STEP_DEGREES") == 0 
+		||	strcmp (key, "DEPTH_TABLE_RANGE") == 0 
+		||	strcmp (key, "DEPTH_TABLE_STEP") == 0 
+		||	strcmp (key, "POLY_TABLE_RANGE") == 0 
+		||	strcmp (key, "POLY_TABLE_STEP") == 0 
+		||	strcmp (key, "SC_LOWER_THRESHOLD") == 0 
+		||	strcmp (key, "SC_UPPER_THRESHOLD") == 0 
+		||	strcmp (key, "MSC_LOWER_THRESHOLD") == 0 
+		||	strcmp (key, "MSC_UPPER_THRESHOLD") == 0 
 		||	strcmp (key, "SM_LOWER_THRESHOLD") == 0 
 		||	strcmp (key, "SM_UPPER_THRESHOLD") == 0 
 		||	strcmp (key, "SM_SCALE_THRESHOLD") == 0  
@@ -1054,10 +1115,12 @@ bool key_is_unsigned_integer_parameter( char* key )
 		|| 	strcmp (key, "HULL_TYPE") == 0
 		||	strcmp (key, "FBP_FILTER_TYPE") == 0
 		||	strcmp (key, "X_0_TYPE") == 0
-		||	strcmp (key, "RECONSTRUCTION_METHOD") == 0
+		||	strcmp (key, "RECONSTRUCTION_METHOD") == 0		
+		||	strcmp (key, "ENDPOINTS_TX_MODE") == 0
+		||	strcmp (key, "DROP_TX_MODE") == 0
+		||	strcmp (key, "ENDPOINTS_ALG") == 0
+		||	strcmp (key, "MLP_ALGORITHM") == 0
 		||	strcmp (key, "NUM_SCANS") == 0
-		||	strcmp (key, "MAX_GPU_HISTORIES") == 0
-		||	strcmp (key, "MAX_CUTS_HISTORIES") == 0
 		||	strcmp (key, "T_BINS") == 0
 		||	strcmp (key, "V_BINS") == 0
 		||	strcmp (key, "SIGMAS_2_KEEP") == 0
@@ -1066,6 +1129,16 @@ bool key_is_unsigned_integer_parameter( char* key )
 		||	strcmp (key, "SLICES") == 0
 		||	strcmp (key, "ITERATIONS") == 0
 		||	strcmp (key, "BLOCK_SIZE") == 0
+		||	strcmp (key, "DROP_BLOCK_SIZE") == 0
+		||	strcmp (key, "MAX_GPU_HISTORIES") == 0
+		||	strcmp (key, "MAX_CUTS_HISTORIES") == 0
+		||	strcmp (key, "MAX_ENDPOINTS_HISTORIES") == 0
+		||	strcmp (key, "THREADS_PER_BLOCK") == 0
+		||	strcmp (key, "ENDPOINTS_PER_BLOCK") == 0
+		||	strcmp (key, "HISTORIES_PER_BLOCK") == 0
+		||	strcmp (key, "ENDPOINTS_PER_THREAD") == 0
+		||	strcmp (key, "HISTORIES_PER_THREAD") == 0
+		||	strcmp (key, "VOXELS_PER_THREAD") == 0
 		||	strcmp (key, "HULL_MED_FILTER_RADIUS") == 0
 		||	strcmp (key, "FBP_MED_FILTER_RADIUS") == 0
 		||	strcmp (key, "X_0_MED_FILTER_RADIUS") == 0
@@ -1339,6 +1412,9 @@ void set_floating_point_parameter( generic_IO_container &value )
 		//parameters.SLICE_THICKNESS =  value.double_input;
 	else if( strcmp (value.key, "SLICE_THICKNESS") == 0 )
 		parameters.SLICE_THICKNESS =  value.double_input;
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "LAMBDA") == 0 )
 		parameters.LAMBDA = value.double_input;
 	else if( strcmp (value.key, "ETA") == 0 )
@@ -1346,12 +1422,31 @@ void set_floating_point_parameter( generic_IO_container &value )
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
-	else if( strcmp (value.key, "IGNORE_WEPL_BELOW") == 0 )
-		parameters.IGNORE_WEPL_BELOW = value.double_input;
-	else if( strcmp (value.key, "SC_THRESHOLD") == 0 )
-		parameters.SC_THRESHOLD = value.double_input;
-	else if( strcmp (value.key, "MSC_THRESHOLD") == 0 )
-		parameters.MSC_THRESHOLD = value.double_input;
+	else if( strcmp (value.key, "TRIG_TABLE_MIN_PIS") == 0 )
+		parameters.TRIG_TABLE_MIN = value.double_input * PI;
+	else if( strcmp (value.key, "TRIG_TABLE_MAX_PIS") == 0 )
+		parameters.TRIG_TABLE_MAX = value.double_input * PI;
+	else if( strcmp (value.key, "TRIG_TABLE_STEP_DEGREES") == 0 )
+		parameters.TRIG_TABLE_STEP = value.double_input;
+	else if( strcmp (value.key, "DEPTH_TABLE_RANGE") == 0 )
+		parameters.DEPTH_TABLE_RANGE = value.double_input;
+	else if( strcmp (value.key, "DEPTH_TABLE_STEP") == 0 )
+		parameters.DEPTH_TABLE_STEP = value.double_input;
+	else if( strcmp (value.key, "POLY_TABLE_RANGE") == 0 )
+		parameters.POLY_TABLE_RANGE = value.double_input;
+	else if( strcmp (value.key, "POLY_TABLE_STEP") == 0 )
+		parameters.POLY_TABLE_STEP = value.double_input;
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	else if( strcmp (value.key, "SC_LOWER_THRESHOLD") == 0 )
+		parameters.SC_LOWER_THRESHOLD = value.double_input;
+	else if( strcmp (value.key, "SC_UPPER_THRESHOLD") == 0 )
+		parameters.SC_UPPER_THRESHOLD = value.double_input;
+	else if( strcmp (value.key, "MSC_LOWER_THRESHOLD") == 0 )
+		parameters.MSC_LOWER_THRESHOLD = value.double_input;
+	else if( strcmp (value.key, "MSC_UPPER_THRESHOLD") == 0 )
+		parameters.MSC_UPPER_THRESHOLD = value.double_input;
 	else if( strcmp (value.key, "SM_LOWER_THRESHOLD") == 0 )
 		parameters.SM_LOWER_THRESHOLD = value.double_input;
 	else if( strcmp (value.key, "SM_UPPER_THRESHOLD") == 0 )
@@ -1408,15 +1503,35 @@ void set_unsigned_integer_parameter( generic_IO_container &value )
 		// ART = 0, DROP = 1, BIP = 2, SAP = 3, ROBUST1 = 4, ROBUST2 = 5 
 		parameters.RECONSTRUCTION_METHOD = static_cast<RECON_ALGORITHMS>(value.integer_input);
 	}
+	else if( strcmp (value.key, "ENDPOINTS_TX_MODE") == 0 )
+	{
+		exit_program_if(print_tx_mode(value.integer_input));
+		// (FULL_TX = 0, PARTIAL_TX = 1, PARTIAL_TX_PREALLOCATED = 2)
+		parameters.ENDPOINTS_TX_MODE = static_cast<TX_OPTIONS>(value.integer_input);
+	}
+	else if( strcmp (value.key, "DROP_TX_MODE") == 0 )
+	{
+		exit_program_if(print_tx_mode(value.integer_input));
+		// (FULL_TX = 0, PARTIAL_TX = 1, PARTIAL_TX_PREALLOCATED = 2)
+		parameters.DROP_TX_MODE = static_cast<TX_OPTIONS>(value.integer_input);
+	}
+	else if( strcmp (value.key, "ENDPOINTS_ALG") == 0 )
+	{
+		exit_program_if(print_endpoint_alg(value.integer_input));
+		// (BOOL = 0, NO_BOOL = 1)
+		parameters.ENDPOINTS_ALG = static_cast<ENDPOINTS_ALGORITHMS>(value.integer_input);
+	}
+	else if( strcmp (value.key, "MLP_ALGORITHM") == 0 )
+	{
+		exit_program_if(print_MLP_alg(value.integer_input));
+		// (STANDARD = 0, TABULATED = 1)
+		parameters.MLP_ALGORITHM = static_cast<MLP_ALGORITHMS>(value.integer_input);
+	}
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	//------------------------------------------------------------------------------//
 	else if( strcmp (value.key, "NUM_SCANS") == 0 )
 		parameters.NUM_SCANS = value.integer_input;
-	else if( strcmp (value.key, "MAX_GPU_HISTORIES") == 0 )
-		parameters.MAX_GPU_HISTORIES = value.integer_input;
-	else if( strcmp (value.key, "MAX_CUTS_HISTORIES") == 0 )
-		parameters.MAX_CUTS_HISTORIES = value.integer_input;
 	else if( strcmp (value.key, "T_BINS") == 0 )
 		parameters.T_BINS = value.integer_input;
 	else if( strcmp (value.key, "V_BINS") == 0 )
@@ -1436,6 +1551,33 @@ void set_unsigned_integer_parameter( generic_IO_container &value )
 		parameters.ITERATIONS = value.integer_input;
 	else if( strcmp (value.key, "BLOCK_SIZE") == 0 )
 		parameters.BLOCK_SIZE =  value.integer_input;
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//	
+	else if( strcmp (value.key, "DROP_BLOCK_SIZE") == 0 )
+		parameters.DROP_BLOCK_SIZE = value.integer_input;
+	else if( strcmp (value.key, "MAX_GPU_HISTORIES") == 0 )
+		parameters.MAX_GPU_HISTORIES = value.integer_input;
+	else if( strcmp (value.key, "MAX_CUTS_HISTORIES") == 0 )
+		parameters.MAX_CUTS_HISTORIES = value.integer_input;
+	else if( strcmp (value.key, "MAX_ENDPOINTS_HISTORIES") == 0 )
+		parameters.MAX_ENDPOINTS_HISTORIES = value.integer_input;
+	else if( strcmp (value.key, "THREADS_PER_BLOCK") == 0 )
+		parameters.THREADS_PER_BLOCK = value.integer_input;
+	else if( strcmp (value.key, "ENDPOINTS_PER_BLOCK") == 0 )
+		parameters.ENDPOINTS_PER_BLOCK = value.integer_input;
+	else if( strcmp (value.key, "HISTORIES_PER_BLOCK") == 0 )
+		parameters.HISTORIES_PER_BLOCK = value.integer_input;
+	else if( strcmp (value.key, "ENDPOINTS_PER_THREAD") == 0 )
+		parameters.ENDPOINTS_PER_THREAD = value.integer_input;
+	else if( strcmp (value.key, "HISTORIES_PER_THREAD") == 0 )
+		parameters.HISTORIES_PER_THREAD = value.integer_input;
+	else if( strcmp (value.key, "VOXELS_PER_THREAD") == 0 )
+		parameters.VOXELS_PER_THREAD = value.integer_input;
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	//------------------------------------------------------------------------------//
+	
 	else if( strcmp (value.key, "HULL_MED_FILTER_RADIUS") == 0 )
 		parameters.HULL_MED_FILTER_RADIUS = value.integer_input;
 	else if( strcmp (value.key, "FBP_MED_FILTER_RADIUS") == 0 )

@@ -11,9 +11,6 @@
 #include "device_launch_parameters.h"
 #include <device_functions.h>
 
-//#include <thrust/host_vector.h>
-//#include <thrust/device_vector.h>
-
 #include <algorithm>    // std::transform
 //#include <array>
 #include <cmath>
@@ -24,7 +21,6 @@
 #include <ctime>		// clock(), time() 
 #include <fstream>
 #include <functional>	// std::multiplies, std::plus, std::function, std::negate
-#include <initializer_list>
 #include <iostream>
 #include <limits>
 #include <map>
@@ -33,9 +29,7 @@
 #include <omp.h>		// OpenMP
 #include <sstream>
 #include <string>
-//#include <tuple>
 #include <typeinfo>		//operator typeid
-//#include <type_traits>	// is_pod
 #include <utility> // for std::move
 #include <vector>
 
@@ -136,12 +130,54 @@ const bool MLP_ENDPOINTS_FILE_EXISTS	= true;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------ Path to the input/output directories --------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//const char INPUT_DIRECTORY[]   = "//home//karbasi//Public//";
-//const char OUTPUT_DIRECTORY[]  = "//home//karbasi//Public//";
-const char INPUT_DIRECTORY[]	= "//home//share//";///home/share/CTP404/input_CTP404_4M
-const char OUTPUT_DIRECTORY[]	= "//home//share//";///home/share/CTP404/input_CTP404_4M
-const char INPUT_FOLDER[]		= "CTP404//input_CTP404_4M";
-const char OUTPUT_FOLDER[]      = "Output//CTP404//input_CTP404_4M";
+//// WHartnell
+//const char INPUT_DIRECTORY[]	= "//local//";///home/share/CTP404/input_CTP404_4M
+//const char OUTPUT_DIRECTORY[]	= "//local//";///home/share/CTP404/input_CTP404_4M
+//const char INPUT_FOLDER[]		= "input_CTP404_4M";
+//const char OUTPUT_FOLDER[]      = "Output//CTP404//input_CTP404_4M//Reconstruction";
+//
+//
+//const char INPUT_DIRECTORY[]	= "//local//pCT_data//";///home/share/CTP404/input_CTP404_4M
+//const char OUTPUT_DIRECTORY[]	= "//local//pCT_data//";///home/share/CTP404/input_CTP404_4M
+//const char INPUT_FOLDER[]		= "CTP404//input_CTP404_4M";
+//const char OUTPUT_FOLDER[]      = "Output//CTP404//input_CTP404_4M";
+//
+//local/pCT_data/organized_data/input_CTP404_4M
+//local/pCT_data/organized_data/CTP404/Experimental/150516/0061/Output/150625
+//local/pCT_data/organized_data/EdgePhantom/Experimental/150516/0057/Output/150529
+//local/pCT_data/organized_data/HeadPhantom/Experimental/150516/0059_Sup/Output/150625
+//local/pCT_data/organized_data/HeadPhantom/Experimental/150516/0060_Inf/Output/150625
+//
+//local/pCT_data/organized_data/HeadPhantom/Reconstruction/0059_Sup
+//local/pCT_data/organized_data/HeadPhantom/Reconstruction/0060_Inf
+//// Workstation #2
+//const char INPUT_DIRECTORY[]	= "//home//share//";///home/share/CTP404/input_CTP404_4M
+//const char OUTPUT_DIRECTORY[]	= "//home//share//";///home/share/CTP404/input_CTP404_4M
+//const char INPUT_FOLDER[]		= "CTP404//input_CTP404_4M";
+//const char OUTPUT_FOLDER[]      = "Output//CTP404//input_CTP404_4M";
+// JPertwee
+///local/organized_data/input_CTP404_4M
+///local/organized_data/CTP404/Experimental/150516/0061/Output/150625
+///local/organized_data/HeadPhantom/Experimental/150516/0059_Sup/Output/150625
+///local/organized_data/HeadPhantom/Experimental/150516/0060_Inf/Output/150625
+///local/organized_data/EdgePhantom/Experimental/150516/0057/Output/150529
+const char INPUT_DIRECTORY[]	= "//local//organized_data//";///home/share/CTP404/input_CTP404_4M
+const char OUTPUT_DIRECTORY[]	= "//local//organized_data//";///home/share/CTP404/input_CTP404_4M
+
+const char INPUT_FOLDER[]		= "input_CTP404_4M";
+//const char INPUT_FOLDER[]		= "CTP404//Experimental//150516//0061//Output//150625//";
+//const char INPUT_FOLDER[]		= "HeadPhantom//Experimental//150516//0059_Sup//Output//150625//";
+//const char INPUT_FOLDER[]		= "HeadPhantom//Experimental//150516//0060_Inf//Output//150625//";
+//const char INPUT_FOLDER[]		= "EdgePhantom//Experimental//150516//0057//Output//150529//";
+
+const char OUTPUT_FOLDER[]      = "input_CTP404_4M//Reconstruction//testing";
+//const char OUTPUT_FOLDER[]      = "CTP404//Reconstruction";
+//const char OUTPUT_FOLDER[]      = "HeadPhantom//Reconstruction//0059_Sup";
+//const char OUTPUT_FOLDER[]      = "HeadPhantom//Reconstruction//0060_Inf";
+//const char OUTPUT_FOLDER[]      = "EdgePhantom//Reconstruction";
+char EXECUTION_DATE[9];
+char OUTPUT_FOLDER_UNIQUE[256];
+
 const char INPUT_BASE_NAME[]	= "projection";							// waterPhantom, catphan, input_water_Geant500000
 const char FILE_EXTENSION[]		= ".bin";								// Binary file extension
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -266,9 +302,11 @@ const unsigned int FBP_MEDIAN_RADIUS = 3;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------------ Hull-Detection Parameters -------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+#define SC_LOWER_THRESHOLD		0.0										// [cm] If WEPL >= SC_LOWER_THRESHOLD, SC assumes the proton missed the object
+#define SC_UPPER_THRESHOLD		0.0										// [cm] If WEPL <= SC_UPPER_THRESHOLD, SC assumes the proton missed the object
+#define MSC_UPPER_THRESHOLD		0.0										// [cm] If WEPL >= MSC_LOWER_THRESHOLD, MSC assumes the proton missed the object
+#define MSC_LOWER_THRESHOLD		-10.0									// [cm] If WEPL <= MSC_UPPER_THRESHOLD, MSC assumes the proton missed the object
 #define MSC_DIFF_THRESH			50										// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
-#define SC_THRESHOLD			0.0										// [cm] If WEPL < SC_THRESHOLD, SC assumes the proton missed the object
-#define MSC_THRESHOLD			0.0										// [cm] If WEPL < MSC_THRESHOLD, MSC assumes the proton missed the object
 #define SM_LOWER_THRESHOLD		6.0										// [cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
 #define SM_UPPER_THRESHOLD		21.0									// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
 #define SM_SCALE_THRESHOLD		1.0										// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
@@ -367,21 +405,30 @@ int PSI_SIGN					= 1;
 //----------------------------------------------------------------------------------- Execution timing variables -------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 clock_t program_start, program_end, pause_cycles = 0;
-clock_t begin_endpoints, begin_init_image, begin_tables, begin_DROP_iteration, begin_DROP, begin_update_calcs, begin_update_image, begin_preprocessing, begin_reconstruction, begin_program;
-double execution_time_endpoints, execution_time_init_image, execution_time_DROP_iteration, execution_time_DROP, execution_time_update_calcs, execution_time_update_image, execution_time_tables;
-double execution_time_preprocessing, execution_time_reconstruction, execution_time_program; 
+clock_t begin_endpoints = 0, begin_init_image = 0, begin_tables = 0, begin_DROP_iteration = 0, begin_DROP = 0, begin_update_calcs = 0, begin_update_image = 0, begin_data_reads = 0, begin_preprocessing = 0, begin_reconstruction = 0, begin_program = 0;
+double execution_time_endpoints = 0, execution_time_init_image = 0, execution_time_DROP_iteration = 0, execution_time_DROP = 0, execution_time_update_calcs = 0, execution_time_update_image = 0, execution_time_tables = 0;
+double execution_time_data_reads = 0, execution_time_preprocessing = 0, execution_time_reconstruction = 0, execution_time_program = 0; 
 std::vector<double> execution_times_DROP_iterations;
 
-char global_results_path[256] = "C:\\Users\\Blake\\Documents\\Visual Studio 2010\\Projects\\pCT_Reconstruction_R01\\pCT_Reconstruction_R01\\";
-char execution_times_filename[256] = "execution_times.txt";
+char GLOBAL_RESULTS_PATH[]				= {"C://Users//Blake//Documents//Visual Studio 2010//Projects//pCT_Reconstruction_R01//pCT_Reconstruction_R01"};
+char TESTED_BY_STRING[]					= {"Blake Schultze"};
+char EXECUTION_TIMES_FILENAME[]			= {"execution_times"};
+char FULL_TX_STRING[]					= {"FULL_TX"};
+char PARTIAL_TX_STRING[]				= {"PARTIAL_TX"};
+char PARTIAL_TX_PREALLOCATED_STRING[]	= {"PARTIAL_TX_PREALLOCATED"};
+char BOOL_STRING[]						= {"BOOL"};
+char NO_BOOL_STRING[]					= {"NO_BOOL"};
+char STANDARD_STRING[]					= {"STANDARD"};
+char TABULATED_STRING[]					= {"TABULATED"};
+const int MAX_ITERATIONS				= 15;
 FILE* execution_times_file;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------ Testing parameters/options controls ---------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-TX_OPTIONS ENDPOINTS_TX_MODE		= PARTIAL_TX;	//FULL_TX/PARTIAL_TX/PARTIAL_TX_PREALLOCATED
-TX_OPTIONS DROP_TX_MODE				= FULL_TX;		// FULL_TX/PARTIAL_TX/PARTIAL_TX_PREALLOCATED
-ENDPOINTS_ALGORITHMS ENDPOINTS_ALG	= BOOL;			// BOOL/NO_BOOL
-MLP_ALGORITHMS MLP_ALGORITHM		= TABULATED;	// STANDARD/TABULATED
+TX_OPTIONS ENDPOINTS_TX_MODE		= PARTIAL_TX_PREALLOCATED;			// Specifies GPU data tx mode for MLP endpoints as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+TX_OPTIONS DROP_TX_MODE				= FULL_TX;							// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+ENDPOINTS_ALGORITHMS ENDPOINTS_ALG	= NO_BOOL;							// Specifies if boolean array is used to store whether a proton hit/missed the hull (BOOL) or uses the 1st MLP voxel (NO_BOOL)
+MLP_ALGORITHMS MLP_ALGORITHM		= TABULATED;						// Specifies whether calculations are performed explicitly (STANDARD) or if lookup tables are used for MLP calculations (TABULATED)
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------- Tabulated data file names --------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -393,10 +440,10 @@ char POLY_2_3_FILENAME[]	= "poly_2_3.bin";							// Prefix of the file containin
 char POLY_3_4_FILENAME[]	= "poly_3_4.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,4,5,6,7,8} in increments of 0.001
 char POLY_2_6_FILENAME[]	= "poly_2_6.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,6,12,20,30,42} in increments of 0.001
 char POLY_3_12_FILENAME[]	= "poly_3_12.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,12,30,60,105,168} in increments of 0.001
-#define TRIG_TABLE_MIN		-2 * PI										// [degrees] Minimum angle contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_MAX		4 * PI										// [degrees] Maximum angle contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_RANGE	(TRIG_TABLE_MAX - TRIG_TABLE_MIN)			// [degrees] Range of angles contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_STEP		(0.001 * ANGLE_TO_RADIANS)					// [degrees] Step of 1/4 degree for elements of sin/cos lookup table used for MLP
+#define TRIG_TABLE_MIN		-2 * PI										// [radians] Minimum angle contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_MAX		4 * PI										// [radians] Maximum angle contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_RANGE	(TRIG_TABLE_MAX - TRIG_TABLE_MIN)			// [radians] Range of angles contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_STEP		(0.001 * ANGLE_TO_RADIANS)					// [radians] Step size in radians between elements of sin/cos lookup table used for MLP
 #define TRIG_TABLE_ELEMENTS	static_cast<int>(TRIG_TABLE_RANGE / TRIG_TABLE_STEP + 0.5)			// [#] # of elements contained in the sin/cos lookup table used for MLP
 #define DEPTH_TABLE_RANGE	20.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
 #define DEPTH_TABLE_STEP	0.00005										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
@@ -450,6 +497,8 @@ char POLY_3_12_FILENAME[]	= "poly_3_12.bin";							// Prefix of the file contain
 #define INT_FORMAT				"%d"									// Specifies format to use for writing/printing integer data using {s/sn/f/v/vn}printf statements
 #define FLOAT_FORMAT			"%f"									// Specifies format to use for writing/printing floating point data using {s/sn/f/v/vn}printf statements
 #define STRING_FORMAT			"%s"									// Specifies format to use for writing/printing strings data using {s/sn/f/v/vn}printf statements
+#define CONSOLE_WINDOW_WIDTH	80
+char SECTION_EXIT_STRING[]		= {"====>"};
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /********************************************************************************* Preprocessing Array Declerations **********************************************************************************/
@@ -464,11 +513,6 @@ int* recon_vol_histories_per_projection;
 int histories_per_scan[NUM_SCANS];
 int post_cut_histories = 0;
 int reconstruction_histories = 0;
-//unsigned int total_histories = 0, recon_vol_histories = 0, maximum_histories_per_file = 0;
-//unsigned int* histories_per_projection, * histories_per_gantry_angle, * histories_per_file;
-//unsigned int* recon_vol_histories_per_projection;
-//unsigned int histories_per_scan[NUM_SCANS];
-//unsigned int post_cut_histories = 0;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------- Declaration of array used to store tracking plane distances from rotation axis -----------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -491,8 +535,6 @@ float* x_entry_h, * y_entry_h, * z_entry_h;
 float* x_exit_h, * y_exit_h, * z_exit_h;
 float* xy_entry_angle_h, * xy_exit_angle_h;
 float* xz_entry_angle_h, * xz_exit_angle_h;
-float* relative_ut_angle_h, * relative_uv_angle_h;
-//bool* entered_object_h, * exited_object_h;
 float* WEPL_h;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------- Declaration of arrays for storage of input data for use on the device (_d) -------------------------------------------------------------/
@@ -508,10 +550,8 @@ float* x_entry_d, * y_entry_d, * z_entry_d;
 float* x_exit_d, * y_exit_d, * z_exit_d;
 float* xy_entry_angle_d, * xy_exit_angle_d;
 float* xz_entry_angle_d, * xz_exit_angle_d;
-float* relative_ut_angle_d, * relative_uv_angle_d;
-unsigned int* first_MLP_voxel_d;
-//bool* entered_object_d, * exited_object_d;
 float* WEPL_d;
+unsigned int* first_MLP_voxel_d;
 int* voxel_x_d, voxel_y_d, voxel_z_d;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------- Declaration of statistical analysis arrays for use on host(_h) or device (_d) ------------------------------------------------------------/
@@ -574,31 +614,9 @@ std::vector<float>	xz_entry_angle_vector;
 std::vector<float>	xy_exit_angle_vector;	
 std::vector<float>	xz_exit_angle_vector;	
 std::vector<unsigned int> first_MLP_voxel_vector;
-//std::vector<float>	relative_ut_angle_vector;	
-//std::vector<float>	relative_uv_angle_vector;
 std::vector<int> voxel_x_vector;
 std::vector<int> voxel_y_vector;
 std::vector<int> voxel_z_vector;
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//---------------------------------------------- Declaration of arrays used to accumulate data from histories that have passed currently applied cuts ------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-int*	bin_index;
-float*	bin_WEPL;
-int*	bin_num;			
-int*	gantry_angle;	
-float*	WEPL;		
-float*	x_entry;		
-float*	y_entry;		
-float*	z_entry;		
-float*	x_exit;			
-float*	y_exit;			
-float*	z_exit;			
-float*	xy_entry_angle;	
-float*	xz_entry_angle;	
-float*	xy_exit_angle;	
-float*	xz_exit_angle;	
-float*	relative_ut_angle;	
-float*	relative_uv_angle;
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /*********************************************************************************** End of Parameter Definitions ************************************************************************************/
