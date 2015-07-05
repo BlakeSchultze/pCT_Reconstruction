@@ -33,6 +33,11 @@
 #include <utility> // for std::move
 #include <vector>
 
+#if defined(_WIN32) || defined(_WIN64)
+		#include "Shlwapi.h"
+#else
+		#include <unistd.h>
+#endif
 //using namespace std;
 using std::cout;
 using std::endl;
@@ -119,7 +124,6 @@ const bool MSC_ON						= true;								// Turn Modified Space Carving on (T) or o
 const bool SM_ON						= false;							// Turn Space Modeling on (T) or off (F)
 const bool AVG_FILTER_HULL				= true;								// Apply averaging filter to hull (T) or not (F)
 const bool COUNT_0_WEPLS				= false;							// Count the number of histories with WEPL = 0 (T) or not (F)
-const bool REALLOCATE					= false;
 const bool MLP_FILE_EXISTS				= false;
 const bool MLP_ENDPOINTS_FILE_EXISTS	= true;
 /*****************************************************************************************************************************************************************************************************/
@@ -130,35 +134,15 @@ const bool MLP_ENDPOINTS_FILE_EXISTS	= true;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------ Path to the input/output directories --------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------//
-//---------------------------------------------------------------------------- WHartnell -----------------------------------------------------------------------//
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------//
-//const char INPUT_DIRECTORY[]	= "//local//";///home/share/CTP404/input_CTP404_4M
-//const char OUTPUT_DIRECTORY[]	= "//local//";///home/share/CTP404/input_CTP404_4M
-//const char INPUT_FOLDER[]		= "input_CTP404_4M";
-//const char OUTPUT_FOLDER[]      = "Output//CTP404//input_CTP404_4M//Reconstruction";
-//
-//
-//const char INPUT_DIRECTORY[]	= "//local//pCT_data//";///home/share/CTP404/input_CTP404_4M
-//const char OUTPUT_DIRECTORY[]	= "//local//pCT_data//";///home/share/CTP404/input_CTP404_4M
-//const char INPUT_FOLDER[]		= "CTP404//input_CTP404_4M";
-//const char OUTPUT_FOLDER[]      = "Output//CTP404//input_CTP404_4M";
-//
-//local/pCT_data/organized_data/input_CTP404_4M
-//local/pCT_data/organized_data/CTP404/Experimental/150516/0061/Output/150625
-//local/pCT_data/organized_data/EdgePhantom/Experimental/150516/0057/Output/150529
-//local/pCT_data/organized_data/HeadPhantom/Experimental/150516/0059_Sup/Output/150625
-//local/pCT_data/organized_data/HeadPhantom/Experimental/150516/0060_Inf/Output/150625
-//
-//local/pCT_data/organized_data/HeadPhantom/Reconstruction/0059_Sup
-//local/pCT_data/organized_data/HeadPhantom/Reconstruction/0060_Inf
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------//
-//------------------------------------------------------------------------ Workstation #2 ----------------------------------------------------------------------//
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------//
-const char INPUT_DIRECTORY[]	= "//home//share//organized_data//";///home/share/CTP404/input_CTP404_4M
-const char OUTPUT_DIRECTORY[]	= "//home//share//reconstructed_data//";///home/share/CTP404/input_CTP404_4M
-//const char INPUT_DIRECTORY[]	= "//local//organized_data//";///home/share/CTP404/input_CTP404_4M
-//const char OUTPUT_DIRECTORY[]	= "//local//reconstructed_data//";///home/share/CTP404/input_CTP404_4M
+// Workstation #2
+//const char INPUT_DIRECTORY[]	= "//home//share//organized_data//";
+//const char OUTPUT_DIRECTORY[]	= "//home//share//reconstruction_data//";
+// WHartnell
+//const char INPUT_DIRECTORY[]	= "//local//organized_data//pCT_data//";
+//const char OUTPUT_DIRECTORY[]	= "//local//reconstruction_data//pCT_data//";
+// JPertwee
+const char INPUT_DIRECTORY[]	= "//local//organized_data//";
+const char OUTPUT_DIRECTORY[]	= "//local//reconstruction_data//";
 
 const char INPUT_FOLDER[]		= "input_CTP404_4M//Simulated//141028";
 //const char INPUT_FOLDER[]		= "CTP404_Sensitom//Experimental//150516//0061//Output//150625";
@@ -171,34 +155,73 @@ const char OUTPUT_FOLDER[]      = "input_CTP404_4M//Simulated//141028";
 //const char OUTPUT_FOLDER[]      = "Edge_Phantom//Experimental//150516//0057";
 //const char OUTPUT_FOLDER[]      = "HeadPhantom//Experimental//150516//0059_Sup";
 //const char OUTPUT_FOLDER[]      = "HeadPhantom//Experimental//150516//0060_Inf";
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------//
-//--------------------------------------------------------------------------- JPertwee -------------------------------------------------------------------------//
-//--------------------------------------------------------------------------------------------------------------------------------------------------------------//
-/////local/organized_data/input_CTP404_4M
-/////local/organized_data/CTP404/Experimental/150516/0061/Output/150625
-/////local/organized_data/HeadPhantom/Experimental/150516/0059_Sup/Output/150625
-/////local/organized_data/HeadPhantom/Experimental/150516/0060_Inf/Output/150625
-/////local/organized_data/EdgePhantom/Experimental/150516/0057/Output/150529
-//const char INPUT_DIRECTORY[]	= "//local//organized_data//";///home/share/CTP404/input_CTP404_4M
-//const char OUTPUT_DIRECTORY[]	= "//local//reconstructed_data//";///home/share/CTP404/input_CTP404_4M
-//
-//const char INPUT_FOLDER[]		= "input_CTP404_4M//Simulated//141028";
-////const char INPUT_FOLDER[]		= "CTP404_Sensitom//Experimental//150516//0061//Output//150625//";
-////const char INPUT_FOLDER[]		= "Edge_Phantom//Experimental//150516//0057//Output//150529//";
-////const char INPUT_FOLDER[]		= "Head_Phantom//Experimental//150516//0059_Sup//Output//150625//";
-////const char INPUT_FOLDER[]		= "Head_Phantom//Experimental//150516//0060_Inf//Output//150625//";
-//
-//const char OUTPUT_FOLDER[]      = "input_CTP404_4M//Simulated//141028";
-////const char OUTPUT_FOLDER[]      = "CTP404_Sensitom//Experimental//150516//0061";
-////const char OUTPUT_FOLDER[]      = "Edge_Phantom//Experimental//150516//0057";
-////const char OUTPUT_FOLDER[]      = "Head_Phantom//Experimental//150516//0059_Sup";
-////const char OUTPUT_FOLDER[]      = "Head_Phantom//Experimental//150516//0060_Inf";
-
-char EXECUTION_DATE[9];
 char OUTPUT_FOLDER_UNIQUE[256];
-const bool OVERWRITING_OK = true;
+
 const char INPUT_BASE_NAME[]	= "projection";							// waterPhantom, catphan, input_water_Geant500000
 const char FILE_EXTENSION[]		= ".bin";								// Binary file extension
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//--------------------------------------------------------------------------- Iterative Image Reconstruction Parameters ------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const bool AVG_FILTER_ITERATE	= false;								// Apply averaging filter to initial iterate (T) or not (F)
+const bool DIRECT_IMAGE_RECONSTRUCTION = false;
+const unsigned int ITERATE_FILTER_RADIUS = 3;
+const double ITERATE_FILTER_THRESHOLD = 0.1;
+const INITIAL_ITERATE			X_0 = HYBRID;							// Specify which of the HULL_TYPES to use in this run's MLP calculations
+const PROJECTION_ALGORITHMS		PROJECTION_ALGORITHM = DROP;			// Specify which of the projection algorithms to use for image reconstruction
+double ETA						= 2.5;
+unsigned int METHOD				= 1;
+int PSI_SIGN					= 1;
+#define ITERATIONS				12										// # of iterations through the entire set of histories to perform in iterative image reconstruction
+//#define LAMBDA					0.0001								// Relaxation parameter to use in image iterative projection reconstruction algorithms	
+float LAMBDA					= 0.0012;									// Relaxation parameter to use in image iterative projection reconstruction algorithms	
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//------------------------------------------------------------------------- Host/GPU computation and structure information ---------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+#define DROP_BLOCK_SIZE			3200									// # of histories in each DROP block, i.e., # of histories used per image update
+
+#define THREADS_PER_BLOCK		1024									// # of threads per GPU block for preprocessing kernels
+#define ENDPOINTS_PER_BLOCK 	320										// # of threads per GPU block for collect_MLP_endpoints_GPU kernel
+#define HISTORIES_PER_BLOCK 	320										// # of threads per GPU block for block_update_GPU kernel
+
+#define ENDPOINTS_PER_THREAD 	1										// # of MLP endpoints each thread is responsible for calculating in collect_MLP_endpoints_GPU kernel
+#define HISTORIES_PER_THREAD 	1										// # of histories each thread is responsible for in MLP/DROP kernel block_update_GPU
+#define VOXELS_PER_THREAD 		1										// # of voxels each thread is responsible for updating for reconstruction image initialization/updates
+
+#define MAX_GPU_HISTORIES		2500000									// [#] Number of histories to process on the GPU at a time for preprocessing, based on GPU capacity
+#define MAX_CUTS_HISTORIES		1500000									// [#] Number of histories to process on the GPU at a time for statistical cuts, based on GPU capacity
+#define MAX_ENDPOINTS_HISTORIES 10240000								// [#] Number of histories to process on the GPU at a time for MLP endpoints, based on GPU capacity
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------- Execution timing variables -------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+clock_t program_start, program_end, pause_cycles = 0;
+clock_t begin_endpoints = 0, begin_init_image = 0, begin_tables = 0, begin_DROP_iteration = 0, begin_DROP = 0, begin_update_calcs = 0, begin_update_image = 0, begin_data_reads = 0, begin_preprocessing = 0, begin_reconstruction = 0, begin_program = 0;
+double execution_time_endpoints = 0, execution_time_init_image = 0, execution_time_DROP_iteration = 0, execution_time_DROP = 0, execution_time_update_calcs = 0, execution_time_update_image = 0, execution_time_tables = 0;
+double execution_time_data_reads = 0, execution_time_preprocessing = 0, execution_time_reconstruction = 0, execution_time_program = 0; 
+std::vector<double> execution_times_DROP_iterations;
+
+char EXECUTION_DATE[9];
+//char GLOBAL_RESULTS_PATH[]				= {"C://Users//Blake//Documents//Visual Studio 2010//Projects//pCT_Reconstruction_R01//pCT_Reconstruction_R01"};
+//char GLOBAL_RESULTS_PATH[]				= {"//home//share//reconstruction_data"};
+char GLOBAL_RESULTS_PATH[]				= {"//local//reconstruction_data"};
+char EXECUTION_TIMES_FILENAME[]			= {"execution_times"};
+char TESTED_BY_STRING[]					= {"Blake Schultze"};
+char FULL_TX_STRING[]					= {"FULL_TX"};
+char PARTIAL_TX_STRING[]				= {"PARTIAL_TX"};
+char PARTIAL_TX_PREALLOCATED_STRING[]	= {"PARTIAL_TX_PREALLOCATED"};
+char BOOL_STRING[]						= {"BOOL"};
+char NO_BOOL_STRING[]					= {"NO_BOOL"};
+char STANDARD_STRING[]					= {"STANDARD"};
+char TABULATED_STRING[]					= {"TABULATED"};
+const bool OVERWRITING_OK				= true;
+const int MAX_ITERATIONS				= 15;
+FILE* execution_times_file;
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//------------------------------------------------------------------------------ Testing parameters/options controls ---------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+TX_OPTIONS ENDPOINTS_TX_MODE		= PARTIAL_TX_PREALLOCATED;			// Specifies GPU data tx mode for MLP endpoints as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+TX_OPTIONS DROP_TX_MODE				= PARTIAL_TX_PREALLOCATED;			// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+ENDPOINTS_ALGORITHMS ENDPOINTS_ALG	= NO_BOOL;							// Specifies if boolean array is used to store whether a proton hit/missed the hull (BOOL) or uses the 1st MLP voxel (NO_BOOL)
+MLP_ALGORITHMS MLP_ALGORITHM		= TABULATED;						// Specifies whether calculations are performed explicitly (STANDARD) or if lookup tables are used for MLP calculations (TABULATED)
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------- Input data specification parameters ----------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -389,66 +412,6 @@ const int max_path_elements = int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2)));
 #define A_5_OVER_8				A_5/8
 #define A_5_OVER_42				A_5/42
 #define A_5_OVER_168			A_5/168
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//--------------------------------------------------------------------------- Iterative Image Reconstruction Parameters ------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const bool AVG_FILTER_ITERATE	= false;									// Apply averaging filter to initial iterate (T) or not (F)
-const bool DIRECT_IMAGE_RECONSTRUCTION = false;
-const unsigned int ITERATE_FILTER_RADIUS = 3;
-const double ITERATE_FILTER_THRESHOLD = 0.1;
-const INITIAL_ITERATE			X_0 = HYBRID;							// Specify which of the HULL_TYPES to use in this run's MLP calculations
-const PROJECTION_ALGORITHMS		PROJECTION_ALGORITHM = DROP;			// Specify which of the projection algorithms to use for image reconstruction
-float LAMBDA = 0.1;													// Relaxation parameter to use in image iterative projection reconstruction algorithms	
-//#define LAMBDA					0.0001								// Relaxation parameter to use in image iterative projection reconstruction algorithms	
-#define ITERATIONS				12										// # of iterations through the entire set of histories to perform in iterative image reconstruction
-double ETA						= 2.5;
-unsigned int METHOD				= 1;
-int PSI_SIGN					= 1;
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------- Host/GPU computation and structure information ---------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define DROP_BLOCK_SIZE			3200000						// # of histories in each DROP block, i.e., # of histories used per image update
-
-#define THREADS_PER_BLOCK		1024									// # of threads per GPU block for preprocessing kernels
-#define ENDPOINTS_PER_BLOCK 	320										// # of threads per GPU block for collect_MLP_endpoints_GPU kernel
-#define HISTORIES_PER_BLOCK 	320										// # of threads per GPU block for block_update_GPU kernel
-
-#define ENDPOINTS_PER_THREAD 	1										// # of MLP endpoints each thread is responsible for calculating in collect_MLP_endpoints_GPU kernel
-#define HISTORIES_PER_THREAD 	1										// # of histories each thread is responsible for in MLP/DROP kernel block_update_GPU
-#define VOXELS_PER_THREAD 		1										// # of voxels each thread is responsible for updating for reconstruction image initialization/updates
-
-#define MAX_GPU_HISTORIES		2500000									// [#] Number of histories to process on the GPU at a time for preprocessing, based on GPU capacity
-#define MAX_CUTS_HISTORIES		1500000									// [#] Number of histories to process on the GPU at a time for statistical cuts, based on GPU capacity
-#define MAX_ENDPOINTS_HISTORIES 10240000								// [#] Number of histories to process on the GPU at a time for MLP endpoints, based on GPU capacity
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------- Execution timing variables -------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-clock_t program_start, program_end, pause_cycles = 0;
-clock_t begin_endpoints = 0, begin_init_image = 0, begin_tables = 0, begin_DROP_iteration = 0, begin_DROP = 0, begin_update_calcs = 0, begin_update_image = 0, begin_data_reads = 0, begin_preprocessing = 0, begin_reconstruction = 0, begin_program = 0;
-double execution_time_endpoints = 0, execution_time_init_image = 0, execution_time_DROP_iteration = 0, execution_time_DROP = 0, execution_time_update_calcs = 0, execution_time_update_image = 0, execution_time_tables = 0;
-double execution_time_data_reads = 0, execution_time_preprocessing = 0, execution_time_reconstruction = 0, execution_time_program = 0; 
-std::vector<double> execution_times_DROP_iterations;
-
-//char GLOBAL_RESULTS_PATH[]				= {"C://Users//Blake//Documents//Visual Studio 2010//Projects//pCT_Reconstruction_R01//pCT_Reconstruction_R01"};
-char GLOBAL_RESULTS_PATH[]				= {"//home//share//Output"};
-char EXECUTION_TIMES_FILENAME[]			= {"execution_times"};
-char TESTED_BY_STRING[]					= {"Blake Schultze"};
-char FULL_TX_STRING[]					= {"FULL_TX"};
-char PARTIAL_TX_STRING[]				= {"PARTIAL_TX"};
-char PARTIAL_TX_PREALLOCATED_STRING[]	= {"PARTIAL_TX_PREALLOCATED"};
-char BOOL_STRING[]						= {"BOOL"};
-char NO_BOOL_STRING[]					= {"NO_BOOL"};
-char STANDARD_STRING[]					= {"STANDARD"};
-char TABULATED_STRING[]					= {"TABULATED"};
-const int MAX_ITERATIONS				= 15;
-FILE* execution_times_file;
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------------ Testing parameters/options controls ---------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-TX_OPTIONS ENDPOINTS_TX_MODE		= PARTIAL_TX_PREALLOCATED;			// Specifies GPU data tx mode for MLP endpoints as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
-TX_OPTIONS DROP_TX_MODE				= PARTIAL_TX_PREALLOCATED;			// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
-ENDPOINTS_ALGORITHMS ENDPOINTS_ALG	= NO_BOOL;							// Specifies if boolean array is used to store whether a proton hit/missed the hull (BOOL) or uses the 1st MLP voxel (NO_BOOL)
-MLP_ALGORITHMS MLP_ALGORITHM		= TABULATED;						// Specifies whether calculations are performed explicitly (STANDARD) or if lookup tables are used for MLP calculations (TABULATED)
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------- Tabulated data file names --------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/

@@ -188,6 +188,7 @@ char((&current_MMDD( char(&)[5]))[5]);
 char((&current_MMDDYYYY( char(&)[9]))[9]);
 
 //Console Window Print Statement Functions
+void print_colored_text(char*, unsigned int );
 void print_section_separator(char );
 void construct_header_line( char*, char, char* );
 void print_section_header( char*, char );
@@ -348,8 +349,14 @@ int main(int argc, char** argv)
 	char statement[256];
 	if( RUN_ON )
 	{
+		sprintf(statement, "colored_print_test\n" );
+		print_colored_text(statement, 32 );
+		//puts("hello");
+		//puts("hello");
 		current_MMDDYYYY( EXECUTION_DATE);
+		//puts("hello");
 		assign_output_directory();
+		//puts("hello");
 		//apply_permissions();
 		//puts(OUTPUT_FOLDER_UNIQUE);
 		//exit_program_if( true, "testing unique output directory generation" );
@@ -368,6 +375,7 @@ int main(int argc, char** argv)
 		initializations();				// allocate and initialize host and GPU memory for statistical
 		count_histories();				// count the number of histories per file, per scan, total, etc.
 		reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
+		
 		sprintf( statement, "Proton counting and initializations complete");
 		system("echo -e \"\e[0;31m\"" );
 		print_section_exit( statement, SECTION_EXIT_STRING );
@@ -410,7 +418,9 @@ int main(int argc, char** argv)
 			start_file_num = end_file_num;
 			histories_2_process = 0;
 		}		
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_data_reads = timer( STOP, begin_data_reads, "for reading data, coordinate conversions/intersections, hull detection counts, and binning");
+		//system("echo -e \"\e[m\"" );
 		if( COUNT_0_WEPLS )
 			std::cout << "Histories with WEPL = 0 : " << zero_WEPL << std::endl;
 		//puts("Data reading complete.");
@@ -418,8 +428,11 @@ int main(int argc, char** argv)
 		system("echo -e \"\e[0;31m\"" );
 		print_section_exit( statement, SECTION_EXIT_STRING );
 		system("echo -e \"\e[m\"" );
+		
+		system("echo -e \"\e[0;32m\"" );
 		printf("%d out of %d (%4.2f%%) histories traversed the reconstruction volume\n", recon_vol_histories, total_histories, (double) recon_vol_histories / total_histories * 100  );
 		//shrink_vectors( recon_vol_histories );	// Shrink vector capacities to their size = # histories remaining reconstruction volume intersection cuts
+		system("echo -e \"\e[m\"" );
 		
 		hull_detection_finish();
 		exit_program_if( EXIT_AFTER_HULLS, "through hull detection" );
@@ -434,6 +447,7 @@ int main(int argc, char** argv)
 		sprintf( statement, "Calculating the cumulative sum of the squared deviation in WEPL and relative ut/uv angles over all histories for each bin");
 		print_section_header( statement, '-' );
 		system("echo -e \"\e[m\"" );
+
 		int remaining_histories = recon_vol_histories;
 		int start_position = 0;
 		calculate_means();
@@ -476,7 +490,10 @@ int main(int argc, char** argv)
 		print_section_exit( statement, SECTION_EXIT_STRING );
 		system("echo -e \"\e[m\"" );
 		
+		system("echo -e \"\e[0;32m\"" );
 		printf("%d out of %d (%4.2f%%) histories also passed statistical cuts\n", post_cut_histories, total_histories, (double) post_cut_histories / total_histories * 100  );
+		system("echo -e \"\e[m\"" );
+		
 		post_cut_memory_clean();
 		resize_vectors( post_cut_histories );
 		//shrink_vectors( post_cut_histories );
@@ -484,7 +501,10 @@ int main(int argc, char** argv)
 		/********************************************************************************************************************************************************/
 		/* Generate the sinogram from remaining histories after cuts, perform filtered backprojection, and generate/define the hull/initial iterate to use		*/
 		/********************************************************************************************************************************************************/
+		system("echo -e \"\e[0;36m\"" );
 		puts("Constructing sinogram...");
+		system("echo -e \"\e[m\"" );
+		
 		construct_sinogram();
 		exit_program_if( EXIT_AFTER_SINOGRAM, "through sinorgram generation" );
 		if( FBP_ON )
@@ -496,7 +516,10 @@ int main(int argc, char** argv)
 		sprintf( statement, "Preprocessing complete");
 		print_section_exit(statement, SECTION_EXIT_STRING );
 		system("echo -e \"\e[m\"" );
+
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_preprocessing = timer( STOP, begin_preprocessing, "for preprocessing");
+		//system("echo -e \"\e[m\"" );
 		
 		/********************************************************************************************************************************************************/
 		/* Perform image reconstruction																							*/
@@ -511,7 +534,9 @@ int main(int argc, char** argv)
 		//image_reconstruction_GPU(); // Write to the external file	 	
 		//image_reconstruction_GPU_tabulated();
 		image_reconstruction_GPU_testing(); // Write to the external file	 	
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_reconstruction = timer( STOP, begin_reconstruction, "for complete image reconstruction");
+		//system("echo -e \"\e[m\"" );
 		if( WRITE_X ) 
 		{
 			char x[] ={"x"};
@@ -534,8 +559,11 @@ int main(int argc, char** argv)
 	system("echo -e \"\e[0;31m\"" );
 	sprintf( statement, "Preprocessing and/or reconstruction complete.");
 	print_section_exit( statement, SECTION_EXIT_STRING );
-	execution_time_program = timer( STOP, begin_program, "for entire program");
 	system("echo -e \"\e[m\"" );
+		
+	//system("echo -e \"\e[0;32m\"" );
+	execution_time_program = timer( STOP, begin_program, "for entire program");
+	//system("echo -e \"\e[m\"" );
 		
 	//execution_times_2_txt();
 	system("echo -e \"\e[0;31m\"" );
@@ -591,7 +619,9 @@ void timer( bool start, clock_t& start_time, clock_t& end_time, double& executio
 		end_time = clock();
 		clock_t execution_clock_cycles = (end_time - start_time);
 		execution_time = static_cast<double>( execution_clock_cycles) / CLOCKS_PER_SEC;
+		system("echo -e \"\e[0;32m\"" );
 		printf( "Total execution time %s: %3f [seconds]\n", statement, execution_time );	
+		system("echo -e \"\e[m\"" );
 	}
 	else
 		puts("ERROR: Invalid timer control parameter passed");
@@ -605,8 +635,10 @@ double timer( bool start, clock_t& start_time, const char* statement )
 	{
 		clock_t end_time = clock();
 		clock_t execution_clock_cycles = (end_time - start_time);
+		system("echo -e \"\e[0;32m\"" );
 		execution_time = static_cast<double>( execution_clock_cycles) / CLOCKS_PER_SEC;
 		printf( "Total execution time %s: %3f [seconds]\n", statement, execution_time );	
+		system("echo -e \"\e[m\"" );
 	}
 	return execution_time;
 }
@@ -709,7 +741,8 @@ void command_line_settings( unsigned int num_arguments, char** arguments )
 bool file_exists3 (char* file_location) 
 {
     #if defined(_WIN32) || defined(_WIN64)
-		return file_location && ( PathFileExists (file_location) != 0 );
+		return false;
+	//return file_location && ( PathFileExists (file_location) != 0 );
     #else
 		if( access( file_location, F_OK ) != -1 )
 			return true;
@@ -733,7 +766,7 @@ void apply_permissions()
 	{
 		puts("Setting permissions on JPertwee");
 		system("chmod -R 777 /local/organized_data/*");
-		system("chmod -R 777 /local/pct_code/*");
+		system("chmod -R 777 /local/reconstruction_data/*");
 	}
 	else if( terminal_string.compare(workstation_name) == 0 )
 	{
@@ -997,13 +1030,13 @@ void count_histories()
 		for( int file_number = 0, gantry_position_number = 0; file_number < (NUM_SCANS * GANTRY_ANGLES); file_number++, gantry_position_number++ )
 		{
 			if( file_number % NUM_SCANS == 0 )
-				printf("There are a Total of %d Histories From Gantry Angle %d\n", histories_per_gantry_angle[gantry_position_number], int(gantry_position_number* GANTRY_ANGLE_INTERVAL) );			
-			printf("* %d Histories are From Scan Number %d\n", histories_per_file[file_number], (file_number % NUM_SCANS) + 1 );
+				printf("There are a total of %d histories from gantry angle %d\n", histories_per_gantry_angle[gantry_position_number], int(gantry_position_number* GANTRY_ANGLE_INTERVAL) );			
+			printf("====> %d Histories are From Scan Number %d\n", histories_per_file[file_number], (file_number % NUM_SCANS) + 1 );
 			
 		}
 		for( int scan_number = 0; scan_number < NUM_SCANS; scan_number++ )
-			printf("There are a Total of %d Histories in Scan Number %d \n", histories_per_scan[scan_number], scan_number + 1);
-		printf("There are a Total of %d Histories\n", total_histories);
+			printf("There are a total of %d histories in Scan Number %d \n", histories_per_scan[scan_number], scan_number + 1);
+		printf("There are a total of %d histories\n", total_histories);
 	}
 }
 void count_histories_old()
@@ -2518,7 +2551,11 @@ void binning( const int num_histories )
 			recon_vol_histories++;
 		}
 	}
-	printf( "=======>%d out of %d (%4.2f%%) histories passed intersection cuts\n\n", offset, num_histories, (double) offset / num_histories * 100 );
+	char statement[256];
+	sprintf(statement, "=======>%d out of %d (%4.2f%%) histories passed intersection cuts\n\n", offset, num_histories, (double) offset / num_histories * 100 );
+	system("echo -e \"\e[0;32m\"" );
+	puts(statement);//printf( "=======>%d out of %d (%4.2f%%) histories passed intersection cuts\n\n", offset, num_histories, (double) offset / num_histories * 100 );
+	system("echo -e \"\e[m\"" );
 	
 	free( missed_recon_volume_h ); 
 	free( bin_num_h );
@@ -3971,7 +4008,9 @@ __global__ void SM_edge_detection_GPU_2( int* SM_counts, int* SM_differences )
 void hull_detection_finish()
 {
 	char statement[] = {"Finishing hull detection and writing resulting images to disk..."};
+	system("echo -e \"\e[0;31m\"" );
 	print_section_exit( statement, SECTION_EXIT_STRING );
+	system("echo -e \"\e[m\"" );
 	if( SC_ON )
 	{
 		SC_hull_h = (bool*) calloc( NUM_VOXELS, sizeof(bool) );
@@ -4086,7 +4125,9 @@ void hull_selection()
 			array_2_disk( hull_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 	}
+	system("echo -e \"\e[0;31m\"" );
 	puts("Hull selection complete."); 
+	system("echo -e \"\e[m\"" );
 }
 /***********************************************************************************************************************************************************************************************************************/
 template<typename H, typename D> void averaging_filter( H*& image_h, D*& image_d, int radius, bool perform_threshold, double threshold_value )
@@ -6718,7 +6759,9 @@ void DROP_full_tx(const int num_histories)
 	dim3 dimGrid( column_blocks, ROWS );
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
+		system("echo -e \"\e[0;36m\"" );
 		printf("Performing iteration %u of image reconstruction\n", iteration);
+		system("echo -e \"\e[m\"" );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
@@ -6754,8 +6797,10 @@ void DROP_full_tx(const int num_histories)
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");			
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
+		//system("echo -e \"\e[m\"" );
 	}
 	DROP_deallocations();
 }
@@ -6770,7 +6815,9 @@ void DROP_partial_tx( const int num_histories )
 	dim3 dimGrid( column_blocks, ROWS );
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
+		system("echo -e \"\e[0;36m\"" );
 		printf("Performing iteration %u of image reconstruction\n", iteration);
+		system("echo -e \"\e[m\"" );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");			
@@ -6810,8 +6857,10 @@ void DROP_partial_tx( const int num_histories )
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");			
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
+		//system("echo -e \"\e[m\"" );
 	}
 }
 // DROP_TX_MODE = PARTIAL_TX_PREALLOCATED, MLP_ALGORITHM = STANDARD
@@ -6826,7 +6875,9 @@ void DROP_partial_tx_preallocated( const int num_histories )
 	DROP_allocations(DROP_BLOCK_SIZE);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
+		system("echo -e \"\e[0;36m\"" );
 		printf("Performing iteration %u of image reconstruction\n", iteration);
+		system("echo -e \"\e[m\"" );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
@@ -6863,8 +6914,10 @@ void DROP_partial_tx_preallocated( const int num_histories )
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
+		//system("echo -e \"\e[m\"" );
 	}
 	DROP_deallocations();
 }
@@ -6882,7 +6935,9 @@ void DROP_full_tx_tabulated(const int num_histories)
 	DROP_host_2_device( start_position, num_histories);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
+		system("echo -e \"\e[0;36m\"" );
 		printf("Performing iteration %u of image reconstruction\n", iteration);
+		system("echo -e \"\e[m\"" );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
@@ -6920,7 +6975,9 @@ void DROP_full_tx_tabulated(const int num_histories)
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
+		//system("echo -e \"\e[m\"" );
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
 	DROP_deallocations();
@@ -6937,7 +6994,9 @@ void DROP_partial_tx_tabulated( const int num_histories )
 
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
+		system("echo -e \"\e[0;36m\"" );
 		printf("Performing iteration %u of image reconstruction\n", iteration);
+		system("echo -e \"\e[m\"" );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
@@ -6978,7 +7037,9 @@ void DROP_partial_tx_tabulated( const int num_histories )
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
+		//system("echo -e \"\e[m\"" );
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
 }
@@ -6996,13 +7057,11 @@ void DROP_partial_tx_preallocated_tabulated( const int num_histories )
 	DROP_allocations(DROP_BLOCK_SIZE);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		//i = 0;
+		system("echo -e \"\e[0;36m\"" );
 		printf("Performing iteration %u of image reconstruction\n", iteration);
-		//transfer_intermediate_results_host_to_device( reconstruction_histories );
+		system("echo -e \"\e[m\"" );
 		remaining_histories = num_histories;
 		start_position = 0;
-		//begin_DROP_iteration = clock();
-		//timer( START, begin_DROP_iteration, end_DROP_iteration, execution_time_DROP_iteration, "for DROP iteration");	
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
 		while( remaining_histories > 0 )
 		{
@@ -7043,7 +7102,9 @@ void DROP_partial_tx_preallocated_tabulated( const int num_histories )
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
+		//system("echo -e \"\e[m\"" );
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);		
 	}
 	DROP_deallocations();	
@@ -7636,8 +7697,11 @@ void image_reconstruction_GPU_testing()
 	/***********************************************************************************************************************************************************************************************************************/
 	/****************************************************************** Find MLP endpoints and remove data for protons that did not enter and/or exit the hull *************************************************************/
 	/***********************************************************************************************************************************************************************************************************************/
+	system("echo -e \"\e[0;36m\"" );
 	sprintf(statement, "Determining if and where each of the protons enters/exits the hull to (1) define the endpoints of MLP and (2) remove protons that missed the hull from consideration in reconstruction");
 	print_section_header( statement, '-' );
+	system("echo -e \"\e[m\"" );
+	
 	timer( START, begin_endpoints, "for finding MLP endpoints");	
 	int remaining_histories = post_cut_histories, start_position = 0, histories_2_process = 0;
 	reconstruction_histories = 0;
@@ -7738,11 +7802,16 @@ void image_reconstruction_GPU_testing()
 			reconstruction_cuts_deallocations_nobool();
 		}
 	}
+	system("echo -e \"\e[0;31m\"" );
 	sprintf(statement, "Reconsruction Cuts Complete.");
 	print_section_exit( statement, SECTION_EXIT_STRING );
+	system("echo -e \"\e[m\"" );
+
+	//system("echo -e \"\e[0;32m\"" );
 	printf("Protons that intersected the hull and will be used for reconstruction = %d\n", reconstruction_histories);
 	execution_time_endpoints = timer( STOP, begin_endpoints, "for finding MLP endpoints");
-	
+	//system("echo -e \"\e[m\"" );
+		
 	// Reduce the size of the vectors to reconstruction_histories and shrink their capacity to match
 	first_MLP_voxel_vector.resize( reconstruction_histories );
 	//first_MLP_voxel_vector.shrink_to_fit();
@@ -7763,12 +7832,21 @@ void image_reconstruction_GPU_testing()
 	cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) 
 		printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+	
+	//system("echo -e \"\e[0;32m\"" );
 	execution_time_init_image = timer( STOP, begin_init_image, "for initializing reconstructed image x");	
+	//system("echo -e \"\e[m\"" );
 	/***********************************************************************************************************************************************************************************************************************/
 	/************************************************************************************************ Image Reconstruction *************************************************************************************************/
 	/***********************************************************************************************************************************************************************************************************************/
+	system("echo -e \"\e[0;36m\"" );
 	sprintf(statement, "Performing MLP and image reconstrution");
+	system("echo -e \"\e[m\"" );
+		
+	system("echo -e \"\e[0;36m\"" );
 	print_section_header( statement, '-' );
+	system("echo -e \"\e[m\"" );
+	
 	timer( START, begin_DROP, "for all iterations of DROP");	
 	
 	// Calculate MLP explicitly
@@ -7796,8 +7874,11 @@ void image_reconstruction_GPU_testing()
 		// Generate MLP lookup tables and transfer these to the GPU
 		timer( START, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
 		generate_MLP_lookup_tables();
+
+		//system("echo -e \"\e[0;32m\"" );
 		execution_time_tables = timer( STOP, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
-		
+		//system("echo -e \"\e[m\"" );
+	
 		// Transfer data for ALL reconstruction_histories before beginning image reconstruction, using the MLP lookup tables each time
 		if( DROP_TX_MODE == FULL_TX )
 		{
@@ -7818,8 +7899,14 @@ void image_reconstruction_GPU_testing()
 	DROP_free_update_arrays();
 
 	sprintf(statement, "Image reconstruction complete: ");
+
+	system("echo -e \"\e[0;31m\"" );
 	print_section_exit( statement, SECTION_EXIT_STRING );
+	system("echo -e \"\e[m\"" );
+		
+	//system("echo -e \"\e[0;32m\"" );
 	execution_time_DROP = timer( STOP, begin_DROP, "for all iterations of DROP");
+	//system("echo -e \"\e[m\"" );
 }
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************* Image Reconstruction (host) *********************************************************************************************/
@@ -9167,9 +9254,14 @@ void execution_times_2_txt()
 	char execution_times_path[256];
 	//char execution_date[9];
 	//current_MMDDYYYY( EXECUTION_DATE);
-	//sprintf(execution_times_path, "%s//%s.txt", GLOBAL_RESULTS_PATH, EXECUTION_TIMES_FILENAME);
+	//sprintf(execution_times_path, "%s//%s.txt", OUTPUT_DIRECTORY, EXECUTION_TIMES_FILENAME);
 	sprintf(execution_times_path, "%s%s//%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
+	
+	system("echo -e \"\e[0;36m\"" );
+	puts("Local testing results written to .txt at:");
+	system("echo -e \"\e[m\"" );
 	puts(execution_times_path);
+	
 	FILE* execution_times_file = fopen( execution_times_path, "w" );
 	fprintf(execution_times_file, "execution_date = %s\n",				EXECUTION_DATE						);	// 1
 	fprintf(execution_times_file, "Executed By Blake Schultze, "										);	// 2
@@ -9247,11 +9339,16 @@ void execution_times_2_csv()
 	char execution_times_path[256];
 	//char execution_date[9];
 	//current_MMDDYYYY( EXECUTION_DATE);
-	sprintf(execution_times_path, "%s//%s.csv", GLOBAL_RESULTS_PATH, EXECUTION_TIMES_FILENAME);
+	sprintf(execution_times_path, "%s//%s.csv", OUTPUT_DIRECTORY, EXECUTION_TIMES_FILENAME);
 	if( !file_exists3 (execution_times_path))
 		init_execution_times_csv();
 	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
+	
+	system("echo -e \"\e[0;36m\"" );
+	puts("Global testing results written to .csv at:");
+	system("echo -e \"\e[m\"" );
 	puts(execution_times_path);
+		
 	FILE* execution_times_file = fopen( execution_times_path, "a+" );
 	fprintf(execution_times_file, "%s, ",				EXECUTION_DATE						);	// 1
 	fprintf(execution_times_file, "%s, ",				TESTED_BY_STRING						);	// 2
@@ -9305,9 +9402,14 @@ void init_execution_times_csv()
 	//fprintf( Execution Date	Executed By	INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER_UNIQUE	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
 	//Execution Date		INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER_UNIQUE	preprocessing	endpoints	tables	init_image	DROP_total	iteration 1	iteration 2	iteration 3	iteration 4	iteration 5	iteration 6	iteration 7	iteration 8	iteration 9	iteration 10	iteration 11	iteration 12	reconstruction	program	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
 	//													
-	sprintf(execution_times_path, "%s//%s.csv", GLOBAL_RESULTS_PATH, EXECUTION_TIMES_FILENAME);
+	sprintf(execution_times_path, "%s//%s.csv", OUTPUT_DIRECTORY, EXECUTION_TIMES_FILENAME);
 	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
+	
+	system("echo -e \"\e[0;36m\"" );
+	puts("Testing results .csv initialized and written to:");
+	system("echo -e \"\e[m\"" );
 	puts(execution_times_path);
+
 	FILE* execution_times_file = fopen( execution_times_path, "w" );
 	fprintf(execution_times_file, "Execution Date, "			);	// 1
 	fprintf(execution_times_file, "Executed By, "				);	// 2
@@ -9892,17 +9994,18 @@ unsigned int create_unique_dir( char* dir_name )
 	//char error_response[256];
 	char statement_beginning[] = "A subirectory or file ";
 	char statement_ending[] = " already exists";
-	sprintf(mkdir_command, "mkdir \"%s\"", dir_name);
+	sprintf(mkdir_command, "mkdir -p \"%s\"", dir_name);
 	//freopen("out.txt","a+",stdin);
 	while( system(mkdir_command) )
 	{
-		//pause_execution();
+		pause_execution();
 		//std::string text = buffer.str();
 		//std::cout << "-> " << text << "<- " << endl;
 		//printf( "-> %s <-\n", text );
 		if( (strlen(mkdir_command) + strlen(statement_beginning) + strlen(statement_ending) - 6) % CONSOLE_WINDOW_WIDTH != 0 )
 			puts("");	
-		sprintf(mkdir_command, "mkdir \"%s_%d\"", dir_name, ++i);
+		sprintf(mkdir_command, "mkdir -p \"%s_%d\"", dir_name, ++i);
+		//puts(mkdir_command);
 	}
 	//fclose("out.txt");
 	if( i != 0 )
@@ -9917,12 +10020,12 @@ void assign_output_directory()
 	//const char OUTPUT_FOLDER_UNIQUE[]      = "HeadPhantom//Reconstruction//0060_Inf";
 	//const char OUTPUT_FOLDER_UNIQUE[]      = "EdgePhantom//Reconstruction";
 	//current_MMDDYYYY( EXECUTION_DATE);
-	sprintf(OUTPUT_FOLDER_UNIQUE, "%s//%s", OUTPUT_FOLDER, EXECUTION_DATE );
-
+	sprintf(OUTPUT_FOLDER_UNIQUE, "%s//B_%d_L_%3f", OUTPUT_FOLDER, DROP_BLOCK_SIZE, LAMBDA );
+	//puts(OUTPUT_FOLDER_UNIQUE);
 	if( !OVERWRITING_OK )
 	{
 		char folder_name[256];
-		sprintf(folder_name, "%s%s//%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, EXECUTION_DATE );
+		sprintf(folder_name, "%s%s//B_%d_L_%3f", OUTPUT_DIRECTORY, OUTPUT_FOLDER, DROP_BLOCK_SIZE, LAMBDA );
 		int i = create_unique_dir( folder_name );
 		if( i != 0 )
 			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_%d", OUTPUT_FOLDER_UNIQUE, i );
@@ -9930,15 +10033,24 @@ void assign_output_directory()
 	else
 	{
 		char mkdir_command[256];
-		sprintf(mkdir_command, "mkdir \"%s//%s\"", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE );
+		sprintf(mkdir_command, "mkdir -p \"%s//%s\"", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE );
 		system(mkdir_command);
 	}
+	system("echo -e \"\e[0;36m\"" );
 	puts("Writing output data/images to:");
+	system("echo -e \"\e[m\"" );
 	puts(OUTPUT_FOLDER_UNIQUE);
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************* Console Window Print Statement Functions  ***************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
+void print_colored_text(char* statement, unsigned int color_code )
+{
+	//char statement_out[256];
+	printf("echo -e \"\e[0;%dm\"", color_code );
+	puts(statement);
+	system("echo -e \"\e[m\"" );
+}
 void print_section_separator(char separation_char )
 {
 	char section_separator[CONSOLE_WINDOW_WIDTH];
