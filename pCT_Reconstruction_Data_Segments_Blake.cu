@@ -15,6 +15,8 @@
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************** Host functions declarations ********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
+bool file_exists3 (const char* );
+void apply_permissions();
 
 // Execution Control Functions
 bool is_bad_angle( const int );	// Just for use with Micah's simultated data
@@ -131,8 +133,6 @@ void DROP_update3( float*&, double*&, unsigned int*&, unsigned int&);
 void DROP_blocks_robust2( unsigned int*&, float*&, double, unsigned int, double, double*&, unsigned int*&, double*& );
 void DROP_update_robust2( float*&, double*&, unsigned int*&, double*& );
 
-
-
 // Write arrays/vectors to file(s)
 void binary_2_ASCII();
 template<typename T> void array_2_disk( char*, const char*, const char*, T*, const int, const int, const int, const int, const bool );
@@ -151,7 +151,7 @@ void read_MLP_path_error(FILE*, float*&, unsigned int);
 void export_hull();
 void import_hull();
 void write_reconstruction_settings();
-void construct_unique_output_dir();
+void assign_output_directory();
 void execution_times_2_txt();
 void execution_times_2_csv();
 void init_execution_times_csv();
@@ -179,6 +179,9 @@ template< typename T, typename T2> T min_n( int, T2, ...);
 template<typename T> T* sequential_numbers( int, int );
 void bin_2_indexes( int, int&, int&, int& );
 inline const char * bool_2_string( bool b ){ return b ? "true" : "false"; }
+std::string terminal_response(char*);
+char((&terminal_response( char*, char(&)[256]))[256]);
+
 bool directory_exists(char* );
 unsigned int create_unique_dir( char* );
 char((&current_MMDD( char(&)[5]))[5]);
@@ -195,11 +198,6 @@ void command_line_settings( unsigned int, char** );
 void read_configurations();
 void generate_history_sequence(ULL, ULL, ULL* );
 void verify_history_sequence(ULL, ULL, ULL* );
-void define_switchmap();
-void set_parameter( struct generic_input_container );
-void read_parameters();
-struct generic_input_container read_parameter( FILE* );
-void parameters_2_GPU();
 void test_func();
 void test_func2( std::vector<int>&, std::vector<double>&);
 
@@ -351,8 +349,11 @@ int main(int argc, char** argv)
 	if( RUN_ON )
 	{
 		current_MMDDYYYY( EXECUTION_DATE);
-		construct_unique_output_dir();
-		exit_program_if( true, "testing unique output directory generation" );
+		assign_output_directory();
+		//apply_permissions();
+		//puts(OUTPUT_FOLDER_UNIQUE);
+		//exit_program_if( true, "testing unique output directory generation" );
+		//pause_execution();
 		/********************************************************************************************************************************************************/
 		/* Perform program setup routines and start the execution timing clock																														*/
 		/********************************************************************************************************************************************************/
@@ -514,7 +515,7 @@ int main(int argc, char** argv)
 		if( WRITE_X ) 
 		{
 			char x[] ={"x"};
-			array_2_disk(x, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk(x, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 		system("echo -e \"\e[0;31m\"" );
 		sprintf( statement, "Reconstruction complete");
@@ -541,7 +542,11 @@ int main(int argc, char** argv)
 	sprintf( statement, "PROGRAM HAS COMPLETED EXECUTION");
 	print_section_exit( statement, SECTION_EXIT_STRING );
 	system("echo -e \"\e[m\"" );
-		
+	
+	execution_times_2_txt();
+	execution_times_2_csv();
+
+	apply_permissions();
 	exit_program_if(true);
 	//exit(1);
 }
@@ -613,7 +618,7 @@ void pause_execution()
 	//char user_response[20];
 	puts("Execution paused.  Hit enter to continue execution.\n");
 	 //Clean the stream and ask for input
-	std::cin.ignore ( std::numeric_limits<std::streamsize>::max(), '\n' );
+	//std::cin.ignore ( std::numeric_limits<std::streamsize>::max(), '\n' );
 	std::cin.get();
 
 	pause_end = clock();
@@ -701,306 +706,45 @@ void command_line_settings( unsigned int num_arguments, char** arguments )
 	//for( unsigned int i = 0; i < num_voxel_scales; i++ )
 		//printf("voxel_scale[%d] = %3f\n", i, voxel_scales[i] );
 }
-/***********************************************************************************************************************************************************************************************************************/
-/************************************************************************* Read and set reconstruction configurations, settings, and parameters ************************************************************************/
-/***********************************************************************************************************************************************************************************************************************/
-void define_switchmap()
+bool file_exists3 (char* file_location) 
 {
-	// Generate mapping of all possible keys to integer ID so key can be used to control switch statement
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_DIRECTORY"), 1));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_DIRECTORY"), 2));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_FOLDER"), 3));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_FOLDER"), 4));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_BASE_NAME"), 5));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("FILE_EXTENSION"), 6));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("GANTRY_ANGLES"), 7));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("NUM_SCANS"), 8));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_T_SIZE"), 9));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_V_SIZE"), 10));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_SHIFT"), 11));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("U_SHIFT"), 12));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BIN_SIZE"), 13));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BINS"), 14));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BIN_SIZE"), 15));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BINS"), 16));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ANGULAR_BIN_SIZE"), 17));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SIGMAS_TO_KEEP"), 18));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_RADIUS"), 19));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_HEIGHT"), 20));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_WIDTH"), 21));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_HEIGHT"), 22));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_THICKNESS"), 23));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("COLUMNS"), 24));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ROWS"), 25));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SLICES"), 26));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_WIDTH"), 27));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_HEIGHT"), 28));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_THICKNESS"), 29));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("LAMBDA"), 30));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("parameter"), 31));
-
-}
-struct generic_input_container read_parameter( FILE* input_file )
+    #if defined(_WIN32) || defined(_WIN64)
+		return file_location && ( PathFileExists (file_location) != 0 );
+    #else
+		if( access( file_location, F_OK ) != -1 )
+			return true;
+		else 
+			return false;
+		//struct stat sb;
+		//return file_location && (stat (file_location, &sb) == 0 );
+   #endif
+} 
+void apply_permissions()
 {
-	char key[512], equal_sign[10], temp[512];	
-	char* start, * end;
-	int length;
-	struct generic_input_container input_value;	
-	fscanf (input_file, "%s %s %s", &key, &equal_sign, &temp);
-	input_value.key = key;
-	start = std::strchr(temp, '"' );
-	if( start == NULL)
+	char hostname_command[] = "echo $HOSTNAME";
+	std::string terminal_string = terminal_response(hostname_command);
+	terminal_string.erase (terminal_string.length()-1,1); 
+	std::string workstation_name("tardis-student2.ecs.baylor.edu");
+	std::string jpertwee_name("ecsn003");
+	//std::cout << "terminal string output =" << terminal_string << ";" << endl;
+	//std::cout << "workstation_name string =" << workstation_name << ";" << endl;
+	//std::cout << (terminal_string.compare(workstation_name) == 0) << endl;
+	if( terminal_string.compare(jpertwee_name) == 0 )
 	{
-		start = std::strchr(temp, '.' );
-		if( start == NULL )
-		{
-			puts("found integer");
-			sscanf( temp, "%d", &input_value.integer_input );
-			//cout << integer_value << endl;
-			input_value.input_type_ID = 1;
-		}
-		else
-		{
-			puts("found double");
-			sscanf( temp, "%lf", &input_value.double_input );
-			//cout << double_value << endl;
-			input_value.input_type_ID = 2;
-		}
+		puts("Setting permissions on JPertwee");
+		system("chmod -R 777 /local/organized_data/*");
+		system("chmod -R 777 /local/pct_code/*");
 	}
-	else
+	else if( terminal_string.compare(workstation_name) == 0 )
 	{
-		puts("found quote");
-		end = std::strrchr(temp, '"' );
-		length = (int)(end - start) - 1; //(end -1 ) - ( start + 1 ) + 1
-		memcpy( input_value.string_input, start + 1, length );
-		//printf("%s\n", string_value); 
-		input_value.input_type_ID = 3;
+		puts("Setting permissions on Workstation #2");
+		system("chmod -R 777 /home/share/*");
 	}
-	return input_value;
-}
-void read_config_file()
-{		
-	FILE* input_file = fopen(CONFIG_DIRECTORY, "r" );
-	//input_file = fopen(CONFIG_DIRECTORY, "r" );
-	define_switchmap();
-	while( !feof(input_file) )
-	{
-		struct generic_input_container input_value = read_parameter(input_file);
-		printf("key = %s\n", input_value.key );
-		set_parameter( input_value );
-		//cout << input_value.specifier << endl;
-		if( input_value.input_type_ID == 1 )
-		{
-			cout << input_value.integer_input << endl;
-		}
-		else if( input_value.input_type_ID == 2 )
-		{
-			cout << input_value.double_input << endl;
-		}
-		else if( input_value.input_type_ID == 3 )
-		{
-			cout << input_value.string_input << endl;
-		}
-		else
-			puts("invalid type_ID");
-		
-		//pause_execution();
-	}
-	fclose(input_file);
-	//parameters_2_GPU();
-}
-void set_parameter( struct generic_input_container value )
-{
-	std::map<std::string,unsigned int>::iterator map_iterator = switchmap.find(std::string(value.key));
-
-	int key_ID;
-	if(  map_iterator != switchmap.end() )
-		key_ID = map_iterator->second;
-	else
-		key_ID = -1;
-	//cout << "key_ID = " << key_ID << endl;
-	switch( key_ID )
-	{
-		//case 1:
-		//	INPUT_DIRECTORY = value.string_input;
-		//	//printf("it set to %s\n", input_directory );
-		//	puts("1");
-		//	break;
-		//case 2:
-		//	OUTPUT_DIRECTORY = value.string_input;
-		//	puts("2");
-		//	break;
-		//case 3:
-		//	INPUT_FOLDER = value.string_input;
-		//	puts("3");
-		//	break;
-		//case 4:
-		//	OUTPUT_FOLDER = value.string_input;
-		//	puts("4");
-		//	break;
-		//case 5:
-		//	INPUT_BASE_NAME = value.string_input;
-		//	puts("5");
-		//	break;
-		//case 6:
-		//	FILE_EXTENSION = value.string_input;
-		//	puts("6");
-		//	break;
-		//case 7:
-		//	GANTRY_ANGLES = value.integer_input;
-		//	puts("7");
-		//	break;
-		//case 8:
-		//	NUM_SCANS = value.integer_input;
-		//	puts("8");
-		//	break;
-		//case 9:
-		//	SSD_T_SIZE = value.double_input;
-		//	puts("9");
-		//	break;
-		//case 10:
-		//	SSD_V_SIZE = value.double_input;
-		//	puts("10");
-		//	break;
-		//case 11:
-		//	T_SHIFT = value.double_input;
-		//	puts("11");
-		//	break;
-		//case 12:
-		//	U_SHIFT = value.double_input;
-		//	puts("12");
-		//	break;
-		//case 13:
-		//	T_BIN_SIZE = value.double_input;
-		//	puts("13");
-		//	break;
-		//case 14:
-		//	T_BINS = value.integer_input;
-		//	puts("14");
-		//	break;
-		//case 15:
-		//	V_BIN_SIZE = value.double_input;
-		//	puts("15");
-		//	break;
-		//case 16:
-		//	V_BINS = value.integer_input;
-		//	puts("16");
-		//	break;
-		//case 17:
-		//	ANGULAR_BIN_SIZE = value.double_input;
-		//	puts("17");
-		//	break;
-		//case 18:
-		//	SIGMAS_TO_KEEP = value.integer_input;
-		//	puts("18");
-		//	break;
-		//case 19:
-		//	RECON_CYL_RADIUS = value.double_input;
-		//	puts("19");
-		//	break;
-		//case 20:
-		//	RECON_CYL_HEIGHT = value.double_input;
-		//	puts("20");
-		//	break;
-		//case 21:
-		//	IMAGE_WIDTH = value.double_input;
-		//	puts("21");
-		//	break;
-		//case 22:
-		//	IMAGE_HEIGHT = value.double_input;
-		//	puts("22");
-		//	break;
-		//case 23:
-		//	IMAGE_THICKNESS = value.double_input;
-		//	puts("23");
-		//	break;
-		//case 24:
-		//	COLUMNS = value.integer_input;
-		//	puts("24");
-		//	break;
-		//case 25:
-		//	ROWS = value.integer_input;
-		//	puts("25");
-		//	break;
-		//case 26:
-		//	SLICES = value.integer_input;
-		//	puts("26");
-		//	break;
-		//case 27:
-		//	VOXEL_WIDTH = value.double_input;
-		//	puts("29");
-		//	break;
-		//case 28:
-		//	VOXEL_HEIGHT = value.double_input;
-		//	puts("28");
-		//	break;
-		//case 29:
-		//	VOXEL_THICKNESS = value.double_input;
-		//	puts("30");
-		//	break;
-		//case 30:
-		//	LAMBDA = value.double_input;
-		//	puts("30");
-		//	break;
-		case 31:
-			parameter = value.integer_input;
-			puts("31");
-			break;
-		default:
-			puts("invalid key specified");
-	};
-}
-void fill_parameter_struct()
-{
-	//parameter_container.INPUT_DIRECTORY_D = INPUT_DIRECTORY;
-	//parameter_container.OUTPUT_DIRECTORY_D = OUTPUT_DIRECTORY;
-	//parameter_container.INPUT_FOLDER_D = INPUT_FOLDER;
-	//parameter_container.OUTPUT_FOLDER_D = OUTPUT_FOLDER;
-	//parameter_container.INPUT_BASE_NAME_D = INPUT_BASE_NAME;
-	//parameter_container.FILE_EXTENSION_D = FILE_EXTENSION;
-	//parameter_container.GANTRY_ANGLES_D = GANTRY_ANGLES;
-	//parameter_container.NUM_SCANS_D = NUM_SCANS;
-	//parameter_container.SSD_T_SIZE_D = SSD_T_SIZE;
-	//parameter_container.SSD_V_SIZE_D = SSD_V_SIZE;
-	//parameter_container.T_SHIFT_D = T_SHIFT;
-	//parameter_container.U_SHIFT_D = U_SHIFT;
-	//parameter_container.T_BIN_SIZE_D = T_BIN_SIZE;
-	//parameter_container.T_BINS_D = T_BINS;
-	//parameter_container.V_BIN_SIZE_D = V_BIN_SIZE;
-	//parameter_container.V_BINS_D = V_BINS;
-	//parameter_container.ANGULAR_BIN_SIZE_D = ANGULAR_BIN_SIZE;
-	//parameter_container.SIGMAS_TO_KEEP_D = SIGMAS_TO_KEEP;
-	//parameter_container.RECON_CYL_RADIUS_D = RECON_CYL_RADIUS;
-	//parameter_container.RECON_CYL_HEIGHT_D = RECON_CYL_HEIGHT;
-	//parameter_container.IMAGE_WIDTH_D = IMAGE_WIDTH;
-	//parameter_container.IMAGE_HEIGHT_D = IMAGE_HEIGHT;
-	//parameter_container.IMAGE_THICKNESS_D = IMAGE_THICKNESS;
-	//parameter_container.COLUMNS_D = COLUMNS;
-	//parameter_container.ROWS_D = ROWS;
-	//parameter_container.SLICES_D = SLICES;
-	//parameter_container.VOXEL_WIDTH_D = VOXEL_WIDTH;
-	//parameter_container.VOXEL_HEIGHT_D = VOXEL_HEIGHT;
-	//parameter_container.VOXEL_THICKNESS_D = VOXEL_THICKNESS;
-	//parameter_container.LAMBDA_D = LAMBDA;
-	//parameter_container.parameter_D = parameter;
-}
-void parameters_2_GPU()
-{
-	double* x = (double*) calloc(1, sizeof(double) );
-	double* x_d;
-	cudaMalloc((void**) &x_d, sizeof(double));
-	cudaMemcpy( x_d, x, sizeof(double), cudaMemcpyHostToDevice);
-	printf("parameters_h = %3f\n", parameters_h->lambda);
-
-	cudaMalloc((void**) &parameters_d,			sizeof(parameters) );
-	cudaMemcpy( parameters_d,			parameters_h,			sizeof(parameters),		cudaMemcpyHostToDevice );
-
-	dim3 dimBlock( 1 );
-	dim3 dimGrid( 1 );   	
-	//test_func_GPU<<< dimGrid, dimBlock >>>( parameters_d, x_d );
-
-	cudaMemcpy( x, x_d, sizeof(double), cudaMemcpyDeviceToHost);
-	printf("xs[0] = %3f\n", x[0]);
+	// Workstation #2
+	//system("chmod -R 777 /home/share/*");
+	//// Jpertwee
+	//system("chmod -R 777 /local/organized_data/*");
+	//system("chmod -R 777 /local/pct_code/*");
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Memory Transfers, Maintenance, and Cleaning ************************************************************************************/
@@ -1849,14 +1593,14 @@ void apply_tuv_shifts( unsigned int num_histories)
 	{
 		char data_filename[256];
 		sprintf(data_filename, "%s_%03d%s", "ut_entry_angle", gantry_angle_h[0], ".txt" );
-		array_2_disk( data_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, ut_entry_angle, COLUMNS, ROWS, SLICES, num_histories, true );
+		array_2_disk( data_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, ut_entry_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 		sprintf(data_filename, "%s_%03d%s", "uv_entry_angle", gantry_angle_h[0], ".txt" );
 		char ut_entry_angle[] = {"ut_entry_angle"};
-		array_2_disk( ut_entry_angle, OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_entry_angle, COLUMNS, ROWS, SLICES, num_histories, true );
+		array_2_disk( ut_entry_angle, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, uv_entry_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 		sprintf(data_filename, "%s_%03d%s", "ut_exit_angle", gantry_angle_h[0], ".txt" );
-		array_2_disk( ut_entry_angle, OUTPUT_DIRECTORY, OUTPUT_FOLDER, ut_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
+		array_2_disk( ut_entry_angle, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, ut_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 		sprintf(data_filename, "%s_%03d%s", "uv_exit_angle", gantry_angle_h[0], ".txt" );
-		array_2_disk( ut_entry_angle, OUTPUT_DIRECTORY, OUTPUT_FOLDER, uv_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
+		array_2_disk( ut_entry_angle, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, uv_exit_angle, COLUMNS, ROWS, SLICES, num_histories, true );
 	}
 }
 void read_data_chunk( const int num_histories, const int start_file_num, const int end_file_num )
@@ -2748,7 +2492,7 @@ void binning( const int num_histories )
 	if( WRITE_BIN_WEPLS )
 	{
 		sprintf(data_filename, "%s_%03d%s", "bin_numbers", gantry_angle_h[0], ".txt" );
-		array_2_disk( data_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_num_h, COLUMNS, ROWS, SLICES, num_histories, true );
+		array_2_disk( data_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_num_h, COLUMNS, ROWS, SLICES, num_histories, true );
 	}
 
 	// Push data from valid histories  (i.e. missed_recon_volume = FALSE) onto the end of each vector
@@ -2909,10 +2653,10 @@ void calculate_means()
 	char mean_rel_ut[] ={"mean_rel_ut_angle_h"};
 	char mean_rel_uv[] = {"mean_rel_uv_angle_h"};
 	
-	array_2_disk(bin_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(mean_wepl, OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(mean_rel_ut, OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(mean_rel_uv, OUTPUT_DIRECTORY, OUTPUT_FOLDER, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(bin_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(mean_wepl, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(mean_rel_ut, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(mean_rel_uv, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	free(bin_counts_h);
 	free(mean_WEPL_h);
@@ -3010,9 +2754,9 @@ void calculate_standard_deviations()
 	char stddev_rel_uv[]={"stddev_rel_uv_angle_h"};
 	char stddev_wepl[]={"stddev_WEPL_h"};
 
-	array_2_disk(stddev_rel_ut, OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(stddev_rel_uv, OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(stddev_wepl, OUTPUT_DIRECTORY, OUTPUT_FOLDER, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(stddev_rel_ut, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(stddev_rel_uv, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(stddev_wepl, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	//cudaFree( bin_counts_d );
 }
 __global__ void calculate_standard_deviations_GPU( int* bin_counts, float* stddev_WEPL, float* stddev_rel_ut_angle, float* stddev_rel_uv_angle )
@@ -3175,11 +2919,11 @@ void construct_sinogram()
 	bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
 	char bin_counts_pre[] ={"bin_counts_pre"};
-	array_2_disk( bin_counts_pre, OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk( bin_counts_pre, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
 	char sinogram_pre[]={"sinogram_pre"};
-	array_2_disk(sinogram_pre, OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(sinogram_pre, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
@@ -3193,11 +2937,11 @@ void construct_sinogram()
 	}
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
 	char sinogram[]={"sinogram"};
-	array_2_disk(sinogram, OUTPUT_DIRECTORY, OUTPUT_FOLDER, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(sinogram, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
 	char bin_counts_post[]={"bin_counts_post"};
-	array_2_disk( bin_counts_post, OUTPUT_DIRECTORY, OUTPUT_FOLDER, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk( bin_counts_post, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	cudaFree(bin_counts_d);
 }
 __global__ void construct_sinogram_GPU( int* bin_counts, float* sinogram )
@@ -3237,21 +2981,21 @@ void FBP()
 	{
 		cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
 		char fbp_image[]={"FBP_image_h"};
-		array_2_disk( fbp_image, OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+		array_2_disk( fbp_image, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 	}
 
 	if( IMPORT_FILTERED_FBP)
 	{
 		//char filename[256];
 		//char* name = "FBP_med7";		
-		//sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, name, ".bin" );
+		//sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, name, ".bin" );
 		//import_image( image, filename );
 		float* image = (float*)calloc( NUM_VOXELS, sizeof(float));
-		sprintf(IMPORT_FBP_PATH,"%s%s/%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, IMPORT_FBP_FILENAME, 2*FBP_MEDIAN_RADIUS+1,".bin" );
+		sprintf(IMPORT_FBP_PATH,"%s%s/%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, IMPORT_FBP_FILENAME, 2*FBP_MEDIAN_RADIUS+1,".bin" );
 		import_image( image, IMPORT_FBP_PATH );
 		FBP_image_h = image;
 		char fbp_after[]={"FBP_after"};
-		array_2_disk( fbp_after, OUTPUT_DIRECTORY, OUTPUT_FOLDER, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		array_2_disk( fbp_after, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
 	else if( AVG_FILTER_FBP )
 	{
@@ -3269,11 +3013,11 @@ void FBP()
 		{
 			puts("Writing filtered hull to disk...");
 			//cudaMemcpy(FBP_image_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
-			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			cudaMemcpy(FBP_image_filtered_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			//cout << FBP_image_d << endl;
 			char fbp_image_filter[]={"FBP_image_filtered"};
-			array_2_disk( fbp_image_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk( fbp_image_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//FBP_image_h = FBP_image_filtered_h;
 		}
 		cudaFree(FBP_image_filtered_d);
@@ -3294,11 +3038,11 @@ void FBP()
 		{
 			puts("Writing filtered hull to disk...");
 			//cudaMemcpy(FBP_image_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
-			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//cudaMemcpy(FBP_median_filtered_h, FBP_median_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			//cout << FBP_image_d << endl;
 			char fbp_median_filter[]={"FBP_median_filtered"};
-			array_2_disk( fbp_median_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_median_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk( fbp_median_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_median_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//FBP_image_h = FBP_image_filtered_h;
 		}
 		cudaFree(FBP_image_filtered_d);
@@ -3536,7 +3280,7 @@ void FBP_image_2_hull()
 	
 	if( WRITE_FBP_HULL ) {
 		char x_fbp[]={"x_FBP"};
-		array_2_disk( x_fbp, OUTPUT_DIRECTORY, OUTPUT_FOLDER, FBP_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
+		array_2_disk( x_fbp, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
 
 	if( MLP_HULL != FBP_HULL)	
 		free(FBP_hull_h);
@@ -4048,7 +3792,7 @@ void SM_edge_detection()
 	/*if( WRITE_SM_COUNTS )
 	{
 		cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-		array_2_disk("SM_counts", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
+		array_2_disk("SM_counts", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
 	}*/
 
 	int* SM_differences_h = (int*) calloc( NUM_VOXELS, sizeof(int) );
@@ -4100,7 +3844,7 @@ void SM_edge_detection()
 	free(SM_thresholds_h);
 	
 	/*if( WRITE_SM_HULL )
-		array_2_disk("x_SM", OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		array_2_disk("x_SM", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	if( MLP_HULL != SM_HULL)
 		free(SM_counts_h);	*/
 }
@@ -4127,7 +3871,7 @@ void SM_edge_detection_2()
 	// Copy the space modeled image from the GPU to the CPU and write it to file.
 	cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
 	char sm_counts[]={"SM_counts"};
-	array_2_disk(sm_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
+	array_2_disk(sm_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
 
 	int* SM_differences_h = (int*) calloc( NUM_VOXELS, sizeof(int) );
 	int* SM_differences_d;
@@ -4177,7 +3921,7 @@ void SM_edge_detection_2()
 	
 	if( WRITE_SM_HULL ) {
 	  char x_sm[]={"x_SM"};
-		array_2_disk(x_sm, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
+		array_2_disk(x_sm, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
 	if( MLP_HULL != SM_HULL)
 		free(SM_counts_h);	
 }
@@ -4236,7 +3980,7 @@ void hull_detection_finish()
 		{
 			puts("Writing SC hull to disk...");
 			char x_sc[]={"x_SC"};
-			array_2_disk(x_sc, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SC_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk(x_sc, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SC_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 		if( MLP_HULL != SC_HULL )
 			free( SC_hull_h );
@@ -4250,7 +3994,7 @@ void hull_detection_finish()
 			puts("Writing MSC counts to disk...");		
 			cudaMemcpy(MSC_counts_h,  MSC_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
 			char msc_counts[]={"MSC_counts_h"};
-			array_2_disk(msc_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+			array_2_disk(msc_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 		}
 		if( WRITE_MSC_HULL || (MLP_HULL == MSC_HULL) )
 		{
@@ -4260,7 +4004,7 @@ void hull_detection_finish()
 			{
 				puts("Writing MSC hull to disk...");	
 				char x_msc[]={"x_MSC"};
-				array_2_disk(x_msc, OUTPUT_DIRECTORY, OUTPUT_FOLDER, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+				array_2_disk(x_msc, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 			}
 			cudaFree(MSC_counts_d);
 		}
@@ -4275,7 +4019,7 @@ void hull_detection_finish()
 			puts("Writing SM counts to disk...");
 			cudaMemcpy(SM_counts_h,  SM_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
 			char sm_counts[]={"SM_counts_h"};
-			array_2_disk(sm_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+			array_2_disk(sm_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 		}
 		if( WRITE_SM_HULL || (MLP_HULL == SM_HULL) )
 		{
@@ -4285,7 +4029,7 @@ void hull_detection_finish()
 			{
 				puts("Writing SM hull to disk...");	
 				char x_sm[]={"x_SM"};
-				array_2_disk(x_sm, OUTPUT_DIRECTORY, OUTPUT_FOLDER, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+				array_2_disk(x_sm, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 			}
 			cudaFree(SM_counts_d);
 		}
@@ -4321,7 +4065,7 @@ void hull_selection()
 	{
 		puts("Writing selected hull to disk...");
 		char hull[]={"hull"};
-		array_2_disk(hull, OUTPUT_DIRECTORY, OUTPUT_FOLDER, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		array_2_disk(hull, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
 
 	// Allocate memory for and transfer hull to the GPU
@@ -4339,7 +4083,7 @@ void hull_selection()
 			puts("Writing filtered hull to disk...");
 			cudaMemcpy(hull_h, hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
 			char hull_filter[]={"hull_filtered"};
-			array_2_disk( hull_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk( hull_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 	}
 	puts("Hull selection complete."); 
@@ -5030,8 +4774,8 @@ void write_MLP_endpoints()
 {
 	puts("Writing MLP endpoints to disk...");
 	char endpoints_filename[256];
-	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME, HULL_FILTER_RADIUS );
-	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
+	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FILENAME, HULL_FILTER_RADIUS );
+	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FILENAME );
 	FILE* write_MLP_endpoints = fopen(endpoints_filename, "wb");
 	fwrite( &reconstruction_histories, sizeof(unsigned int), 1, write_MLP_endpoints );
 	fwrite( &voxel_x_vector[0], sizeof(int), voxel_x_vector.size(), write_MLP_endpoints );
@@ -5055,8 +4799,8 @@ void write_MLP_endpoints()
 unsigned int read_MLP_endpoints()
 {
 	char endpoints_filename[256];
-	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME );
-	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_ENDPOINTS_FILENAME, HULL_FILTER_RADIUS );
+	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FILENAME );
+	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FILENAME, HULL_FILTER_RADIUS );
 	FILE* read_MLP_endpoints = fopen(endpoints_filename, "rb");
 	//puts("MLP endpoint file opened!\n");
 	unsigned int histories;
@@ -5108,7 +4852,7 @@ void export_hull()
 {
 //	puts("Writing image reconstruction hull to disk...");
 //	char input_hull_filename[256];
-//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
 //	FILE* write_input_hull = fopen(input_hull_filename, "wb");
 //	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, write_input_hull );
 //	fclose(write_input_hull);
@@ -5118,7 +4862,7 @@ void import_hull()
 {
 //	puts("Reading image reconstruction hull from disk...");
 //	char input_hull_filename[256];
-//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
 //	FILE* read_input_hull = fopen(input_hull_filename, "rb");
 //	hull_h = (bool*)calloc( NUM_VOXELS, sizeof(bool) );
 //	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, read_input_hull );
@@ -7008,7 +6752,7 @@ void DROP_full_tx(const int num_histories)
 		if( WRITE_X_KI ) 
 		{
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");			
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
@@ -7064,7 +6808,7 @@ void DROP_partial_tx( const int num_histories )
 		if( WRITE_X_KI ) 
 		{
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");			
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
@@ -7117,7 +6861,7 @@ void DROP_partial_tx_preallocated( const int num_histories )
 		if( WRITE_X_KI ) 
 		{
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
@@ -7174,7 +6918,7 @@ void DROP_full_tx_tabulated(const int num_histories)
 		if( WRITE_X_KI ) 
 		{
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
@@ -7232,7 +6976,7 @@ void DROP_partial_tx_tabulated( const int num_histories )
 		if( WRITE_X_KI ) 
 		{
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
@@ -7297,7 +7041,7 @@ void DROP_partial_tx_preallocated_tabulated( const int num_histories )
 		if( WRITE_X_KI ) 
 		{
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);		
@@ -7323,7 +7067,7 @@ void image_reconstruction_GPU()
 		
 		if( WRITE_X_KI ) {
 			//transfer_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 	  
 	  printf("%d\n",post_cut_histories);
@@ -7525,7 +7269,7 @@ void image_reconstruction_GPU()
 		sprintf(iterate_filename, "%s%d", "x_", iteration );
 		if( WRITE_X_KI ) {
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 	}
 	
@@ -7625,7 +7369,7 @@ void image_reconstruction_GPU()
 		
 		if( WRITE_X_KI ) {
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 		
 		
@@ -7650,7 +7394,7 @@ void image_reconstruction_GPU_tabulated()
 	if( WRITE_X_KI ) 
 	{
 		//transfer_device_to_host();
-		array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+		array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 	}
 	  
 	printf("%d\n",post_cut_histories);
@@ -7788,7 +7532,7 @@ void image_reconstruction_GPU_tabulated()
 		sprintf(iterate_filename, "%s%d", "x_", iteration );
 		if( WRITE_X_KI ) {
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 	}
 	
@@ -7874,7 +7618,7 @@ void image_reconstruction_GPU_tabulated()
 		
 		if( WRITE_X_KI ) {
 			transfer_image_device_to_host();
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
 		
 		
@@ -8097,7 +7841,7 @@ void create_hull_image_hybrid()
 
 	if( WRITE_X_0 ) {
 		char x_k0[]={"x_k0"};
-		array_2_disk(x_k0, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
+		array_2_disk(x_k0, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
 }
 __global__ void create_hull_image_hybrid_GPU( bool*& hull, float*& FBP_image)
 {
@@ -8109,7 +7853,7 @@ void export_initial_iterate()
 {
 //	puts("Writing image reconstruction hull to disk...");
 //	char input_hull_filename[256];
-//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
 //	FILE* write_input_hull = fopen(input_hull_filename, "wb");
 //	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, write_input_hull );
 //	fclose(write_input_hull);
@@ -8119,7 +7863,7 @@ void import_initial_iterate()
 {
 //	puts("Reading image reconstruction hull from disk...");
 //	char input_hull_filename[256];
-//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_HULL_FILENAME );
+//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
 //	FILE* read_input_hull = fopen(input_hull_filename, "rb");
 //	hull_h = (bool*)calloc( NUM_VOXELS, sizeof(bool) );
 //	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, read_input_hull );
@@ -8146,7 +7890,7 @@ void define_initial_iterate()
 		case FBP_IMAGE	:	x_h = FBP_image_h;																						break;
 		case HYBRID		:	initial_iterate_generate_hybrid();																		break;
 							//std::transform(FBP_image_h, FBP_image_h + NUM_VOXELS, hull_h, x_h, std::multiplies<float>() );		break;
-		case IMPORT		:	sprintf( INPUT_ITERATE_PATH, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_ITERATE_FILENAME );
+		case IMPORT		:	sprintf( INPUT_ITERATE_PATH, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_ITERATE_FILENAME );
 							import_image( x_h, INPUT_ITERATE_PATH );																break;
 		case ZEROS		:	break;
 		default			:	puts("ERROR: Invalid initial iterate selected");
@@ -8164,13 +7908,13 @@ void define_initial_iterate()
 	//	{
 	//		puts("Writing filtered hull to disk...");
 	//		cudaMemcpy(x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
-	//		array_2_disk( "hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	//		array_2_disk( "hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	//	}
 	//}
 
 	if( WRITE_X_0 ) {
 		char x_0[]={"x_0"};
-		array_2_disk(x_0, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
+		array_2_disk(x_0, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
 	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
 	//cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
 }
@@ -8417,7 +8161,7 @@ void image_reconstruction()
 	/**************************************************************** Create and open output file for MLP paths **************************************************************/
 	/*************************************************************************************************************************************************************************/
 	char MLP_filename[256];
-	sprintf(MLP_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATHS_FILENAME, HULL_FILTER_RADIUS );
+	sprintf(MLP_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_PATHS_FILENAME, HULL_FILTER_RADIUS );
 	unsigned int start_history = 0, end_history = reconstruction_histories;
 	ULL i;	
 	if( !MLP_FILE_EXISTS )
@@ -8447,7 +8191,7 @@ void image_reconstruction()
 	
 	char iterate_filename[256];
 	char MLP_error_filename[256];
-	sprintf(MLP_error_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATHS_ERROR_FILENAME, HULL_FILTER_RADIUS );
+	sprintf(MLP_error_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_PATHS_ERROR_FILENAME, HULL_FILTER_RADIUS );
 	FILE* read_MLP_paths;	
 	FILE* read_MLP_paths_error;
 	unsigned int num_paths;
@@ -8505,7 +8249,7 @@ void image_reconstruction()
 		fclose(read_MLP_paths_error);
 		sprintf(iterate_filename, "%s%d", "x_", iteration );		
 		if( WRITE_X_KI )
-			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
 	puts("Image reconstruction complete.");
 }
@@ -9010,7 +8754,7 @@ void binary_2_ASCII()
 			end_file_num++;
 		}
 		read_data_chunk( histories_2_process, start_file_num, end_file_num );
-		sprintf( filename, "%s%s/%s%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, INPUT_BASE_NAME, "_", gantry_angle_h[0], ".txt" );
+		sprintf( filename, "%s%s/%s%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_BASE_NAME, "_", gantry_angle_h[0], ".txt" );
 		output_file = fopen (filename, "w");
 
 		for( unsigned int i = 0; i < histories_2_process; i++ )
@@ -9201,7 +8945,7 @@ template<typename T> void bins_2_disk( const char* filename_base, const std::vec
 	{
 		angle = angular_bins[angular_bin] * GANTRY_ANGLE_INTERVAL;
 		//printf("angle = %d\n", angular_bins[angular_bin]);
-		sprintf( filename, "%s%s/%s_%03d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, filename_base, angle, ".txt" );
+		sprintf( filename, "%s%s/%s_%03d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, filename_base, angle, ".txt" );
 		output_file = fopen (filename, "w");
 		for( int v_bin = 0; v_bin < num_v_bins; v_bin++)
 		{			
@@ -9306,7 +9050,7 @@ template<typename T>  void bins_2_disk( const char* filename_base, int*& bin_num
 	{
 		angle = angular_bins[angular_bin] * (int) GANTRY_ANGLE_INTERVAL;
 		//printf("angle = %d\n", angular_bins[angular_bin]);
-		sprintf( filename, "%s%s/%s_%03d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, filename_base, angle, ".txt" );
+		sprintf( filename, "%s%s/%s_%03d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, filename_base, angle, ".txt" );
 		output_file = fopen (filename, "w");
 		for( int v_bin = 0; v_bin < num_v_bins; v_bin++)
 		{			
@@ -9323,7 +9067,7 @@ FILE* create_MLP_path_file( char* data_filename )
 {
 	FILE * pFile;
 	//char data_filename[256];
-	//sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_PATH_FILENAME );
+	//sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_PATH_FILENAME );
 	pFile = fopen (data_filename,"w+");
 	return pFile;
 }
@@ -9424,7 +9168,7 @@ void execution_times_2_txt()
 	//char execution_date[9];
 	//current_MMDDYYYY( EXECUTION_DATE);
 	//sprintf(execution_times_path, "%s//%s.txt", GLOBAL_RESULTS_PATH, EXECUTION_TIMES_FILENAME);
-	sprintf(execution_times_path, "%s%s//%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER, EXECUTION_TIMES_FILENAME);
+	sprintf(execution_times_path, "%s%s//%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
 	puts(execution_times_path);
 	FILE* execution_times_file = fopen( execution_times_path, "w" );
 	fprintf(execution_times_file, "execution_date = %s\n",				EXECUTION_DATE						);	// 1
@@ -9432,7 +9176,7 @@ void execution_times_2_txt()
 	fprintf(execution_times_file, "INPUT_DIRECTORY = %s\n",				INPUT_DIRECTORY						);	// 3
 	fprintf(execution_times_file, "INPUT_FOLDER = %s\n",				INPUT_FOLDER						);	// 4
 	fprintf(execution_times_file, "OUTPUT_DIRECTORY = %s\n",				OUTPUT_DIRECTORY					);	// 5
-	fprintf(execution_times_file, "OUTPUT_FOLDER = %s\n",				OUTPUT_FOLDER						);	// 6
+	fprintf(execution_times_file, "OUTPUT_FOLDER_UNIQUE = %s\n",				OUTPUT_FOLDER_UNIQUE						);	// 6
 	fprintf(execution_times_file, "execution_time_data_reads = %6.6lf\n",			execution_time_data_reads			);	// 7
 	fprintf(execution_times_file, "execution_time_preprocessing = %6.6lf\n",			execution_time_preprocessing		);	// 8
 	fprintf(execution_times_file, "execution_time_endpoints = %6.6lf\n",			execution_time_endpoints			);	// 9
@@ -9440,7 +9184,7 @@ void execution_times_2_txt()
 	fprintf(execution_times_file, "execution_time_init_image = %6.6lf\n",			execution_time_init_image			);	// 11
 	fprintf(execution_times_file, "execution_time_DROP = %6.6lf\n",			execution_time_DROP					);	// 12
 	for( i = 0; i < execution_times_DROP_iterations.size(); i++ )
-		fprintf(execution_times_file, "execution_times_DROP_iterations %d = %6.6lf\n", i,	execution_times_DROP_iterations[i]	);	// 13-24													
+		fprintf(execution_times_file, "execution_times_DROP_iterations %d = %6.6lf\n", i,	execution_times_DROP_iterations[i]	);	// 13-24																									
 	fprintf(execution_times_file, "execution_time_reconstruction = %6.6lf\n",			execution_time_reconstruction		);	// 25
 	fprintf(execution_times_file, "execution_time_program = %6.6lf\n",			execution_time_program				);	// 26
 
@@ -9467,7 +9211,7 @@ void execution_times_2_txt()
 	fprintf(execution_times_file, "\n",					POLY_TABLE_STEP						);	// end line, go to beginning of next entry
 
 	fclose(execution_times_file);
-	//Execution Date	Executed By	INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER	preprocessing	endpoints	tables	init_image	DROP_total	iteration 1	iteration 2	iteration 3	iteration 4	iteration 5	iteration 6	iteration 7	iteration 8	iteration 9	iteration 10	iteration 11	iteration 12	reconstruction	program	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
+	//Execution Date	Executed By	INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER_UNIQUE	preprocessing	endpoints	tables	init_image	DROP_total	iteration 1	iteration 2	iteration 3	iteration 4	iteration 5	iteration 6	iteration 7	iteration 8	iteration 9	iteration 10	iteration 11	iteration 12	reconstruction	program	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
 }
 void execution_times_2_csv()
 {
@@ -9504,7 +9248,9 @@ void execution_times_2_csv()
 	//char execution_date[9];
 	//current_MMDDYYYY( EXECUTION_DATE);
 	sprintf(execution_times_path, "%s//%s.csv", GLOBAL_RESULTS_PATH, EXECUTION_TIMES_FILENAME);
-	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER, EXECUTION_TIMES_FILENAME);
+	if( !file_exists3 (execution_times_path))
+		init_execution_times_csv();
+	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
 	puts(execution_times_path);
 	FILE* execution_times_file = fopen( execution_times_path, "a+" );
 	fprintf(execution_times_file, "%s, ",				EXECUTION_DATE						);	// 1
@@ -9512,7 +9258,7 @@ void execution_times_2_csv()
 	fprintf(execution_times_file, "%s, ",				INPUT_DIRECTORY						);	// 3
 	fprintf(execution_times_file, "%s, ",				INPUT_FOLDER						);	// 4
 	fprintf(execution_times_file, "%s, ",				OUTPUT_DIRECTORY					);	// 5
-	fprintf(execution_times_file, "%s, ",				OUTPUT_FOLDER						);	// 6
+	fprintf(execution_times_file, "%s, ",				OUTPUT_FOLDER_UNIQUE						);	// 6
 	fprintf(execution_times_file, "%6.6lf, ",			execution_time_data_reads			);	// 7
 	fprintf(execution_times_file, "%6.6lf, ",			execution_time_preprocessing		);	// 8
 	fprintf(execution_times_file, "%6.6lf, ",			execution_time_endpoints			);	// 9
@@ -9549,18 +9295,18 @@ void execution_times_2_csv()
 	fprintf(execution_times_file, "\n",					POLY_TABLE_STEP						);	// end line, go to beginning of next entry
 
 	fclose(execution_times_file);
-	//Execution Date	Executed By	INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER	preprocessing	endpoints	tables	init_image	DROP_total	iteration 1	iteration 2	iteration 3	iteration 4	iteration 5	iteration 6	iteration 7	iteration 8	iteration 9	iteration 10	iteration 11	iteration 12	reconstruction	program	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
+	//Execution Date	Executed By	INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER_UNIQUE	preprocessing	endpoints	tables	init_image	DROP_total	iteration 1	iteration 2	iteration 3	iteration 4	iteration 5	iteration 6	iteration 7	iteration 8	iteration 9	iteration 10	iteration 11	iteration 12	reconstruction	program	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
 }
 void init_execution_times_csv()
 {
 	char execution_times_path[256];
 	//char execution_date[9];
 	//current_MMDDYYYY( EXECUTION_DATE);
-	//fprintf( Execution Date	Executed By	INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
-	//Execution Date		INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER	preprocessing	endpoints	tables	init_image	DROP_total	iteration 1	iteration 2	iteration 3	iteration 4	iteration 5	iteration 6	iteration 7	iteration 8	iteration 9	iteration 10	iteration 11	iteration 12	reconstruction	program	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
+	//fprintf( Execution Date	Executed By	INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER_UNIQUE	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
+	//Execution Date		INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER_UNIQUE	preprocessing	endpoints	tables	init_image	DROP_total	iteration 1	iteration 2	iteration 3	iteration 4	iteration 5	iteration 6	iteration 7	iteration 8	iteration 9	iteration 10	iteration 11	iteration 12	reconstruction	program	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
 	//													
 	sprintf(execution_times_path, "%s//%s.csv", GLOBAL_RESULTS_PATH, EXECUTION_TIMES_FILENAME);
-	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER, EXECUTION_TIMES_FILENAME);
+	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
 	puts(execution_times_path);
 	FILE* execution_times_file = fopen( execution_times_path, "w" );
 	fprintf(execution_times_file, "Execution Date, "			);	// 1
@@ -9568,7 +9314,7 @@ void init_execution_times_csv()
 	fprintf(execution_times_file, "INPUT_DIRECTORY, "			);	// 3
 	fprintf(execution_times_file, "INPUT_FOLDER, "				);	// 4
 	fprintf(execution_times_file, "OUTPUT_DIRECTORY, "			);	// 5
-	fprintf(execution_times_file, "OUTPUT_FOLDER, "				);	// 6
+	fprintf(execution_times_file, "OUTPUT_FOLDER_UNIQUE, "				);	// 6
 	fprintf(execution_times_file, "data reads, "				);	// 7
 	fprintf(execution_times_file, "preprocessing, "				);	// 8
 	fprintf(execution_times_file, "endpoints, "					);	// 9
@@ -10084,6 +9830,55 @@ void bin_2_indexes( int& bin_num, int& t_bin, int& v_bin, int& angular_bin )
 	// => bin = t_bin > 0
 	t_bin = bin_num;
 }
+std::string terminal_response(char* system_command) 
+{
+	#if defined(_WIN32) || defined(_WIN64)
+		FILE* pipe = _popen(system_command, "r");
+    #else
+		FILE* pipe = popen(system_command, "r");
+    #endif
+    
+    if (!pipe) return "ERROR";
+    char buffer[256];
+    std::string result;
+    while(!feof(pipe)) {
+    	if(fgets(buffer, 256, pipe) != NULL)
+    		result += buffer;
+    }
+	#if defined(_WIN32) || defined(_WIN64)
+		 _pclose(pipe);
+    #else
+		 pclose(pipe);
+    #endif
+   
+    return result;
+}
+char((&terminal_response( char* system_command, char(&result)[256]))[256])
+{
+	#if defined(_WIN32) || defined(_WIN64)
+		FILE* pipe = _popen(system_command, "r");
+    #else
+		FILE* pipe = popen(system_command, "r");
+    #endif
+    
+    if (!pipe) 
+		{
+			strcpy(result, "ERROR");
+			return result;
+	}
+	strcpy(result, "");
+    char buffer[128];
+    while(!feof(pipe)) {
+    	if(fgets(buffer, 128, pipe) != NULL)
+    		sprintf( result, "%s%s", result, buffer );
+    }
+	#if defined(_WIN32) || defined(_WIN64)
+		 _pclose(pipe);
+    #else
+		 pclose(pipe);
+    #endif
+	return result;
+}
 bool directory_exists(char* dir_name )
 {
 	char mkdir_command[256]= "cd ";
@@ -10101,6 +9896,7 @@ unsigned int create_unique_dir( char* dir_name )
 	//freopen("out.txt","a+",stdin);
 	while( system(mkdir_command) )
 	{
+		//pause_execution();
 		//std::string text = buffer.str();
 		//std::cout << "-> " << text << "<- " << endl;
 		//printf( "-> %s <-\n", text );
@@ -10113,16 +9909,32 @@ unsigned int create_unique_dir( char* dir_name )
 		sprintf(dir_name, "%s_%d", dir_name, i);
 	return i;
 }
-void construct_unique_output_dir()
+void assign_output_directory()
 {
-	//const char OUTPUT_FOLDER[]      = "input_CTP404_4M//Reconstruction//testing";
-	//const char OUTPUT_FOLDER[]      = "CTP404//Reconstruction";
-	//const char OUTPUT_FOLDER[]      = "HeadPhantom//Reconstruction//0059_Sup";
-	//const char OUTPUT_FOLDER[]      = "HeadPhantom//Reconstruction//0060_Inf";
-	//const char OUTPUT_FOLDER[]      = "EdgePhantom//Reconstruction";
+	//const char OUTPUT_FOLDER_UNIQUE[]      = "input_CTP404_4M//Reconstruction//testing";
+	//const char OUTPUT_FOLDER_UNIQUE[]      = "CTP404//Reconstruction";
+	//const char OUTPUT_FOLDER_UNIQUE[]      = "HeadPhantom//Reconstruction//0059_Sup";
+	//const char OUTPUT_FOLDER_UNIQUE[]      = "HeadPhantom//Reconstruction//0060_Inf";
+	//const char OUTPUT_FOLDER_UNIQUE[]      = "EdgePhantom//Reconstruction";
 	//current_MMDDYYYY( EXECUTION_DATE);
-	sprintf(OUTPUT_FOLDER_UNIQUE, "%s%s//%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, EXECUTION_DATE );
-	create_unique_dir( OUTPUT_FOLDER_UNIQUE );
+	sprintf(OUTPUT_FOLDER_UNIQUE, "%s//%s", OUTPUT_FOLDER, EXECUTION_DATE );
+
+	if( !OVERWRITING_OK )
+	{
+		char folder_name[256];
+		sprintf(folder_name, "%s%s//%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, EXECUTION_DATE );
+		int i = create_unique_dir( folder_name );
+		if( i != 0 )
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_%d", OUTPUT_FOLDER_UNIQUE, i );
+	}
+	else
+	{
+		char mkdir_command[256];
+		sprintf(mkdir_command, "mkdir \"%s//%s\"", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE );
+		system(mkdir_command);
+	}
+	puts("Writing output data/images to:");
+	puts(OUTPUT_FOLDER_UNIQUE);
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************* Console Window Print Statement Functions  ***************************************************************************************/
@@ -10297,10 +10109,10 @@ void test_func()
 	//	printf("time = %4.2f\n", execution_times_DROP_iterations[i] );
 	//char filename[256];
 	//char* name = "FBP_med7";
-	//sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER, name, ".bin" );
+	//sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, name, ".bin" );
 	//float* image = (float*)calloc( NUM_VOXELS, sizeof(float));
 	//import_image( image, filename );
-	//array_2_disk( name, OUTPUT_DIRECTORY, OUTPUT_FOLDER, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	//array_2_disk( name, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	//read_config_file();
 	//double voxels[4] = {1,2,3,4};
 	//std::copy( hull_h, hull_h + NUM_VOXELS, x_h );
@@ -10317,9 +10129,9 @@ void test_func()
 	//std::function<int(int)> fn4 = [](int x){return x/4;};  // lambda expression
 	//std::function<int(int)> fn5 = std::negate<int>();      // standard function object
 	//create_MLP_test_image();
-	//array_2_disk( "MLP_image_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_test_image_h, MLP_IMAGE_COLUMNS, MLP_IMAGE_ROWS, MLP_IMAGE_SLICES, MLP_IMAGE_VOXELS, true );
+	//array_2_disk( "MLP_image_init", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_test_image_h, MLP_IMAGE_COLUMNS, MLP_IMAGE_ROWS, MLP_IMAGE_SLICES, MLP_IMAGE_VOXELS, true );
 	//MLP_test();
-	//array_2_disk( "MLP_image", OUTPUT_DIRECTORY, OUTPUT_FOLDER, MLP_test_image_h, MLP_IMAGE_COLUMNS, MLP_IMAGE_ROWS, MLP_IMAGE_SLICES, MLP_IMAGE_VOXELS, true );
+	//array_2_disk( "MLP_image", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_test_image_h, MLP_IMAGE_COLUMNS, MLP_IMAGE_ROWS, MLP_IMAGE_SLICES, MLP_IMAGE_VOXELS, true );
 	//double* x = (double*) calloc(4, sizeof(double) );
 	//double* y = (double*) calloc(4, sizeof(double) );
 	//double* z = (double*) calloc(4, sizeof(double) );

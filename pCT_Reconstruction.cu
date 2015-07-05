@@ -193,6 +193,7 @@ int main( unsigned int num_arguments, char** arguments )
 	print_section_header("Program has finished executing", '-' );
 	if( !parameters.STDOUT_2_DISK || !parameters.USER_INPUT_REQUESTS_OFF )
 		exit_program_if(true);
+	//apply_permissions();
 }
 /***********************************************************************************************************************************************************************************************************************/
 /**************************************************************************************** t/v conversions and energy calibrations **************************************************************************************/
@@ -281,6 +282,14 @@ void configure_execution( unsigned int num_arguments, char** arguments )
 	}
 	print_section_exit("Finished reading configurations and setting program options and parameters", "====>" );
 		
+}
+void apply_permissions()
+{
+	system("cd /local/organized_data");
+	system("chmod -R 777 *");
+	system("cd /local/pct_code");
+	system("chmod -R 777 *");
+	system("cd /local/pct_code/Blake");
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Memory Transfers, Maintenance, and Cleaning ************************************************************************************/
