@@ -229,33 +229,32 @@ char EXECUTION_DATE[9];
 //char GLOBAL_RESULTS_PATH[]				= {"C://Users//Blake//Documents//Visual Studio 2010//Projects//pCT_Reconstruction_R01//pCT_Reconstruction_R01"};
 //char GLOBAL_RESULTS_PATH[]				= {"//home//share//reconstruction_data"};
 //char GLOBAL_RESULTS_PATH[]				= {"//local//reconstruction_data"};
-char EXECUTION_TIMES_FILENAME[]			= {"execution_times"};
-char TESTED_BY_STRING[]					= {"Blake Schultze"};
-char FULL_TX_STRING[]					= {"FULL_TX"};
-char PARTIAL_TX_STRING[]				= {"PARTIAL_TX"};
-char PARTIAL_TX_PREALLOCATED_STRING[]	= {"PARTIAL_TX_PREALLOCATED"};
-char BOOL_STRING[]						= {"BOOL"};
-char NO_BOOL_STRING[]					= {"NO_BOOL"};
-char STANDARD_STRING[]					= {"STANDARD"};
-char TABULATED_STRING[]					= {"TABULATED"};
+char EXECUTION_TIMES_FNAME[]			= "execution_times";
+char TESTED_BY_STRING[]					= "Blake Schultze";
+char FULL_TX_STRING[]					= "FULL_TX";
+char PARTIAL_TX_STRING[]				= "PARTIAL_TX";
+char PARTIAL_TX_PREALLOCATED_STRING[]	= "PARTIAL_TX_PREALLOCATED";
+char BOOL_STRING[]						= "BOOL";
+char NO_BOOL_STRING[]					= "NO_BOOL";
+char STANDARD_STRING[]					= "STANDARD";
+char TABULATED_STRING[]					= "TABULATED";
 const bool OVERWRITING_OK				= false;
 const int MAX_ITERATIONS				= 15;
 FILE* execution_times_file;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------ Testing parameters/options controls ---------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-TX_OPTIONS ENDPOINTS_TX_MODE		= PARTIAL_TX_PREALLOCATED;			// Specifies GPU data tx mode for MLP endpoints as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
-TX_OPTIONS DROP_TX_MODE				= FULL_TX;			// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
-ENDPOINTS_ALGORITHMS ENDPOINTS_ALG	= NO_BOOL;							// Specifies if boolean array is used to store whether a proton hit/missed the hull (BOOL) or uses the 1st MLP voxel (NO_BOOL)
-MLP_ALGORITHMS MLP_ALGORITHM		= TABULATED;						// Specifies whether calculations are performed explicitly (STANDARD) or if lookup tables are used for MLP calculations (TABULATED)
+const TX_OPTIONS ENDPOINTS_TX_MODE		= PARTIAL_TX_PREALLOCATED;			// Specifies GPU data tx mode for MLP endpoints as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+const TX_OPTIONS DROP_TX_MODE			= FULL_TX;							// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+const ENDPOINTS_ALGORITHMS ENDPOINTS_ALG= NO_BOOL;							// Specifies if boolean array is used to store whether a proton hit/missed the hull (BOOL) or uses the 1st MLP voxel (NO_BOOL)
+const MLP_ALGORITHMS MLP_ALGORITHM		= TABULATED;						// Specifies whether calculations are performed explicitly (STANDARD) or if lookup tables are used for MLP calculations (TABULATED)
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------- Input data specification parameters ----------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const DATA_FORMATS DATA_FORMAT	= VERSION_0;				// Specify which data format to use for this run
+const DATA_FORMATS DATA_FORMAT	= VERSION_0;							// Specify which data format to use for this run
 unsigned int PHANTOM_NAME_SIZE;
 unsigned int DATA_SOURCE_SIZE;
 unsigned int PREPARED_BY_SIZE;
-//unsigned int MAGIC_NUMBER_CHECK = static_cast<int>('DTCP');
 unsigned int SKIP_2_DATA_SIZE;
 unsigned int VERSION_ID;
 unsigned int PROJECTION_INTERVAL;
@@ -267,45 +266,41 @@ const bool MICAH_SIM		   = false;									// Specify whether the input data is f
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //---------------------------------------------------------------------------------------- Output filenames ------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const char SC_HULL_FILENAME[]		= "SC_hull";
-const char MSC_HULL_FILENAME[]		= "MSC_hull";
-const char SM_HULL_FILENAME[]		= "SM_hull";
-const char FBP_HULL_FILENAME[]		= "FBP_hull";
-const char SM_COUNTS_FILENAME[]		= "SM_counts";
-const char MSC_COUNTS_FILENAME[]	= "MSC_counts";
-const char HULL_FILENAME[]			= "hull";
-const char HULL_AVG_FILTER_FILENAME[]		= "hull_avg_filtered";
-const char HULL_MEDIAN_FILTER_FILENAME[]		= "hull_median_filtered";
-const char SINOGRAM_FILENAME[]		= "sinogram";
-const char FBP_FILENAME[]			= "FBP";
-const char X_0_FILENAME[]			= "x_0";
-const char X_FILENAME[]					= "x";
+const char SC_HULL_FNAME[]			= "SC_hull";
+const char MSC_HULL_FNAME[]			= "MSC_hull";
+const char SM_HULL_FNAME[]			= "SM_hull";
+const char FBP_HULL_FNAME[]			= "FBP_hull";
+const char SM_COUNTS_FNAME[]		= "SM_counts";
+const char MSC_COUNTS_FNAME[]		= "MSC_counts";
+const char HULL_FNAME[]				= "hull";
+const char HULL_AVG_FILTER_FNAME[]	= "hull_avg_filtered";
+const char HULL_MED_FILTER_FNAME[]	= "hull_median_filtered";
+const char SINOGRAM_FNAME[]			= "sinogram";
+const char FBP_FNAME[]				= "FBP";
+const char X_0_FNAME[]				= "x_0";
+const char X_FNAME[]				= "x";
+const char* MLP_PATHS_FNAME			= "MLP_paths";
+const char* MLP_PATHS_ERROR_FNAME	= "MLP_path_error";
+const char* MLP_ENDPOINTS_FNAME		= "MLP_endpoints";
+const char* INPUT_ITERATE_FNAME		= "FBP_med7.bin";
+const char* IMPORT_FBP_FNAME		= "FBP_med";
+const char* INPUT_HULL_FNAME		= "input_hull.bin";
+const char BIN_COUNTS_FNAME[]		= "bin_counts_h_pre";
+const char MEAN_WEPL_FNAME[]		= "mean_WEPL_h";
+const char MEAN_REL_UT_FNAME[]		= "mean_rel_ut_angle_h";
+const char MEAN_REL_UV_FNAME[]		= "mean_rel_uv_angle_h";
+const char STDDEV_REL_UT_FNAME[]	= "stddev_rel_ut_angle_h";
+const char STDDEV_REL_UV_FNAME[]	= "stddev_rel_uv_angle_h";
+const char STDDEV_WEPL_FNAME[]		= "stddev_WEPL_h";
+const char BIN_COUNTS_PRE_FNAME[]	= "bin_counts_pre";
+const char SINOGRAM_PRE_FNAME[]		= "sinogram_pre";
+const char BIN_COUNTS_POST_FNAME[]	= "bin_counts_post";
+const char FBP_AFTER_FNAME[]		= "FBP_after";
+const char FBP_IMAGE_FILTER_FNAME[]	= "FBP_image_filtered";
+const char FBP_MED_FILTER_FNAME[]	= "FBP_median_filtered";
 
-const char* MLP_PATHS_FILENAME		= "MLP_paths";
-const char* MLP_PATHS_ERROR_FILENAME= "MLP_path_error";
-const char* MLP_ENDPOINTS_FILENAME	= "MLP_endpoints";
-const char* INPUT_ITERATE_FILENAME	= "FBP_med7.bin";
-const char* IMPORT_FBP_FILENAME		= "FBP_med";
-const char* INPUT_HULL_FILENAME		= "input_hull.bin";
 char IMPORT_FBP_PATH[256];
 char INPUT_ITERATE_PATH[256];
-
-char BIN_COUNTS_FILENAME[] = {"bin_counts_h_pre"};
-char MEAN_WEPL_FILENAME[] = {"mean_WEPL_h"};
-char MEAN_REL_UT_FILENAME[] ={"mean_rel_ut_angle_h"};
-char MEAN_REL_UV_FILENAME[] = {"mean_rel_uv_angle_h"};
-char STDDEV_REL_UT_FILENAME[]={"stddev_rel_ut_angle_h"};
-char STDDEV_REL_UV_FILENAME[]={"stddev_rel_uv_angle_h"};
-char STDDEV_WEPL_FILENAME[]={"stddev_WEPL_h"};
-char BIN_COUNTS_PRE_FILENAME[] ={"bin_counts_pre"};
-char SINOGRAM_PRE_FILENAME[]={"sinogram_pre"};
-char BIN_COUNTS_POST_FILENAME[]={"bin_counts_post"};
-
-char FBP_AFTER_FILENAME[]={"FBP_after"};
-char FBP_IMAGE_FILTER_FILENAME[]={"FBP_image_filtered"};
-char FBP_MEDIAN_FILTER_FILENAME[]={"FBP_median_filtered"};
-
-								
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------------ Output option parameters --------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -377,9 +372,9 @@ const double FBP_AVG_THRESHOLD = 0.1;
 #define IMAGE_THICKNESS			( SLICES * SLICE_THICKNESS )			// [cm] Distance between bottom of bottom slice and top of the top slice of image
 #define SLICES					int( RECON_CYL_HEIGHT / SLICE_THICKNESS)// [#] Number of voxels in the z direction (i.e., number of slices) of image
 #define NUM_VOXELS				( COLUMNS * ROWS * SLICES )				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
-#define VOXEL_WIDTH				0.1		// [cm] Distance between left and right edges of each voxel in image
-#define VOXEL_HEIGHT			0.1			// [cm] Distance between top and bottom edges of each voxel in image
-#define VOXEL_THICKNESS			0.25			// [cm] Distance between top and bottom of each slice in image
+#define VOXEL_WIDTH				0.1										// [cm] Distance between left and right edges of each voxel in image
+#define VOXEL_HEIGHT			0.1										// [cm] Distance between top and bottom edges of each voxel in image
+#define VOXEL_THICKNESS			0.25									// [cm] Distance between top and bottom of each slice in image
 #define SLICE_THICKNESS			0.25									// [cm] Distance between top and bottom of each slice in image
 #define X_ZERO_COORDINATE		-RECON_CYL_RADIUS						// [cm] x-coordinate corresponding to front edge of 1st voxel (i.e. column) in image space
 #define Y_ZERO_COORDINATE		RECON_CYL_RADIUS						// [cm] y-coordinate corresponding to front edge of 1st voxel (i.e. row) in image space
@@ -455,27 +450,27 @@ const int max_path_elements = int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2)));
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------- Tabulated data file names --------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-char SIN_TABLE_FILENAME[]	= "sin_table.bin";							// Prefix of the file containing the tabulated values of sine function for angles [0, 2PI]
-char COS_TABLE_FILENAME[]	= "cos_table.bin";							// Prefix of the file containing the tabulated values of cosine function for angles [0, 2PI]
-char COEFFICIENT_FILENAME[]	= "coefficient.bin";						// Prefix of the file containing the tabulated values of the scattering coefficient for u_2-u_1/u_1 values in increments of 0.001
-char POLY_1_2_FILENAME[]	= "poly_1_2.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {1,2,3,4,5,6} in increments of 0.001
-char POLY_2_3_FILENAME[]	= "poly_2_3.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,3,4,5,6,7} in increments of 0.001
-char POLY_3_4_FILENAME[]	= "poly_3_4.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,4,5,6,7,8} in increments of 0.001
-char POLY_2_6_FILENAME[]	= "poly_2_6.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,6,12,20,30,42} in increments of 0.001
-char POLY_3_12_FILENAME[]	= "poly_3_12.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,12,30,60,105,168} in increments of 0.001
-#define TRIG_TABLE_MIN		-2 * PI										// [radians] Minimum angle contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_MAX		4 * PI										// [radians] Maximum angle contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_RANGE	(TRIG_TABLE_MAX - TRIG_TABLE_MIN)			// [radians] Range of angles contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_STEP		(0.001 * ANGLE_TO_RADIANS)					// [radians] Step size in radians between elements of sin/cos lookup table used for MLP
-#define TRIG_TABLE_ELEMENTS	static_cast<int>(TRIG_TABLE_RANGE / TRIG_TABLE_STEP + 0.5)			// [#] # of elements contained in the sin/cos lookup table used for MLP
-#define DEPTH_TABLE_RANGE	40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
-#define DEPTH_TABLE_STEP	0.00005										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-#define DEPTH_TABLE_SHIFT	static_cast<int>(MLP_U_STEP / DEPTH_TABLE_STEP  + 0.5 )				// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-#define DEPTH_TABLE_ELEMENTS static_cast<int>(DEPTH_TABLE_RANGE / DEPTH_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
-#define POLY_TABLE_RANGE	40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
-#define POLY_TABLE_STEP		0.00005										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-#define POLY_TABLE_SHIFT	static_cast<int>(MLP_U_STEP / POLY_TABLE_STEP  + 0.5 )					// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-#define POLY_TABLE_ELEMENTS	static_cast<int>(POLY_TABLE_RANGE / POLY_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
+char SIN_TABLE_FNAME[]			= "sin_table.bin";							// Prefix of the file containing the tabulated values of sine function for angles [0, 2PI]
+char COS_TABLE_FNAME[]			= "cos_table.bin";							// Prefix of the file containing the tabulated values of cosine function for angles [0, 2PI]
+char COEFFICIENT_FNAME[]		= "coefficient.bin";						// Prefix of the file containing the tabulated values of the scattering coefficient for u_2-u_1/u_1 values in increments of 0.001
+char POLY_1_2_FNAME[]			= "poly_1_2.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {1,2,3,4,5,6} in increments of 0.001
+char POLY_2_3_FNAME[]			= "poly_2_3.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,3,4,5,6,7} in increments of 0.001
+char POLY_3_4_FNAME[]			= "poly_3_4.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,4,5,6,7,8} in increments of 0.001
+char POLY_2_6_FNAME[]			= "poly_2_6.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,6,12,20,30,42} in increments of 0.001
+char POLY_3_12_FNAME[]			= "poly_3_12.bin";							// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,12,30,60,105,168} in increments of 0.001
+#define TRIG_TABLE_MIN			-2 * PI										// [radians] Minimum angle contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_MAX			4 * PI										// [radians] Maximum angle contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_RANGE		(TRIG_TABLE_MAX - TRIG_TABLE_MIN)			// [radians] Range of angles contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_STEP			(0.001 * ANGLE_TO_RADIANS)					// [radians] Step size in radians between elements of sin/cos lookup table used for MLP
+#define TRIG_TABLE_ELEMENTS		static_cast<int>(TRIG_TABLE_RANGE / TRIG_TABLE_STEP + 0.5)			// [#] # of elements contained in the sin/cos lookup table used for MLP
+#define COEFF_TABLE_RANGE		40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+#define COEFF_TABLE_STEP		0.00005										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define COEFF_TABLE_SHIFT		static_cast<int>(MLP_U_STEP / COEFF_TABLE_STEP  + 0.5 )				// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define COEFF_TABLE_ELEMENTS	static_cast<int>(COEFF_TABLE_RANGE / COEFF_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
+#define POLY_TABLE_RANGE		40.0										// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+#define POLY_TABLE_STEP			0.00005										// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define POLY_TABLE_SHIFT		static_cast<int>(MLP_U_STEP / POLY_TABLE_STEP  + 0.5 )					// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define POLY_TABLE_ELEMENTS		static_cast<int>(POLY_TABLE_RANGE / POLY_TABLE_STEP + 0.5 )			// [#] # of elements contained in the polynomial lookup tables used for MLP
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Memory allocation size for arrays (binning, image) -------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/

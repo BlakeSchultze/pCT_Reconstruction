@@ -514,7 +514,7 @@ int main(int argc, char** argv)
 		execution_time_DROP = timer( STOP, begin_DROP, "for all iterations of DROP");
 		execution_time_reconstruction = timer( STOP, begin_reconstruction, "for complete image reconstruction");
 		if( WRITE_X ) 
-			array_2_disk(X_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk(X_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		print_section_exit( statement, SECTION_EXIT_STRING, DARK, RED );
 		/********************************************************************************************************************************************************/
 		/* PROGRAM COMPLETION TASKS																				*/
@@ -2682,10 +2682,10 @@ void calculate_means()
 	cudaMemcpy( mean_rel_ut_angle_h,	mean_rel_ut_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	cudaMemcpy( mean_rel_uv_angle_h,	mean_rel_uv_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	
-	array_2_disk(BIN_COUNTS_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(MEAN_WEPL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(MEAN_REL_UT_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(MEAN_REL_UV_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(BIN_COUNTS_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(MEAN_WEPL_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(MEAN_REL_UT_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(MEAN_REL_UV_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	free(bin_counts_h);
 	free(mean_WEPL_h);
@@ -2780,9 +2780,9 @@ void calculate_standard_deviations()
 	cudaMemcpy( stddev_rel_uv_angle_h,	stddev_rel_uv_angle_d,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
 	cudaMemcpy( stddev_WEPL_h,			stddev_WEPL_d,			SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
 
-	array_2_disk(STDDEV_REL_UT_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(STDDEV_REL_UV_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(STDDEV_WEPL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(STDDEV_REL_UT_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(STDDEV_REL_UV_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(STDDEV_WEPL_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	//cudaFree( bin_counts_d );
 }
 __global__ void calculate_standard_deviations_GPU( int* bin_counts, float* stddev_WEPL, float* stddev_rel_ut_angle, float* stddev_rel_uv_angle )
@@ -2949,8 +2949,8 @@ void construct_sinogram()
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;	
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
 	
-	array_2_disk(SINOGRAM_PRE_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk( BIN_COUNTS_PRE_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(SINOGRAM_PRE_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk( BIN_COUNTS_PRE_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
@@ -2965,8 +2965,8 @@ void construct_sinogram()
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
 	
-	array_2_disk(SINOGRAM_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk( BIN_COUNTS_POST_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(SINOGRAM_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk( BIN_COUNTS_POST_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	cudaFree(bin_counts_d);
 }
@@ -3007,7 +3007,7 @@ void FBP()
 	if( WRITE_FBP_IMAGE )
 	{
 		cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
-		array_2_disk( FBP_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+		array_2_disk( FBP_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 	}
 
 	if( IMPORT_FILTERED_FBP)
@@ -3017,10 +3017,10 @@ void FBP()
 		//sprintf( filename, "%s%s/%s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, name, ".bin" );
 		//import_image( image, filename );
 		float* image = (float*)calloc( NUM_VOXELS, sizeof(float));
-		sprintf(IMPORT_FBP_PATH,"%s%s/%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, IMPORT_FBP_FILENAME, 2*FBP_MEDIAN_RADIUS+1,".bin" );
+		sprintf(IMPORT_FBP_PATH,"%s%s/%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, IMPORT_FBP_FNAME, 2*FBP_MEDIAN_RADIUS+1,".bin" );
 		import_image( image, IMPORT_FBP_PATH );
 		FBP_image_h = image;
-		array_2_disk( FBP_AFTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		array_2_disk( FBP_AFTER_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
 	else if( AVG_FILTER_FBP )
 	{
@@ -3047,7 +3047,7 @@ void FBP()
 			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			cudaMemcpy(FBP_image_filtered_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			//cout << FBP_image_d << endl;
-			array_2_disk( FBP_IMAGE_FILTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk( FBP_IMAGE_FILTER_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//FBP_image_h = FBP_image_filtered_h;
 		}
 		cudaFree(FBP_image_filtered_d);
@@ -3078,7 +3078,7 @@ void FBP()
 			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//cudaMemcpy(FBP_median_filtered_h, FBP_median_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			//cout << FBP_image_d << endl;
-			array_2_disk( FBP_MEDIAN_FILTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_median_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );		
+			array_2_disk( FBP_MED_FILTER_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_median_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );		
 		}
 		//cudaFree(FBP_image_filtered_d);
 	}	
@@ -3320,7 +3320,7 @@ void FBP_image_2_hull()
 	cudaMemcpy( FBP_hull_h, FBP_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost );
 	
 	if( WRITE_FBP_HULL )
-		array_2_disk( FBP_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		array_2_disk( FBP_HULL_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 
 	if( MLP_HULL != FBP_HULL)	
 		free(FBP_hull_h);
@@ -3925,7 +3925,7 @@ void SM_edge_detection_2()
 	
 	// Copy the space modeled image from the GPU to the CPU and write it to file.
 	cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-	//array_2_disk(SM_COUNTS_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
+	//array_2_disk(SM_COUNTS_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
 
 	int* SM_differences_h = (int*) calloc( NUM_VOXELS, sizeof(int) );
 	int* SM_differences_d;
@@ -3974,7 +3974,7 @@ void SM_edge_detection_2()
 	free(SM_thresholds_h);
 	
 	//if( WRITE_SM_HULL )
-	 	//array_2_disk(SM_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	 	//array_2_disk(SM_HULL_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	if( MLP_HULL != SM_HULL)
 		free(SM_counts_h);	
 }
@@ -4023,8 +4023,8 @@ __global__ void SM_edge_detection_GPU_2( int* SM_counts, int* SM_differences )
 }
 void hull_detection_finish()
 {
-	char statement[] = {"Finishing hull detection and writing resulting images to disk..."};
-	print_section_exit( statement, SECTION_EXIT_STRING, LIGHT, CYAN );
+	char statement[] = "Finishing hull detection and writing resulting images to disk...";
+	print_colored_text( statement, LIGHT, CYAN );
 	if( SC_ON )
 	{
 		SC_hull_h = (bool*) calloc( NUM_VOXELS, sizeof(bool) );
@@ -4034,7 +4034,7 @@ void hull_detection_finish()
 			//puts("Writing SC hull to disk...");
 			sprintf(statement, "Writing SC hull to disk...");		
 			print_colored_text( statement, LIGHT, CYAN );	
-			array_2_disk(SC_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SC_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk(SC_HULL_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SC_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 		if( MLP_HULL != SC_HULL )
 			free( SC_hull_h );
@@ -4049,7 +4049,7 @@ void hull_detection_finish()
 			sprintf(statement, "Writing MSC counts to disk...");		
 			print_colored_text( statement, LIGHT, CYAN );	
 			cudaMemcpy(MSC_counts_h,  MSC_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-			array_2_disk(MSC_COUNTS_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+			array_2_disk(MSC_COUNTS_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 		}
 		if( WRITE_MSC_HULL || (MLP_HULL == MSC_HULL) )
 		{
@@ -4060,7 +4060,7 @@ void hull_detection_finish()
 				//puts("Writing MSC hull to disk...");	
 				sprintf(statement, "Writing MSC hull to disk...");		
 				print_colored_text( statement, LIGHT, CYAN );	
-				array_2_disk(MSC_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+				array_2_disk(MSC_HULL_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 			}
 			cudaFree(MSC_counts_d);
 		}
@@ -4076,7 +4076,7 @@ void hull_detection_finish()
 			sprintf(statement, "Writing SM counts to disk...");		
 			print_colored_text( statement, LIGHT, CYAN );	
 			cudaMemcpy(SM_counts_h,  SM_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-			array_2_disk(SM_COUNTS_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+			array_2_disk(SM_COUNTS_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 		}
 		if( WRITE_SM_HULL || (MLP_HULL == SM_HULL) )
 		{
@@ -4087,7 +4087,7 @@ void hull_detection_finish()
 				//puts("Writing SM hull to disk...");	
 				sprintf(statement, "Writing SM hull to disk...");		
 				print_colored_text( statement, LIGHT, CYAN );	
-				array_2_disk(SM_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+				array_2_disk(SM_HULL_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 			}
 			cudaFree(SM_counts_d);
 		}
@@ -4128,7 +4128,7 @@ void hull_selection()
 		//puts("Writing selected hull to disk...");
 		sprintf(statement, "Writing selected hull to disk...");		
 		print_colored_text( statement, LIGHT, CYAN );	
-		array_2_disk(HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		array_2_disk(HULL_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
 	// Allocate memory for and transfer hull to the GPU
 	cudaMalloc((void**) &hull_d, SIZE_IMAGE_BOOL );
@@ -4149,7 +4149,7 @@ void hull_selection()
 			print_colored_text( statement, LIGHT, CYAN );			
 			//puts("Writing filtered hull to disk...");
 			cudaMemcpy(hull_h, hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
-			array_2_disk( HULL_AVG_FILTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk( HULL_AVG_FILTER_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 	}
 	sprintf(statement, "Hull selection complete.");		
@@ -4857,8 +4857,8 @@ void write_MLP_endpoints()
 {
 	puts("Writing MLP endpoints to disk...");
 	char endpoints_filename[256];
-	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FILENAME, HULL_FILTER_RADIUS );
-	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FILENAME );
+	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FNAME, HULL_FILTER_RADIUS );
+	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FNAME );
 	FILE* write_MLP_endpoints = fopen(endpoints_filename, "wb");
 	fwrite( &reconstruction_histories, sizeof(unsigned int), 1, write_MLP_endpoints );
 	fwrite( &voxel_x_vector[0], sizeof(int), voxel_x_vector.size(), write_MLP_endpoints );
@@ -4882,8 +4882,8 @@ void write_MLP_endpoints()
 unsigned int read_MLP_endpoints()
 {
 	char endpoints_filename[256];
-	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FILENAME );
-	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FILENAME, HULL_FILTER_RADIUS );
+	//sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FNAME );
+	sprintf(endpoints_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_ENDPOINTS_FNAME, HULL_FILTER_RADIUS );
 	FILE* read_MLP_endpoints = fopen(endpoints_filename, "rb");
 	//puts("MLP endpoint file opened!\n");
 	unsigned int histories;
@@ -4935,7 +4935,7 @@ void export_hull()
 {
 //	puts("Writing image reconstruction hull to disk...");
 //	char input_hull_filename[256];
-//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
+//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FNAME );
 //	FILE* write_input_hull = fopen(input_hull_filename, "wb");
 //	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, write_input_hull );
 //	fclose(write_input_hull);
@@ -4945,7 +4945,7 @@ void import_hull()
 {
 //	puts("Reading image reconstruction hull from disk...");
 //	char input_hull_filename[256];
-//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
+//	sprintf(input_hull_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FNAME );
 //	FILE* read_input_hull = fopen(input_hull_filename, "rb");
 //	hull_h = (bool*)calloc( NUM_VOXELS, sizeof(bool) );
 //	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, read_input_hull );
@@ -5637,8 +5637,8 @@ void generate_trig_tables()
 	sin_table_h = (double*) calloc( TRIG_TABLE_ELEMENTS + 1, sizeof(double) );
 	cos_table_h = (double*) calloc( TRIG_TABLE_ELEMENTS + 1, sizeof(double) );
 	
-	sin_table_file = fopen( SIN_TABLE_FILENAME, "wb" );
-	cos_table_file = fopen( COS_TABLE_FILENAME, "wb" );
+	sin_table_file = fopen( SIN_TABLE_FNAME, "wb" );
+	cos_table_file = fopen( COS_TABLE_FNAME, "wb" );
 	/*for( float i = TRIG_TABLE_MIN; i <= TRIG_TABLE_MAX; i+= TRIG_TABLE_STEP )
 	{
 		sin_term = sin(i);
@@ -5662,7 +5662,7 @@ void generate_trig_tables()
 void generate_scattering_coefficient_table()
 {
 	double scattering_coefficient;
-	scattering_table_file = fopen( COEFFICIENT_FILENAME, "wb" );
+	scattering_table_file = fopen( COEFFICIENT_FNAME, "wb" );
 	int i = 0;
 	double depth = 0.0;
 	scattering_table_h = (double*)calloc( DEPTH_TABLE_ELEMENTS + 1, sizeof(double));
@@ -5702,11 +5702,11 @@ void generate_polynomial_tables()
 	poly_2_6_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
 	poly_3_12_h = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
 
-	poly_1_2_file  = fopen( POLY_1_2_FILENAME,  "wb" );
-	poly_2_3_file  = fopen( POLY_2_3_FILENAME,  "wb" );
-	poly_3_4_file  = fopen( POLY_3_4_FILENAME,  "wb" );
-	poly_2_6_file  = fopen( POLY_2_6_FILENAME,  "wb" );
-	poly_3_12_file = fopen( POLY_3_12_FILENAME, "wb" );
+	poly_1_2_file  = fopen( POLY_1_2_FNAME,  "wb" );
+	poly_2_3_file  = fopen( POLY_2_3_FNAME,  "wb" );
+	poly_3_4_file  = fopen( POLY_3_4_FNAME,  "wb" );
+	poly_2_6_file  = fopen( POLY_2_6_FNAME,  "wb" );
+	poly_3_12_file = fopen( POLY_3_12_FNAME, "wb" );
 	for( int step_num = 0; step_num <= POLY_TABLE_ELEMENTS; step_num++ )
 	{
 		du = step_num * POLY_TABLE_STEP;
@@ -5747,8 +5747,8 @@ void import_trig_tables()
 	sin_table_h = (double*) calloc( TRIG_TABLE_ELEMENTS + 1, sizeof(double) );
 	cos_table_h = (double*) calloc( TRIG_TABLE_ELEMENTS + 1, sizeof(double) );
 
-	sin_table_file = fopen( SIN_TABLE_FILENAME, "rb" );
-	cos_table_file = fopen( COS_TABLE_FILENAME, "rb" );
+	sin_table_file = fopen( SIN_TABLE_FNAME, "rb" );
+	cos_table_file = fopen( COS_TABLE_FNAME, "rb" );
 	
 	fread(sin_table_h, sizeof(double), TRIG_TABLE_ELEMENTS + 1, sin_table_file );
 	fread(cos_table_h, sizeof(double), TRIG_TABLE_ELEMENTS + 1, cos_table_file );
@@ -5759,7 +5759,7 @@ void import_trig_tables()
 void import_scattering_coefficient_table()
 {
 	scattering_table_h = (double*)calloc( DEPTH_TABLE_ELEMENTS + 1, sizeof(double));
-	scattering_table_file = fopen( COEFFICIENT_FILENAME, "rb" );
+	scattering_table_file = fopen( COEFFICIENT_FNAME, "rb" );
 	fread(scattering_table_h, sizeof(double), DEPTH_TABLE_ELEMENTS + 1, scattering_table_file );
 	fclose(scattering_table_file);
 }
@@ -5771,11 +5771,11 @@ void import_polynomial_tables()
 	poly_2_6_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
 	poly_3_12_h = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
 
-	poly_1_2_file  = fopen( POLY_1_2_FILENAME,  "rb" );
-	poly_2_3_file  = fopen( POLY_2_3_FILENAME,  "rb" );
-	poly_3_4_file  = fopen( POLY_3_4_FILENAME,  "rb" );
-	poly_2_6_file  = fopen( POLY_2_6_FILENAME,  "rb" );
-	poly_3_12_file = fopen( POLY_3_12_FILENAME, "rb" );
+	poly_1_2_file  = fopen( POLY_1_2_FNAME,  "rb" );
+	poly_2_3_file  = fopen( POLY_2_3_FNAME,  "rb" );
+	poly_3_4_file  = fopen( POLY_3_4_FNAME,  "rb" );
+	poly_2_6_file  = fopen( POLY_2_6_FNAME,  "rb" );
+	poly_3_12_file = fopen( POLY_3_12_FNAME, "rb" );
 
 	fread( poly_1_2_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_1_2_file  );
 	fread( poly_2_3_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_2_3_file  );
@@ -5866,7 +5866,7 @@ void export_initial_iterate()
 {
 //	puts("Writing image reconstruction hull to disk...");
 //	char input_hull_filename[256];
-//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
+//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FNAME );
 //	FILE* write_input_hull = fopen(input_hull_filename, "wb");
 //	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, write_input_hull );
 //	fclose(write_input_hull);
@@ -5876,7 +5876,7 @@ void import_initial_iterate()
 {
 //	puts("Reading image reconstruction hull from disk...");
 //	char input_hull_filename[256];
-//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
+//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FNAME );
 //	FILE* read_input_hull = fopen(input_hull_filename, "rb");
 //	hull_h = (bool*)calloc( NUM_VOXELS, sizeof(bool) );
 //	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, read_input_hull );
@@ -5906,7 +5906,7 @@ void define_initial_iterate()
 		case FBP_IMAGE	:	x_h = FBP_image_h;																						break;
 		case HYBRID		:	initial_iterate_generate_hybrid();																		break;
 							//std::transform(FBP_image_h, FBP_image_h + NUM_VOXELS, hull_h, x_h, std::multiplies<float>() );		break;
-		case IMPORT		:	sprintf( INPUT_ITERATE_PATH, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_ITERATE_FILENAME );
+		case IMPORT		:	sprintf( INPUT_ITERATE_PATH, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_ITERATE_FNAME );
 							import_image( x_h, INPUT_ITERATE_PATH );																break;
 		case ZEROS		:	break;
 		default			:	puts("ERROR: Invalid initial iterate selected");
@@ -5929,7 +5929,7 @@ void define_initial_iterate()
 	//}
 
 	if( WRITE_X_0 ) 
-		array_2_disk(X_0_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		array_2_disk(X_0_FNAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
 	//cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
 }
@@ -8321,7 +8321,7 @@ void image_reconstruction()
 	/**************************************************************** Create and open output file for MLP paths **************************************************************/
 	/*************************************************************************************************************************************************************************/
 	char MLP_filename[256];
-	sprintf(MLP_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_PATHS_FILENAME, HULL_FILTER_RADIUS );
+	sprintf(MLP_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_PATHS_FNAME, HULL_FILTER_RADIUS );
 	unsigned int start_history = 0, end_history = reconstruction_histories;
 	ULL i;	
 	if( !MLP_FILE_EXISTS )
@@ -8351,7 +8351,7 @@ void image_reconstruction()
 	
 	char iterate_filename[256];
 	char MLP_error_filename[256];
-	sprintf(MLP_error_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_PATHS_ERROR_FILENAME, HULL_FILTER_RADIUS );
+	sprintf(MLP_error_filename, "%s%s/%s_r=%d.bin", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_PATHS_ERROR_FNAME, HULL_FILTER_RADIUS );
 	FILE* read_MLP_paths;	
 	FILE* read_MLP_paths_error;
 	unsigned int num_paths;
@@ -9227,7 +9227,7 @@ FILE* create_MLP_path_file( char* data_filename )
 {
 	FILE * pFile;
 	//char data_filename[256];
-	//sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_PATH_FILENAME );
+	//sprintf(data_filename, "%s%s/%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MLP_PATH_FNAME );
 	pFile = fopen (data_filename,"w+");
 	return pFile;
 }
@@ -9327,8 +9327,8 @@ void execution_times_2_txt()
 	char execution_times_path[256];
 	//char execution_date[9];
 	//current_MMDDYYYY( EXECUTION_DATE);
-	//sprintf(execution_times_path, "%s//%s.txt", OUTPUT_DIRECTORY, EXECUTION_TIMES_FILENAME);
-	sprintf(execution_times_path, "%s%s//%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
+	//sprintf(execution_times_path, "%s//%s.txt", OUTPUT_DIRECTORY, EXECUTION_TIMES_FNAME);
+	sprintf(execution_times_path, "%s%s//%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FNAME);
 	
 	sprintf(statement, "Local testing results written to .txt at:");
 	print_colored_text(statement, LIGHT, CYAN );
@@ -9415,10 +9415,10 @@ void execution_times_2_csv()
 	char execution_times_path[256];
 	//char execution_date[9];
 	//current_MMDDYYYY( EXECUTION_DATE);
-	sprintf(execution_times_path, "%s//%s.csv", OUTPUT_DIRECTORY, EXECUTION_TIMES_FILENAME);
+	sprintf(execution_times_path, "%s//%s.csv", OUTPUT_DIRECTORY, EXECUTION_TIMES_FNAME);
 	if( !file_exists3 (execution_times_path))
 		init_execution_times_csv();
-	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
+	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FNAME);
 	
 	sprintf(statement, "Global testing results written to .txt at:");
 	print_colored_text(statement, LIGHT, CYAN );
@@ -9480,8 +9480,8 @@ void init_execution_times_csv()
 	//fprintf( Execution Date	Executed By	INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER_UNIQUE	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
 	//Execution Date		INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER_UNIQUE	preprocessing	endpoints	tables	init_image	DROP_total	iteration 1	iteration 2	iteration 3	iteration 4	iteration 5	iteration 6	iteration 7	iteration 8	iteration 9	iteration 10	iteration 11	iteration 12	reconstruction	program	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
 	//													
-	sprintf(execution_times_path, "%s//%s.csv", OUTPUT_DIRECTORY, EXECUTION_TIMES_FILENAME);
-	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
+	sprintf(execution_times_path, "%s//%s.csv", OUTPUT_DIRECTORY, EXECUTION_TIMES_FNAME);
+	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FNAME);
 	sprintf(statement, "Testing results .csv initialized and written to:");
 	print_colored_text(statement, LIGHT, CYAN );
 	
