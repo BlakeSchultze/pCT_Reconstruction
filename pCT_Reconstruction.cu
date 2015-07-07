@@ -3116,6 +3116,14 @@ template<typename D> __global__ void averaging_filter_GPU( configurations* param
 	else
 		new_value[voxel] = sum / neighborhood_voxels;
 }
+template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( configurations* parameters, T* image, T2* new_value )
+{
+	int voxel_x = blockIdx.x;
+	int voxel_y = blockIdx.y;	
+	int voxel_z = threadIdx.x;
+	int voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
+	image[voxel] = new_value[voxel];
+}
 template<typename T> void average_filter_2D( T*& input_image, unsigned int radius )
 {
 	T* average_filtered_image = (T*) calloc( parameters.NUM_VOXELS, sizeof(T) );
@@ -3327,14 +3335,6 @@ template<typename T> void median_filter_3D( T*& input_image, T*& median_filtered
 	}
 
 }
-template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( configurations* parameters, T* image, T2* new_value )
-{
-	int voxel_x = blockIdx.x;
-	int voxel_y = blockIdx.y;	
-	int voxel_z = threadIdx.x;
-	int voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
-	image[voxel] = new_value[voxel];
-}
 template<typename T> void test_median_filter_radii(T*& image, char* output_basename )
 {
 	float* median_filtered_2D_h = (float*) calloc( parameters.NUM_VOXELS, sizeof(float) );	
@@ -3368,6 +3368,9 @@ template<typename T> void test_median_filter_radii(T*& image, char* output_basen
 	free(median_filtered_3D_h);
 	//binary_2_txt_images( PREPROCESSING_DIR, basename2D_w_radius, median_filtered_2D_h );
 }
+/***********************************************************************************************************************************************************************************************************************/
+/****************************************************************************************** Root Mean Square (RMS) error analysis **************************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
 template<typename I1, typename I2> double calculate_RMS_error( I1*& image_1, I2*& image_2, unsigned int num_elements )
 {
 	double RMS_error = 0.0;

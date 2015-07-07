@@ -46,6 +46,7 @@ void initializations();
 void count_histories();	
 void count_histories_old();
 void count_histories_v0();
+void count_histories_v02();
 void count_histories_v1();
 void reserve_vector_capacity(); 
 
@@ -87,7 +88,8 @@ void SM_edge_detection_2();
 void hull_conversion_int_2_bool( int* );
 void hull_selection();
 template<typename T, typename T2> void averaging_filter( T*&, T2*&, int, bool, double );
-template<typename H, typename D> void median_filter( H*&, D*&, unsigned int );
+template<typename T> void median_filter_2D( T*&, unsigned int );
+template<typename T> void median_filter_2D( T*&, T*&, unsigned int );
 
 // MLP: IN DEVELOPMENT
 void create_MLP_test_image();	
@@ -135,14 +137,14 @@ void DROP_update_robust2( float*&, double*&, unsigned int*&, double*& );
 
 // Write arrays/vectors to file(s)
 void binary_2_ASCII();
-template<typename T> void array_2_disk( char*, const char*, const char*, T*, const int, const int, const int, const int, const bool );
-template<typename T> void vector_2_disk( char*, const char*, const char*, std::vector<T>, const int, const int, const int, const bool );
+template<typename T> void array_2_disk( const char*, const char*, const char*, T*, const int, const int, const int, const int, const bool );
+template<typename T> void vector_2_disk( const char*, const char*, const char*, std::vector<T>, const int, const int, const int, const bool );
 template<typename T> void t_bins_2_disk( FILE*, const std::vector<int>&, const std::vector<T>&, const BIN_ANALYSIS_TYPE, const int );
 template<typename T> void bins_2_disk( const char*, const std::vector<int>&, const std::vector<T>&, const BIN_ANALYSIS_TYPE, const BIN_ANALYSIS_FOR, const BIN_ORGANIZATION, ... );
 template<typename T> void t_bins_2_disk( FILE*, int*&, T*&, const unsigned int, const BIN_ANALYSIS_TYPE, const BIN_ORGANIZATION, int );
 template<typename T> void bins_2_disk( const char*, int*&, T*&, const int, const BIN_ANALYSIS_TYPE, const BIN_ANALYSIS_FOR, const BIN_ORGANIZATION, ... );
 FILE* create_MLP_path_file( char* );
-template<typename T> void path_data_2_disk(char*, FILE*, unsigned int, unsigned int*, T*&, bool );
+template<typename T> void path_data_2_disk(const char*, FILE*, unsigned int, unsigned int*, T*&, bool );
 void write_MLP_endpoints();
 unsigned int read_MLP_endpoints();
 void write_MLP_path( FILE*, unsigned int*&, unsigned int);
@@ -188,11 +190,11 @@ char((&current_MMDD( char(&)[5]))[5]);
 char((&current_MMDDYYYY( char(&)[9]))[9]);
 
 //Console Window Print Statement Functions
-void print_colored_text(char*, unsigned int );
-void print_section_separator(char );
+void print_colored_text(char*, unsigned int, unsigned int );
+void print_section_separator(char, unsigned int, unsigned int );
 void construct_header_line( char*, char, char* );
-void print_section_header( char*, char );
-void print_section_exit( char*, char* );
+void print_section_header( char*, char, unsigned int, unsigned int );
+void print_section_exit( char*, char*, unsigned int, unsigned int );
 
 // New routine test functions
 void command_line_settings( unsigned int, char** );
@@ -230,6 +232,7 @@ __global__ void SM_edge_detection_GPU( int*, int* );
 __global__ void SM_edge_detection_GPU_2( int*, int* );
 __global__ void carve_differences( int*, int* );
 //template<typename H, typename D> __global__ void averaging_filter_GPU( H*, D*, int, bool, double );
+template<typename D> __global__ void median_filter_GPU( D*, D*, int, bool, double );
 template<typename D> __global__ void averaging_filter_GPU( D*, D*, int, bool, double );
 template<typename D> __global__ void apply_averaging_filter_GPU( D*, D* );
 
@@ -349,26 +352,15 @@ int main(int argc, char** argv)
 	char statement[256];
 	if( RUN_ON )
 	{
-		sprintf(statement, "colored_print_test\n" );
-		print_colored_text(statement, 32 );
-		//puts("hello");
-		//puts("hello");
 		current_MMDDYYYY( EXECUTION_DATE);
-		//puts("hello");
+		//command_line_settings( argc, argv );
+		print_colored_text(statement, LIGHT, CYAN );
 		assign_output_directory();
-		//puts("hello");
-		//apply_permissions();
-		//puts(OUTPUT_FOLDER_UNIQUE);
-		//exit_program_if( true, "testing unique output directory generation" );
-		//pause_execution();
 		/********************************************************************************************************************************************************/
 		/* Perform program setup routines and start the execution timing clock																														*/
 		/********************************************************************************************************************************************************/
-		system("echo -e \"\e[0;36m\"" );
 		sprintf( statement, "Determine the # of protons for each gantry angle and in total and initialize host/GPU arrays to accomdate this data");
-		print_section_header( statement, '*' );
-		system("echo -e \"\e[m\"" );
-		//command_line_settings( argc, argv );
+		print_section_header( statement, '*', DARK, BLUE );
 		timer( START, begin_program, "for entire program");
 		timer( START, begin_preprocessing, "for preprocessing");
 		hull_initializations();			// Initialize hull detection images and transfer them to the GPU (performed if SC_ON, MSC_ON, or SM_ON is true)		
@@ -377,9 +369,7 @@ int main(int argc, char** argv)
 		reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
 		
 		sprintf( statement, "Proton counting and initializations complete");
-		system("echo -e \"\e[0;31m\"" );
-		print_section_exit( statement, SECTION_EXIT_STRING );
-		system("echo -e \"\e[m\"" );
+		print_section_exit( statement, SECTION_EXIT_STRING, DARK, RED );
 		/********************************************************************************************************************************************************/
 		/* Iteratively Read and Process Data One Chunk at a Time. There are at Most	MAX_GPU_HISTORIES Per Chunk (i.e. Iteration). On Each Iteration:			*/
 		/*	(1) Read data from file																																*/
@@ -389,14 +379,14 @@ int main(int argc, char** argv)
 		/*		storage std::vectors																															*/
 		/*	(5) Free up temporary host/GPU array memory allocated during iteration																				*/
 		/********************************************************************************************************************************************************/
-		system("echo -e \"\e[0;36m\"" );
 		sprintf( statement, "Read data from disk and perform preprocessing");
-		print_section_header( statement, '*' );
-		system("echo -e \"\e[m\"" );
-		
-		puts("Iteratively reading data from hard disk");
-		puts("Removing proton histories that don't pass through the reconstruction volume");
-		puts("Binning the data from those that did...\n");
+		print_section_header( statement, '*', DARK, BLUE );
+		sprintf( statement, "Iteratively reading data from hard disk");
+		print_colored_text( statement, DARK, CYAN );	
+		sprintf( statement, "Removing proton histories that don't pass through the reconstruction volume");
+		print_colored_text( statement, DARK, CYAN );	
+		sprintf( statement, "Binning the data from those that did...\n");
+		print_colored_text( statement, DARK, CYAN );	
 		timer( START, begin_data_reads, "for reading data, coordinate conversions/intersections, hull detection counts, and binning");
 		int start_file_num = 0, end_file_num = 0, histories_2_process = 0;
 		while( start_file_num != NUM_FILES )
@@ -410,6 +400,7 @@ int main(int argc, char** argv)
 				end_file_num++;
 			}
 			read_data_chunk( histories_2_process, start_file_num, end_file_num );
+			//histories_2_process = 1500000;
 			recon_volume_intersections( histories_2_process );
 			binning( histories_2_process );
 			hull_detection( histories_2_process );
@@ -418,21 +409,16 @@ int main(int argc, char** argv)
 			start_file_num = end_file_num;
 			histories_2_process = 0;
 		}		
-		//system("echo -e \"\e[0;32m\"" );
 		execution_time_data_reads = timer( STOP, begin_data_reads, "for reading data, coordinate conversions/intersections, hull detection counts, and binning");
-		//system("echo -e \"\e[m\"" );
 		if( COUNT_0_WEPLS )
 			std::cout << "Histories with WEPL = 0 : " << zero_WEPL << std::endl;
-		//puts("Data reading complete.");
 		sprintf( statement, "Data reading complete.");
-		system("echo -e \"\e[0;31m\"" );
-		print_section_exit( statement, SECTION_EXIT_STRING );
-		system("echo -e \"\e[m\"" );
+		print_section_exit( statement, SECTION_EXIT_STRING, DARK, RED );
 		
-		system("echo -e \"\e[0;32m\"" );
-		printf("%d out of %d (%4.2f%%) histories traversed the reconstruction volume\n", recon_vol_histories, total_histories, (double) recon_vol_histories / total_histories * 100  );
+		percentage_pass_intersection_cuts = (double) recon_vol_histories / total_histories * 100;
+		sprintf(statement, "%d out of %d (%4.2f%%) histories traversed the reconstruction volume", recon_vol_histories, total_histories, percentage_pass_intersection_cuts );
 		//shrink_vectors( recon_vol_histories );	// Shrink vector capacities to their size = # histories remaining reconstruction volume intersection cuts
-		system("echo -e \"\e[m\"" );
+		print_colored_text( statement, DARK, GREEN );
 		
 		hull_detection_finish();
 		exit_program_if( EXIT_AFTER_HULLS, "through hull detection" );
@@ -442,11 +428,8 @@ int main(int argc, char** argv)
 		/* relative ut-angle, and mean relative uv-angle and relative uv-angle for each history. The standard deviation is then found by calculating the sum	*/
 		/* of these differences for each bin and dividing it by the number of histories in the bin 																*/
 		/********************************************************************************************************************************************************/
-		//puts("Calculating the cumulative sum of the squared deviation in WEPL and relative ut/uv angles over all histories for each bin...");
-		system("echo -e \"\e[0;36m\"" );
 		sprintf( statement, "Calculating the cumulative sum of the squared deviation in WEPL and relative ut/uv angles over all histories for each bin");
-		print_section_header( statement, '-' );
-		system("echo -e \"\e[m\"" );
+		print_section_header( statement, '-', DARK, BLUE );
 
 		int remaining_histories = recon_vol_histories;
 		int start_position = 0;
@@ -466,14 +449,14 @@ int main(int argc, char** argv)
 		/********************************************************************************************************************************************************/
 		/* Iterate through the valid history vectors one chunk at a time, with at most MAX_GPU_HISTORIES per chunk, and perform statistical cuts				*/
 		/********************************************************************************************************************************************************/
-		system("echo -e \"\e[0;36m\"" );
 		sprintf( statement, "Perform statistical cuts and use the remaining data to generate the sinogram and FBP image");
-		print_section_header( statement, '-' );
-		system("echo -e \"\e[m\"" );
+		print_section_header( statement, '-', DARK, BLUE );
 		
 		remaining_histories = recon_vol_histories, start_position = 0;
 		initialize_sinogram();
-		puts("Performing statistical cuts...");
+		
+		sprintf( statement, "Performing statistical cuts...");
+		print_colored_text( statement, DARK, CYAN );	
 		while( remaining_histories > 0 )
 		{
 			if( remaining_histories > MAX_CUTS_HISTORIES )
@@ -484,16 +467,13 @@ int main(int argc, char** argv)
 			remaining_histories -= MAX_CUTS_HISTORIES;
 			start_position		+= MAX_CUTS_HISTORIES;
 		}
-		//puts("Statistical cuts complete.");
-		system("echo -e \"\e[0;31m\"" );
 		sprintf( statement, "Statistical cuts complete.");
-		print_section_exit( statement, SECTION_EXIT_STRING );
-		system("echo -e \"\e[m\"" );
+		print_section_exit( statement, SECTION_EXIT_STRING, DARK, RED );
 		
-		system("echo -e \"\e[0;32m\"" );
-		printf("%d out of %d (%4.2f%%) histories also passed statistical cuts\n", post_cut_histories, total_histories, (double) post_cut_histories / total_histories * 100  );
-		system("echo -e \"\e[m\"" );
-		
+		percentage_pass_statistical_cuts = (double) post_cut_histories / total_histories * 100;
+		sprintf(statement, "%d out of %d (%4.2f%%) histories also passed statistical cuts", post_cut_histories, total_histories, percentage_pass_statistical_cuts );
+		print_colored_text( statement, DARK, GREEN );
+
 		post_cut_memory_clean();
 		resize_vectors( post_cut_histories );
 		//shrink_vectors( post_cut_histories );
@@ -501,80 +481,59 @@ int main(int argc, char** argv)
 		/********************************************************************************************************************************************************/
 		/* Generate the sinogram from remaining histories after cuts, perform filtered backprojection, and generate/define the hull/initial iterate to use		*/
 		/********************************************************************************************************************************************************/
-		system("echo -e \"\e[0;36m\"" );
-		puts("Constructing sinogram...");
-		system("echo -e \"\e[m\"" );
+		sprintf( statement, "Constructing sinogram...");
+		print_colored_text( statement, DARK, CYAN );	
 		
 		construct_sinogram();
-		exit_program_if( EXIT_AFTER_SINOGRAM, "through sinorgram generation" );
+		exit_program_if( EXIT_AFTER_SINOGRAM, "through sinogram generation" );
 		if( FBP_ON )
 			FBP();
 		exit_program_if( EXIT_AFTER_FBP, "through FBP" );
 		hull_selection();
 		define_initial_iterate();
-		system("echo -e \"\e[0;31m\"" );
-		sprintf( statement, "Preprocessing complete");
-		print_section_exit(statement, SECTION_EXIT_STRING );
-		system("echo -e \"\e[m\"" );
 
-		//system("echo -e \"\e[0;32m\"" );
+		sprintf( statement, "Preprocessing complete");
+		print_section_exit(statement, SECTION_EXIT_STRING, DARK, RED );
+
 		execution_time_preprocessing = timer( STOP, begin_preprocessing, "for preprocessing");
-		//system("echo -e \"\e[m\"" );
 		
 		/********************************************************************************************************************************************************/
 		/* Perform image reconstruction																							*/
 		/********************************************************************************************************************************************************/		
-		system("echo -e \"\e[0;36m\"" );
 		sprintf( statement, "Image Reconstruction");
-		print_section_header( statement, '*' );
-		system("echo -e \"\e[m\"" );
+		print_section_header( statement, '*', DARK, BLUE );
 		
 		timer( START, begin_reconstruction, "for complete image reconstruction");
 		//image_reconstruction();
 		//image_reconstruction_GPU(); // Write to the external file	 	
 		//image_reconstruction_GPU_tabulated();
 		image_reconstruction_GPU_testing(); // Write to the external file	 	
-		//system("echo -e \"\e[0;32m\"" );
+		sprintf(statement, "Image reconstruction complete: ");
+		print_section_exit( statement, SECTION_EXIT_STRING, DARK, RED );
+		
+		execution_time_DROP = timer( STOP, begin_DROP, "for all iterations of DROP");
 		execution_time_reconstruction = timer( STOP, begin_reconstruction, "for complete image reconstruction");
-		//system("echo -e \"\e[m\"" );
 		if( WRITE_X ) 
-		{
-			char x[] ={"x"};
-			array_2_disk(x, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-		}
-		system("echo -e \"\e[0;31m\"" );
-		sprintf( statement, "Reconstruction complete");
-		print_section_exit( statement, SECTION_EXIT_STRING );
-		system("echo -e \"\e[m\"" );
+			array_2_disk(X_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		print_section_exit( statement, SECTION_EXIT_STRING, DARK, RED );
+		/********************************************************************************************************************************************************/
+		/* PROGRAM COMPLETION TASKS																				*/
+		/********************************************************************************************************************************************************/		
+		sprintf( statement, "Program has finished execution.");
+		print_section_exit( statement, SECTION_EXIT_STRING, DARK, RED );
+
+		execution_time_program = timer( STOP, begin_program, "for entire program");	
+		execution_times_2_txt();
+		execution_times_2_csv();
+		apply_permissions();
 	}
 	else
 	{
-		test_func();
-		puts("finished program");
+		test_func();			
 	}
 	/************************************************************************************************************************************************************/
 	/* Program has finished execution. Require the user to hit enter to terminate the program and close the terminal/console window	and write execution times to disk							*/ 															
-	/************************************************************************************************************************************************************/
-	//puts("Preprocessing and/or reconstruction complete.  Press enter to close the console window...");
-	system("echo -e \"\e[0;31m\"" );
-	sprintf( statement, "Preprocessing and/or reconstruction complete.");
-	print_section_exit( statement, SECTION_EXIT_STRING );
-	system("echo -e \"\e[m\"" );
-		
-	//system("echo -e \"\e[0;32m\"" );
-	execution_time_program = timer( STOP, begin_program, "for entire program");
-	//system("echo -e \"\e[m\"" );
-		
-	//execution_times_2_txt();
-	system("echo -e \"\e[0;31m\"" );
-	sprintf( statement, "PROGRAM HAS COMPLETED EXECUTION");
-	print_section_exit( statement, SECTION_EXIT_STRING );
-	system("echo -e \"\e[m\"" );
-	
-	execution_times_2_txt();
-	execution_times_2_csv();
-
-	apply_permissions();
+	/************************************************************************************************************************************************************/	
 	exit_program_if(true);
 	//exit(1);
 }
@@ -612,6 +571,7 @@ bool is_bad_angle( const int angle )
 }
 void timer( bool start, clock_t& start_time, clock_t& end_time, double& execution_time, const char* statement )
 {
+	char statement_out[256];
 	if( start )
 		start_time = clock();
 	else if( !start )
@@ -619,15 +579,15 @@ void timer( bool start, clock_t& start_time, clock_t& end_time, double& executio
 		end_time = clock();
 		clock_t execution_clock_cycles = (end_time - start_time);
 		execution_time = static_cast<double>( execution_clock_cycles) / CLOCKS_PER_SEC;
-		system("echo -e \"\e[0;32m\"" );
-		printf( "Total execution time %s: %3f [seconds]\n", statement, execution_time );	
-		system("echo -e \"\e[m\"" );
+		sprintf(statement_out, "Total execution time %s: %3f [seconds]\n", statement, execution_time );	
+		print_colored_text( statement_out, LIGHT, BROWN );
 	}
 	else
 		puts("ERROR: Invalid timer control parameter passed");
 }
 double timer( bool start, clock_t& start_time, const char* statement )
 {
+	char statement_out[256];
 	double execution_time = 0.0;
 	if( start )
 		start_time = clock();
@@ -635,14 +595,12 @@ double timer( bool start, clock_t& start_time, const char* statement )
 	{
 		clock_t end_time = clock();
 		clock_t execution_clock_cycles = (end_time - start_time);
-		system("echo -e \"\e[0;32m\"" );
 		execution_time = static_cast<double>( execution_clock_cycles) / CLOCKS_PER_SEC;
-		printf( "Total execution time %s: %3f [seconds]\n", statement, execution_time );	
-		system("echo -e \"\e[m\"" );
+		sprintf(statement_out, "Total execution time %s: %3f [seconds]\n", statement, execution_time );	
+		print_colored_text( statement_out, LIGHT, BROWN );
 	}
 	return execution_time;
 }
-
 void pause_execution()
 {
 	clock_t pause_start, pause_end;
@@ -664,7 +622,7 @@ void exit_program_if( bool early_exit, const char* statement)
 		double execution_time;
 		timer( STOP, program_start, program_end, execution_time, statement );
 		char statement[] = "Press 'ENTER' to exit program and close console window";
-		print_section_header( statement, '*' );
+		print_section_header( statement, '*', DARK, CYAN );
 		fgets(user_response, sizeof(user_response), stdin);
 		exit(1);
 	}
@@ -754,23 +712,44 @@ bool file_exists3 (char* file_location)
 } 
 void apply_permissions()
 {
+	char statement[256];
 	char hostname_command[] = "echo $HOSTNAME";
+	char permission_commands[256];
 	std::string terminal_string = terminal_response(hostname_command);
 	terminal_string.erase (terminal_string.length()-1,1); 
-	std::string workstation_name("tardis-student2.ecs.baylor.edu");
-	std::string jpertwee_name("ecsn003");
+	std::string workstation_1_name("tardis-student1.ecs.baylor.edu");
+	std::string workstation_2_name("tardis-student2.ecs.baylor.edu");
+	std::string kodiak_name("n130");
+	std::string whartnell_name("whartnell");
+	std::string whartnell_ID("ecsn001");
+	std::string jpertwee_ID("ecsn003");
+	std::string jpertwee_name("jpertwee");
 	//std::cout << "terminal string output =" << terminal_string << ";" << endl;
 	//std::cout << "workstation_name string =" << workstation_name << ";" << endl;
 	//std::cout << (terminal_string.compare(workstation_name) == 0) << endl;
-	if( terminal_string.compare(jpertwee_name) == 0 )
+	if( terminal_string.compare(jpertwee_ID) == 0 )
 	{
-		puts("Setting permissions on JPertwee");
-		system("chmod -R 777 /local/organized_data/*");
-		system("chmod -R 777 /local/reconstruction_data/*");
+		//puts("Setting permissions on JPertwee");
+		sprintf( statement, "Setting permissions on JPertwee...");
+		print_colored_text( statement, LIGHT, BLUE );	
+		
+		sprintf(permission_commands, "chmod -R 777 %s%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE );
+		//system("chmod -R 777 /local/organized_data/*");
+		system(permission_commands);
+		//sprintf(permission_commands, "chmod -R 777 %s%s//*", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE );
+		//system("chmod -R 777 /local/pCT_code/*");
 	}
-	else if( terminal_string.compare(workstation_name) == 0 )
+	//else if( (terminal_string.compare(whartnell_name) == 0) || (terminal_string.compare(whartnell_ID) )
+	//{
+	//	puts("Setting permissions on WHartnell");
+	//	//system("chmod -R 777 /local/organized_data/*");
+	//	system("chmod -R 777 /local/reconstruction_data/*");
+	//	system("chmod -R 777 /local/pCT_code/*");
+	//}
+	else if( terminal_string.compare(workstation_2_name) == 0 )
 	{
-		puts("Setting permissions on Workstation #2");
+		sprintf( statement, "Setting permissions on Workstation #2...");
+		print_colored_text( statement, LIGHT, BLUE );	
 		system("chmod -R 777 /home/share/*");
 	}
 	// Workstation #2
@@ -778,6 +757,10 @@ void apply_permissions()
 	//// Jpertwee
 	//system("chmod -R 777 /local/organized_data/*");
 	//system("chmod -R 777 /local/pct_code/*");
+}
+void post_reconstruction_result_transfers()
+{
+	
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************** Memory Transfers, Maintenance, and Cleaning ************************************************************************************/
@@ -910,8 +893,8 @@ void initialize_stddev()
 }
 void post_cut_memory_clean()
 {
-	puts("Freeing unnecessary memory, resizing vectors, and shrinking vectors to fit just the remaining histories...");
-
+	char statement[] = "Freeing unnecessary memory, resizing vectors, and shrinking vectors to fit just the remaining histories...";
+	print_colored_text( statement, LIGHT, CYAN );
 	//free(failed_cuts_h );
 	free(stddev_rel_ut_angle_h);
 	free(stddev_rel_uv_angle_h);
@@ -1025,7 +1008,7 @@ void count_histories()
 		case VERSION_0  : count_histories_v0();		break;
 		case VERSION_1  : count_histories_v1();		break;
 	}
-	if( DEBUG_TEXT_ON )
+	/*if( DEBUG_TEXT_ON )
 	{
 		for( int file_number = 0, gantry_position_number = 0; file_number < (NUM_SCANS * GANTRY_ANGLES); file_number++, gantry_position_number++ )
 		{
@@ -1037,7 +1020,7 @@ void count_histories()
 		for( int scan_number = 0; scan_number < NUM_SCANS; scan_number++ )
 			printf("There are a total of %d histories in Scan Number %d \n", histories_per_scan[scan_number], scan_number + 1);
 		printf("There are a total of %d histories\n", total_histories);
-	}
+	}*/
 }
 void count_histories_old()
 {
@@ -1084,7 +1067,8 @@ void count_histories_v0()
 {
 	char data_filename[256];
 	float projection_angle;
-	unsigned int magic_number, num_histories, file_number = 0, gantry_position_number = 0;
+	unsigned int num_histories, file_number = 0, gantry_position_number = 0;
+	char magic_number_string[5];
 	for( unsigned int gantry_angle = 0; gantry_angle < 360; gantry_angle += int(GANTRY_ANGLE_INTERVAL), gantry_position_number++ )
 	{
 		for( unsigned int scan_number = 1; scan_number <= NUM_SCANS; scan_number++, file_number++ )
@@ -1111,19 +1095,27 @@ void count_histories_v0()
 				exit_program_if(true);
 			}
 			
-			fread(&magic_number, 4, 1, data_file );
-			if( magic_number != MAGIC_NUMBER_CHECK ) 
+			//fread(&magic_number, 4, 1, data_file );
+			//if( magic_number != MAGIC_NUMBER_CHECK ) 
+			//{
+			//	//puts(magic_number);
+			//	puts("Error: unknown file type (should be PCTD)!\n");
+			//	exit_program_if(true);
+			//}
+			fread(&magic_number_string, 4, 1, data_file );
+			magic_number_string[4] = '\0';
+			if( strcmp( magic_number_string, "PCTD" ) != 0 ) 
 			{
+				//puts(magic_number);
 				puts("Error: unknown file type (should be PCTD)!\n");
 				exit_program_if(true);
 			}
-
 			fread(&VERSION_ID, sizeof(int), 1, data_file );			
 			if( VERSION_ID == 0 )
 			{
 				fread(&num_histories, sizeof(int), 1, data_file );
-				if( DEBUG_TEXT_ON )
-					printf("There are %d Histories for Gantry Angle %d From Scan Number %d\n", num_histories, gantry_angle, scan_number);
+				//if( DEBUG_TEXT_ON )
+				//	printf("There are %d Histories for Gantry Angle %d From Scan Number %d\n", num_histories, gantry_angle, scan_number);
 				histories_per_file[file_number] = num_histories;
 				histories_per_gantry_angle[gantry_position_number] += num_histories;
 				histories_per_scan[scan_number-1] += num_histories;
@@ -1149,8 +1141,8 @@ void count_histories_v0()
 			else if( VERSION_ID == 1 )
 			{
 				fread(&num_histories, sizeof(int), 1, data_file );
-				if( DEBUG_TEXT_ON )
-					printf("There are %d Histories for Gantry Angle %d From Scan Number %d\n", num_histories, gantry_angle, scan_number);
+				//if( DEBUG_TEXT_ON )
+				//	printf("There are %d Histories for Gantry Angle %d From Scan Number %d\n", num_histories, gantry_angle, scan_number);
 				histories_per_file[file_number] = num_histories;
 				histories_per_gantry_angle[gantry_position_number] += num_histories;
 				histories_per_scan[scan_number-1] += num_histories;
@@ -1774,10 +1766,12 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 		u3 (float * N)
 		WEPL in mm (float * N)
 	*/
-	char data_filename[128];
+	char data_filename[128], statement[256];
 	unsigned int gantry_position, gantry_angle, scan_number, file_histories, array_index = 0, histories_read = 0;
 
-	printf("%d histories to be read from %d files\n", num_histories, end_file_num - start_file_num + 1 );
+	sprintf(statement, "%d histories to be read from %d files", num_histories, end_file_num - start_file_num + 1 );
+	print_colored_text( statement, LIGHT, CYAN );	
+		
 	for( unsigned int file_num = start_file_num; file_num <= end_file_num; file_num++ )
 	{	
 		gantry_position = file_num / NUM_SCANS;
@@ -1794,8 +1788,9 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 		}
 		if( VERSION_ID == 0 )
 		{
-			printf("\t");
-			printf("Reading %d histories for gantry angle %d from scan number %d...\n", file_histories, gantry_angle, scan_number );			
+			//printf("\t");
+			sprintf(statement, "\tReading %d histories for gantry angle %d from scan number %d...", file_histories, gantry_angle, scan_number );			
+			print_colored_text( statement, LIGHT, CYAN );	
 			fseek( data_file, SKIP_2_DATA_SIZE, SEEK_SET );
 
 			fread( &t_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
@@ -1819,8 +1814,8 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 		}
 		else if( VERSION_ID == 1 )
 		{
-			printf("\t");
-			printf("Reading %d histories for gantry angle %d from scan number %d...\n", file_histories, gantry_angle, scan_number );			
+			sprintf(statement, "\tReading %d histories for gantry angle %d from scan number %d...", file_histories, gantry_angle, scan_number );			
+			print_colored_text( statement, LIGHT, CYAN );	
 			fseek( data_file, SKIP_2_DATA_SIZE, SEEK_SET );
 
 			fread( &t_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
@@ -2552,10 +2547,9 @@ void binning( const int num_histories )
 		}
 	}
 	char statement[256];
-	sprintf(statement, "=======>%d out of %d (%4.2f%%) histories passed intersection cuts\n\n", offset, num_histories, (double) offset / num_histories * 100 );
-	system("echo -e \"\e[0;32m\"" );
-	puts(statement);//printf( "=======>%d out of %d (%4.2f%%) histories passed intersection cuts\n\n", offset, num_histories, (double) offset / num_histories * 100 );
-	system("echo -e \"\e[m\"" );
+	percentage_pass_each_intersection_cut = (double) offset / num_histories * 100.0;
+	sprintf(statement, "=======>%d out of %d (%4.2f%%) histories passed intersection cuts", offset, num_histories, percentage_pass_each_intersection_cut );
+	print_colored_text(statement, DARK, GREEN );
 	
 	free( missed_recon_volume_h ); 
 	free( bin_num_h );
@@ -2661,7 +2655,10 @@ __global__ void binning_GPU
 /***********************************************************************************************************************************************************************************************************************/
 void calculate_means()
 {
-	puts("Calculating the Mean for Each Bin Before Cuts...");
+	char statement[] = "Calculating the Mean for Each Bin Before Cuts...";
+	//puts("Calculating the Mean for Each Bin Before Cuts...");
+	//sprintf(statement, "\tReading %d histories for gantry angle %d from scan number %d...\n", file_histories, gantry_angle, scan_number );			
+	print_colored_text( statement, LIGHT, CYAN );	
 	//cudaMemcpy( mean_WEPL_h,	mean_WEPL_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	//	int* empty_parameter;
 	//	bins_2_disk( "WEPL_dist_pre_test2", empty_parameter, mean_WEPL_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
@@ -2685,15 +2682,10 @@ void calculate_means()
 	cudaMemcpy( mean_rel_ut_angle_h,	mean_rel_ut_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	cudaMemcpy( mean_rel_uv_angle_h,	mean_rel_uv_angle_d,	SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost );
 	
-	char bin_counts[] = {"bin_counts_h_pre"};
-	char mean_wepl[] = {"mean_WEPL_h"};
-	char mean_rel_ut[] ={"mean_rel_ut_angle_h"};
-	char mean_rel_uv[] = {"mean_rel_uv_angle_h"};
-	
-	array_2_disk(bin_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(mean_wepl, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(mean_rel_ut, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(mean_rel_uv, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(BIN_COUNTS_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(MEAN_WEPL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(MEAN_REL_UT_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(MEAN_REL_UV_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, mean_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	free(bin_counts_h);
 	free(mean_WEPL_h);
@@ -2776,7 +2768,8 @@ __global__ void sum_squared_deviations_GPU
 }
 void calculate_standard_deviations()
 {
-	puts("Calculating standard deviations for each bin...");
+	char statement[] = "Calculating standard deviations for each bin...";		
+	print_colored_text( statement, LIGHT, CYAN );	
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
 	calculate_standard_deviations_GPU<<< dimGrid, dimBlock >>>
@@ -2786,14 +2779,10 @@ void calculate_standard_deviations()
 	cudaMemcpy( stddev_rel_ut_angle_h,	stddev_rel_ut_angle_d,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
 	cudaMemcpy( stddev_rel_uv_angle_h,	stddev_rel_uv_angle_d,	SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
 	cudaMemcpy( stddev_WEPL_h,			stddev_WEPL_d,			SIZE_BINS_FLOAT,	cudaMemcpyDeviceToHost );
-	
-	char stddev_rel_ut[]={"stddev_rel_ut_angle_h"};
-	char stddev_rel_uv[]={"stddev_rel_uv_angle_h"};
-	char stddev_wepl[]={"stddev_WEPL_h"};
 
-	array_2_disk(stddev_rel_ut, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(stddev_rel_uv, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-	array_2_disk(stddev_wepl, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(STDDEV_REL_UT_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_ut_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(STDDEV_REL_UV_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_rel_uv_angle_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk(STDDEV_WEPL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, stddev_WEPL_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	//cudaFree( bin_counts_d );
 }
 __global__ void calculate_standard_deviations_GPU( int* bin_counts, float* stddev_WEPL, float* stddev_rel_ut_angle, float* stddev_rel_uv_angle )
@@ -2940,7 +2929,8 @@ __global__ void statistical_cuts_GPU
 /***********************************************************************************************************************************************************************************************************************/
 void initialize_sinogram()
 {
-	puts("Allocating host/GPU memory and initializing sinogram...");
+	char statement[] = "Allocating host and GPU memory and initializing sinogram...";		
+	print_colored_text( statement, LIGHT, CYAN );	
 	sinogram_h = (float*) calloc( NUM_BINS, sizeof(float) );
 	if( sinogram_h == NULL )
 	{
@@ -2952,16 +2942,16 @@ void initialize_sinogram()
 }
 void construct_sinogram()
 {
-	puts("Recalculating the mean WEPL for each bin and constructing the sinogram...");
+	char statement[] = "Recalculating the mean WEPL for each bin and constructing the sinogram...";		
+	print_colored_text( statement, LIGHT, CYAN );	
+
 	bin_counts_h		  = (int*)	 calloc( NUM_BINS, sizeof(int) );
-	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
-	char bin_counts_pre[] ={"bin_counts_pre"};
-	array_2_disk( bin_counts_pre, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-
+	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;	
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
-	char sinogram_pre[]={"sinogram_pre"};
-	array_2_disk(sinogram_pre, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-
+	
+	array_2_disk(SINOGRAM_PRE_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk( BIN_COUNTS_PRE_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   
 	construct_sinogram_GPU<<< dimGrid, dimBlock >>>( bin_counts_d, sinogram_d );
@@ -2973,12 +2963,11 @@ void construct_sinogram()
 		//bins_2_disk( "WEPL_dist_post_test2", empty_parameter, sinogram_h, NUM_BINS, MEANS, ALL_BINS, BY_BIN );
 	}
 	cudaMemcpy(sinogram_h,  sinogram_d, SIZE_BINS_FLOAT, cudaMemcpyDeviceToHost);
-	char sinogram[]={"sinogram"};
-	array_2_disk(sinogram, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
-
 	cudaMemcpy(bin_counts_h, bin_counts_d, SIZE_BINS_INT, cudaMemcpyDeviceToHost) ;
-	char bin_counts_post[]={"bin_counts_post"};
-	array_2_disk( bin_counts_post, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	
+	array_2_disk(SINOGRAM_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, sinogram_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	array_2_disk( BIN_COUNTS_POST_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
+	
 	cudaFree(bin_counts_d);
 }
 __global__ void construct_sinogram_GPU( int* bin_counts, float* sinogram )
@@ -2995,9 +2984,10 @@ void FBP()
 
 	free(sinogram_h);
 	cudaFree(sinogram_d);
-
-	puts("Performing backprojection...");
-
+	char statement[256];
+	sprintf(statement, "Performing backprojection...");		
+	print_colored_text( statement, LIGHT, CYAN );	
+	
 	FBP_image_h = (float*) calloc( NUM_VOXELS, sizeof(float) );
 	if( FBP_image_h == NULL ) 
 	{
@@ -3017,8 +3007,7 @@ void FBP()
 	if( WRITE_FBP_IMAGE )
 	{
 		cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
-		char fbp_image[]={"FBP_image_h"};
-		array_2_disk( fbp_image, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+		array_2_disk( FBP_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 	}
 
 	if( IMPORT_FILTERED_FBP)
@@ -3031,12 +3020,13 @@ void FBP()
 		sprintf(IMPORT_FBP_PATH,"%s%s/%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, IMPORT_FBP_FILENAME, 2*FBP_MEDIAN_RADIUS+1,".bin" );
 		import_image( image, IMPORT_FBP_PATH );
 		FBP_image_h = image;
-		char fbp_after[]={"FBP_after"};
-		array_2_disk( fbp_after, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		array_2_disk( FBP_AFTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, image, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
 	else if( AVG_FILTER_FBP )
 	{
-		puts("Applying average filter to FBP image...");
+		//puts("Applying average filter to FBP image...");
+		sprintf(statement, "Applying average filter to FBP image...");		
+		print_colored_text( statement, LIGHT, CYAN );	
 		//cout << FBP_image_d << endl;
 		//float* FBP_image_filtered_d;
 		FBP_image_filtered_h = FBP_image_h;
@@ -3045,23 +3035,28 @@ void FBP()
 
 		//averaging_filter( FBP_image_h, FBP_image_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
 		averaging_filter( FBP_image_filtered_h, FBP_image_filtered_d, FBP_AVG_RADIUS, false, FBP_AVG_THRESHOLD );
-		puts("FBP Filtering complete");
+		//puts("FBP Filtering complete");
+		sprintf(statement, "FBP Filtering complete");		
+		print_colored_text( statement, LIGHT, RED );	
 		if( WRITE_AVG_FBP )
 		{
-			puts("Writing filtered hull to disk...");
+			//puts("Writing filtered hull to disk...");
+			sprintf(statement, "Writing filtered FBP to disk...");		
+			print_colored_text( statement, LIGHT, CYAN );	
 			//cudaMemcpy(FBP_image_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
 			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			cudaMemcpy(FBP_image_filtered_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			//cout << FBP_image_d << endl;
-			char fbp_image_filter[]={"FBP_image_filtered"};
-			array_2_disk( fbp_image_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk( FBP_IMAGE_FILTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//FBP_image_h = FBP_image_filtered_h;
 		}
 		cudaFree(FBP_image_filtered_d);
 	}
 	else if( MEDIAN_FILTER_FBP )
 	{
-		puts("Applying median filter to FBP image...");
+		//puts("Applying median filter to FBP image...");
+		sprintf(statement, "Applying median filter to FBP image...");		
+		print_colored_text( statement, LIGHT, CYAN );	
 		//cout << FBP_image_d << endl;
 		//float* FBP_image_filtered_d;
 		//FBP_median_filtered_h = FBP_image_h;
@@ -3069,33 +3064,40 @@ void FBP()
 		//cudaMemcpy( FBP_median_filtered_d, FBP_median_filtered_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
 		FBP_median_filtered_h = (float*)calloc(NUM_VOXELS, sizeof(float));
 		//averaging_filter( FBP_image_h, FBP_image_filtered_d, FBP_FILTER_RADIUS, false, FBP_FILTER_THRESHOLD );
-		median_filter( FBP_image_h, FBP_median_filtered_h, FBP_MEDIAN_RADIUS );
-		puts("FBP median filtering complete");
+		median_filter_2D( FBP_image_h, FBP_median_filtered_h, FBP_MEDIAN_RADIUS );
+		//FBP_image_h = FBP_image_filtered_h;
+		//puts("FBP median filtering complete");
+		sprintf(statement, "FBP median filtering complete");		
+		print_colored_text( statement, LIGHT, RED );	
 		if( WRITE_MEDIAN_FBP )
 		{
-			puts("Writing filtered hull to disk...");
+			//puts("Writing filtered hull to disk...");
+			sprintf(statement, "Writing filtered hull to disk...");		
+			print_colored_text( statement, LIGHT, CYAN );	
 			//cudaMemcpy(FBP_image_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost);
 			//array_2_disk( "FBP_image_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//cudaMemcpy(FBP_median_filtered_h, FBP_median_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			//cout << FBP_image_d << endl;
-			char fbp_median_filter[]={"FBP_median_filtered"};
-			array_2_disk( fbp_median_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_median_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-			//FBP_image_h = FBP_image_filtered_h;
+			array_2_disk( FBP_MEDIAN_FILTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_median_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );		
 		}
-		cudaFree(FBP_image_filtered_d);
-	}
-	
+		//cudaFree(FBP_image_filtered_d);
+	}	
 	// Generate FBP hull by thresholding FBP image
 	FBP_image_2_hull();
 
 	// Discard FBP image unless it is to be used as the initial iterate x_0 in iterative image reconstruction
 	if( X_0 != FBP_IMAGE && X_0 != HYBRID )
 		free(FBP_image_h);
+
+	sprintf(statement, "Filtered backprojection complete.");		
+	print_colored_text( statement, LIGHT, RED );				
 }
 void filter()
 {
-	puts("Filtering the sinogram...");	
-
+	char statement[] = "Filtering the sinogram...";	
+	//sprintf(statement, "Writing filtered hull to disk...");		
+	print_colored_text( statement, LIGHT, CYAN );	
+			
 	sinogram_filtered_h = (float*) calloc( NUM_BINS, sizeof(float) );
 	if( sinogram_filtered_h == NULL )
 	{
@@ -3306,8 +3308,10 @@ __global__ void backprojection_GPU( float* sinogram_filtered, float* FBP_image )
 }
 void FBP_image_2_hull()
 {
-	puts("Performing thresholding on FBP image to generate FBP hull...");
-
+	//puts("Performing thresholding on FBP image to generate FBP hull...");
+	char statement[] = "Performing thresholding on FBP image to generate FBP hull...";		
+	print_colored_text( statement, LIGHT, CYAN );	
+	
 	FBP_hull_h = (bool*) calloc( COLUMNS * ROWS * SLICES, sizeof(bool) );
 	initialize_hull( FBP_hull_h, FBP_hull_d );
 	dim3 dimBlock( SLICES );
@@ -3315,12 +3319,12 @@ void FBP_image_2_hull()
 	FBP_image_2_hull_GPU<<< dimGrid, dimBlock >>>( FBP_image_d, FBP_hull_d );	
 	cudaMemcpy( FBP_hull_h, FBP_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost );
 	
-	if( WRITE_FBP_HULL ) {
-		char x_fbp[]={"x_FBP"};
-		array_2_disk( x_fbp, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
+	if( WRITE_FBP_HULL )
+		array_2_disk( FBP_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 
 	if( MLP_HULL != FBP_HULL)	
 		free(FBP_hull_h);
+	
 	cudaFree(FBP_hull_d);
 	cudaFree(FBP_image_d);
 }
@@ -3635,8 +3639,11 @@ __global__ void MSC_GPU
 }
 void MSC_edge_detection()
 {
-	puts("Performing edge-detection on MSC_counts...");
-
+	//puts("Performing edge-detection on MSC_counts...");
+	char statement[256];
+	sprintf( statement, "Performing edge-detection on MSC_counts...");		
+	print_colored_text( statement, LIGHT, CYAN );	
+	
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( COLUMNS, ROWS );   
 	//int* MSC_counts_output_d;
@@ -3650,7 +3657,8 @@ void MSC_edge_detection()
 	//cudaFree(MSC_counts_d);
 	//MSC_counts_d = MSC_counts_output_d;
 	//cudaFree(MSC_counts_output_d);
-	puts("MSC hull-detection and edge-detection complete.");	
+	sprintf( statement, "MSC hull-detection and edge-detection complete.");	
+	print_colored_text( statement, LIGHT, RED );	
 }
 __global__ void MSC_edge_detection_GPU( int* MSC_counts )
 {
@@ -3674,6 +3682,10 @@ __global__ void MSC_edge_detection_GPU( int* MSC_counts )
 	__syncthreads();
 	if( max_difference > MSC_DIFF_THRESH || MSC_counts[voxel] > MSC_DIFF_THRESH)
 		MSC_counts[voxel] = 0;
+	//if( MSC_counts[voxel] > MSC_DIFF_THRESH)
+	//	MSC_counts[voxel] = 0;
+	//if( max_difference > MSC_DIFF_THRESH )
+	//	MSC_counts[voxel] = 0;
 	else
 		MSC_counts[voxel] = 1;
 	if( pow(x, 2) + pow(y, 2) >= pow(RECON_CYL_RADIUS - max(VOXEL_WIDTH, VOXEL_HEIGHT)/2, 2 ) )
@@ -3824,8 +3836,10 @@ __global__ void SM_GPU
 }
 void SM_edge_detection()
 {
-	puts("Performing edge-detection on SM_counts...");	
-
+	//puts("Performing edge-detection on SM_counts...");	
+	char statement[] = "Performing edge-detection on SM_counts...";		
+	print_colored_text( statement, LIGHT, CYAN );	
+	
 	/*if( WRITE_SM_COUNTS )
 	{
 		cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
@@ -3871,7 +3885,10 @@ void SM_edge_detection()
 
 	SM_edge_detection_GPU<<< dimGrid, dimBlock >>>( SM_counts_d, SM_thresholds_d);
 	
-	puts("SM hull-detection and edge-detection complete.");
+	//puts("SM hull-detection and edge-detection complete.");
+	sprintf(statement, "SM hull-detection and edge-detection complete.");		
+	print_colored_text( statement, LIGHT, RED );	
+	
 	//cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
 	//cudaFree( SM_counts_d );
 	cudaFree( SM_differences_d );
@@ -3903,12 +3920,12 @@ __global__ void SM_edge_detection_GPU( int* SM_counts, int* SM_threshold )
 }
 void SM_edge_detection_2()
 {
-	puts("Performing edge-detection on SM_counts...");
-
+	char statement[] = "Performing edge-detection on SM_counts...";		
+	print_colored_text( statement, LIGHT, CYAN );	
+	
 	// Copy the space modeled image from the GPU to the CPU and write it to file.
 	cudaMemcpy(SM_counts_h,  SM_counts_d,	 SIZE_IMAGE_INT,   cudaMemcpyDeviceToHost);
-	char sm_counts[]={"SM_counts"};
-	array_2_disk(sm_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
+	//array_2_disk(SM_COUNTS_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, false );
 
 	int* SM_differences_h = (int*) calloc( NUM_VOXELS, sizeof(int) );
 	int* SM_differences_d;
@@ -3956,9 +3973,8 @@ void SM_edge_detection_2()
 	free(SM_differences_h);
 	free(SM_thresholds_h);
 	
-	if( WRITE_SM_HULL ) {
-	  char x_sm[]={"x_SM"};
-		array_2_disk(x_sm, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
+	//if( WRITE_SM_HULL )
+	 	//array_2_disk(SM_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	if( MLP_HULL != SM_HULL)
 		free(SM_counts_h);	
 }
@@ -4008,18 +4024,17 @@ __global__ void SM_edge_detection_GPU_2( int* SM_counts, int* SM_differences )
 void hull_detection_finish()
 {
 	char statement[] = {"Finishing hull detection and writing resulting images to disk..."};
-	system("echo -e \"\e[0;31m\"" );
-	print_section_exit( statement, SECTION_EXIT_STRING );
-	system("echo -e \"\e[m\"" );
+	print_section_exit( statement, SECTION_EXIT_STRING, LIGHT, CYAN );
 	if( SC_ON )
 	{
 		SC_hull_h = (bool*) calloc( NUM_VOXELS, sizeof(bool) );
 		cudaMemcpy(SC_hull_h,  SC_hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
 		if( WRITE_SC_HULL )
 		{
-			puts("Writing SC hull to disk...");
-			char x_sc[]={"x_SC"};
-			array_2_disk(x_sc, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SC_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			//puts("Writing SC hull to disk...");
+			sprintf(statement, "Writing SC hull to disk...");		
+			print_colored_text( statement, LIGHT, CYAN );	
+			array_2_disk(SC_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SC_hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 		if( MLP_HULL != SC_HULL )
 			free( SC_hull_h );
@@ -4030,10 +4045,11 @@ void hull_detection_finish()
 		MSC_counts_h = (int*) calloc( NUM_VOXELS, sizeof(int) );
 		if( WRITE_MSC_COUNTS )
 		{		
-			puts("Writing MSC counts to disk...");		
+			//puts("Writing MSC counts to disk...");		
+			sprintf(statement, "Writing MSC counts to disk...");		
+			print_colored_text( statement, LIGHT, CYAN );	
 			cudaMemcpy(MSC_counts_h,  MSC_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-			char msc_counts[]={"MSC_counts_h"};
-			array_2_disk(msc_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+			array_2_disk(MSC_COUNTS_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 		}
 		if( WRITE_MSC_HULL || (MLP_HULL == MSC_HULL) )
 		{
@@ -4041,9 +4057,10 @@ void hull_detection_finish()
 			cudaMemcpy(MSC_counts_h,  MSC_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
 			if( WRITE_MSC_HULL )
 			{
-				puts("Writing MSC hull to disk...");	
-				char x_msc[]={"x_MSC"};
-				array_2_disk(x_msc, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+				//puts("Writing MSC hull to disk...");	
+				sprintf(statement, "Writing MSC hull to disk...");		
+				print_colored_text( statement, LIGHT, CYAN );	
+				array_2_disk(MSC_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, MSC_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 			}
 			cudaFree(MSC_counts_d);
 		}
@@ -4055,10 +4072,11 @@ void hull_detection_finish()
 		SM_counts_h = (int*) calloc( NUM_VOXELS, sizeof(int) );
 		if( WRITE_SM_COUNTS )
 		{		
-			puts("Writing SM counts to disk...");
+			//puts("Writing SM counts to disk...");
+			sprintf(statement, "Writing SM counts to disk...");		
+			print_colored_text( statement, LIGHT, CYAN );	
 			cudaMemcpy(SM_counts_h,  SM_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
-			char sm_counts[]={"SM_counts_h"};
-			array_2_disk(sm_counts, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+			array_2_disk(SM_COUNTS_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 		}
 		if( WRITE_SM_HULL || (MLP_HULL == SM_HULL) )
 		{
@@ -4066,9 +4084,10 @@ void hull_detection_finish()
 			cudaMemcpy(SM_counts_h,  SM_counts_d, SIZE_IMAGE_INT, cudaMemcpyDeviceToHost);
 			if( WRITE_SM_HULL )
 			{
-				puts("Writing SM hull to disk...");	
-				char x_sm[]={"x_SM"};
-				array_2_disk(x_sm, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+				//puts("Writing SM hull to disk...");	
+				sprintf(statement, "Writing SM hull to disk...");		
+				print_colored_text( statement, LIGHT, CYAN );	
+				array_2_disk(SM_HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, SM_counts_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
 			}
 			cudaFree(SM_counts_d);
 		}
@@ -4088,8 +4107,11 @@ void hull_conversion_int_2_bool( int* int_hull )
 }
 void hull_selection()
 {
-	puts("Performing hull selection...");
-
+	//puts("Performing hull selection...");
+	char statement[256];
+	sprintf(statement, "Performing hull selection...");	
+	print_colored_text( statement, LIGHT, CYAN );	
+			
 	hull_h = (bool*) calloc( NUM_VOXELS, sizeof(bool) );
 	switch( MLP_HULL )
 	{
@@ -4100,34 +4122,38 @@ void hull_selection()
 						// std::transform( SM_counts_h,  SM_counts_h + NUM_VOXELS,  SM_counts_h,  hull_h, std::multiplies<int> () );		break;
 		case FBP_HULL : hull_h = FBP_hull_h;								
 	}
+
 	if( WRITE_X_HULL )
 	{
-		puts("Writing selected hull to disk...");
-		char hull[]={"hull"};
-		array_2_disk(hull, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		//puts("Writing selected hull to disk...");
+		sprintf(statement, "Writing selected hull to disk...");		
+		print_colored_text( statement, LIGHT, CYAN );	
+		array_2_disk(HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 	}
-
 	// Allocate memory for and transfer hull to the GPU
 	cudaMalloc((void**) &hull_d, SIZE_IMAGE_BOOL );
 	cudaMemcpy( hull_d, hull_h, SIZE_IMAGE_BOOL, cudaMemcpyHostToDevice );
 
-
 	if( AVG_FILTER_HULL )
 	{
-		puts("Filtering hull...");
+		//puts("Filtering hull...");
+		sprintf(statement, "Average filtering hull...");		
+		print_colored_text( statement, LIGHT, CYAN );	
 		averaging_filter( hull_h, hull_d, HULL_FILTER_RADIUS, true, HULL_FILTER_THRESHOLD );
-		puts("Hull Filtering complete");
+		//puts("Hull Filtering complete");
+		sprintf(statement, "Average filtering of hull complete");		
+		print_colored_text( statement, LIGHT, RED );	
 		if( WRITE_FILTERED_HULL )
 		{
-			puts("Writing filtered hull to disk...");
+			sprintf(statement, "Writing average filtered hull to disk...");		
+			print_colored_text( statement, LIGHT, CYAN );			
+			//puts("Writing filtered hull to disk...");
 			cudaMemcpy(hull_h, hull_d, SIZE_IMAGE_BOOL, cudaMemcpyDeviceToHost);
-			char hull_filter[]={"hull_filtered"};
-			array_2_disk( hull_filter, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+			array_2_disk( HULL_AVG_FILTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 		}
 	}
-	system("echo -e \"\e[0;31m\"" );
-	puts("Hull selection complete."); 
-	system("echo -e \"\e[m\"" );
+	sprintf(statement, "Hull selection complete.");		
+	print_colored_text( statement, LIGHT, RED );			
 }
 /***********************************************************************************************************************************************************************************************************************/
 template<typename H, typename D> void averaging_filter( H*& image_h, D*& image_d, int radius, bool perform_threshold, double threshold_value )
@@ -4168,65 +4194,81 @@ template<typename D> __global__ void averaging_filter_GPU( D* image, D* new_valu
 	else
 		new_value[voxel] = sum / neighborhood_voxels;
 }
-template<typename H, typename D> void median_filter( H*& input_image, D*& output_image, unsigned int radius )
+template<typename T> void median_filter_2D( T*& input_image, unsigned int radius )
 {
-	//D* new_value_h = (D*)calloc(NUM_VOXELS, sizeof(D));
+	T* median_filtered_image = (T*) calloc( NUM_VOXELS, sizeof(T) );
 
 	unsigned int neighborhood_voxels = (2*radius + 1 ) * (2*radius + 1 );
 	unsigned int middle = neighborhood_voxels/2;
-	unsigned int voxel, voxel2;
-	//D* neighborhood = (D*)calloc( neighborhood_voxels, sizeof(D));
-	std::vector<D> neighborhood;
-	for( unsigned int slice = 0; slice < SLICES; slice++ )
+	unsigned int target_voxel, voxel;
+	//T* neighborhood = (T*)calloc( neighborhood_voxels, sizeof(T));
+	std::vector<T> neighborhood;
+	for( unsigned int target_slice = 0; target_slice < SLICES; target_slice++ )
 	{
-		for( unsigned int column = radius; column < COLUMNS - radius; column++ )
+		for( unsigned int target_column = radius; target_column < COLUMNS - radius; target_column++ )
 		{
-			for( unsigned int row = radius; row < ROWS - radius; row++ )
+			for( unsigned int target_row = radius; target_row < ROWS - radius; target_row++ )
 			{
-				voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-				//i = 0;
-				for( unsigned int column2 = column - radius; column2 <= column + radius; column2++ )
+				target_voxel = target_column + target_row * COLUMNS + target_slice * COLUMNS * ROWS;
+				for( unsigned int column = target_column - radius; column <= target_column + radius; column++ )
 				{
-					for( unsigned int row2 = row - radius; row2 <=  row + radius; row2++ )
+					for( unsigned int row = target_row - radius; row <=  target_row + radius; row++ )
 					{
-						voxel2 = column2 + row2 * COLUMNS + slice * COLUMNS * ROWS;
-						neighborhood.push_back(input_image[voxel2]);
+						voxel = column + row * COLUMNS + target_slice * COLUMNS * ROWS;
+						neighborhood.push_back(input_image[voxel]);
 						//neighborhood[i] = image_h[voxel2];
 						//i++;
 					}
 				}
 				std::sort( neighborhood.begin(), neighborhood.end());
-				output_image[voxel] = neighborhood[middle];
+				median_filtered_image[target_voxel] = neighborhood[middle];
+				neighborhood.clear();
 			}
 		}
 	}
-	//int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
-	//unsigned int left_edge = max( voxel_x - radius, 0 );
-	//unsigned int right_edge = min( voxel_x + radius, COLUMNS - 1);
-	//unsigned int top_edge = max( voxel_y - radius, 0 );
-	//unsigned int bottom_edge = min( voxel_y + radius, ROWS - 1);	
-	//int neighborhood_voxels = ( right_edge - left_edge + 1 ) * ( bottom_edge - top_edge + 1 );
-	//std::copy( new_value_h, new_value_h + NUM_VOXELS, image_h );
-	////bool is_hull = ( typeid(bool) == typeid(D) );
-	//bool sequential = true;
-	//D* new_value_d;
-	//int new_value_size = NUM_VOXELS * sizeof(D);
-	//cudaMalloc(&new_value_d, new_value_size );
+	free(input_image);
+	input_image = median_filtered_image;
+	//input_image = (T*) calloc( NUM_VOXELS, sizeof(T) );
+	//std::copy(median_filtered_image, median_filtered_image + NUM_VOXELS, input_image);
+	
 
-	//dim3 dimBlock( SLICES );
-	//dim3 dimGrid( COLUMNS, ROWS );   
-	//median_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d, radius, perform_threshold, threshold_value );
-	////apply_averaging_filter_GPU<<< dimGrid, dimBlock >>>( image_d, new_value_d );
-	////cudaFree(new_value_d);
-	//cudaFree(image_d);
-	//image_d = new_value_d;
+}
+template<typename T> void median_filter_2D( T*& input_image, T*& median_filtered_image, unsigned int radius )
+{
+	//T* median_filtered_image = (T*) calloc( parameters.NUM_VOXELS, sizeof(T) );
 
-	//if( sequential )
-
-	//else
-	//{
-
-	//}
+	unsigned int neighborhood_voxels = (2*radius + 1 ) * (2*radius + 1 );
+	unsigned int middle = neighborhood_voxels/2;
+	unsigned int target_voxel, voxel;
+	//T* neighborhood = (T*)calloc( neighborhood_voxels, sizeof(T));
+	std::vector<T> neighborhood;
+	for( unsigned int target_slice = 0; target_slice < SLICES; target_slice++ )
+	{
+		for( unsigned int target_column = radius; target_column < COLUMNS - radius; target_column++ )
+		{
+			for( unsigned int target_row = radius; target_row < ROWS - radius; target_row++ )
+			{
+				target_voxel = target_column + target_row * COLUMNS + target_slice * COLUMNS * ROWS;
+				for( unsigned int column = target_column - radius; column <= target_column + radius; column++ )
+				{
+					for( unsigned int row = target_row - radius; row <=  target_row + radius; row++ )
+					{
+						voxel = column + row * COLUMNS + target_slice * COLUMNS * ROWS;
+						neighborhood.push_back(input_image[voxel]);
+						//neighborhood[i] = image_h[voxel2];
+						//i++;
+					}
+				}
+				std::sort( neighborhood.begin(), neighborhood.end());
+				median_filtered_image[target_voxel] = neighborhood[middle];
+				neighborhood.clear();
+			}
+		}
+	}
+	//free(input_image);
+	//input_image = (T*) calloc( parameters.NUM_VOXELS, sizeof(T) );
+	//std::copy(median_filtered_image, median_filtered_image + parameters.NUM_VOXELS, input_image);
+	//input_image = median_filtered_image;
 
 }
 template<typename D> __global__ void median_filter_GPU( D* image, D* new_value, int radius, bool perform_threshold, double threshold_value )
@@ -4234,11 +4276,11 @@ template<typename D> __global__ void median_filter_GPU( D* image, D* new_value, 
 //	int voxel_x = blockIdx.x;
 //	int voxel_y = blockIdx.y;	
 //	int voxel_z = threadIdx.x;
-//	int voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+//	int voxel = voxel_x + voxel_y * parameters->COLUMNS + voxel_z * parameters->COLUMNS * parameters->ROWS;
 //	unsigned int left_edge = max( voxel_x - radius, 0 );
-//	unsigned int right_edge = min( voxel_x + radius, COLUMNS - 1);
+//	unsigned int right_edge = min( voxel_x + radius, parameters->COLUMNS - 1);
 //	unsigned int top_edge = max( voxel_y - radius, 0 );
-//	unsigned int bottom_edge = min( voxel_y + radius, ROWS - 1);	
+//	unsigned int bottom_edge = min( voxel_y + radius, parameters->ROWS - 1);	
 //	int neighborhood_voxels = ( right_edge - left_edge + 1 ) * ( bottom_edge - top_edge + 1 );
 //	double sum_threshold = neighborhood_voxels * threshold_value;
 //	double sum = 0.0;
@@ -4256,12 +4298,12 @@ template<typename D> __global__ void median_filter_GPU( D* image, D* new_value, 
 //	{
 //		for( int row = top_edge; row <= bottom_edge; row++ )
 //		{
-//			current_value =  image[column + (row * COLUMNS) + (voxel_z * COLUMNS * ROWS)];
+//			current_value =  image[column + (row * parameters->COLUMNS) + (voxel_z * parameters->COLUMNS * parameters->ROWS)];
 //			for( int column2 = left_edge; column2 <= right_edge; column2++ )
 //			{
 //				for( int row2 = top_edge; row2 <= bottom_edge; row2++ )
 //				{
-//					if(  image[column2 + (row2 * COLUMNS) + (voxel_z * COLUMNS * ROWS)] < current_value)
+//					if(  image[column2 + (row2 * parameters->COLUMNS) + (voxel_z * parameters->COLUMNS * parameters->ROWS)] < current_value)
 //						count++;
 //				}
 //			}
@@ -5130,8 +5172,6 @@ __global__ void collect_MLP_endpoints_GPU
 			if( proton_id < num_histories ) 
 			{
 	
-				intersected_hull[proton_id] = false;
-				first_MLP_voxel[proton_id] = NUM_VOXELS + 1;
 				exited_object = find_MLP_endpoints_GPU( hull, x_exit[proton_id], y_exit[proton_id], z_exit[proton_id], xy_exit_angle[proton_id], xz_exit_angle[proton_id], x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
 				entered_object = find_MLP_endpoints_GPU( hull, x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], xy_entry_angle[proton_id], xz_entry_angle[proton_id], x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
 				
@@ -5148,6 +5188,11 @@ __global__ void collect_MLP_endpoints_GPU
 					y_exit[proton_id] = y_out_object;
 					z_exit[proton_id] = z_out_object;
 				}	  
+				else
+				{
+					intersected_hull[proton_id] = false;
+					first_MLP_voxel[proton_id] = NUM_VOXELS;			
+				}
 			}
 			proton_id++;
 		}
@@ -5159,14 +5204,10 @@ __global__ void collect_MLP_endpoints_GPU_nobool
 	float* x_exit, float* y_exit, float* z_exit, float* xy_exit_angle, float* xz_exit_angle, int start_proton_id, int num_histories
 ) 
 {
-  
 	bool entered_object = false, exited_object = false;
 	int voxel_x = 0, voxel_y = 0, voxel_z = 0, voxel_x_int = 0, voxel_y_int = 0, voxel_z_int = 0;
 	double x_in_object = 0.0, y_in_object = 0.0, z_in_object = 0.0, x_out_object = 0.0, y_out_object = 0.0, z_out_object = 0.0;
 	//float x_in_object = 0.0, y_in_object = 0.0, z_in_object = 0.0, x_out_object = 0.0, y_out_object = 0.0, z_out_object = 0.0;
-	
-	
-	//int proton_id = start_proton_id + threadIdx.x + blockIdx.x * blockDim.x;
 	//int proton_id = start_proton_id + threadIdx.x * ENDPOINTS_PER_THREAD + blockIdx.x * ENDPOINTS_PER_BLOCK;
 	int proton_id = start_proton_id + threadIdx.x * ENDPOINTS_PER_THREAD + blockIdx.x * ENDPOINTS_PER_BLOCK* ENDPOINTS_PER_THREAD;
 	
@@ -5174,17 +5215,11 @@ __global__ void collect_MLP_endpoints_GPU_nobool
 	{
 		if( proton_id < num_histories ) 
 		{
-	
-			//intersected_hull[proton_id] = false;
-			//first_MLP_voxel[proton_id] = NUM_VOXELS + 1;
 			entered_object = find_MLP_endpoints_GPU( hull, x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], xy_entry_angle[proton_id], xz_entry_angle[proton_id], x_in_object, y_in_object, z_in_object, voxel_x, voxel_y, voxel_z, true);	
 			exited_object = find_MLP_endpoints_GPU( hull, x_exit[proton_id], y_exit[proton_id], z_exit[proton_id], xy_exit_angle[proton_id], xz_exit_angle[proton_id], x_out_object, y_out_object, z_out_object, voxel_x_int, voxel_y_int, voxel_z_int, false);
-		
-		
+			
 			if( entered_object && exited_object ) 
 			{
-		  
-				//intersected_hull[proton_id] = true;
 				first_MLP_voxel[proton_id] = voxel_x + COLUMNS * voxel_y + ROWS * COLUMNS * voxel_z;
 				x_entry[proton_id] = x_in_object;
 				y_entry[proton_id] = y_in_object;
@@ -5194,13 +5229,10 @@ __global__ void collect_MLP_endpoints_GPU_nobool
 				z_exit[proton_id] = z_out_object;
 			}
 			else
-				first_MLP_voxel[proton_id] = NUM_VOXELS;
-		
-	  
+				first_MLP_voxel[proton_id] = NUM_VOXELS;			  
 		}
 		proton_id++;
 	}
-
 }
 void reconstruction_cuts_hull_transfer()
 {
@@ -5208,7 +5240,7 @@ void reconstruction_cuts_hull_transfer()
 	cudaMalloc( (void**) &hull_d, NUM_VOXELS *sizeof(bool));	
 	cudaMemcpy( hull_d, hull_h, NUM_VOXELS *sizeof(bool),cudaMemcpyHostToDevice );
 }
-// ENDPOINTS_ALG = BOOL
+// ENDPOINTS_ALG = YES_BOOL
 void reconstruction_cuts_allocations( const int num_histories)
 {
 	unsigned int size_floats		= sizeof(float) * num_histories;
@@ -5230,12 +5262,11 @@ void reconstruction_cuts_allocations( const int num_histories)
 	cudaMalloc( (void**) &intersected_hull_d, 		size_bool );
 	cudaMalloc( (void**) &first_MLP_voxel_d, 		size_ints );
 
-	char error_statement[] = {"ERROR: reconstruction_cuts GPU array allocations caused...\n"};
-	cudaError_t cudaStatus = CUDA_error_check( error_statement );
-/*
+	//char error_statement[] = {"ERROR: reconstruction_cuts GPU array allocations caused...\n"};
+	//cudaError_t cudaStatus = CUDA_error_check( error_statement );
 	cudaError_t cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) 
-		printf("Allocations Error: %s\n", cudaGetErrorString(cudaStatus));*/	
+		printf("reconstruction_cuts_allocations Error: %s\n", cudaGetErrorString(cudaStatus));
 }
 void reconstruction_cuts_host_2_device(const int start_position, const int num_histories) 
 {
@@ -5254,11 +5285,11 @@ void reconstruction_cuts_host_2_device(const int start_position, const int num_h
 	cudaMemcpy( xy_exit_angle_d,		&xy_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( xz_exit_angle_d,		&xz_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );	
 
-	char error_statement[] = {"ERROR: reconstruction_cuts host->GPU data transfer caused...\n"};
-	cudaError_t cudaStatus =  CUDA_error_check( error_statement );
-	/*cudaError_t cudaStatus = cudaGetLastError();
+	//char error_statement[] = {"ERROR: reconstruction_cuts host->GPU data transfer caused...\n"};
+	//cudaError_t cudaStatus =  CUDA_error_check( error_statement );
+	cudaError_t cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) 
-		printf("CPU->GPU Error: %s\n", cudaGetErrorString(cudaStatus));	*/
+		printf("reconstruction_cuts_host_2_device Error: %s\n", cudaGetErrorString(cudaStatus));	
 }
 void reconstruction_cuts_device_2_host(const int start_position, const int num_histories) 
 {
@@ -5275,11 +5306,11 @@ void reconstruction_cuts_device_2_host(const int start_position, const int num_h
 	cudaMemcpy(&z_exit_vector[start_position], z_exit_d, size_floats, cudaMemcpyDeviceToHost);	
 	cudaMemcpy(intersected_hull_h, intersected_hull_d, size_bool, cudaMemcpyDeviceToHost);
 	
-	char error_statement[] = {"ERROR: reconstruction_cuts GPU->host data transfer caused...\n"};
-	cudaError_t cudaStatus =  CUDA_error_check( error_statement );
-	/*cudaError_t cudaStatus = cudaGetLastError();
+	//char error_statement[] = {"ERROR: reconstruction_cuts GPU->host data transfer caused...\n"};
+	//cudaError_t cudaStatus =  CUDA_error_check( error_statement );
+	cudaError_t cudaStatus = cudaGetLastError();
 	if (cudaStatus != cudaSuccess) 
-		printf("GPU->CPU Error: %s\n", cudaGetErrorString(cudaStatus));	*/
+		printf("reconstruction_cuts_device_2_host Error: %s\n", cudaGetErrorString(cudaStatus));
 }
 void reconstruction_cuts_deallocations()
 {
@@ -5297,14 +5328,19 @@ void reconstruction_cuts_deallocations()
 	cudaFree( first_MLP_voxel_d);
 
 	free(intersected_hull_h);
+	
+	cudaError_t cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("reconstruction_cuts_deallocations Error: %s\n", cudaGetErrorString(cudaStatus));
 }
-// ENDPOINTS_TX_MODE = FULL_TX, ENDPOINTS_ALG = BOOL
+// ENDPOINTS_TX_MODE = FULL_TX, ENDPOINTS_ALG = YES_BOOL
 void reconstruction_cuts_full_tx( const int num_histories )
 {
 	cudaError_t cudaStatus;
 	reconstruction_histories = 0;
 	int remaining_histories = num_histories, histories_2_process, start_position = 0;
-	int num_blocks = static_cast<int>( (MAX_ENDPOINTS_HISTORIES - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD));
+	//int num_blocks = static_cast<int>( (MAX_ENDPOINTS_HISTORIES - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD));
+	int num_blocks;
 	while( remaining_histories > 0 )
 	{
 		if( remaining_histories > MAX_ENDPOINTS_HISTORIES )
@@ -5312,7 +5348,7 @@ void reconstruction_cuts_full_tx( const int num_histories )
 		else
 			histories_2_process = remaining_histories;	
 
-		//num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
+		num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
 		collect_MLP_endpoints_GPU<<< num_blocks, ENDPOINTS_PER_BLOCK >>>
 		( 
 			intersected_hull_d, first_MLP_voxel_d, hull_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, 
@@ -5340,7 +5376,7 @@ void reconstruction_cuts_full_tx( const int num_histories )
 		}
 	}
 }
-// ENDPOINTS_TX_MODE = PARTIAL_TX, ENDPOINTS_ALG = BOOL
+// ENDPOINTS_TX_MODE = PARTIAL_TX, ENDPOINTS_ALG = YES_BOOL
 void reconstruction_cuts_partial_tx(const int start_position, const int num_histories) 
 {
 	reconstruction_cuts_allocations(num_histories);
@@ -5374,7 +5410,7 @@ void reconstruction_cuts_partial_tx(const int start_position, const int num_hist
 	}	
 	reconstruction_cuts_deallocations();
 }
-// ENDPOINTS_TX_MODE = PARTIAL_TX_PREALLOCATED, ENDPOINTS_ALG = BOOL
+// ENDPOINTS_TX_MODE = PARTIAL_TX_PREALLOCATED, ENDPOINTS_ALG = YES_BOOL
 void reconstruction_cuts_partial_tx_preallocated(const int start_position, const int num_histories) 
 { 
 	reconstruction_cuts_host_2_device( start_position, num_histories);
@@ -5437,6 +5473,14 @@ void reconstruction_cuts_host_2_device_nobool(const int start_position, const in
 	cudaMemcpy( xz_entry_angle_d,			&xz_entry_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( xy_exit_angle_d,			&xy_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( xz_exit_angle_d,			&xz_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );	
+
+	cudaError_t cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+			printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess)
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching Kernel!\n", cudaStatus);
 }
 void reconstruction_cuts_device_2_host_nobool(const int start_position, const int num_histories) 
 {
@@ -5450,6 +5494,14 @@ void reconstruction_cuts_device_2_host_nobool(const int start_position, const in
 	cudaMemcpy(&x_exit_vector[start_position], x_exit_d, size_floats, cudaMemcpyDeviceToHost);
 	cudaMemcpy(&y_exit_vector[start_position], y_exit_d, size_floats, cudaMemcpyDeviceToHost);
 	cudaMemcpy(&z_exit_vector[start_position], z_exit_d, size_floats, cudaMemcpyDeviceToHost);	
+
+	cudaError_t cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess)
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching Kernel!\n", cudaStatus);
 }
 void reconstruction_cuts_deallocations_nobool()
 {
@@ -5471,7 +5523,8 @@ void reconstruction_cuts_full_tx_nobool( const int num_histories )
 	cudaError_t cudaStatus;
 	reconstruction_histories = 0;
 	int remaining_histories = num_histories, histories_2_process, start_position = 0;
-	int num_blocks = static_cast<int>( (MAX_ENDPOINTS_HISTORIES - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD));
+	//int num_blocks = static_cast<int>( (MAX_ENDPOINTS_HISTORIES - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD));
+	int num_blocks;
 	while( remaining_histories > 0 )
 	{
 		if( remaining_histories > MAX_ENDPOINTS_HISTORIES )
@@ -5479,7 +5532,7 @@ void reconstruction_cuts_full_tx_nobool( const int num_histories )
 		else
 			histories_2_process = remaining_histories;	
 
-		//num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
+		num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
 		collect_MLP_endpoints_GPU_nobool<<< num_blocks, ENDPOINTS_PER_BLOCK >>>
 		( 
 			first_MLP_voxel_d, hull_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, 
@@ -5495,11 +5548,13 @@ void reconstruction_cuts_full_tx_nobool( const int num_histories )
 
 		remaining_histories -= MAX_ENDPOINTS_HISTORIES;
 		start_position		+= MAX_ENDPOINTS_HISTORIES;
+		//cout << "start_position = " << start_position << endl;
+		//cout << "remaining_histories = " << remaining_histories << endl;	
 	}
 	reconstruction_cuts_device_2_host_nobool(0, num_histories);	    
 	for( int i = 0; i < num_histories; i++ ) 
 	{    
-		if( first_MLP_voxel_vector[i + start_position] != NUM_VOXELS ) 
+		if( first_MLP_voxel_vector[i] != NUM_VOXELS ) 
 		{
 			first_MLP_voxel_vector[reconstruction_histories] = first_MLP_voxel_vector[i];
 			data_shift_vectors( i, reconstruction_histories );
@@ -5528,6 +5583,7 @@ void reconstruction_cuts_partial_tx_nobool(const int start_position, const int n
 	if (cudaStatus != cudaSuccess)
 		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching Kernel!\n", cudaStatus);
 	
+
 	reconstruction_cuts_device_2_host_nobool(start_position, num_histories);
 	for( int i = 0; i < num_histories; i++ ) 
 	{    
@@ -5783,11 +5839,135 @@ void free_MLP_lookup_tables()
 	cudaFree( poly_3_4_d);
 	cudaFree( poly_2_6_d);
 	cudaFree( poly_3_12_d);
+
+	cudaError_t cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("free_MLP_lookup_tables Error: %s\n", cudaGetErrorString(cudaStatus));
+	
+}
+/***********************************************************************************************************************************************************************************************************************/
+/************************************************************************************************** Generate initial iterate *******************************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
+void create_hull_image_hybrid()
+{
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( COLUMNS, ROWS );   
+
+	create_hull_image_hybrid_GPU<<< dimGrid, dimBlock >>>( hull_d, FBP_image_d );
+	cudaMemcpy( x_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
+}
+__global__ void create_hull_image_hybrid_GPU( bool*& hull, float*& FBP_image)
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
+	FBP_image[voxel] *= hull[voxel];
+}
+void export_initial_iterate()
+{
+//	puts("Writing image reconstruction hull to disk...");
+//	char input_hull_filename[256];
+//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
+//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
+//	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, write_input_hull );
+//	fclose(write_input_hull);
+//	puts("Finished writing image reconstruction hull to disk.");
+}
+void import_initial_iterate()
+{
+//	puts("Reading image reconstruction hull from disk...");
+//	char input_hull_filename[256];
+//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
+//	FILE* read_input_hull = fopen(input_hull_filename, "rb");
+//	hull_h = (bool*)calloc( NUM_VOXELS, sizeof(bool) );
+//	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, read_input_hull );
+//	fclose(read_input_hull);
+//	puts("Finished reading image reconstruction hull from disk.");
+}
+void initial_iterate_generate_hybrid()
+{
+	for( int voxel = 0; voxel < NUM_VOXELS; voxel++ )
+	{
+		if( hull_h[voxel] == true )
+			x_h[voxel] = FBP_image_h[voxel];
+		else
+			x_h[voxel] = 0.0;
+	}
+}
+void define_initial_iterate()
+{
+	char statement[] = "Generating initial iterate...";	
+	print_colored_text( statement, LIGHT, CYAN );	
+	
+	x_h = (float*) calloc( NUM_VOXELS, sizeof(float) );
+
+	switch( X_0 )
+	{
+		case X_HULL		:	std::copy( hull_h, hull_h + NUM_VOXELS, x_h );															break;
+		case FBP_IMAGE	:	x_h = FBP_image_h;																						break;
+		case HYBRID		:	initial_iterate_generate_hybrid();																		break;
+							//std::transform(FBP_image_h, FBP_image_h + NUM_VOXELS, hull_h, x_h, std::multiplies<float>() );		break;
+		case IMPORT		:	sprintf( INPUT_ITERATE_PATH, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_ITERATE_FILENAME );
+							import_image( x_h, INPUT_ITERATE_PATH );																break;
+		case ZEROS		:	break;
+		default			:	puts("ERROR: Invalid initial iterate selected");
+							exit(1);
+	}
+
+	//if( AVG_FILTER_ITERATE )
+	//{
+	//	puts("Filtering initial iterate...");
+	//	cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
+	//	cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
+	//	averaging_filter( x_h, x_d, ITERATE_FILTER_RADIUS, true, ITERATE_FILTER_THRESHOLD );
+	//	puts("Hull Filtering complete");
+	//	if( WRITE_FILTERED_HULL )
+	//	{
+	//		puts("Writing filtered hull to disk...");
+	//		cudaMemcpy(x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
+	//		array_2_disk( "hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	//	}
+	//}
+
+	if( WRITE_X_0 ) 
+		array_2_disk(X_0_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
+	//cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
+}
+/***********************************************************************************************************************************************************************************************************************/
+/******************************************************************************************* Generate history ordering for reconstruction ******************************************************************************/
+/***********************************************************************************************************************************************************************************************************************/
+void generate_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
+{
+    history_sequence[0] = 0;
+    for( ULL i = 1; i < N; i++ )
+        history_sequence[i] = ( history_sequence[i-1] + offset_prime ) % N;
+}
+void verify_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
+{
+	for( ULL i = 1; i < N; i++ )
+    {
+        if(history_sequence[i] == 1)
+        {
+            printf("repeats at i = %llu\n", i);
+            printf("sequence[i] = %llu\n", history_sequence[i]);
+            break;
+        }
+        if(history_sequence[i] > N)
+        {
+            printf("exceeds at i = %llu\n", i);
+            printf("sequence[i] = %llu\n", history_sequence[i]);
+            break;
+        }
+    }
+}
+void print_history_sequence(ULL* history_sequence, ULL print_start, ULL print_end )
+{
+    for( ULL i = print_start; i < print_end; i++ )
+		printf("history_sequence[i] = %llu\n", history_sequence[i]);
 }
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************* Image reconstruction data transfers *************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-// x_d, x_update, and voxel_intersections are global
 void gpu_memory_allocation( const int num_histories ) {
   
 	  cudaFree(x_d);
@@ -6376,7 +6556,7 @@ __global__ void block_update_GPU
 	//x_block_update = (double*)malloc( NUM_VOXELS * sizeof(double));
 	//voxel_intersections = (unsigned int*)malloc( MAX_INTERSECTIONS * sizeof(unsigned int));
 	int voxel=0;
-	double b_i=0.0;
+	//double b_i=0.0;
 	double a_i_dot_a_i, a_i_dot_x_k;
 	
 	double effective_chord_length = 0.0;
@@ -6413,8 +6593,8 @@ __global__ void block_update_GPU
 	
 				//collect_MLP_endpoints_GPU(x, hull, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_exit, y_exit, z_exit,  xy_exit_angle, 
 					//	xz_exit_angle, WEPL, lambda, proton_id, post_cut_protons, a_i, update_value_history, number_of_intersections); // Each thread runs a proton
-				b_i = WEPL[proton_id];		
-				find_MLP_path_GPU(x, b_i, first_MLP_voxel[proton_id] ,x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], x_exit[proton_id], y_exit[proton_id], z_exit[proton_id], xy_entry_angle[proton_id],
+				//b_i = WEPL[proton_id];		
+				find_MLP_path_GPU(x, WEPL[proton_id], first_MLP_voxel[proton_id] ,x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], x_exit[proton_id], y_exit[proton_id], z_exit[proton_id], xy_entry_angle[proton_id],
 						      xz_entry_angle[proton_id], xy_exit_angle[proton_id], xz_exit_angle[proton_id], lambda, a_i, number_of_intersections, effective_chord_length, a_i_dot_x_k, a_i_dot_a_i );
 						      
 				a_i_dot_a_i *=number_of_intersections;
@@ -6426,7 +6606,7 @@ __global__ void block_update_GPU
 				{
 					voxel = a_i[j];
 					atomicAdd( &( S[voxel]), 1 );
-					atomicAdd( &( x_update[voxel]) , effective_chord_length * (( b_i - a_i_dot_x_k ) /  a_i_dot_a_i) * lambda ); 
+					atomicAdd( &( x_update[voxel]) , effective_chord_length * (( WEPL[proton_id] - a_i_dot_x_k ) /  a_i_dot_a_i) * lambda ); 
 				}	
 			}
 			proton_id++;
@@ -6449,7 +6629,7 @@ __global__ void block_update_GPU_tabulated
 	//x_block_update = (double*)malloc( NUM_VOXELS * sizeof(double));
 	//voxel_intersections = (unsigned int*)malloc( MAX_INTERSECTIONS * sizeof(unsigned int));
 	int voxel=0;
-	double b_i=0.0;
+	//double b_i=0.0;
 	double a_i_dot_a_i, a_i_dot_x_k;
 	
 	double effective_chord_length = 0.0;
@@ -6486,10 +6666,10 @@ __global__ void block_update_GPU_tabulated
 	
 				//collect_MLP_endpoints_GPU(x, hull, x_entry, y_entry, z_entry, xy_entry_angle, xz_entry_angle, x_exit, y_exit, z_exit,  xy_exit_angle, 
 					//	xz_exit_angle, WEPL, lambda, proton_id, post_cut_protons, a_i, update_value_history, number_of_intersections); // Each thread runs a proton
-				b_i = WEPL[proton_id];		
+				//b_i = WEPL[proton_id];		
 				find_MLP_path_GPU_tabulated
 				(
-					x, b_i, first_MLP_voxel[proton_id] ,x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], x_exit[proton_id], y_exit[proton_id], z_exit[proton_id], xy_entry_angle[proton_id],
+					x, WEPL[proton_id], first_MLP_voxel[proton_id] ,x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], x_exit[proton_id], y_exit[proton_id], z_exit[proton_id], xy_entry_angle[proton_id],
 					xz_entry_angle[proton_id], xy_exit_angle[proton_id], xz_exit_angle[proton_id], lambda, a_i, number_of_intersections, effective_chord_length, a_i_dot_x_k, a_i_dot_a_i,
 					sin_table, cos_table, scattering_table, poly_1_2, poly_2_3, poly_3_4, poly_2_6, poly_3_12
 				);
@@ -6503,7 +6683,7 @@ __global__ void block_update_GPU_tabulated
 				{
 					voxel = a_i[j];
 					atomicAdd( &( S[voxel]), 1 );
-					atomicAdd( &( x_update[voxel]) , effective_chord_length * (( b_i - a_i_dot_x_k ) /  a_i_dot_a_i) * lambda ); 
+					atomicAdd( &( x_update[voxel]) , effective_chord_length * (( WEPL[proton_id] - a_i_dot_x_k ) /  a_i_dot_a_i) * lambda ); 
 				}	
 			}
 			proton_id++;
@@ -6687,6 +6867,10 @@ void DROP_setup_update_arrays()
 	cudaMalloc( (void**) &S_d, 			NUM_VOXELS *sizeof(unsigned int));
 	
 	cudaMemcpy( x_d, x_h, NUM_VOXELS * sizeof(float), cudaMemcpyHostToDevice );
+
+	cudaError_t cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("DROP_setup_update_arrays Error: %s\n", cudaGetErrorString(cudaStatus));
 }
 void DROP_free_update_arrays()
 {
@@ -6694,6 +6878,10 @@ void DROP_free_update_arrays()
 	cudaFree(x_d); 
 	cudaFree(x_update_d); 
 	cudaFree(S_d); 
+
+	cudaError_t cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("Error: %s\n", cudaGetErrorString(cudaStatus));
 }
 void DROP_allocations(const int num_histories)
 {
@@ -6712,6 +6900,10 @@ void DROP_allocations(const int num_histories)
 	cudaMalloc( (void**) &xz_exit_angle_d,		size_floats );	
 	cudaMalloc( (void**) &WEPL_d,				size_floats );
 	cudaMalloc( (void**) &first_MLP_voxel_d, 	size_ints );
+
+	cudaError_t cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("DROP_allocations Error: %s\n", cudaGetErrorString(cudaStatus));
 }
 void DROP_host_2_device(const int start_position,const int num_histories)
 {
@@ -6730,6 +6922,10 @@ void DROP_host_2_device(const int start_position,const int num_histories)
 	cudaMemcpy( xz_exit_angle_d,	&xz_exit_angle_vector[start_position],		size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( WEPL_d,				&WEPL_vector[start_position],				size_floats,	cudaMemcpyHostToDevice );
 	cudaMemcpy( first_MLP_voxel_d,	&first_MLP_voxel_vector[start_position],	size_ints,		cudaMemcpyHostToDevice );
+
+	cudaError_t cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("DROP_host_2_device Error: %s\n", cudaGetErrorString(cudaStatus));
 }
 void DROP_deallocations()
 {	
@@ -6745,12 +6941,17 @@ void DROP_deallocations()
 	cudaFree(xz_exit_angle_d);
 	cudaFree(WEPL_d);
 	cudaFree(first_MLP_voxel_d);
+
+	cudaError_t cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("DROP_deallocations Error: %s\n", cudaGetErrorString(cudaStatus));
 }
-// DROP_TX_MODE = FULL_TX, MLP_ALGORITHM = STANDARD
 void DROP_full_tx(const int num_histories)
 {
+	// DROP_TX_MODE = FULL_TX, MLP_ALGORITHM = STANDARD
 	cudaError_t cudaStatus;
 	char iterate_filename[256];
+	char statement[256];
 	int remaining_histories, start_position = 0, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
 	DROP_allocations(num_histories);
@@ -6759,9 +6960,8 @@ void DROP_full_tx(const int num_histories)
 	dim3 dimGrid( column_blocks, ROWS );
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		system("echo -e \"\e[0;36m\"" );
-		printf("Performing iteration %u of image reconstruction\n", iteration);
-		system("echo -e \"\e[m\"" );
+		sprintf(statement, "Performing iteration %u of image reconstruction", iteration);
+		print_colored_text(statement, LIGHT, CYAN );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
@@ -6780,12 +6980,12 @@ void DROP_full_tx(const int num_histories)
 			);		
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("block_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
 
 			image_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("image_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
 
 			remaining_histories -= DROP_BLOCK_SIZE;
 			start_position		+= DROP_BLOCK_SIZE;
@@ -6797,17 +6997,17 @@ void DROP_full_tx(const int num_histories)
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
-		//system("echo -e \"\e[0;32m\"" );
-		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");			
+		sprintf(statement, "for DROP iteration %d", iteration );
+		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, statement);			
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
-		//system("echo -e \"\e[m\"" );
 	}
 	DROP_deallocations();
 }
-// DROP_TX_MODE = PARTIAL_TX, MLP_ALGORITHM = STANDARD
 void DROP_partial_tx( const int num_histories ) 
 {
+	// DROP_TX_MODE = PARTIAL_TX, MLP_ALGORITHM = STANDARD
 	cudaError_t cudaStatus;
+	char statement[256];
 	char iterate_filename[256];
 	int remaining_histories, start_position, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
@@ -6815,9 +7015,8 @@ void DROP_partial_tx( const int num_histories )
 	dim3 dimGrid( column_blocks, ROWS );
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		system("echo -e \"\e[0;36m\"" );
-		printf("Performing iteration %u of image reconstruction\n", iteration);
-		system("echo -e \"\e[m\"" );
+		sprintf(statement, "Performing iteration %u of image reconstruction", iteration);
+		print_colored_text(statement, LIGHT, CYAN );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");			
@@ -6839,14 +7038,15 @@ void DROP_partial_tx( const int num_histories )
 			);		
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("block_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
 
 			DROP_deallocations();
-	
+
 			image_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("image_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
+			
 			remaining_histories -= DROP_BLOCK_SIZE;
 			start_position		+= DROP_BLOCK_SIZE;
 		}
@@ -6857,16 +7057,16 @@ void DROP_partial_tx( const int num_histories )
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
-		//system("echo -e \"\e[0;32m\"" );
-		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");			
+		sprintf(statement, "for DROP iteration %d", iteration );
+		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, statement);				
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
-		//system("echo -e \"\e[m\"" );
 	}
 }
-// DROP_TX_MODE = PARTIAL_TX_PREALLOCATED, MLP_ALGORITHM = STANDARD
 void DROP_partial_tx_preallocated( const int num_histories ) 
 { 
+	// DROP_TX_MODE = PARTIAL_TX_PREALLOCATED, MLP_ALGORITHM = STANDARD
 	cudaError_t cudaStatus;
+	char statement[256];
 	char iterate_filename[256];
 	int remaining_histories, start_position, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
@@ -6875,9 +7075,8 @@ void DROP_partial_tx_preallocated( const int num_histories )
 	DROP_allocations(DROP_BLOCK_SIZE);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		system("echo -e \"\e[0;36m\"" );
-		printf("Performing iteration %u of image reconstruction\n", iteration);
-		system("echo -e \"\e[m\"" );
+		sprintf(statement, "Performing iteration %u of image reconstruction", iteration);
+		print_colored_text(statement, LIGHT, CYAN );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
@@ -6898,12 +7097,13 @@ void DROP_partial_tx_preallocated( const int num_histories )
 			);		
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("block_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
 
 			image_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("image_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
+
 			remaining_histories -= DROP_BLOCK_SIZE;
 			start_position		+= DROP_BLOCK_SIZE;
 		}
@@ -6914,17 +7114,17 @@ void DROP_partial_tx_preallocated( const int num_histories )
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
-		//system("echo -e \"\e[0;32m\"" );
-		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
+		sprintf(statement, "for DROP iteration %d", iteration );
+		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, statement);	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
-		//system("echo -e \"\e[m\"" );
 	}
 	DROP_deallocations();
 }
-// DROP_TX_MODE = FULL_TX, MLP_ALGORITHM = TABULATED
 void DROP_full_tx_tabulated(const int num_histories)	
 {
+	// DROP_TX_MODE = FULL_TX, MLP_ALGORITHM = TABULATED
 	cudaError_t cudaStatus;
+	char statement[256];
 	char iterate_filename[256];
 	int remaining_histories, start_position = 0, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
@@ -6935,9 +7135,8 @@ void DROP_full_tx_tabulated(const int num_histories)
 	DROP_host_2_device( start_position, num_histories);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		system("echo -e \"\e[0;36m\"" );
-		printf("Performing iteration %u of image reconstruction\n", iteration);
-		system("echo -e \"\e[m\"" );
+		sprintf(statement, "Performing iteration %u of image reconstruction", iteration);
+		print_colored_text(statement, LIGHT, CYAN );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
@@ -6956,13 +7155,13 @@ void DROP_full_tx_tabulated(const int num_histories)
 			);	
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("block_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
 
 			image_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );
 
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("image_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
 
 			remaining_histories -= DROP_BLOCK_SIZE;
 			start_position		+= DROP_BLOCK_SIZE;
@@ -6975,17 +7174,17 @@ void DROP_full_tx_tabulated(const int num_histories)
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
-		//system("echo -e \"\e[0;32m\"" );
-		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
-		//system("echo -e \"\e[m\"" );
+		sprintf(statement, "for DROP iteration %d", iteration );
+		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, statement);	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
 	DROP_deallocations();
 }
-// DROP_TX_MODE = PARTIAL_TX, MLP_ALGORITHM = TABULATED
 void DROP_partial_tx_tabulated( const int num_histories ) 
 { 
+	// DROP_TX_MODE = PARTIAL_TX, MLP_ALGORITHM = TABULATED
 	cudaError_t cudaStatus;
+	char statement[256];
 	char iterate_filename[256];
 	int remaining_histories, start_position, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
@@ -6994,9 +7193,8 @@ void DROP_partial_tx_tabulated( const int num_histories )
 
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		system("echo -e \"\e[0;36m\"" );
-		printf("Performing iteration %u of image reconstruction\n", iteration);
-		system("echo -e \"\e[m\"" );
+		sprintf(statement, "Performing iteration %u of image reconstruction", iteration);
+		print_colored_text(statement, LIGHT, CYAN );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
@@ -7019,14 +7217,16 @@ void DROP_partial_tx_tabulated( const int num_histories )
 			);			
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("block_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
 
 			DROP_deallocations();
-	
+
 			image_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );
+
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("image_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
+
 			remaining_histories -= DROP_BLOCK_SIZE;
 			start_position		+= DROP_BLOCK_SIZE;
 		}
@@ -7037,16 +7237,16 @@ void DROP_partial_tx_tabulated( const int num_histories )
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
-		//system("echo -e \"\e[0;32m\"" );
-		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
-		//system("echo -e \"\e[m\"" );
+		sprintf(statement, "for DROP iteration %d", iteration );
+		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, statement);	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
 }
-// DROP_TX_MODE = PARTIAL_TX_PREALLOCATED, MLP_ALGORITHM = TABULATED
 void DROP_partial_tx_preallocated_tabulated( const int num_histories ) 
 {
+	// DROP_TX_MODE = PARTIAL_TX_PREALLOCATED, MLP_ALGORITHM = TABULATED
 	cudaError_t cudaStatus;
+	char statement[256];
 	char iterate_filename[256];
 	int remaining_histories, start_position, histories_2_process, num_blocks;
 	int column_blocks = static_cast<int>(COLUMNS/VOXELS_PER_THREAD);
@@ -7057,9 +7257,8 @@ void DROP_partial_tx_preallocated_tabulated( const int num_histories )
 	DROP_allocations(DROP_BLOCK_SIZE);
 	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
 	{	    
-		system("echo -e \"\e[0;36m\"" );
-		printf("Performing iteration %u of image reconstruction\n", iteration);
-		system("echo -e \"\e[m\"" );
+		sprintf(statement, "Performing iteration %u of image reconstruction", iteration);
+		print_colored_text(statement, LIGHT, CYAN );
 		remaining_histories = num_histories;
 		start_position = 0;
 		timer( START, begin_DROP_iteration, "for DROP iteration");	
@@ -7081,12 +7280,14 @@ void DROP_partial_tx_preallocated_tabulated( const int num_histories )
 			);		
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("block_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
 
 			image_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );
+
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
-				printf("Error: %s\n", cudaGetErrorString(cudaStatus));
+				printf("image_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
+
 			remaining_histories -= DROP_BLOCK_SIZE;
 			start_position		+= DROP_BLOCK_SIZE;
 		}
@@ -7102,9 +7303,8 @@ void DROP_partial_tx_preallocated_tabulated( const int num_histories )
 			transfer_image_device_to_host();
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 		}
-		//system("echo -e \"\e[0;32m\"" );
-		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, "for DROP iteration");	
-		//system("echo -e \"\e[m\"" );
+		sprintf(statement, "for DROP iteration %d", iteration );
+		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, statement);	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);		
 	}
 	DROP_deallocations();	
@@ -7697,10 +7897,8 @@ void image_reconstruction_GPU_testing()
 	/***********************************************************************************************************************************************************************************************************************/
 	/****************************************************************** Find MLP endpoints and remove data for protons that did not enter and/or exit the hull *************************************************************/
 	/***********************************************************************************************************************************************************************************************************************/
-	system("echo -e \"\e[0;36m\"" );
 	sprintf(statement, "Determining if and where each of the protons enters/exits the hull to (1) define the endpoints of MLP and (2) remove protons that missed the hull from consideration in reconstruction");
-	print_section_header( statement, '-' );
-	system("echo -e \"\e[m\"" );
+	print_section_header( statement, '-', DARK, CYAN );
 	
 	timer( START, begin_endpoints, "for finding MLP endpoints");	
 	int remaining_histories = post_cut_histories, start_position = 0, histories_2_process = 0;
@@ -7710,15 +7908,20 @@ void image_reconstruction_GPU_testing()
 	if (cudaStatus != cudaSuccess) 
 		printf("Before image reconstruction Error: %s\n", cudaGetErrorString(cudaStatus));
 		
+	//post_cut_histories = 100000000;
 	first_MLP_voxel_vector.resize( post_cut_histories ); 
 	reconstruction_cuts_hull_transfer();		// Free hull_d which may not be aligned well on the GPU and reallocate/transfer it to GPU again
 
-	puts("Collecting MLP endpoints...");
+	sprintf(statement, "Collecting MLP endpoints...");
+	print_colored_text(statement, LIGHT, CYAN );
 	if( ENDPOINTS_TX_MODE == FULL_TX )
 	{
-		if( ENDPOINTS_ALG == BOOL )
+		sprintf(statement, "Identifying MLP endpoints with all data transferred to the GPU before the 1st kernel launch");
+		print_colored_text(statement, LIGHT, CYAN );
+		if( ENDPOINTS_ALG == YES_BOOL )
 		{
-			puts("intersected_hull_h/d used to identify protons hitting/missing hull");
+			sprintf(statement, "Using boolean array to identify protons hitting/missing hull");
+			print_colored_text(statement, LIGHT, CYAN );
 			reconstruction_cuts_allocations(post_cut_histories);
 			reconstruction_cuts_host_2_device( 0, post_cut_histories );  
 			reconstruction_cuts_full_tx( post_cut_histories );
@@ -7727,7 +7930,8 @@ void image_reconstruction_GPU_testing()
 		// 
 		else if( ENDPOINTS_ALG == NO_BOOL )
 		{
-			puts("first_MLP_voxel_vector used to identify protons hitting/missing hull");
+			sprintf(statement, "Using hull entry voxel # to identify protons hitting/missing hull");
+			print_colored_text(statement, LIGHT, CYAN );
 			reconstruction_cuts_allocations_nobool(post_cut_histories);
 			reconstruction_cuts_host_2_device_nobool( 0, post_cut_histories );  
 			reconstruction_cuts_full_tx_nobool( post_cut_histories );
@@ -7736,10 +7940,13 @@ void image_reconstruction_GPU_testing()
 	}
 	else if( ENDPOINTS_TX_MODE == PARTIAL_TX )
 	{
-		puts("Reconstruction_cuts with partial data transfers and GPU arrays allocated/freed each kernel launch");
-		if( ENDPOINTS_ALG == BOOL )
+		sprintf(statement, "Identifying MLP endpoints using partial data transfers with GPU arrays allocated/freed each kernel launch");
+		print_colored_text(statement, LIGHT, CYAN );
+		print_colored_text(statement, LIGHT, CYAN );
+		if( ENDPOINTS_ALG == YES_BOOL )
 		{
-			puts("intersected_hull_h/d used to identify protons hitting/missing hull");
+			sprintf(statement, "Using boolean array to identify protons hitting/missing hull");
+			print_colored_text(statement, LIGHT, CYAN );
 			while( remaining_histories > 0 )
 			{
 				if( remaining_histories > MAX_ENDPOINTS_HISTORIES )
@@ -7753,7 +7960,8 @@ void image_reconstruction_GPU_testing()
 		}
 		else if( ENDPOINTS_ALG == NO_BOOL )
 		{
-			puts("first_MLP_voxel_vector used to identify protons hitting/missing hull");
+			sprintf(statement, "Using hull entry voxel # to identify protons hitting/missing hull");
+			print_colored_text(statement, LIGHT, CYAN );
 			while( remaining_histories > 0 )
 			{
 				if( remaining_histories > MAX_ENDPOINTS_HISTORIES )
@@ -7768,10 +7976,12 @@ void image_reconstruction_GPU_testing()
 	}
 	else if( ENDPOINTS_TX_MODE == PARTIAL_TX_PREALLOCATED )
 	{
-		puts("Reconstruction_cuts with partial data transfers and preallocated and reused GPU arrays");
-		if( ENDPOINTS_ALG == BOOL )
+		sprintf(statement, "Identifying MLP endpoints using partial data transfers with preallocated GPU arrays reused each kernel launch");
+		print_colored_text(statement, LIGHT, CYAN );
+		if( ENDPOINTS_ALG == YES_BOOL )
 		{
-			puts("intersected_hull_h/d used to identify protons hitting/missing hull");
+			sprintf(statement, "Using boolean array to identify protons hitting/missing hull");
+			print_colored_text(statement, LIGHT, CYAN );
 			reconstruction_cuts_allocations(MAX_ENDPOINTS_HISTORIES); 
 			while( remaining_histories > 0 )
 			{
@@ -7787,7 +7997,8 @@ void image_reconstruction_GPU_testing()
 		}
 		else if( ENDPOINTS_ALG == NO_BOOL )
 		{
-			puts("first_MLP_voxel_vector used to identify protons hitting/missing hull");
+			sprintf(statement, "Using hull entry voxel # to identify protons hitting/missing hull");
+			print_colored_text(statement, LIGHT, CYAN );
 			reconstruction_cuts_allocations_nobool(MAX_ENDPOINTS_HISTORIES); 
 			while( remaining_histories > 0 )
 			{
@@ -7802,21 +8013,25 @@ void image_reconstruction_GPU_testing()
 			reconstruction_cuts_deallocations_nobool();
 		}
 	}
-	system("echo -e \"\e[0;31m\"" );
 	sprintf(statement, "Reconsruction Cuts Complete.");
-	print_section_exit( statement, SECTION_EXIT_STRING );
-	system("echo -e \"\e[m\"" );
+	print_section_exit( statement, SECTION_EXIT_STRING, DARK, RED );
 
-	//system("echo -e \"\e[0;32m\"" );
-	printf("Protons that intersected the hull and will be used for reconstruction = %d\n", reconstruction_histories);
+	//percentage_pass_hull_cuts
+	sprintf(statement, "Protons that intersected the hull and will be used for reconstruction = %d\n", reconstruction_histories);
+	print_colored_text( statement, DARK, GREEN );
 	execution_time_endpoints = timer( STOP, begin_endpoints, "for finding MLP endpoints");
-	//system("echo -e \"\e[m\"" );
 		
 	// Reduce the size of the vectors to reconstruction_histories and shrink their capacity to match
 	first_MLP_voxel_vector.resize( reconstruction_histories );
 	//first_MLP_voxel_vector.shrink_to_fit();
 	resize_vectors( reconstruction_histories );
 	//shrink_vectors();
+
+	for( int i = 0; i < reconstruction_histories; i++ )
+	{
+		if( first_MLP_voxel_vector[i] >= NUM_VOXELS + 1 )
+			cout << "i = " << i << "voxel = " << first_MLP_voxel_vector[i] << endl;
+	}
 	/***********************************************************************************************************************************************************************************************************************/
 	/********************************************************************************************* Initialize Reconstructed Image ******************************************************************************************/
 	/***********************************************************************************************************************************************************************************************************************/
@@ -7833,22 +8048,15 @@ void image_reconstruction_GPU_testing()
 	if (cudaStatus != cudaSuccess) 
 		printf("Error: %s\n", cudaGetErrorString(cudaStatus));
 	
-	//system("echo -e \"\e[0;32m\"" );
 	execution_time_init_image = timer( STOP, begin_init_image, "for initializing reconstructed image x");	
-	//system("echo -e \"\e[m\"" );
 	/***********************************************************************************************************************************************************************************************************************/
 	/************************************************************************************************ Image Reconstruction *************************************************************************************************/
 	/***********************************************************************************************************************************************************************************************************************/
-	system("echo -e \"\e[0;36m\"" );
 	sprintf(statement, "Performing MLP and image reconstrution");
-	system("echo -e \"\e[m\"" );
-		
-	system("echo -e \"\e[0;36m\"" );
-	print_section_header( statement, '-' );
-	system("echo -e \"\e[m\"" );
+	print_section_header( statement, '-', DARK, CYAN );
 	
 	timer( START, begin_DROP, "for all iterations of DROP");	
-	
+	//reconstruction_histories = 20000000;
 	// Calculate MLP explicitly
 	if( MLP_ALGORITHM == STANDARD )
 	{
@@ -7875,9 +8083,7 @@ void image_reconstruction_GPU_testing()
 		timer( START, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
 		generate_MLP_lookup_tables();
 
-		//system("echo -e \"\e[0;32m\"" );
 		execution_time_tables = timer( STOP, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
-		//system("echo -e \"\e[m\"" );
 	
 		// Transfer data for ALL reconstruction_histories before beginning image reconstruction, using the MLP lookup tables each time
 		if( DROP_TX_MODE == FULL_TX )
@@ -7896,144 +8102,11 @@ void image_reconstruction_GPU_testing()
 		}// end: else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED )
 		free_MLP_lookup_tables();
 	}	// end: else if( MLP_ALGORITHM == TABULATED )
-	DROP_free_update_arrays();
-
-	sprintf(statement, "Image reconstruction complete: ");
-
-	system("echo -e \"\e[0;31m\"" );
-	print_section_exit( statement, SECTION_EXIT_STRING );
-	system("echo -e \"\e[m\"" );
-		
-	//system("echo -e \"\e[0;32m\"" );
-	execution_time_DROP = timer( STOP, begin_DROP, "for all iterations of DROP");
-	//system("echo -e \"\e[m\"" );
+	DROP_free_update_arrays();	
 }
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************* Image Reconstruction (host) *********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void create_hull_image_hybrid()
-{
-	/*int* SM_differences_h = (int*) calloc( NUM_VOXELS, sizeof(int) );
-	int* SM_differences_d;
-	cudaMalloc((void**) &SM_differences_d, SIZE_IMAGE_INT );
-	cudaMemcpy( SM_differences_d, SM_differences_h, SIZE_IMAGE_INT, cudaMemcpyHostToDevice );*/
-
-	
-
-	dim3 dimBlock( SLICES );
-	dim3 dimGrid( COLUMNS, ROWS );   
-
-	create_hull_image_hybrid_GPU<<< dimGrid, dimBlock >>>( hull_d, FBP_image_d );
-	cudaMemcpy( x_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
-
-	if( WRITE_X_0 ) {
-		char x_k0[]={"x_k0"};
-		array_2_disk(x_k0, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
-}
-__global__ void create_hull_image_hybrid_GPU( bool*& hull, float*& FBP_image)
-{
-	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
-	int voxel = column + row * COLUMNS + slice * COLUMNS * ROWS;
-	FBP_image[voxel] *= hull[voxel];
-}
-void export_initial_iterate()
-{
-//	puts("Writing image reconstruction hull to disk...");
-//	char input_hull_filename[256];
-//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
-//	FILE* write_input_hull = fopen(input_hull_filename, "wb");
-//	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, write_input_hull );
-//	fclose(write_input_hull);
-//	puts("Finished writing image reconstruction hull to disk.");
-}
-void import_initial_iterate()
-{
-//	puts("Reading image reconstruction hull from disk...");
-//	char input_hull_filename[256];
-//	sprintf(endpoints_filename, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_HULL_FILENAME );
-//	FILE* read_input_hull = fopen(input_hull_filename, "rb");
-//	hull_h = (bool*)calloc( NUM_VOXELS, sizeof(bool) );
-//	fwrite( &hull_h, sizeof(bool), NUM_VOXELS, read_input_hull );
-//	fclose(read_input_hull);
-//	puts("Finished reading image reconstruction hull from disk.");
-}
-void initial_iterate_generate_hybrid()
-{
-	for( int voxel = 0; voxel < NUM_VOXELS; voxel++ )
-	{
-		if( hull_h[voxel] == true )
-			x_h[voxel] = FBP_image_h[voxel];
-		else
-			x_h[voxel] = 0.0;
-	}
-}
-void define_initial_iterate()
-{
-	x_h = (float*) calloc( NUM_VOXELS, sizeof(float) );
-
-	switch( X_0 )
-	{
-		case X_HULL		:	std::copy( hull_h, hull_h + NUM_VOXELS, x_h );															break;
-		case FBP_IMAGE	:	x_h = FBP_image_h;																						break;
-		case HYBRID		:	initial_iterate_generate_hybrid();																		break;
-							//std::transform(FBP_image_h, FBP_image_h + NUM_VOXELS, hull_h, x_h, std::multiplies<float>() );		break;
-		case IMPORT		:	sprintf( INPUT_ITERATE_PATH, "%s%s/%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, INPUT_ITERATE_FILENAME );
-							import_image( x_h, INPUT_ITERATE_PATH );																break;
-		case ZEROS		:	break;
-		default			:	puts("ERROR: Invalid initial iterate selected");
-							exit(1);
-	}
-
-	//if( AVG_FILTER_ITERATE )
-	//{
-	//	puts("Filtering initial iterate...");
-	//	cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
-	//	cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
-	//	averaging_filter( x_h, x_d, ITERATE_FILTER_RADIUS, true, ITERATE_FILTER_THRESHOLD );
-	//	puts("Hull Filtering complete");
-	//	if( WRITE_FILTERED_HULL )
-	//	{
-	//		puts("Writing filtered hull to disk...");
-	//		cudaMemcpy(x_h, x_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
-	//		array_2_disk( "hull_filtered", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	//	}
-	//}
-
-	if( WRITE_X_0 ) {
-		char x_0[]={"x_0"};
-		array_2_disk(x_0, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );}
-	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
-	//cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
-}
-void generate_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
-{
-    history_sequence[0] = 0;
-    for( ULL i = 1; i < N; i++ )
-        history_sequence[i] = ( history_sequence[i-1] + offset_prime ) % N;
-}
-void verify_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
-{
-	for( ULL i = 1; i < N; i++ )
-    {
-        if(history_sequence[i] == 1)
-        {
-            printf("repeats at i = %llu\n", i);
-            printf("sequence[i] = %llu\n", history_sequence[i]);
-            break;
-        }
-        if(history_sequence[i] > N)
-        {
-            printf("exceeds at i = %llu\n", i);
-            printf("sequence[i] = %llu\n", history_sequence[i]);
-            break;
-        }
-    }
-}
-void print_history_sequence(ULL* history_sequence, ULL print_start, ULL print_end )
-{
-    for( ULL i = print_start; i < print_end; i++ )
-		printf("history_sequence[i] = %llu\n", history_sequence[i]);
-}
 void write_reconstruction_settings()
 {
 	FILE* settings_file = fopen("reconstruction_settings.txt", "w");
@@ -8854,7 +8927,7 @@ void binary_2_ASCII()
 		histories_2_process = 0;
 	} 
 }
-template<typename T> void array_2_disk( char* filename_base, const char* directory, const char* folder, T* data, const int x_max, const int y_max, const int z_max, const int elements, const bool single_file )
+template<typename T> void array_2_disk( const char* filename_base, const char* directory, const char* folder, T* data, const int x_max, const int y_max, const int z_max, const int elements, const bool single_file )
 {
 	char filename[256];
 	std::ofstream output_file;
@@ -8897,7 +8970,7 @@ template<typename T> void array_2_disk( char* filename_base, const char* directo
 		output_file.close();
 	}
 }
-template<typename T> void vector_2_disk( char* filename_base, const char* directory, const char* folder, std::vector<T> data, const int x_max, const int y_max, const int z_max, const bool single_file )
+template<typename T> void vector_2_disk( const char* filename_base, const char* directory, const char* folder, std::vector<T> data, const int x_max, const int y_max, const int z_max, const bool single_file )
 {
 	char filename[256];
 	std::ofstream output_file;
@@ -9158,7 +9231,7 @@ FILE* create_MLP_path_file( char* data_filename )
 	pFile = fopen (data_filename,"w+");
 	return pFile;
 }
-template<typename T> void path_data_2_disk(char* data_filename, FILE* pFile, unsigned int voxel_intersections, unsigned int* voxel_numbers, T*& data, bool write_sparse)
+template<typename T> void path_data_2_disk(const char* data_filename, FILE* pFile, unsigned int voxel_intersections, unsigned int* voxel_numbers, T*& data, bool write_sparse)
 {
 	// Writes either voxel intersection numbers or chord lengths in either dense or sparse format
 	T data_value;	
@@ -9226,7 +9299,7 @@ void execution_times_2_txt()
 	char ENDPOINTS_ALG_STRING[32];
 	char DROP_TX_MODE_STRING[32];
 	char MLP_ALGORITHM_STRING[32];
-
+	char statement[256];
 	switch( ENDPOINTS_TX_MODE )
 	{
 		case FULL_TX:					sprintf(ENDPOINTS_TX_MODE_STRING, "%s", FULL_TX_STRING);						break;
@@ -9241,7 +9314,7 @@ void execution_times_2_txt()
 	}
 	switch( ENDPOINTS_ALG )
 	{
-		case BOOL:		sprintf(ENDPOINTS_ALG_STRING, "%s", BOOL_STRING);					break;
+		case YES_BOOL:		sprintf(ENDPOINTS_ALG_STRING, "%s", BOOL_STRING);					break;
 		case NO_BOOL:	sprintf(ENDPOINTS_ALG_STRING, "%s", NO_BOOL_STRING);				break;
 	}
 	switch( MLP_ALGORITHM )
@@ -9257,10 +9330,12 @@ void execution_times_2_txt()
 	//sprintf(execution_times_path, "%s//%s.txt", OUTPUT_DIRECTORY, EXECUTION_TIMES_FILENAME);
 	sprintf(execution_times_path, "%s%s//%s.txt", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
 	
-	system("echo -e \"\e[0;36m\"" );
-	puts("Local testing results written to .txt at:");
-	system("echo -e \"\e[m\"" );
-	puts(execution_times_path);
+	sprintf(statement, "Local testing results written to .txt at:");
+	print_colored_text(statement, LIGHT, CYAN );
+	
+	sprintf(statement, "Local testing results written to .txt at:");
+	print_colored_text(execution_times_path, DARK, GREEN );
+	
 	
 	FILE* execution_times_file = fopen( execution_times_path, "w" );
 	fprintf(execution_times_file, "execution_date = %s\n",				EXECUTION_DATE						);	// 1
@@ -9311,7 +9386,8 @@ void execution_times_2_csv()
 	char ENDPOINTS_ALG_STRING[32];
 	char DROP_TX_MODE_STRING[32];
 	char MLP_ALGORITHM_STRING[32];
-
+	char statement[256];
+	
 	switch( ENDPOINTS_TX_MODE )
 	{
 		case FULL_TX:					sprintf(ENDPOINTS_TX_MODE_STRING, "%s", FULL_TX_STRING);						break;
@@ -9326,7 +9402,7 @@ void execution_times_2_csv()
 	}
 	switch( ENDPOINTS_ALG )
 	{
-		case BOOL:		sprintf(ENDPOINTS_ALG_STRING, "%s", BOOL_STRING);					break;
+		case YES_BOOL:		sprintf(ENDPOINTS_ALG_STRING, "%s", BOOL_STRING);					break;
 		case NO_BOOL:	sprintf(ENDPOINTS_ALG_STRING, "%s", NO_BOOL_STRING);				break;
 	}
 	switch( MLP_ALGORITHM )
@@ -9344,10 +9420,11 @@ void execution_times_2_csv()
 		init_execution_times_csv();
 	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
 	
-	system("echo -e \"\e[0;36m\"" );
-	puts("Global testing results written to .csv at:");
-	system("echo -e \"\e[m\"" );
-	puts(execution_times_path);
+	sprintf(statement, "Global testing results written to .txt at:");
+	print_colored_text(statement, LIGHT, CYAN );
+	
+	sprintf(statement, "Local testing results written to .txt at:");
+	print_colored_text(execution_times_path, DARK, GREEN );
 		
 	FILE* execution_times_file = fopen( execution_times_path, "a+" );
 	fprintf(execution_times_file, "%s, ",				EXECUTION_DATE						);	// 1
@@ -9397,6 +9474,7 @@ void execution_times_2_csv()
 void init_execution_times_csv()
 {
 	char execution_times_path[256];
+	char statement[256];
 	//char execution_date[9];
 	//current_MMDDYYYY( EXECUTION_DATE);
 	//fprintf( Execution Date	Executed By	INPUT_DIRECTORY	INPUT_FOLDER	OUTPUT_DIRECTORY	OUTPUT_FOLDER_UNIQUE	THREADS_PER_BLOCK	ENDPOINTS_TX_MODE	ENDPOINTS_ALG	MAX_ENDPOINTS_HISTORIES	ENDPOINTS_PER_BLOCK	ENDPOINTS_PER_THREAD	DROP_TX_MODE	MLP_ALGORITHM	HISTORIES_PER_BLOCK	HISTORIES_PER_THREAD	VOXELS_PER_THREAD	LAMBDA	DROP_BLOCK_SIZE	TRIG_TABLE_MIN	TRIG_TABLE_MAX	TRIG_TABLE_STEP	DEPTH_TABLE_RANGE	DEPTH_TABLE_STEP	POLY_TABLE_RANGE	POLY_TABLE_STEP
@@ -9404,11 +9482,11 @@ void init_execution_times_csv()
 	//													
 	sprintf(execution_times_path, "%s//%s.csv", OUTPUT_DIRECTORY, EXECUTION_TIMES_FILENAME);
 	//sprintf(execution_times_path, "%s%s//%s.csv", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, EXECUTION_TIMES_FILENAME);
+	sprintf(statement, "Testing results .csv initialized and written to:");
+	print_colored_text(statement, LIGHT, CYAN );
 	
-	system("echo -e \"\e[0;36m\"" );
-	puts("Testing results .csv initialized and written to:");
-	system("echo -e \"\e[m\"" );
-	puts(execution_times_path);
+	sprintf(statement, "Local testing results written to .txt at:");
+	print_colored_text(execution_times_path, DARK, GREEN );
 
 	FILE* execution_times_file = fopen( execution_times_path, "w" );
 	fprintf(execution_times_file, "Execution Date, "			);	// 1
@@ -9994,17 +10072,17 @@ unsigned int create_unique_dir( char* dir_name )
 	//char error_response[256];
 	char statement_beginning[] = "A subirectory or file ";
 	char statement_ending[] = " already exists";
-	sprintf(mkdir_command, "mkdir -p \"%s\"", dir_name);
+	sprintf(mkdir_command, "mkdir \"%s\"", dir_name);
 	//freopen("out.txt","a+",stdin);
 	while( system(mkdir_command) )
 	{
-		pause_execution();
+		//pause_execution();
 		//std::string text = buffer.str();
 		//std::cout << "-> " << text << "<- " << endl;
 		//printf( "-> %s <-\n", text );
 		if( (strlen(mkdir_command) + strlen(statement_beginning) + strlen(statement_ending) - 6) % CONSOLE_WINDOW_WIDTH != 0 )
 			puts("");	
-		sprintf(mkdir_command, "mkdir -p \"%s_%d\"", dir_name, ++i);
+		sprintf(mkdir_command, "mkdir \"%s_%d\"", dir_name, ++i);
 		//puts(mkdir_command);
 	}
 	//fclose("out.txt");
@@ -10020,6 +10098,8 @@ void assign_output_directory()
 	//const char OUTPUT_FOLDER_UNIQUE[]      = "HeadPhantom//Reconstruction//0060_Inf";
 	//const char OUTPUT_FOLDER_UNIQUE[]      = "EdgePhantom//Reconstruction";
 	//current_MMDDYYYY( EXECUTION_DATE);
+	
+	char statement[256];
 	sprintf(OUTPUT_FOLDER_UNIQUE, "%s//B_%d_L_%3f", OUTPUT_FOLDER, DROP_BLOCK_SIZE, LAMBDA );
 	//puts(OUTPUT_FOLDER_UNIQUE);
 	if( !OVERWRITING_OK )
@@ -10033,31 +10113,32 @@ void assign_output_directory()
 	else
 	{
 		char mkdir_command[256];
-		sprintf(mkdir_command, "mkdir -p \"%s//%s\"", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE );
+		sprintf(mkdir_command, "mkdir \"%s//%s\"", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE );
 		system(mkdir_command);
 	}
-	system("echo -e \"\e[0;36m\"" );
-	puts("Writing output data/images to:");
-	system("echo -e \"\e[m\"" );
-	puts(OUTPUT_FOLDER_UNIQUE);
+	sprintf(statement, "Writing output data/images to:");
+	print_colored_text(statement, LIGHT, CYAN );
+	//system("echo -e \"\e[m\"" );
+	print_colored_text(OUTPUT_FOLDER_UNIQUE, DARK, GREEN );
+
+
 }
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************************* Console Window Print Statement Functions  ***************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void print_colored_text(char* statement, unsigned int color_code )
+void print_colored_text(char* statement, unsigned int shade, unsigned int color_code )
 {
-	//char statement_out[256];
-	printf("echo -e \"\e[0;%dm\"", color_code );
-	puts(statement);
-	system("echo -e \"\e[m\"" );
+	char statement_out[256];
+	sprintf(statement_out, "echo -e \"\e[%d;%dm%s\e[m\"", shade, color_code, statement );
+	system(statement_out);
 }
-void print_section_separator(char separation_char )
+void print_section_separator(char separation_char, unsigned int shade, unsigned int color_code )
 {
 	char section_separator[CONSOLE_WINDOW_WIDTH];
 	for( int n = 0; n < CONSOLE_WINDOW_WIDTH; n++ )
 		section_separator[n] = separation_char;
 	section_separator[CONSOLE_WINDOW_WIDTH - 1] = '\0';
-	puts(section_separator);
+	print_colored_text( section_separator, shade, color_code );
 }
 void construct_header_line( char* statement, char separation_char, char* header )
 {
@@ -10088,9 +10169,9 @@ void construct_header_line( char* statement, char separation_char, char* header 
 		header[i++] = separation_char;
 	header[CONSOLE_WINDOW_WIDTH - 1] = '\0';
 }
-void print_section_header( char* statement, char separation_char )
+void print_section_header( char* statement, char separation_char, unsigned int shade, unsigned int color_code )
 {
-	print_section_separator(separation_char);
+	print_section_separator(separation_char, shade, color_code);
 	char header[CONSOLE_WINDOW_WIDTH];
 	size_t length = strlen(statement), max_line_length = 70;
 	size_t num_dashes = CONSOLE_WINDOW_WIDTH - length - 2;
@@ -10121,29 +10202,23 @@ void print_section_header( char* statement, char separation_char )
 		for( int j = 0; j < trailing_dashes; j++)
 			header[i++] = separation_char;
 		header[CONSOLE_WINDOW_WIDTH - 1] = '\0';
-		puts(header);		
+		print_colored_text( header, shade, color_code );
 	}
-	print_section_separator(separation_char);
-	puts("");
+	print_section_separator(separation_char, shade, color_code);
 }
-void print_section_exit( char* statement, char* leading_statement_chars )
+void print_section_exit( char* statement, char* leading_statement_chars, unsigned int shade, unsigned int color_code )
 {
-	puts("");
-	//print_section_separator('_');
 	char header[CONSOLE_WINDOW_WIDTH];
 	size_t length = strlen(statement), max_line_length = 70;
-	//int additional_chars = CONSOLE_WINDOW_WIDTH - length - 2;
 	size_t leading_chars = strlen(leading_statement_chars);
 	size_t i = 0, index = 0, line_length;
 
 	while( index < length )
 	{
-		//i = 0;
 		line_length = min(static_cast<int>(length - index), static_cast<int>(max_line_length));
 		if( line_length < length - index )
 			while( statement[index + line_length] != ' ' )
 				line_length--;
-		//additional_chars = CONSOLE_WINDOW_WIDTH - line_length - 2;
 		leading_chars = strlen(leading_statement_chars);
 
 		if( index == 0 )
@@ -10165,11 +10240,9 @@ void print_section_exit( char* statement, char* leading_statement_chars )
 		for( ; i < CONSOLE_WINDOW_WIDTH; i++ )
 			header[i] = ' ';
 		header[CONSOLE_WINDOW_WIDTH - 1] = '\0';
-		puts(header);		
+		print_colored_text( header, shade, color_code );
 		i = 0;
 	}
-	//print_section_separator(separation_char);
-	puts("");
 }
 /***********************************************************************************************************************************************************************************************************************/
 /*********************************************************************************************** Device Helper Functions ***********************************************************************************************/

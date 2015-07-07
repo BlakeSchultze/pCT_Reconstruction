@@ -682,6 +682,7 @@ __global__ void MSC_edge_detection_GPU( configurations*, int* );
 __global__ void SM_edge_detection_GPU( configurations*, int*, int* );
 __global__ void SM_edge_detection_GPU_2( configurations*, int*, int* );
 __global__ void carve_differences( configurations*, int*, int* );
+template<typename D> __global__ void median_filter_GPU( configurations*, D*, D*, int, bool, double );
 template<typename H, typename D> __global__ void averaging_filter_GPU( configurations*, H*, D*, int, bool, double );
 template<typename D> __global__ void apply_averaging_filter_GPU( configurations*, D*, D* );
 
