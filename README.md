@@ -23,7 +23,7 @@ Proton Computed Tomography (pCT) Preprocessing/Image Reconstruction Program
 **(14)** Using entry/exit data from `(12)`, calculate the MLP and write intersected voxels along paths to `MLP.bin`.  
 
 -------------------------------------------------------------------------
-**Phase 2:**rber
+**Phase 2:**
 -------------------------------------------------------------------------
 **(1)** Calculate the largest prime number (*P*) less than *1/4*th of the total # of histories (*N*).  
 (2) Generate a sequence of numbers beginning with 0 successive numbers      by successively adding *P* to the previous number erer wer wer
