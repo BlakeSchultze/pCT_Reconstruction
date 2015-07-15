@@ -825,7 +825,7 @@ void post_reconstruction_results_transfers()
 	//// JPertwee
 	//const char INPUT_DIRECTORY[]	= "//local//organized_data//";
 	//const char OUTPUT_DIRECTORY[]	= "//local//reconstruction_data//";
-	//const char KODIAK_RECON_DIR[]	= "//data/ion//pctData//reconstruction_data//";
+	//const char KODIAK_RECON_DIR[]	= "//data/ion//pCT_data//reconstruction_data//";
 	//const char WS2_RECON_DIR[]		= "//home//share//reconstruction_data//";
 	//const char WHARTNELL_RECON_DIR[]	= "//local//pCT_Data//reconstruction_data//";
 
@@ -841,7 +841,7 @@ void post_reconstruction_results_transfers()
 	////const char OUTPUT_FOLDER[]      = "HeadPhantom//Experimental//150516//0059_Sup";
 	////const char OUTPUT_FOLDER[]      = "HeadPhantom//Experimental//150516//0060_Inf";
 
-	//const char KODIAK_CODE_DIR[]	= "//data/ion//pctData//pCT_code//Reconstruction//";
+	//const char KODIAK_CODE_DIR[]	= "//data/ion//pCT_code//Reconstruction//";
 	//const char WS2_CODE_DIR[]		= "//home//share//pCT_code//";
 	//const char WHARTNELL_CODE_DIR[]	= "//local//pCT_code//";
 	//const char JPERTWEE_CODE_DIR[]	= "//local//pCT_code//";
@@ -852,7 +852,7 @@ void post_reconstruction_results_transfers()
 	//char KODIAK_OUTPUT_PATH[256];
 	//char WS2_OUTPUT_PATH[256];
 	//char WHARTNELL_OUTPUT_PATH[256];
-	// scp -r * schultze@kodiak:/data/ion/pctData/reconstruction_data/Edge_Phantom/Experimental/150516/0057/
+	// scp -r * schultze@kodiak:/data/ion/pCT_data/reconstruction_data/Edge_Phantom/Experimental/150516/0057/
 	char scp_command[256];
 	sprintf(scp_command, "scp -r %s%s %s%s%s//", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, KODIAK_LOGIN, KODIAK_RECON_DIR, OUTPUT_FOLDER_UNIQUE);
 	puts(scp_command);
@@ -5561,7 +5561,7 @@ void reconstruction_cuts_deallocations()
 }
 void reconstruction_cuts_full_tx( const int num_histories )
 {
-	// ENDPOINTS_TX_MODE = FULL_TX, ENDPOINTS_ALG = YES_BOOL
+	// ENDPOINTS_TX_MODE = FULL_TX, ENDPOINTS_ALG = USE_BOOL_ARRAY
 	cudaError_t cudaStatus;
 	reconstruction_histories = 0;
 	int remaining_histories = num_histories, histories_2_process, start_position = 0;
@@ -5604,7 +5604,7 @@ void reconstruction_cuts_full_tx( const int num_histories )
 }
 void reconstruction_cuts_partial_tx(const int start_position, const int num_histories) 
 {
-	// ENDPOINTS_TX_MODE = PARTIAL_TX, ENDPOINTS_ALG = YES_BOOL
+	// ENDPOINTS_TX_MODE = PARTIAL_TX, ENDPOINTS_ALG = USE_BOOL_ARRAY
 	reconstruction_cuts_allocations(num_histories);
 	reconstruction_cuts_host_2_device( start_position, num_histories);
 
@@ -5638,7 +5638,7 @@ void reconstruction_cuts_partial_tx(const int start_position, const int num_hist
 }
 void reconstruction_cuts_partial_tx_preallocated(const int start_position, const int num_histories) 
 { 
-	// ENDPOINTS_TX_MODE = PARTIAL_TX_PREALLOCATED, ENDPOINTS_ALG = YES_BOOL
+	// ENDPOINTS_TX_MODE = PARTIAL_TX_PREALLOCATED, ENDPOINTS_ALG = USE_BOOL_ARRAY
 	reconstruction_cuts_host_2_device( start_position, num_histories);
 	int num_blocks = static_cast<int>( (num_histories - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD ) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD)  );
 	dim3 dimBlock(ENDPOINTS_PER_BLOCK);
@@ -5744,7 +5744,7 @@ void reconstruction_cuts_deallocations_nobool()
 }
 void reconstruction_cuts_full_tx_nobool( const int num_histories )
 {
-	// ENDPOINTS_TX_MODE = FULL_TX, ENDPOINTS_ALG = NO_BOOL 
+	// ENDPOINTS_TX_MODE = FULL_TX, ENDPOINTS_ALG = NO_BOOL_ARRAY 
 	cudaError_t cudaStatus;
 	reconstruction_histories = 0;
 	int remaining_histories = num_histories, histories_2_process, start_position = 0;
@@ -5789,7 +5789,7 @@ void reconstruction_cuts_full_tx_nobool( const int num_histories )
 }
 void reconstruction_cuts_partial_tx_nobool(const int start_position, const int num_histories) 
 { 
-	// ENDPOINTS_TX_MODE = PARTIAL_TX, ENDPOINTS_ALG = NO_BOOL
+	// ENDPOINTS_TX_MODE = PARTIAL_TX, ENDPOINTS_ALG = NO_BOOL_ARRAY
 	reconstruction_cuts_allocations_nobool(num_histories);
 	reconstruction_cuts_host_2_device_nobool( start_position, num_histories);
 			
@@ -5823,7 +5823,7 @@ void reconstruction_cuts_partial_tx_nobool(const int start_position, const int n
 }
 void reconstruction_cuts_partial_tx_preallocated_nobool(const int start_position, const int num_histories) 
 {
-	// ENDPOINTS_TX_MODE = PARTIAL_TX_PREALLOCATED, ENDPOINTS_ALG = NO_BOOL
+	// ENDPOINTS_TX_MODE = PARTIAL_TX_PREALLOCATED, ENDPOINTS_ALG = NO_BOOL_ARRAY
 	reconstruction_cuts_host_2_device_nobool( start_position, num_histories);
 	int num_blocks = static_cast<int>( (num_histories - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD ) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD)  );
 	dim3 dimBlock(ENDPOINTS_PER_BLOCK);
@@ -8144,7 +8144,7 @@ void image_reconstruction_GPU_testing()
 	{
 		sprintf(print_statement, "Identifying MLP endpoints with all data transferred to the GPU before the 1st kernel launch");
 		print_colored_text(print_statement, LIGHT, CYAN );
-		if( ENDPOINTS_ALG == YES_BOOL )
+		if( ENDPOINTS_ALG == USE_BOOL_ARRAY )
 		{
 			sprintf(print_statement, "Using boolean array to identify protons hitting/missing hull");
 			print_colored_text(print_statement, LIGHT, CYAN );
@@ -8154,7 +8154,7 @@ void image_reconstruction_GPU_testing()
 			reconstruction_cuts_deallocations();
 		}
 		// 
-		else if( ENDPOINTS_ALG == NO_BOOL )
+		else if( ENDPOINTS_ALG == NO_BOOL_ARRAY )
 		{
 			sprintf(print_statement, "Using hull entry voxel # to identify protons hitting/missing hull");
 			print_colored_text(print_statement, LIGHT, CYAN );
@@ -8168,7 +8168,7 @@ void image_reconstruction_GPU_testing()
 	{
 		sprintf(print_statement, "Identifying MLP endpoints using partial data transfers with GPU arrays allocated/freed each kernel launch");
 		print_colored_text(print_statement, LIGHT, CYAN );
-		if( ENDPOINTS_ALG == YES_BOOL )
+		if( ENDPOINTS_ALG == USE_BOOL_ARRAY )
 		{
 			sprintf(print_statement, "Using boolean array to identify protons hitting/missing hull");
 			print_colored_text(print_statement, LIGHT, CYAN );
@@ -8183,7 +8183,7 @@ void image_reconstruction_GPU_testing()
 				start_position		+= MAX_ENDPOINTS_HISTORIES;
 			}
 		}
-		else if( ENDPOINTS_ALG == NO_BOOL )
+		else if( ENDPOINTS_ALG == NO_BOOL_ARRAY )
 		{
 			sprintf(print_statement, "Using hull entry voxel # to identify protons hitting/missing hull");
 			print_colored_text(print_statement, LIGHT, CYAN );
@@ -8203,7 +8203,7 @@ void image_reconstruction_GPU_testing()
 	{
 		sprintf(print_statement, "Identifying MLP endpoints using partial data transfers with preallocated GPU arrays reused each kernel launch");
 		print_colored_text(print_statement, LIGHT, CYAN );
-		if( ENDPOINTS_ALG == YES_BOOL )
+		if( ENDPOINTS_ALG == USE_BOOL_ARRAY )
 		{
 			sprintf(print_statement, "Using boolean array to identify protons hitting/missing hull");
 			print_colored_text(print_statement, LIGHT, CYAN );
@@ -8220,7 +8220,7 @@ void image_reconstruction_GPU_testing()
 			}
 			reconstruction_cuts_deallocations();
 		}
-		else if( ENDPOINTS_ALG == NO_BOOL )
+		else if( ENDPOINTS_ALG == NO_BOOL_ARRAY )
 		{
 			sprintf(print_statement, "Using hull entry voxel # to identify protons hitting/missing hull");
 			print_colored_text(print_statement, LIGHT, CYAN );
@@ -9523,8 +9523,8 @@ void execution_times_2_txt()
 	}
 	switch( ENDPOINTS_ALG )
 	{
-		case YES_BOOL:		sprintf(ENDPOINTS_ALG_STRING, "%s", BOOL_STRING);					break;
-		case NO_BOOL:	sprintf(ENDPOINTS_ALG_STRING, "%s", NO_BOOL_STRING);				break;
+		case USE_BOOL_ARRAY:		sprintf(ENDPOINTS_ALG_STRING, "%s", BOOL_STRING);					break;
+		case NO_BOOL_ARRAY:	sprintf(ENDPOINTS_ALG_STRING, "%s", NO_BOOL_ARRAY_STRING);				break;
 	}
 	switch( MLP_ALGORITHM )
 	{
@@ -9611,8 +9611,8 @@ void execution_times_2_csv()
 	}
 	switch( ENDPOINTS_ALG )
 	{
-		case YES_BOOL:		sprintf(ENDPOINTS_ALG_STRING, "%s", BOOL_STRING);					break;
-		case NO_BOOL:	sprintf(ENDPOINTS_ALG_STRING, "%s", NO_BOOL_STRING);				break;
+		case USE_BOOL_ARRAY:		sprintf(ENDPOINTS_ALG_STRING, "%s", BOOL_STRING);					break;
+		case NO_BOOL_ARRAY:	sprintf(ENDPOINTS_ALG_STRING, "%s", NO_BOOL_ARRAY_STRING);				break;
 	}
 	switch( MLP_ALGORITHM )
 	{
