@@ -31,7 +31,7 @@ char PROJECTION_DATA_BASENAME[]	= "projection";							// Prefix of the files con
 /*--------------------------------------------------------------- Configuration and execution logging file names ----------------------------------------------------------*/
 /*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
 char CONFIG_FILENAME[]			= "settings.cfg";						// Name of the file used to control the program options/parameters as key=value pairs
-char CONFIG_OUT_FILENAME[]		= "settings_out.cfg";					// Name of the file used to control the program options/parameters as key=value pairs
+char CONFIG_OUT_FILENAME[]		= "settings_log.cfg";					// Name of the file used to control the program options/parameters as key=value pairs
 char LOG_FILENAME[]				= "log.csv";							// Name of the file logging the execution information associated with each data set generated
 char STDOUT_FILENAME[]			= "stdout.txt";							// Name of the file where the standard output stream stdout is redirected
 char STDIN_FILENAME[]			= "stdin.txt";							// Name of the file where the standard input stream stdin is redirected

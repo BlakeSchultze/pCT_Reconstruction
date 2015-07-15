@@ -8,12 +8,13 @@ output_directory = 'C:\Users\Blake\Documents\Visual Studio 2010\Projects\pCT_Rec
 % output_folder = 'output_ESFPhant\';
 % start_iteration = 1;
 % iterations = 20;
-output_folder = 'input_CTP404\';
+%output_folder = 'input_CTP404\tests\ART\avgfilt-r1\90\DROP\0.0004\';
+output_folder = 'my_merged\';
 %output_folder = 'input_CTP404\tests\hybrid-0.0002, 0.1, 0.2, 0.3, 0.5, 0.7, 0.9\'
 %output_folder = 'input_CTP404\tests\0.0005\';
-%output_folder = 'input_CTP404\tests\x_add_order\';
-start_iteration = 1;
-end_iteration = 5;
+%%output_folder = 'beam-Sep2014\bin-Sensitom\';
+start_iteration = 12;
+end_iteration = 12;
 % output_folder = 'input_CTP404\New folder\\';
 % start_iteration = 1;
 % iterations = 2;
@@ -113,8 +114,8 @@ av_files = dir(fullfile([output_directory, output_folder, iterates_basename,'*.t
 for file = 1:length(av_files)
     
 end
-start_slice = 17;
-end_slice = 17;
+start_slice = 15;
+end_slice = 18;
 if(plot_FBP_image)
     text_image = read_pCT_txt_image(FBP_image_path);
     text_image = mat2gray(text_image, [0,2]);
@@ -142,12 +143,12 @@ if(plot_initial_iterate)
 end
 
 
-start_slice = 16;
-end_slice = 16;
+start_slice = 15;
+end_slice = 17;
 if(plot_iterates)
 	for iteration = start_iteration:end_iteration
         text_image = read_pCT_txt_image([iterates_path, int2str(iteration)]);
-        %text_image = mat2gray(text_image, [0,2]);
+        text_image = mat2gray(text_image, [0,3.4]);
         for slice = start_slice:end_slice
             image_slice = extract_image_slice( text_image, slice );
             display_text_images({image_slice}, true, ['x_k : Iteration ', num2str(iteration), ' Slice ', num2str(slice)]);

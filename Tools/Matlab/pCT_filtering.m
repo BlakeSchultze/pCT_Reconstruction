@@ -7,8 +7,9 @@ output_directory = 'C:\Users\Blake\Documents\Visual Studio 2010\Projects\pCT_Rec
 % output_folder = 'output_ESFPhant\';
 % start_iteration = 1;
 % iterations = 20;
-% output_folder = 'input_CTP404\';
-output_folder = 'CTP404_4M\';
+%output_folder = 'input_CTP404\';
+output_folder = 'my_merged\';
+%output_folder = 'CTP404_4M\';
 start_iteration = 1;
 end_iteration = 12;
 
@@ -25,7 +26,7 @@ slices = 32;
 start_slice = 16;
 end_slice = 16;
 
-filter_radius = 5;
+filter_radius = 7;
 middle_element = floor( filter_radius^2 /2 )+1;
 if(plot_FBP_image)
     text_image = read_pCT_txt_image(FBP_image_path);
@@ -34,9 +35,9 @@ if(plot_FBP_image)
     %filtered = imfilter( text_image, h);
     filtered = ordfilt2( text_image, middle_element, ones(filter_radius,filter_radius));
     %display_text_images({filtered}, true, 'Filtered FBP');
-    %fileID = fopen([output_directory, output_folder, 'FBP_med',num2str(filter_radius),'.bin'], 'w');
-    %fwrite(fileID, filtered', 'float');
-    %fclose(fileID);
+    fileID = fopen([output_directory, output_folder, 'FBP_med',num2str(filter_radius),'.bin'], 'w');
+    fwrite(fileID, filtered', 'float');
+    fclose(fileID);
     for slice = start_slice:end_slice
         image_slice = extract_image_slice( text_image, slice );
         filtered_slice = extract_image_slice( filtered, slice );
