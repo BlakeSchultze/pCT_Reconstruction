@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.15 (MiKTeX 2.9 64-bit) (preloaded format=pdflatex 2015.5.4)  13 JUN 2015 13:42
+This is pdfTeX, Version 3.14159265-2.6-1.40.15 (MiKTeX 2.9 64-bit) (preloaded format=pdflatex 2015.5.4)  18 JUL 2015 19:23
 entering extended mode
 **"MLP_Algebraic_Expansion (a4).tex"
 ("MLP_Algebraic_Expansion (a4).tex"
@@ -1591,24 +1591,24 @@ LaTeX Info: Redefining \Ref on input line 9.
 \c@lstlisting=\count224
 
 ABD: EveryShipout initializing macros
-<C:/Users/Blake/Documents/School/Baylor/Logos/Baylor_vert.png, id=10, 794.97pt 
-x 469.755pt>
-File: C:/Users/Blake/Documents/School/Baylor/Logos/Baylor_vert.png Graphic file
- (type png)
+<C:/Users/Blake/Documents/Education/Baylor/Logos/Baylor_vert.png, id=10, 794.97
+pt x 469.755pt>
+File: C:/Users/Blake/Documents/Education/Baylor/Logos/Baylor_vert.png Graphic f
+ile (type png)
 
-<use C:/Users/Blake/Documents/School/Baylor/Logos/Baylor_vert.png>
-Package pdftex.def Info: C:/Users/Blake/Documents/School/Baylor/Logos/Baylor_ve
-rt.png used on input line 14.
+<use C:/Users/Blake/Documents/Education/Baylor/Logos/Baylor_vert.png>
+Package pdftex.def Info: C:/Users/Blake/Documents/Education/Baylor/Logos/Baylor
+_vert.png used on input line 14.
 (pdftex.def)             Requested size: 534.80003pt x 316.02443pt.
 
-<C:/Users/Blake/Documents/School/Baylor/Logos/EngineeringLOGOweb.jpg, id=11, 50
-1.875pt x 270.00874pt>
-File: C:/Users/Blake/Documents/School/Baylor/Logos/EngineeringLOGOweb.jpg Graph
-ic file (type jpg)
+<C:/Users/Blake/Documents/Education/Baylor/Logos/EngineeringLOGOweb.jpg, id=11,
+ 501.875pt x 270.00874pt>
+File: C:/Users/Blake/Documents/Education/Baylor/Logos/EngineeringLOGOweb.jpg Gr
+aphic file (type jpg)
 
-<use C:/Users/Blake/Documents/School/Baylor/Logos/EngineeringLOGOweb.jpg>
-Package pdftex.def Info: C:/Users/Blake/Documents/School/Baylor/Logos/Engineeri
-ngLOGOweb.jpg used on input line 14.
+<use C:/Users/Blake/Documents/Education/Baylor/Logos/EngineeringLOGOweb.jpg>
+Package pdftex.def Info: C:/Users/Blake/Documents/Education/Baylor/Logos/Engine
+eringLOGOweb.jpg used on input line 14.
 (pdftex.def)             Requested size: 534.80003pt x 287.757pt.
 LaTeX Font Info:    Try loading font information for U+txsya on input line 14.
 
@@ -1640,8 +1640,8 @@ File: ts1txr.fd 2000/12/15 v3.1
 ) [1
 
 {C:/ProgramData/MiKTeX/2.9/pdftex/config/pdftex.map} <C:/Users/Blake/Documents/
-School/Baylor/Logos/Baylor_vert.png>] [2 <C:/Users/Blake/Documents/School/Baylo
-r/Logos/EngineeringLOGOweb.jpg>]
+Education/Baylor/Logos/Baylor_vert.png>] [2 <C:/Users/Blake/Documents/Education
+/Baylor/Logos/EngineeringLOGOweb.jpg>]
 Overfull \hbox (43.62962pt too wide) in paragraph at lines 145--145
 [] 
  []
@@ -1717,8 +1717,8 @@ Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 1887.
  ) 
 Here is how much of TeX's memory you used:
  34019 strings out of 493678
- 656324 string characters out of 3144251
- 846746 words of memory out of 3000000
+ 656351 string characters out of 3144251
+ 846749 words of memory out of 3000000
  36655 multiletter control sequences out of 15000+200000
  94407 words of font info for 260 fonts, out of 3000000 for 9000
  1025 hyphenation exceptions out of 8191
@@ -1733,7 +1733,7 @@ MiKTeX 2.9/fonts/type1/public/txfonts/txsy.pfb><C:/Program Files/MiKTeX 2.9/fon
 ts/type1/urw/times/utmb8a.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/urw/time
 s/utmbi8a.pfb><C:/Program Files/MiKTeX 2.9/fonts/type1/urw/times/utmr8a.pfb><C:
 /Program Files/MiKTeX 2.9/fonts/type1/urw/times/utmri8a.pfb>
-Output written on "MLP_Algebraic_Expansion (a4).pdf" (12 pages, 272979 bytes).
+Output written on "MLP_Algebraic_Expansion (a4).pdf" (12 pages, 272980 bytes).
 PDF statistics:
  115 PDF objects out of 1000 (max. 8388607)
  14 named destinations out of 1000 (max. 500000)
