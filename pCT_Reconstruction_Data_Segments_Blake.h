@@ -343,7 +343,10 @@ float LAMBDA						= 0.0005;												// Relaxation parameter to use in image i
 int PSI_SIGN						= 1;													// Sign of the perturbation used in robust reconstruction imposing Tikhonov, ridge regression, total least square, minmax, maxmax, 
 double ETA							= 2.5;													// Radius of bounded region in which a solution is sought, commonly set based on the bound of expected error in measurements
 #define ITERATIONS					6														// # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define BOUND_IMAGE					1
+#define BOUND_IMAGE					1														// If any voxel in the image exceeds 2.0, set it to exactly 2.0
+const bool TVS_ON					= true;													// Perform total variation superiorization (TVS) (T) or not (F)
+const bool TVS_FIRST				= true;													// Perform TVS before DROP updates (T) or after image is updated by DROP block (F)
+const bool TVS_PARALLEL				= false;												// Use the parallel implementation of TVS (T) or the host only version (F)
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------- Tabulated data file names --------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -723,7 +726,7 @@ double* norm_Ai;																			// L2 norm of row i of A matrix, i.e., Ai
 
 float* G_x_h, * G_y_h, * G_norm_h, * G_h, * v_h, * y_h;
 float* G_x_d, * G_y_d, * G_norm_d, * G_d, * v_d, * y_d;
-float beta = 1.0;
+float BETA = 1.0;
 float* TV_x_h, * TV_y_h;
 float* TV_x_d, * TV_y_d;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/

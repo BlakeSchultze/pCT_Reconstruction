@@ -260,10 +260,19 @@ __global__ void block_update_GPU_tabulated_exact2(float*, float*, float*, float*
 __global__ void x_update_GPU(float*, double*, unsigned int*); 
 __global__ void DROP_init_arrays_GPU(float*, unsigned int*); 
 
+float calculate_total_variation( float* );
 __device__ float calculate_total_variation_GPU( float* );
+void allocate_perturbation_arrays( bool);
+void generate_perturbation_vector();
 __global__ void generate_perturbation_vector_GPU( float*, float*, float*, float*, float*, float* );
 __device__ void generate_perturbation_vector_GPU( float*, float*, float*, float*, float*, float*, int, int, int );
-__global__ void perturb_x_GPU( float*, float*, float*, float*, float*, float*, float& );
+__global__ void apply_perturbation_GPU(float*, float*, float, float* );
+void perturb_x( float& );
+void perturb_x_GPU(float&);
+void TVS_DROP_full_tx_tabulated(const int);
+void TVS_DROP_full_tx_tabulated_GPU(const int);
+void DROP_TVS_full_tx_tabulated(const int);
+void DROP_TVS_full_tx_tabulated_GPU(const int);
 
 void reconstruction_cuts_allocations(const int);
 void reconstruction_cuts_host_2_device(const int, const int);
@@ -7689,6 +7698,27 @@ void allocate_perturbation_arrays( bool parallel)
 		cudaMemcpy(TV_y_d,		TV_y_h,		sizeof(float)	, cudaMemcpyHostToDevice ); 
 	}
 }
+void deallocate_perturbation_arrays( bool parallel)
+{
+	free(G_x_h);
+	free(G_y_h);
+	free(G_norm_h);
+	free(G_h);
+	free(v_h);
+	free(y_h);
+	free(TV_y_h);
+
+	if( parallel )
+	{
+		cudaFree( G_x_d);
+		cudaFree(G_y_d);
+		cudaFree(G_norm_d);
+		cudaFree(G_d);
+		cudaFree(v_d);	
+		cudaFree(y_d);	
+		cudaFree(TV_y_d);	
+	}
+}
 void generate_perturbation_vector()
 {
 	int row, column, slice, voxel;
@@ -7852,6 +7882,19 @@ __device__ void generate_perturbation_vector_GPU( float* G_x, float* G_y, float*
 		G_norm[voxel] = 0.0;
 	}
 }
+__global__ void apply_perturbation_GPU(float* x, float* v, float beta, float* TV_y )
+{
+	int column = blockIdx.x;
+	int row = blockIdx.y;
+	int slice = threadIdx.x;
+	int voxel = column  + row * COLUMNS + slice * ROWS * COLUMNS;
+	
+	x[voxel] += beta * v[voxel];						// Negative sign imposing steepest descent applied here as subtraction to eliminate math op calculating v
+	if( voxel == 0)
+		*TV_y = calculate_total_variation_GPU(x);
+	
+	//return TV_y;
+}
 void perturb_x( float& beta )
 {
 	float TV_y, TV_y_previous = 0.0;
@@ -7877,58 +7920,24 @@ void perturb_x( float& beta )
 		}																// x = x - beta/4*v = ((x - beta*v) + beta/2*v) + beta/4*v = (x - beta/2*v) + beta/4*v = x - beta/4*v
 	}
 }
-__global__ void perturb_x_GPU( float* G_x, float* G_y, float* G_norm, float* G, float* v, float* x, float& beta )
-{
-	int column = blockIdx.x;
-	int row = blockIdx.y;
-	int slice = threadIdx.x;
-	int voxel = column  + row * COLUMNS + slice * ROWS * COLUMNS;
-	
-	float TV_y, TV_y_previous = 0.0;
-	float TV_x = calculate_total_variation_GPU(x);					// Calculate total variation for unperturbed image
-	generate_perturbation_vector_GPU( G_x, G_y, G_norm, G, v, x, column, row, voxel );
-	
-	// Perturb image with initial value of beta
-	x[voxel] -= beta * v[voxel];						// Negative sign imposing steepest descent applied here as subtraction to eliminate math op calculating v
-	
-	// Beginning with beta from previous perturbation, iteratively halve it until TV improves or relative difference ratio between successive beta < TV_THRESHOLD
-	while(true)
-	{
-		TV_y = calculate_total_variation_GPU(x);
-		if( ( TV_y <= TV_x ) || ( fabs( TV_y - TV_y_previous ) / TV_y < TV_THRESHOLD ) )			// ( fabs( TV_y_previous - TV_y ) / TV_y * 100 < 0.01 )
-			return;
-		else
-		{ 
-			beta /= 2;
-			TV_y_previous = TV_y;
-			// Scott has slices = 1 as starting point, not sure why yet
-			for( int voxel = 0; voxel < NUM_VOXELS; voxel++ )			// Exploit 1 - 1/2 = 1/2, 1/2 - 1/4 = 1/4, ... to get x - beta/2*v from previous value x + beta*v
-				x[voxel] = x[voxel] + beta * v[voxel];					// x = x - beta/2*v = (x - beta*v) + beta/2*v
-		}																// x = x - beta/4*v = ((x - beta*v) + beta/2*v) + beta/4*v = (x - beta/2*v) + beta/4*v = x - beta/4*v
-	}
-}
-__global__ void apply_perturbation_GPU(float* x, float* v, float beta, float* TV_y )
-{
-	int column = blockIdx.x;
-	int row = blockIdx.y;
-	int slice = threadIdx.x;
-	int voxel = column  + row * COLUMNS + slice * ROWS * COLUMNS;
-	
-	x[voxel] += beta * v[voxel];						// Negative sign imposing steepest descent applied here as subtraction to eliminate math op calculating v
-	if( voxel == 0)
-		*TV_y = calculate_total_variation_GPU(x);
-	
-	//return TV_y;
-}
-void perturbation()
+void perturb_x_GPU(float& beta)
 {
 	float TV_x = calculate_total_variation(x_h);					// Calculate total variation for unperturbed image
 	float TV_y, TV_y_previous = 0.0;
 	dim3 dimGrid(COLUMNS, ROWS);
 	dim3 dimBlock = SLICES;
 	generate_perturbation_vector_GPU<<< dimGrid, dimBlock>>>( G_x_d, G_y_d, G_norm_d, G_d, v_d, x_d );
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("Error generating perturbation vector: %s\n", cudaGetErrorString(cudaStatus));
+	
 	apply_perturbation_GPU<<< dimGrid, dimBlock >>>(x_d, v_d, -beta, TV_y_d );
-	cudaMemcpy(TV_y_h,		TV_y_d,		sizeof(float)	, cudaMemcpyDeviceToHost );
+	cudaStatus = cudaGetLastError();
+	if (cudaStatus != cudaSuccess) 
+		printf("Error applying perturbation: %s\n", cudaGetErrorString(cudaStatus));
+
+		
+	cudaMemcpy(TV_y_h, TV_y_d, sizeof(float), cudaMemcpyDeviceToHost );
 	// Beginning with beta from previous perturbation, iteratively halve it until TV improves or relative difference ratio between successive beta < TV_THRESHOLD
 	while(true)
 	{
@@ -7940,9 +7949,149 @@ void perturbation()
 			beta /= 2;
 			TV_y_previous = *TV_y_h;
 			apply_perturbation_GPU<<< dimGrid, dimBlock >>>(x_d, v_d, beta, TV_y_d );	
-			cudaMemcpy(TV_y_h,		TV_y_d,		sizeof(float)	, cudaMemcpyDeviceToHost );
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) 
+				printf("Error applying perturbation: %s\n", cudaGetErrorString(cudaStatus));
+
+			cudaMemcpy(TV_y_h, TV_y_d, sizeof(float), cudaMemcpyDeviceToHost );
 		}													
 	}
+}
+void TVS_DROP_full_tx_tabulated(const int num_histories)	
+{
+	// DROP_TX_MODE = FULL_TX, MLP_ALGORITHM = TABULATED
+	cudaError_t cudaStatus;
+	char iterate_filename[256];
+	int remaining_histories, start_position = 0, histories_2_process, num_blocks;
+	int column_blocks = static_cast<int>( COLUMNS / VOXELS_PER_THREAD );
+	//float beta = 1.0;
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( column_blocks, ROWS );
+
+	// Host and GPU array allocations and host->GPU transfers/initializations for DROP and TVS
+	DROP_allocations(num_histories);
+	DROP_host_2_device( start_position, num_histories);
+	allocate_perturbation_arrays(false);
+
+	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
+	{	    
+		sprintf(print_statement, "Performing iteration %u of image reconstruction", iteration);
+		print_colored_text(print_statement, LIGHT, CYAN );
+		remaining_histories = num_histories;
+		start_position = 0;
+		timer( START, begin_DROP_iteration, "for DROP iteration");	
+		while( remaining_histories > 0 )
+		{
+			// Proceed using DROP_BLOCK_SIZE histories or all remaining histories if this is less than DROP_BLOCK_SIZE
+			if( remaining_histories > DROP_BLOCK_SIZE )
+				histories_2_process = DROP_BLOCK_SIZE;
+			else
+				histories_2_process = remaining_histories;	
+
+			perturb_x(BETA);							// Beginning with previous value of beta, halve beta until TV improves or changes < TV_THRESHOLD
+			x_host_2_GPU();									// Transfer perturbed image back to GPU for update
+			// Set GPU grid/block configuration and perform DROP update calculations
+			num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
+			block_update_GPU_tabulated<<< num_blocks, HISTORIES_PER_BLOCK >>>
+			( 
+				x_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, x_exit_d, y_exit_d, z_exit_d,  xy_exit_angle_d, 
+				xz_exit_angle_d, WEPL_d, first_MLP_voxel_d, x_update_d, S_d, start_position, num_histories, LAMBDA,
+				sin_table_d, cos_table_d, scattering_table_d, poly_1_2_d, poly_2_3_d, poly_3_4_d, poly_2_6_d, poly_3_12_d
+			);	
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) 
+				printf("block_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
+
+			// Apply DROP update to image
+			x_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) 
+				printf("x_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
+
+			remaining_histories -= DROP_BLOCK_SIZE;		
+			start_position		+= DROP_BLOCK_SIZE;		
+		}
+		
+		// Transfer the updated image to the host and write it to disk
+		sprintf(iterate_filename, "%s%d", "x_", iteration );
+		if( WRITE_X_KI ) 
+		{
+			x_GPU_2_host();
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_TO_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+		}
+		sprintf(print_statement, "for DROP iteration %d", iteration );
+		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, print_statement);	
+		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
+	}
+	DROP_deallocations();
+}
+void TVS_DROP_full_tx_tabulated_GPU(const int num_histories)	
+{
+	// DROP_TX_MODE = FULL_TX, MLP_ALGORITHM = TABULATED
+	cudaError_t cudaStatus;
+	char iterate_filename[256];
+	int remaining_histories, start_position = 0, histories_2_process, num_blocks;
+	int column_blocks = static_cast<int>( COLUMNS / VOXELS_PER_THREAD );
+	//float beta = 1.0;
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( column_blocks, ROWS );
+
+	// Host and GPU array allocations and host->GPU transfers/initializations for DROP and TVS
+	DROP_allocations(num_histories);
+	DROP_host_2_device( start_position, num_histories);
+	allocate_perturbation_arrays(true);
+
+	for(int iteration = 1; iteration <= ITERATIONS ; ++iteration) 
+	{	    
+		sprintf(print_statement, "Performing iteration %u of image reconstruction", iteration);
+		print_colored_text(print_statement, LIGHT, CYAN );
+		remaining_histories = num_histories;
+		start_position = 0;
+		timer( START, begin_DROP_iteration, "for DROP iteration");	
+		while( remaining_histories > 0 )
+		{
+			// Proceed using DROP_BLOCK_SIZE histories or all remaining histories if this is less than DROP_BLOCK_SIZE
+			if( remaining_histories > DROP_BLOCK_SIZE )
+				histories_2_process = DROP_BLOCK_SIZE;
+			else
+				histories_2_process = remaining_histories;	
+
+			perturb_x_GPU(BETA);								// Beginning with previous value of beta, halve beta until TV improves or changes < TV_THRESHOLD
+			
+			// Set GPU grid/block configuration and perform DROP update calculations
+			num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
+			block_update_GPU_tabulated<<< num_blocks, HISTORIES_PER_BLOCK >>>
+			( 
+				x_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, x_exit_d, y_exit_d, z_exit_d,  xy_exit_angle_d, 
+				xz_exit_angle_d, WEPL_d, first_MLP_voxel_d, x_update_d, S_d, start_position, num_histories, LAMBDA,
+				sin_table_d, cos_table_d, scattering_table_d, poly_1_2_d, poly_2_3_d, poly_3_4_d, poly_2_6_d, poly_3_12_d
+			);	
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) 
+				printf("block_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
+
+			// Apply DROP update to image
+			x_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );
+			cudaStatus = cudaGetLastError();
+			if (cudaStatus != cudaSuccess) 
+				printf("x_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
+
+			remaining_histories -= DROP_BLOCK_SIZE;		
+			start_position		+= DROP_BLOCK_SIZE;		
+		}
+		
+		// Transfer the updated image to the host and write it to disk
+		sprintf(iterate_filename, "%s%d", "x_", iteration );
+		if( WRITE_X_KI ) 
+		{
+			x_GPU_2_host();
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_TO_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+		}
+		sprintf(print_statement, "for DROP iteration %d", iteration );
+		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, print_statement);	
+		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
+	}
+	DROP_deallocations();
 }
 void DROP_TVS_full_tx_tabulated(const int num_histories)	
 {
@@ -7975,8 +8124,6 @@ void DROP_TVS_full_tx_tabulated(const int num_histories)
 			else
 				histories_2_process = remaining_histories;	
 
-			perturb_x(beta);							// Beginning with previous value of beta, halve beta until TV improves or changes < TV_THRESHOLD
-			x_host_2_GPU();									// Transfer perturbed image back to GPU for update
 			// Set GPU grid/block configuration and perform DROP update calculations
 			num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
 			block_update_GPU_tabulated<<< num_blocks, HISTORIES_PER_BLOCK >>>
@@ -8001,19 +8148,21 @@ void DROP_TVS_full_tx_tabulated(const int num_histories)
 		}
 		
 		// Transfer the updated image to the host and write it to disk
+		x_GPU_2_host();
+		perturb_x(BETA);							// Beginning with previous value of beta, halve beta until TV improves or changes < TV_THRESHOLD
+		x_host_2_GPU();									// Transfer perturbed image back to GPU for update
+		
 		sprintf(iterate_filename, "%s%d", "x_", iteration );
-		if( WRITE_X_KI ) 
-		{
-			x_GPU_2_host();
+		if( WRITE_X_KI ) 	
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_TO_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
-		}
+		
 		sprintf(print_statement, "for DROP iteration %d", iteration );
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, print_statement);	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
 	DROP_deallocations();
 }
-void DROP_TVS_full_tx_tabulated2(const int num_histories)	
+void DROP_TVS_full_tx_tabulated_GPU(const int num_histories)	
 {
 	// DROP_TX_MODE = FULL_TX, MLP_ALGORITHM = TABULATED
 	cudaError_t cudaStatus;
@@ -8044,8 +8193,6 @@ void DROP_TVS_full_tx_tabulated2(const int num_histories)
 			else
 				histories_2_process = remaining_histories;	
 
-			perturb_x(beta);								// Beginning with previous value of beta, halve beta until TV improves or changes < TV_THRESHOLD
-			x_host_2_GPU();									// Transfer perturbed image back to GPU for update
 			// Set GPU grid/block configuration and perform DROP update calculations
 			num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
 			block_update_GPU_tabulated<<< num_blocks, HISTORIES_PER_BLOCK >>>
@@ -8057,25 +8204,22 @@ void DROP_TVS_full_tx_tabulated2(const int num_histories)
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
 				printf("block_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
-
-			// Apply DROP update to image
-			x_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );
-
+	
+			x_update_GPU<<< dimGrid, dimBlock >>>( x_d, x_update_d, S_d );	// Apply DROP update to image
 			cudaStatus = cudaGetLastError();
 			if (cudaStatus != cudaSuccess) 
 				printf("x_update_GPU Error: %s\n", cudaGetErrorString(cudaStatus));
 
 			remaining_histories -= DROP_BLOCK_SIZE;		
 			start_position		+= DROP_BLOCK_SIZE;		
-		}
+		}		
+		x_GPU_2_host();													// Transfer the updated image to the host and apply TVS, then write it to disk (if desired)
+		perturb_x_GPU(BETA);											// Beginning with previous value of beta, halve beta until TV improves or changes < TV_THRESHOLD		
 		
-		// Transfer the updated image to the host and write it to disk
 		sprintf(iterate_filename, "%s%d", "x_", iteration );
-		if( WRITE_X_KI ) 
-		{
-			x_GPU_2_host();
+		if( WRITE_X_KI ) 		
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_TO_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
-		}
+	
 		sprintf(print_statement, "for DROP iteration %d", iteration );
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, print_statement);	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
@@ -8403,51 +8547,79 @@ void image_reconstruction_GPU()
 	
 	timer( START, begin_DROP, "for all iterations of DROP");	
 	//reconstruction_histories = 20000000;
-	// Calculate MLP explicitly
-	if( MLP_ALGORITHM == STANDARD )
-	{
-		// Transfer data for ALL reconstruction_histories before beginning image reconstruction
-		if( DROP_TX_MODE == FULL_TX )
-		{
-			DROP_full_tx( reconstruction_histories );
-		}
-		// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, explcitly calculating MLP each time
-		else if( DROP_TX_MODE == PARTIAL_TX )	// if( MLP_ALGORITHM == STANDARD )
-		{
-			DROP_partial_tx( reconstruction_histories );
-		}
-		// Transfer data to GPU as needed but allocate and resuse the GPU arrays each kernel launch, explcitly calculating MLP each time
-		else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED )	// if( MLP_ALGORITHM == STANDARD )
-		{
-			DROP_partial_tx_preallocated( reconstruction_histories);
-		}
-	}
-	// Use MLP lookup tables 
-	else if( MLP_ALGORITHM == TABULATED )
+	if( TVS_ON )
 	{
 		// Generate MLP lookup tables and transfer these to the GPU
 		timer( START, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
 		generate_MLP_lookup_tables();
-
 		execution_time_tables = timer( STOP, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
-	
-		// Transfer data for ALL reconstruction_histories before beginning image reconstruction, using the MLP lookup tables each time
-		if( DROP_TX_MODE == FULL_TX )
+				
+		if( TVS_PARALLEL )
 		{
-			DROP_full_tx_tabulated(reconstruction_histories);
+			if( TVS_FIRST )
+				TVS_DROP_full_tx_tabulated_GPU(reconstruction_histories);
+			else
+				DROP_TVS_full_tx_tabulated_GPU(reconstruction_histories);			
+			deallocate_perturbation_arrays(true);
 		}
-		// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, using the MLP lookup tables each time
-		else if( DROP_TX_MODE == PARTIAL_TX )	// else if( MLP_ALGORITHM == TABULATED )
+		else
 		{
-			DROP_partial_tx_tabulated( reconstruction_histories);
+			if( TVS_FIRST )
+				TVS_DROP_full_tx_tabulated(reconstruction_histories);
+			else
+				DROP_TVS_full_tx_tabulated(reconstruction_histories);
+			deallocate_perturbation_arrays(false);
 		}
-		// Transfer data to GPU as needed but allocate and resuse the GPU arrays each kernel launch, using the MLP lookup tables each time
-		else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED ) //else if( MLP_ALGORITHM == TABULATED )
-		{
-			DROP_partial_tx_preallocated_tabulated( reconstruction_histories );
-		}// end: else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED )
 		free_MLP_lookup_tables();
-	}	// end: else if( MLP_ALGORITHM == TABULATED )
+	}
+	else
+	{
+		// Calculate MLP explicitly
+		if( MLP_ALGORITHM == STANDARD )
+		{
+			// Transfer data for ALL reconstruction_histories before beginning image reconstruction
+			if( DROP_TX_MODE == FULL_TX )
+			{
+				DROP_full_tx( reconstruction_histories );
+			}
+			// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, explcitly calculating MLP each time
+			else if( DROP_TX_MODE == PARTIAL_TX )	// if( MLP_ALGORITHM == STANDARD )
+			{
+				DROP_partial_tx( reconstruction_histories );
+			}
+			// Transfer data to GPU as needed but allocate and resuse the GPU arrays each kernel launch, explcitly calculating MLP each time
+			else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED )	// if( MLP_ALGORITHM == STANDARD )
+			{
+				DROP_partial_tx_preallocated( reconstruction_histories);
+			}
+		}
+		// Use MLP lookup tables 
+		else if( MLP_ALGORITHM == TABULATED )
+		{
+			// Generate MLP lookup tables and transfer these to the GPU
+			timer( START, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
+			generate_MLP_lookup_tables();
+
+			execution_time_tables = timer( STOP, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
+	
+			// Transfer data for ALL reconstruction_histories before beginning image reconstruction, using the MLP lookup tables each time
+			if( DROP_TX_MODE == FULL_TX )
+			{
+				DROP_full_tx_tabulated(reconstruction_histories);
+			}
+			// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, using the MLP lookup tables each time
+			else if( DROP_TX_MODE == PARTIAL_TX )	// else if( MLP_ALGORITHM == TABULATED )
+			{
+				DROP_partial_tx_tabulated( reconstruction_histories);
+			}
+			// Transfer data to GPU as needed but allocate and resuse the GPU arrays each kernel launch, using the MLP lookup tables each time
+			else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED ) //else if( MLP_ALGORITHM == TABULATED )
+			{
+				DROP_partial_tx_preallocated_tabulated( reconstruction_histories );
+			}// end: else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED )
+			free_MLP_lookup_tables();
+		}	// end: else if( MLP_ALGORITHM == TABULATED )
+	}
 	DROP_deallocate_arrays();	// deallocate GPU memory for x_update and S
 	deallocate_x();				// deallocate GPU memory for x
 }
