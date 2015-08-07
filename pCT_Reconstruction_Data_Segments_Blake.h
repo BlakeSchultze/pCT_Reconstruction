@@ -343,6 +343,7 @@ float LAMBDA						= 0.0005;												// Relaxation parameter to use in image i
 int PSI_SIGN						= 1;													// Sign of the perturbation used in robust reconstruction imposing Tikhonov, ridge regression, total least square, minmax, maxmax, 
 double ETA							= 2.5;													// Radius of bounded region in which a solution is sought, commonly set based on the bound of expected error in measurements
 #define ITERATIONS					6														// # of iterations through the entire set of histories to perform in iterative image reconstruction
+#define BOUND_IMAGE					1
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------- Tabulated data file names --------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -426,6 +427,7 @@ double ETA							= 2.5;													// Radius of bounded region in which a solut
 #define A_5_OVER_42					A_5/42													// Precalculated value of A_5/42 used in MLP routine so this constant does not need to be repeatedly calculated explicitly			
 #define A_5_OVER_168				A_5/168													// Precalculated value of A_5/168 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
 #define VOXEL_ALLOWANCE				1.0e-7													// [cm] Distance from voxel edge below which the edge is considered to have been reached
+#define TV_THRESHOLD				(1/10000)												// [#] Value of TV difference ratio |TV_y - TV_y_previous| / TV_y between successive betas where beta is not decreased more
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //-------------------------------------------------------------------------- Mathematical constants and unit conversions -----------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -716,8 +718,14 @@ float* x_update_h, * x_update_d;															// Update value calculated each i
 unsigned int* S_h, * S_d;																	// Counts of how many times each voxel was intersected by a proton in the current DROP block
 unsigned int* MLP_h, * MLP_d;																// Voxels intersected along the MLP path of the current proton
 unsigned int* MLP_block_h, * MLP_block_d;													// Voxels intersected along the MLP paths of protons in the current DROP block
-double* A_ij_h, * A_ij_d;																	// Chord length of the intersection of proton i with voxel j, i.e., the ith row and jth column of A = A(i,j)
+float* A_ij_h, * A_ij_d;																	// Chord length of the intersection of proton i with voxel j, i.e., the ith row and jth column of A = A(i,j)
 double* norm_Ai;																			// L2 norm of row i of A matrix, i.e., Ai 
+
+float* G_x_h, * G_y_h, * G_norm_h, * G_h, * v_h, * y_h;
+float* G_x_d, * G_y_d, * G_norm_d, * G_d, * v_d, * y_d;
+float beta = 1.0;
+float* TV_x_h, * TV_y_h;
+float* TV_x_d, * TV_y_d;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------- Declaration of vectors used to accumulate data from histories that have passed currently applied cuts ------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
