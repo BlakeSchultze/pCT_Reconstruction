@@ -312,6 +312,11 @@ void allocate_perturbation_arrays( bool);
 void generate_perturbation_vector();
 void perturb_x( float& );
 
+int BlobIndex(int, int, int);
+__device__ int BlobIndex_GPU(int, int, int);
+__global__ void block_update_GPU_tabulated_blob(float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, unsigned int*, float*, unsigned int*, int, int, double, double*, double*, double*, double*, double*, double*, double*, double*);
+__device__ int find_blob_MLP_GPU_tabulated(float*, double, unsigned int, double, double, double, double, double, double, double, double, double, double, double, float, unsigned int*, double, double&, double&, double*, double*, double*, double*, double*, double*, double*, double* );
+
 void image_reconstruction_GPU();  
 __device__ double EffectiveChordLength_GPU(double, double);                                                                                                                                              			//*
 
@@ -6232,6 +6237,23 @@ void print_history_sequence(ULL* history_sequence, ULL print_start, ULL print_en
 /**************************************************************************************************************************************************************************/
 /******************************************* MLP and image update calculations/applications Image Reconstruction Routines *************************************************/
 /**************************************************************************************************************************************************************************/
+// Return index of blob for given lattice coordinate (x,y,z)
+int BlobIndex(int x, int y, int z)
+{
+    if(x >= 0 && y >= 0 && z >= 0)
+        if( x < COLUMNS && y < ROWS && z < SLICES)
+            return x + y * COLUMNS + z * COLUMNS * ROWS;
+
+    return -1;
+}
+__device__ int BlobIndex_GPU(int x, int y, int z)
+{
+    if(x >= 0 && y >= 0 && z >= 0)
+        if( x < COLUMNS && y < ROWS && z < SLICES)
+            return x + y * COLUMNS + z * COLUMNS * ROWS;
+
+    return -1;
+}
 __device__ double EffectiveChordLength_GPU(double abs_angle_t, double abs_angle_v)
 {
 	
@@ -6942,6 +6964,194 @@ __device__ int find_MLP_GPU_tabulated_exact2
 	//update_value_history = effective_chord_length * (( b_i - a_i_dot_x_k ) /  a_i_dot_a_i) * lambda;
 	return number_of_intersections;
 }
+__device__ int find_blob_MLP_GPU_tabulated
+(
+	float* x, double b_i, unsigned int first_MLP_voxel_number, double x_in_object, double y_in_object, double z_in_object, 
+	double x_out_object, double y_out_object, double z_out_object, double xy_entry_angle, double xz_entry_angle, double xy_exit_angle, double xz_exit_angle,
+	double lambda, unsigned int* MLP, double effective_chord_length, double& a_i_dot_x_k, double& a_i_dot_a_i,
+	double* sin_table, double* cos_table, double* scattering_table, double* poly_1_2, double* poly_2_3, double* poly_3_4, double* poly_2_6, double* poly_3_12
+) 
+{
+	double sigma_t1, sigma_t1_theta1, sigma_theta1, determinant_Sigma_1, Sigma_1I[3];
+	double sigma_t2, sigma_t2_theta2, sigma_theta2, determinant_Sigma_2, Sigma_2I[3]; 
+	double first_term_common_24_1, first_term[4], determinant_first_term;
+	double second_term_common_3, second_term[2];
+	//double t_1, v_1, x_1, y_1;
+	double t_1, v_1;
+	int voxel_x = 0, voxel_y = 0, voxel_z = 0;
+
+	unsigned int trig_table_index =  static_cast<unsigned int>((xy_entry_angle - TRIG_TABLE_MIN ) / TRIG_TABLE_STEP + 0.5);
+	double sin_term = sin_table[trig_table_index];
+	double cos_term = cos_table[trig_table_index];
+	
+	// Blob parameters
+	double xHat_u = cos_term;										// 'u' component of 'x' hat vector in 'xyz' system
+	double yHat_u = sin_term;										// 'u' component of 'y' hat vector in 'xyz' system
+	double zHat_u = 0;												// 'u' component of 'z' hat vector in 'xyz' system
+	double x_1, y_1, z_1;											// Coordinates for steps of MLP
+	double Phi_x, Phi_y, Phi_z;										// 'Phi' vector in 'xyz' system
+	double tau_x, tau_y, tau_z, tau_u;								// 'tau' vector in 'xyz' system and 'u' component
+	double u_sum;													// Denotes sum of 'u' components for position vector at blob center
+	double xi;														// Constant for detection depth conditional statements
+	int    index;													// Gives index for blob
+	int    q_x, q_y;												// Used for indexing over blob lattice points
+	
+	double u_in_object = cos_term * x_in_object + sin_term * y_in_object;
+	double u_out_object = cos_term * x_out_object + sin_term * y_out_object;
+
+	if( u_in_object > u_out_object )
+	{
+		xy_entry_angle += PI;
+		xy_exit_angle += PI;
+		trig_table_index =  static_cast<unsigned int>((xy_entry_angle - TRIG_TABLE_MIN ) / TRIG_TABLE_STEP + 0.5);
+		sin_term = sin_table[trig_table_index];
+		cos_term = cos_table[trig_table_index];
+		u_in_object = cos_term * x_in_object + sin_term * y_in_object;
+		u_out_object = cos_term * x_out_object + sin_term * y_out_object;
+	}
+	double t_in_object = cos_term * y_in_object  - sin_term * x_in_object;
+	double t_out_object = cos_term * y_out_object - sin_term * x_out_object;
+	
+	double T_2[2] = {t_out_object, xy_exit_angle - xy_entry_angle};
+	double V_2[2] = {z_out_object, xz_exit_angle - xz_entry_angle};
+	double u_1 = MLP_U_STEP;
+	double u_2 = abs(u_out_object - u_in_object);
+	double depth_2_go = u_2 - u_1;
+	double u_shifted = u_in_object;	
+	//unsigned int step_number = 1;
+
+	// Scattering Coefficient tables indices
+	unsigned int sigma_table_index_step = static_cast<unsigned int>( MLP_U_STEP / COEFF_TABLE_STEP + 0.5 );
+	unsigned int sigma_1_coefficient_index = sigma_table_index_step;
+	unsigned int sigma_2_coefficient_index = static_cast<unsigned int>( depth_2_go / COEFF_TABLE_STEP + 0.5 );
+	
+	// Scattering polynomial indices
+	unsigned int poly_table_index_step = static_cast<unsigned int>( MLP_U_STEP / POLY_TABLE_STEP + 0.5 );
+	unsigned int u_1_poly_index = poly_table_index_step;
+	unsigned int u_2_poly_index = static_cast<unsigned int>( u_2 / POLY_TABLE_STEP + 0.5 );
+
+	//precalculated u_2 dependent terms (since u_2 does not change inside while loop)
+	double u_2_poly_3_12 = poly_3_12[u_2_poly_index];
+	double u_2_poly_2_6 = poly_2_6[u_2_poly_index];
+	double u_2_poly_1_2 = poly_1_2[u_2_poly_index];
+	double u_1_poly_1_2, u_1_poly_2_3;
+
+	int voxel = first_MLP_voxel_number;
+	int number_of_intersections = 0;
+	MLP[number_of_intersections] = voxel;
+	number_of_intersections++;
+
+	//effective_chord_length = EffectiveChordLength_GPU( ( xy_entry_angle + xy_exit_angle ) / 2.0, ( xz_entry_angle + xz_exit_angle) / 2.0 );
+	//double effective_chord_length = EffectiveChordLength_GPU( ( xy_entry_angle + xy_exit_angle ) / 2.0, ( xz_entry_angle + xz_exit_angle) / 2.0 );
+	//double a_j_times_a_j = effective_chord_length * effective_chord_length;
+	a_i_dot_x_k = x[voxel];
+	a_i_dot_a_i = pow(effective_chord_length, 2.0);
+	//double a_i_dot_x_k = x[voxel] * effective_chord_length;
+	//double a_i_dot_a_i = a_j_times_a_j;
+
+	//while( u_1 < u_2 - configurations.MLP_U_STEP)
+	while( depth_2_go > MLP_U_STEP )
+	{
+		u_1_poly_1_2 = poly_1_2[u_1_poly_index];
+		u_1_poly_2_3 = poly_2_3[u_1_poly_index];
+
+		sigma_t1 = poly_3_12[u_1_poly_index];										// poly_3_12(u_1)
+		sigma_t1_theta1 =  poly_2_6[u_1_poly_index];								// poly_2_6(u_1) 
+		sigma_theta1 = u_1_poly_1_2;												// poly_1_2(u_1)
+
+		sigma_t2 =  u_2_poly_3_12 - pow(u_2, 2.0) * u_1_poly_1_2 + 2 * u_2 * u_1_poly_2_3 - poly_3_4[u_1_poly_index];	// poly_3_12(u_2) - u_2^2 * poly_1_2(u_1) +2u_2*(u_1) - poly_3_4(u_1)
+		sigma_t2_theta2 =  u_2_poly_2_6 - u_2 * u_1_poly_1_2 + u_1_poly_2_3;											// poly_2_6(u_2) - u_2*poly_1_2(u_1) + poly_2_3(u_1)
+		sigma_theta2 =  u_2_poly_1_2 - u_1_poly_1_2;																	// poly_1_2(u_2) - poly_1_2(u_1)	
+
+		determinant_Sigma_1 = scattering_table[sigma_1_coefficient_index] * ( sigma_t1 * sigma_theta1 - pow( sigma_t1_theta1, 2 ) );//ad-bc
+		Sigma_1I[0] = sigma_theta1 / determinant_Sigma_1;
+		Sigma_1I[1] = sigma_t1_theta1 / determinant_Sigma_1;	// negative sign is propagated to subsequent calculations instead of here 
+		Sigma_1I[2] = sigma_t1 / determinant_Sigma_1;			
+			
+		determinant_Sigma_2 = scattering_table[sigma_2_coefficient_index] * ( sigma_t2 * sigma_theta2 - pow( sigma_t2_theta2, 2 ) );//ad-bc
+		Sigma_2I[0] = sigma_theta2 / determinant_Sigma_2;
+		Sigma_2I[1] = sigma_t2_theta2 / determinant_Sigma_2;	// negative sign is propagated to subsequent calculations instead of here 
+		Sigma_2I[2] = sigma_t2 / determinant_Sigma_2;
+		/**********************************************************************************************************************************************************/
+		first_term_common_24_1 = Sigma_2I[0] * depth_2_go - Sigma_2I[1];
+		first_term[0] = Sigma_1I[0] + Sigma_2I[0];
+		first_term[1] = first_term_common_24_1 - Sigma_1I[1];
+		first_term[2] = depth_2_go * Sigma_2I[0] - Sigma_1I[1] - Sigma_2I[1];
+		first_term[3] = Sigma_1I[2] + Sigma_2I[2] + depth_2_go * ( first_term_common_24_1 - Sigma_2I[1]);	
+		determinant_first_term = first_term[0] * first_term[3] - first_term[1] * first_term[2];
+		
+		// Calculate MLP t coordinate
+		second_term_common_3 = Sigma_2I[0] * t_out_object - Sigma_2I[1] * T_2[1];	
+		second_term[0] = Sigma_1I[0] * t_in_object + second_term_common_3;
+		second_term[1] = depth_2_go * second_term_common_3 + Sigma_2I[2] * T_2[1] - Sigma_2I[1] * t_out_object - Sigma_1I[1] * t_in_object;	
+		t_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
+		//double theta_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
+		/**********************************************************************************************************************************************************/
+		// Calculate MLP v coordinate
+		second_term_common_3 = Sigma_2I[0] * z_out_object - Sigma_2I[1] * V_2[1];
+		second_term[0] = Sigma_1I[0] * z_in_object + second_term_common_3;
+		second_term[1] = depth_2_go * second_term_common_3 + Sigma_2I[2] * V_2[1] - Sigma_2I[1] * z_out_object - Sigma_1I[1] * z_in_object;
+		v_1 = ( first_term[3] * second_term[0] - first_term[1] * second_term[1] ) / determinant_first_term ;
+		//double phi_1 = first_term[2] * second_term[0] + first_term[3] * second_term[1];
+		/**********************************************************************************************************************************************************/
+		// Rotate Coordinate From utv to xyz Coordinate System and Determine Which Voxel this Point on the MLP Path is in
+		u_shifted += MLP_U_STEP;
+		//u_shifted = u_in_object + u_1;
+
+		x_1 = cos_term * u_shifted - sin_term * t_1;
+		y_1 = sin_term * u_shifted + cos_term * t_1;
+
+		// Identify vector Phi^k in Z^3 for blob lattice
+		Phi_x = static_cast<int>(x_1 / BETA_BLOB);
+		Phi_y = static_cast<int>(y_1 / BETA_BLOB);
+		Phi_z = static_cast<int>(v_1 / BETA_BLOB);
+
+		// Identify vector 'tau' in xyz system
+		tau_x = x_1 - BETA_BLOB * Phi_x;
+		tau_y = y_1 - BETA_BLOB * Phi_y;
+		tau_z = v_1 - BETA_BLOB * Phi_z;
+
+		// Identify 'u' component of 'tau' and 'xi' constant
+		tau_u = tau_x * cos_term + tau_y * sin_term;
+		xi    = tau_u / BETA_BLOB;
+
+		// Cycle through potentially intersected blobs
+		for(float p = -ETA_BLOB; p <= ETA_BLOB; p++)
+		{   
+			q_y = -ETA_BLOB + static_cast<int>(z + Phi_z + Phi_y + ETA_BLOB)%2;
+			for(float n = q; n <= ETA_BLOB; n += 2)
+			{   
+				q_x = -ETA_BLOB + static_cast<int>(z + Phi_z + Phi_x + ETA_BLOB)%2;
+				for(float m = q_x; m <= ETA_BLOB; m += 2)
+					if( (m*m + n*n + p*p) <= ETA_BLOB_SQUARED  )
+					{
+						u_sum = m * xHat_u + n * yHat_u; //+ z * zHat_u;   <-- zHat_u = 0.
+						if( xi <= u_sum && u_sum < (xi + SBETA) )
+						{
+							index =  BlobIndex_GPU(Phi_x + m,   Phi_y + n,   Phi_z + p);
+							if(index != -1)
+								MLP[++number_of_intersections] = index;
+						}
+					}
+			}
+		}
+		u_1 += MLP_U_STEP;
+		depth_2_go -= MLP_U_STEP;
+		//step_number++;
+		//u_1 = step_number * MLP_U_STEP;
+		//depth_2_go = u_2 - u_1;
+		sigma_1_coefficient_index += sigma_table_index_step;
+		sigma_2_coefficient_index -= sigma_table_index_step;
+		u_1_poly_index += poly_table_index_step;
+	}
+	//++num_intersections;
+	//a_i_dot_x_k *= effective_chord_length;
+	//a_i_dot_a_i *= num_intersections;
+	a_i_dot_x_k *= effective_chord_length;
+	a_i_dot_a_i *= number_of_intersections;
+	//update_value_history = effective_chord_length * (( b_i - a_i_dot_x_k ) /  a_i_dot_a_i) * lambda;
+	return number_of_intersections;
+}
 __global__ void block_update_GPU
 (
 	float* x, float* x_entry, float* y_entry, float* z_entry, float* xy_entry_angle, float* xz_entry_angle, 
@@ -7117,6 +7327,51 @@ __global__ void block_update_GPU_tabulated_exact2
 			proton_id++;
 		}	
 		free(a_i);    	 
+	}	
+}
+__global__ void block_update_GPU_tabulated_blob
+(
+	float* x, float* x_entry, float* y_entry, float* z_entry, float* xy_entry_angle, float* xz_entry_angle, 
+	float* x_exit, float* y_exit, float* z_exit, float* xy_exit_angle, float* xz_exit_angle, float* WEPL, 
+	unsigned int* first_MLP_voxel, float* x_update, unsigned int* S, int start_proton_id, int num_histories, double lambda,
+	double* sin_table, double* cos_table, double* scattering_table, double* poly_1_2, double* poly_2_3, double* poly_3_4, double* poly_2_6, double* poly_3_12
+) 
+{	
+	int blob = 0, number_of_intersections;
+	double b_i, a_i_dot_a_i, a_i_dot_x_k, effective_chord_length;
+	
+	int proton_id =  start_proton_id + threadIdx.x * HISTORIES_PER_THREAD + blockIdx.x * HISTORIES_PER_BLOCK * HISTORIES_PER_THREAD;		
+	if( proton_id < num_histories ) 
+	{	  	  
+		//unsigned int* a_i;
+		//a_i = (unsigned int*)malloc( MAX_INTERSECTIONS * sizeof(unsigned int));
+		unsigned int MLP[MAX_INTERSECTIONS];
+		//__shared__ unsigned int* a_i[MAX_INTERSECTIONS];
+
+		for( int history = 0; history < HISTORIES_PER_THREAD; history++ ) 
+		{	
+			if( proton_id < num_histories ) 
+			{		  
+				b_i = WEPL[proton_id];		
+				effective_chord_length = BLOB_INT_LEN;
+				number_of_intersections = find_MLP_GPU_tabulated
+				(
+					x, b_i, first_MLP_voxel[proton_id], x_entry[proton_id], y_entry[proton_id], z_entry[proton_id], x_exit[proton_id], y_exit[proton_id], 
+					z_exit[proton_id], xy_entry_angle[proton_id], xz_entry_angle[proton_id], xy_exit_angle[proton_id], xz_exit_angle[proton_id], lambda, 
+					MLP, effective_chord_length, a_i_dot_x_k, a_i_dot_a_i, sin_table, cos_table, scattering_table, poly_1_2, poly_2_3, poly_3_4, poly_2_6, poly_3_12
+				);					      
+									     						      	
+				// Copy a_i to global
+				for (int j = 0 ; j < number_of_intersections; ++j) 
+				{
+					blob = MLP[j];
+					atomicAdd( &(S[blob]), 1 );
+					atomicAdd( &(x_update[blob]) , effective_chord_length * ( (b_i - a_i_dot_x_k) /  a_i_dot_a_i ) * lambda ); 
+				}	
+			}
+			proton_id++;
+		}	
+		free(MLP);    	 
 	}	
 }
 __global__ void DROP_init_arrays_GPU(float* x_update, unsigned int* S) 
@@ -8023,6 +8278,7 @@ void TVS_DROP_full_tx_tabulated(const int num_histories)
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, print_statement);	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
+	deallocate_perturbation_arrays(false);
 	DROP_deallocations();
 }
 void TVS_DROP_full_tx_tabulated_GPU(const int num_histories)	
@@ -8091,6 +8347,7 @@ void TVS_DROP_full_tx_tabulated_GPU(const int num_histories)
 		execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, print_statement);	
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
+	deallocate_perturbation_arrays(true);
 	DROP_deallocations();
 }
 void DROP_TVS_full_tx_tabulated(const int num_histories)	
@@ -8161,6 +8418,7 @@ void DROP_TVS_full_tx_tabulated(const int num_histories)
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
 	DROP_deallocations();
+	deallocate_perturbation_arrays(false);
 }
 void DROP_TVS_full_tx_tabulated_GPU(const int num_histories)	
 {
@@ -8225,6 +8483,7 @@ void DROP_TVS_full_tx_tabulated_GPU(const int num_histories)
 		execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);
 	}
 	DROP_deallocations();
+	deallocate_perturbation_arrays(true);
 }
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************* Image Reconstruction (GPU) **********************************************************************************************/
@@ -8554,21 +8813,15 @@ void image_reconstruction_GPU()
 		generate_MLP_lookup_tables();
 		execution_time_tables = timer( STOP, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
 				
-		if( TVS_PARALLEL )
+		if( TVS_FIRST )
 		{
-			if( TVS_FIRST )
-				TVS_DROP_full_tx_tabulated_GPU(reconstruction_histories);
-			else
-				DROP_TVS_full_tx_tabulated_GPU(reconstruction_histories);			
-			deallocate_perturbation_arrays(true);
+			if( TVS_PARALLEL ) TVS_DROP_full_tx_tabulated_GPU(reconstruction_histories);
+			else TVS_DROP_full_tx_tabulated(reconstruction_histories);
 		}
 		else
 		{
-			if( TVS_FIRST )
-				TVS_DROP_full_tx_tabulated(reconstruction_histories);
-			else
-				DROP_TVS_full_tx_tabulated(reconstruction_histories);
-			deallocate_perturbation_arrays(false);
+			if( TVS_PARALLEL ) DROP_TVS_full_tx_tabulated_GPU(reconstruction_histories);			
+			else DROP_TVS_full_tx_tabulated(reconstruction_histories);
 		}
 		free_MLP_lookup_tables();
 	}
@@ -8578,20 +8831,11 @@ void image_reconstruction_GPU()
 		if( MLP_ALGORITHM == STANDARD )
 		{
 			// Transfer data for ALL reconstruction_histories before beginning image reconstruction
-			if( DROP_TX_MODE == FULL_TX )
-			{
-				DROP_full_tx( reconstruction_histories );
-			}
+			if( DROP_TX_MODE == FULL_TX ) DROP_full_tx( reconstruction_histories );
 			// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, explcitly calculating MLP each time
-			else if( DROP_TX_MODE == PARTIAL_TX )	// if( MLP_ALGORITHM == STANDARD )
-			{
-				DROP_partial_tx( reconstruction_histories );
-			}
+			else if( DROP_TX_MODE == PARTIAL_TX ) DROP_partial_tx( reconstruction_histories );
 			// Transfer data to GPU as needed but allocate and resuse the GPU arrays each kernel launch, explcitly calculating MLP each time
-			else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED )	// if( MLP_ALGORITHM == STANDARD )
-			{
-				DROP_partial_tx_preallocated( reconstruction_histories);
-			}
+			else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED ) DROP_partial_tx_preallocated( reconstruction_histories);
 		}
 		// Use MLP lookup tables 
 		else if( MLP_ALGORITHM == TABULATED )
@@ -8599,26 +8843,16 @@ void image_reconstruction_GPU()
 			// Generate MLP lookup tables and transfer these to the GPU
 			timer( START, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
 			generate_MLP_lookup_tables();
-
 			execution_time_tables = timer( STOP, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
 	
 			// Transfer data for ALL reconstruction_histories before beginning image reconstruction, using the MLP lookup tables each time
-			if( DROP_TX_MODE == FULL_TX )
-			{
-				DROP_full_tx_tabulated(reconstruction_histories);
-			}
+			if( DROP_TX_MODE == FULL_TX ) DROP_full_tx_tabulated(reconstruction_histories);
 			// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, using the MLP lookup tables each time
-			else if( DROP_TX_MODE == PARTIAL_TX )	// else if( MLP_ALGORITHM == TABULATED )
-			{
-				DROP_partial_tx_tabulated( reconstruction_histories);
-			}
+			else if( DROP_TX_MODE == PARTIAL_TX ) DROP_partial_tx_tabulated( reconstruction_histories);
 			// Transfer data to GPU as needed but allocate and resuse the GPU arrays each kernel launch, using the MLP lookup tables each time
-			else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED ) //else if( MLP_ALGORITHM == TABULATED )
-			{
-				DROP_partial_tx_preallocated_tabulated( reconstruction_histories );
-			}// end: else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED )
+			else if( DROP_TX_MODE == PARTIAL_TX_PREALLOCATED ) DROP_partial_tx_preallocated_tabulated( reconstruction_histories );
 			free_MLP_lookup_tables();
-		}	// end: else if( MLP_ALGORITHM == TABULATED )
+		}// end: else if( MLP_ALGORITHM == TABULATED )
 	}
 	DROP_deallocate_arrays();	// deallocate GPU memory for x_update and S
 	deallocate_x();				// deallocate GPU memory for x

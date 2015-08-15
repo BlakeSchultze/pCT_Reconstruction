@@ -190,6 +190,17 @@ char* PATH_2_PCT_DATA_DIR, *DATA_TYPE_DIR, *PROJECTION_DATA_DIR, *PREPROCESSING_
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------------------------- Iterative Image Reconstruction Parameters ------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//------------------------------------------------------------------------------------ Blob Parameters -----------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+#define BETA_BLOB						0.0707107											// The lattice constant BETA is 1/sqrt(2) multiplied by the voxel side length.
+#define SBETA							0.707107											// Stepping distance divided by BETA
+#define ETA_BLOB						2.00												// Computation found in 'Most Likely Paths and Blob Detection' notes
+#define ETA_BLOB_SQUARED				4.00												// Used solely to remove a repeated multiplication
+#define BLOB_RADIUS						0.245314											// Constant multiple of corresponding voxel side length
+#define BLOB_INT_LEN					0.522594											// Constant used for intersection lengths (c.f. blob documentation for effective mean length)
+
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------- Host/GPU computation and structure information ---------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -332,21 +343,21 @@ const bool WRITE_SSD_ANGLES			= false;												// Write angles for each proto
 UINT HULL_AVG_FILTER_RADIUS			= 0;													// [#] Radius of the average filter to apply to hull image
 UINT FBP_MED_FILTER_RADIUS			= 3;													// [#] Radius of the median filter to apply to FBP image
 UINT FBP_AVG_FILTER_RADIUS			= 1;													// [#] Radius of the average filter to apply to FBP image
-UINT ITERATE_AVG_FILTER_RADIUS			= 3;													// [#] Radius of the average filter to apply to initial iterate
+UINT ITERATE_AVG_FILTER_RADIUS		= 3;													// [#] Radius of the average filter to apply to initial iterate
 double HULL_AVG_FILTER_THRESHOLD	= 0.1;													// [#] Threshold applied to average filtered hull separating voxels to include/exclude from hull (i.e. set to 0/1)
 double FBP_AVG_FILTER_THRESHOLD		= 0.1;													// [#] Threshold applied to average filtered FBP separating voxels to include/exclude from FBP hull (i.e. set to 0/1)
 double ITERATE_AVG_FILTER_THRESHOLD	= 0.1;													// [#] Threshold applied to average filtered initial iterate below which a voxel is excluded from reconstruction (i.e. set to 0)
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------- MLP Parameters -------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const bool TVS_ON					= true;													// Perform total variation superiorization (TVS) (T) or not (F)
+const bool TVS_FIRST				= true;													// Perform TVS before DROP updates (T) or after image is updated by DROP block (F)
+const bool TVS_PARALLEL				= false;												// Use the parallel implementation of TVS (T) or the host only version (F)
 float LAMBDA						= 0.0005;												// Relaxation parameter to use in image iterative projection reconstruction algorithms	
 int PSI_SIGN						= 1;													// Sign of the perturbation used in robust reconstruction imposing Tikhonov, ridge regression, total least square, minmax, maxmax, 
 double ETA							= 2.5;													// Radius of bounded region in which a solution is sought, commonly set based on the bound of expected error in measurements
 #define ITERATIONS					6														// # of iterations through the entire set of histories to perform in iterative image reconstruction
 #define BOUND_IMAGE					1														// If any voxel in the image exceeds 2.0, set it to exactly 2.0
-const bool TVS_ON					= true;													// Perform total variation superiorization (TVS) (T) or not (F)
-const bool TVS_FIRST				= true;													// Perform TVS before DROP updates (T) or after image is updated by DROP block (F)
-const bool TVS_PARALLEL				= false;												// Use the parallel implementation of TVS (T) or the host only version (F)
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------- Tabulated data file names --------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
