@@ -13,513 +13,513 @@
 
 #include <algorithm>    // std::transform
 //#include <array>
+#include <chrono>		// chronology: system_clock::now().time_since_epoch().count(), duration, duration_cast
 #include <cmath>
-#include <cstdarg>		// va_list, va_arg, va_start, va_end, va_copy
+#include <cstdarg>		// variable arguments: va_list, va_arg, va_start, va_end, va_copy
 #include <cstdio>		// printf, sprintf,  
-#include <cstdlib>		// rand, srand
+#include <cstdlib>		// standard library: rand, srand
 #include <cstring>
 #include <ctime>		// clock(), time() 
 #include <fstream>
 #include <functional>	// std::multiplies, std::plus, std::function, std::negate
 #include <iostream>
-#include <limits>
-#include <map>
-#include <new>			 
+#include <limits>		// Numeric limits of fundamental data types
+#include <map>			// Mapping provides ability to access an element's mapped value using the element's unique key value identifier 
+#include <new>			// dynamic memory allocation/destruction
 #include <numeric>		// inner_product, partial_sum, adjacent_difference, accumulate
 #include <omp.h>		// OpenMP
-#include <sstream>
+#include <random>		// uniform_int_distribution, uniform_real_distribution, bernoulli_distribution, binomial_distribution, geometric_distribution
+#include <sstream>		// string stream
 #include <string>
 #include "sys/types.h"	// stat f
 #include "sys/stat.h"	// stat functions
 #include <typeinfo>		//operator typeid
-#include <utility> // for std::move
+#include <utility>		// for std::move
 #include <vector>
 
 #if defined(_WIN32) || defined(_WIN64)
 	#include "Shlwapi.h"
 	#include <windows.h>
+	#include <direct.h>
 #else
 	#include <unistd.h>
 #endif
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//-------------------------------------------------------------------------------- Execution and early exit options ----------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-using std::cout;
-using std::endl;
-typedef unsigned long long ULL;
-typedef unsigned int UINT;
+#ifdef __GNUG__
+
+    #include <cxxabi.h>
+    #include <cstdlib>
+    #include <memory>
+
+    template< typename T > std::string type_name()
+    {
+        int status ;
+        std::unique_ptr< char[], decltype(&std::free) > buffer(
+            __cxxabiv1::__cxa_demangle( typeid(T).name(), nullptr, 0, &status ), &std::free ) ;
+        return status==0 ? buffer.get() : "__cxa_demangle error" ;
+    }
+
+#else // !defined __GNUG__
+
+    template< typename T > std::string type_name() { return typeid(T).name() ; }
+
+#endif //__GNUG__
+
+
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /*********************************************************************************** Preprocessing usage options *************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
-enum DATA_FORMATS			{ OLD_FORMAT, VERSION_0, VERSION_1				};				// Define the data formats that are supported
-enum SCAN_TYPES				{ EXPERIMENTAL, SIMULATED_G, SIMULATED_T		};				// Experimental or simulated (GEANT4 or TOPAS) data
-enum DISK_WRITE_MODE		{ TEXT, BINARY									};				// Experimental or simulated data
-enum BIN_ANALYSIS_TYPE		{ MEANS, COUNTS, MEMBERS						};				// Choices for what information about the binned data is desired 
-enum BIN_ANALYSIS_FOR		{ ALL_BINS, SPECIFIC_BINS						};				// Choices for which bins the desired data should come from
-enum BIN_ORGANIZATION		{ BY_BIN, BY_HISTORY							};				// Binned data is either organized in order by bin or by history w/ bin # specified separately
-enum BIN_ANALYSIS_OF		{ WEPLS, ANGLES, POSITIONS, BIN_NUMS			};				// Choices for which type of binned data is desired
-enum FILTER_TYPES			{ RAM_LAK, SHEPP_LOGAN, NONE					};				// Define the types of filters that are available for use in FBP
-enum HULL_TYPES				{ SC_HULL, MSC_HULL, SM_HULL, FBP_HULL			};				// Define valid choices for which hull to use in MLP calculations
-enum INITIAL_ITERATE		{ X_HULL, FBP_IMAGE, HYBRID, ZEROS, IMPORT		};				// Define valid choices for which hull to use in MLP calculations
-enum PROJECTION_ALGORITHMS	{ ART, SART, DROP, BIP, SAP						};				// Define valid choices for iterative projection algorithm to use
-enum TX_OPTIONS				{ FULL_TX, PARTIAL_TX, PARTIAL_TX_PREALLOCATED	};				// Define valid choices for the host->GPU data transfer method
-enum ENDPOINTS_ALGORITHMS	{ USE_BOOL_ARRAY, NO_BOOL_ARRAY					};				// Define the method used to identify protons that miss/hit the hull in MLP endpoints calculations
-enum MLP_ALGORITHMS			{ STANDARD, TABULATED							};				// Define whether standard explicit calculations or lookup tables are used in MLP calculations
-enum LOG_ENTRIES			{ OBJECT_L, SCAN_TYPE_L, RUN_DATE_L, RUN_NUMBER_L,				// Define the headings of each column in the execution log 
-							ACQUIRED_BY_L, PROJECTION_DATA_DATE_L, CALIBRATED_BY_L, 				
-							PREPROCESS_DATE_L, PREPROCESSED_BY_L, RECONSTRUCTION_DATE_L, 
-							RECONSTRUCTED_BY_L, COMMENTS_L					};
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------- Namespace selections and typedef (data type alias) definitions  ----------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//using namespace std;
+using std::cout;
+using std::endl;
+using std::chrono::system_clock;
+typedef unsigned long long ULL;
+typedef unsigned int UINT;
+typedef unsigned int uint;
+#define ON						(0==0)									// [T/F] Definition of boolean "ON" as equivalent to 'true'
+#define OFF						(!ON)									// [T/F] Definition of boolean "OFF" as equivalent to 'false' (technically 'not true')
+#define START					true									// [T/F] Used as an alias for true for starting timer
+#define STOP					false									// [T/F] Used as an alias for false for stopping timer
+
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------- Struct definitions and global variable instantiations ----------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+#define SOME_ENUM(DO) \
+    DO(Foo) \
+    DO(Bar) \
+    DO(Baz)
+
+#define MAKE_ENUM(VAR) VAR,
+enum MetaSyntacticVariable{
+    SOME_ENUM(MAKE_ENUM)
+};
+
+#define MAKE_STRINGS(VAR) #VAR,
+const char* const MetaSyntacticVariableNames[] = {
+    SOME_ENUM(MAKE_STRINGS)
+};
+unsigned RANDI_SEED = std::chrono::system_clock::now().time_since_epoch().count();
+	
+enum DATA_FORMATS			{ OLD_FORMAT, VERSION_0, VERSION_1, END_DATA_FORMATS						};				// Define the data formats that are supported
+enum SCAN_TYPES				{ EXPERIMENTAL, SIMULATED_G, SIMULATED_T, END_SCAN_TYPES					};				// Experimental or simulated (GEANT4 or TOPAS) data
+enum FILE_TYPES				{ TEXT, BINARY, END_FILE_TYPES												};				// Experimental or simulated data
+enum RAND_GENERATORS		{ DEFAULT_RAND, MINSTD_RAND, MINSTD_RAND0, MT19937,											// Defines the available random number generator engines 
+								MT19937_64, RANLUX24, RANLUX48, KNUTH_B, END_RAND_GENERATORS			};				// ...
+enum IMAGE_BASES			{ VOXELS, BLOBS, END_IMAGE_BASES											};				// Defines whether images are formed using voxels or blobs as the basis elements
+enum BIN_ANALYSIS_TYPE		{ MEANS, COUNTS, MEMBERS, END_BIN_ANALYSIS_TYPE								};				// Choices for what information about the binned data is desired 
+enum BIN_ANALYSIS_FOR		{ ALL_BINS, SPECIFIC_BINS, END_BIN_ANALYSIS_FOR								};				// Choices for which bins the desired data should come from
+enum BIN_ORGANIZATION		{ BY_BIN, BY_HISTORY, END_BIN_ORGANIZATION									};				// Binned data is either organized in order by bin or by history w/ bin # specified separately
+enum BIN_ANALYSIS_OF		{ WEPLS, ANGLES, POSITIONS, BIN_NUMS, END_BIN_ANALYSIS_OF					};				// Choices for which type of binned data is desired
+enum FBP_FILTER_TYPES		{ RAM_LAK, SHEPP_LOGAN, UNFILTERED, END_FBP_FILTER_TYPES							};				// Define the types of filters that are available for use in FBP
+enum IMAGE_FILTERING_OPTIONS{ NO_FILTER, MEDIAN, AVERAGE, MED_2_AVG, AVG_2_MED, END_IMAGE_FILTERING_OPTIONS	};
+enum HULL_TYPES				{ SC_HULL, MSC_HULL, SM_HULL, FBP_HULL, END_HULL_TYPES						};				// Define valid choices for which hull to use in MLP calculations
+enum INITIAL_ITERATE		{ X_HULL, FBP_IMAGE, HYBRID, ZEROS, IMPORT, END_INITIAL_ITERATE				};				// Define valid choices for which hull to use in MLP calculations
+enum TX_OPTIONS				{ FULL_TX, PARTIAL_TX, PARTIAL_TX_PREALLOCATED, END_TX_OPTIONS				};				// Define valid choices for the host->GPU data transfer method
+enum ENDPOINTS_ALGORITHMS	{ YES_BOOL, NO_BOOL, END_ENDPOINTS_ALGORITHMS								};				// Define the method used to identify protons that miss/hit the hull in MLP endpoints calculations
+enum MLP_ALGORITHMS			{ STANDARD, TABULATED, END_MLP_ALGORITHMS									};				// Define whether standard explicit calculations or lookup tables are used in MLP calculations
+enum PROJECTION_ALGORITHMS	{ ART, SART, DROP, BIP, SAP, ROBUSTA, ROBUSTB, END_PROJECTION_ALGORITHMS	};				// Define valid choices for iterative projection algorithm to use
+enum S_CURVES				{ SIGMOID, TANH, ATAN, ERF, LIN_OVER_ROOT, END_S_CURVES						};				// Define valid choices for iterative projection algorithm to use
+enum ROBUST_METHODS			{ OLS, TLS, TIKHONOV, RIDGE, MINMIN, MINMAX, END_ROBUST_METHODS				};				// Defines the robust regression methods available for robust image reconstruction
+enum STRUCTURAL_ELEMENTS	{ SQUARE, DISK, END_STRUCTURAL_ELEMENTS										};				// Defines the structural elements available to the morphological operators
+enum MORPHOLOGICAL_OPS		{ ERODE, DILATE, OPEN, CLOSE, END_MORPHOLOGICAL_OPS							};				// Defines the mathematical morphology operators available for image processing 
+enum LOG_ENTRIES			{ OBJECT_L, SCAN_TYPE_L, RUN_DATE_L, RUN_NUMBER_L,											// Define the headings of each column in the execution log 
+							ACQUIRED_BY_L, PROJECTION_DATA_DATE_L, CALIBRATED_BY_L, 									// ...	 	
+							PREPROCESS_DATE_L, PREPROCESSED_BY_L, RECONSTRUCTION_DATE_L,								// ...
+							RECONSTRUCTED_BY_L, COMMENTS_L, END_LOG_ENTRIES								};				// ...
+enum CODE_SOURCES			{ LOCAL, GLOBAL, USER_HOME, GROUP_HOME, END_CODE_SOURCES					};				// Define the data formats that are supported
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------- Struct definitions and global variable instantiations ----------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+// Value of a key/value pair having unknown target data type read from disk and interpreted as all 3 primary data types, allowing this to be imposed later
 struct generic_IO_container
 {
-	char* key;
-	unsigned int input_type_ID;
-	int integer_input;		// type_ID = 1
-	double double_input;	// type_ID = 2
-	char string_input[512];	// type_ID = 3
+	char* key;						// Stores key string of a key/value pair read from file
+	unsigned int input_type_ID;		// ID (1,2,3) corresponding to data type assumed based on value format (e.g. w or w/o '"'s, '.', etc.)
+	int integer_input;				// type_ID = 1
+	double double_input;			// type_ID = 2
+	char string_input[512];			// type_ID = 3
 };
+generic_IO_container config_file_input;
+// Container for all config file specified configurations allowing these to be transferred to the GPU with a single cudamemcpy command statement
+// 8 UI, 18D, 6 C*
+struct configurations
+{
+	double lambda;
+};
+configurations parameter_container;
+configurations *configurations_h = &parameter_container;
+configurations *configurations_d;
+/*****************************************************************************************************************************************************************************************************/
+/*****************************************************************************************************************************************************************************************************/
+/*********************************************************************************** Preprocessing usage options *************************************************************************************/
+/*****************************************************************************************************************************************************************************************************/
+/*****************************************************************************************************************************************************************************************************/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//------------------------------------------------------------------------------ Testing configurations/options controls ---------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const RAND_GENERATORS		RAND_ENGINE				= DEFAULT_RAND;					// Specify the random number generator engine to use
+const RAND_GENERATORS		TVS_RAND_ENGINE			= DEFAULT_RAND;					// Specify the random number generator engine to use
+const SCAN_TYPES			SCAN_TYPE				= SIMULATED_G;			  		// Specifies which of the defined filters will be used in FBP
+const FILE_TYPES			FILE_TYPE				= BINARY;						// Experimental or simulated data
+const DATA_FORMATS			DATA_FORMAT				= VERSION_0;					// Specify which data format to use for this run
+const IMAGE_BASES			IMAGE_BASIS				= VOXELS;						// Specifies which basis is used to construct the images
+const FBP_FILTER_TYPES		SINOGRAM_FILTER			= SHEPP_LOGAN;			  		// Specifies which of the defined filters will be used in FBP
+const IMAGE_FILTERING_OPTIONS	FBP_FILTER			= MEDIAN;			  		// Specifies which of the defined filters will be used in FBP
+const IMAGE_FILTERING_OPTIONS	HULL_FILTER			= NO_FILTER;			  		// Specifies which of the defined filters will be used in FBP
+const IMAGE_FILTERING_OPTIONS	X_0_FILTER			= NO_FILTER;			  		// Specifies which of the defined filters will be used in FBP
+const HULL_TYPES			ENDPOINTS_HULL			= MSC_HULL;						// Specify which of the HULL_TYPES to use in this run's MLP calculations
+const INITIAL_ITERATE		X_0						= HYBRID;						// Specify which of the HULL_TYPES to use in this run's MLP calculations
+const ENDPOINTS_ALGORITHMS	ENDPOINTS_ALG			= NO_BOOL;						// Specifies if boolean array is used to store whether a proton hit/missed the hull (BOOL) or uses the 1st MLP voxel (NO_BOOL)
+const TX_OPTIONS			ENDPOINTS_TX_MODE		= PARTIAL_TX_PREALLOCATED;		// Specifies GPU data tx mode for MLP endpoints as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+const MLP_ALGORITHMS		MLP_ALGORITHM			= TABULATED;					// Specifies whether calculations are performed explicitly (STANDARD) or if lookup tables are used for MLP calculations (TABULATED)
+const PROJECTION_ALGORITHMS	PROJECTION_ALGORITHM	= DROP;							// Specify which of the projection algorithms to use for image reconstruction
+const TX_OPTIONS			RECON_TX_MODE			= FULL_TX;						// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+const TX_OPTIONS			DROP_TX_MODE			= FULL_TX;						// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+const S_CURVES				S_CURVE					= SIGMOID;						// Specify S-curve to use to scale updates applied to voxels around the object boundary
+const ROBUST_METHODS		ROBUST_METHOD			= TIKHONOV;						// Specifies robust method used in robust image reconstruction
+const CODE_SOURCES			CODE_SOURCE				= LOCAL;						// Specify the random number generator engine to use
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //-------------------------------------------------------------------------------- Execution and early exit options ----------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const bool RUN_ON						= false;												// Turn preprocessing on/off (T/F) to enter individual function testing without commenting
-const bool TESTING_ON					= false;												// Write output to "testing" directory (T) or to organized dat directory (F)
-const bool OVERWRITING_OK				= false;											// Permit output data to be written to an existing directory (T) or enforce writing to new unique directory (F)
-const bool EXIT_AFTER_BINNING			= false;											// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_HULLS				= false;											// Exit program early after completing hull-detection
-const bool EXIT_AFTER_CUTS				= false;											// Exit program early after completing statistical cuts
-const bool EXIT_AFTER_SINOGRAM			= false;											// Exit program early after completing the construction of the sinogram
-const bool EXIT_AFTER_FBP				= false;											// Exit program early after completing FBP
+//const bool RECONSTRUCTION_ON			= false;									// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
+const bool RUN_ON						= true;										// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
+const bool FUNCTION_TESTING				= OFF;										// Write output to "testing" directory (T) or to organized dat directory (F)
+const bool USING_RSYNC					= false;									// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
+const bool SHARE_OUTPUT_DATA			= ON;										// Specify whether data should be copied to shared (T) or personal (F) the network-attached storage device
+const bool USE_GIT_CODE					= false;
+const bool USE_GROUP_CODE				= false;
+const bool TESTING_ON					= false;									// Write output to "testing" directory (T) or to organized dat directory (F)
+const bool BLOCK_TESTING_ON				= false;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool FILTER_TESTING_ON			= false;										// Validating proper FBP filtering name output directory (T) or not (F)
+const bool MLP_LENGTH_TESTING_ON		= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool S_CURVE_TESTING_ON			= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool NTVS_TESTING_ON				= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool OLD_TVS_TESTING_ON			= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool OLD_TVS_COMPARISON_TESTING_ON= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool FBP_TESTING_ON				= false;									// Validating proper FBP filtering name output directory (T) or not (F)
+const bool RECON_PARAMETER_TESTING_ON	= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool WITH_OPTIMAL_NTVS_TESTING_ON	= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool AIR_THRESH_TESTING_ON		= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool OVERWRITING_OK				= false;									// Allow output to 
+const bool EXIT_AFTER_BINNING			= false;									// Exit program early after completing data read and initial processing
+const bool EXIT_AFTER_HULLS				= false;									// Exit program early after completing hull-detection
+const bool EXIT_AFTER_CUTS				= false;									// Exit program early after completing statistical cuts
+const bool EXIT_AFTER_SINOGRAM			= false;									// Exit program early after completing the construction of the sinogram
+const bool EXIT_AFTER_FBP				= false;									// Exit program early after completing FBP
+const bool EXIT_AFTER_X_O				= false;									// Exit program early after completing FBP
+const bool CLOSE_AFTER_EXECUTION		= true;										// Exit program early after completing FBP
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//--------------------------------------------------------------------------------- Preprocessing option configurations ----------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const bool DEBUG_TEXT_ON				= true;										// Provide (T) or suppress (F) print statements to console during execution
+const bool PRINT_ALL_PATHS				= false;
+const bool PRINT_CHMOD_CHANGES_ONLY		= true;
+const bool SAMPLE_STD_DEV				= true;										// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
+const bool FBP_ON						= true;										// Turn FBP on (T) or off (F)
+const bool IMPORT_FILTERED_FBP			= false;									// Import FBP image that was filtered externally from disk (T) or not (F)
+const bool SC_ON						= false;									// Turn Space Carving on (T) or off (F)
+const bool MSC_ON						= true;										// Turn Modified Space Carving on (T) or off (F)
+const bool SM_ON						= false;									// Turn Space Modeling on (T) or off (F)
+const bool COUNT_0_WEPLS				= false;									// Count the number of histories with WEPL = 0 (T) or not (F)
+const bool DIRECT_IMAGE_RECONSTRUCTION	= false;									// Begin execution with reconstruction by importing existing preprocessing data from disk (T) or generate preprocessing data first (F)
+const bool MLP_FILE_EXISTS				= false;									// Specifies whether a file with the relevant MLP data exists (T) or not (F)
+const bool MLP_ENDPOINTS_FILE_EXISTS	= false;									// Specifies whether a file with the relevant MLP endpoint data exists (T) or not (F)
+const bool IMPORT_MLP_LOOKUP_TABLES		= false;									// Import MLP lookup tables instead of generating them at run time
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /****************************************************************************** Input/output specifications and options ******************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------------ Path to the input/output directories --------------------------------------------------------------------------------/
+//------------------------------------------------------------ Definition of character arrays for path variables known at compile time ---------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const DATA_FORMATS			DATA_FORMAT				= VERSION_0;							// Specify which data format to use for this run
-const SCAN_TYPES			SCAN_TYPE				= SIMULATED_G;			  				// Specifies which of the defined filters will be used in FBP
-const FILTER_TYPES			FBP_FILTER				= SHEPP_LOGAN;			  				// Specifies which of the defined filters will be used in FBP
-const HULL_TYPES			MLP_HULL				= MSC_HULL;								// Specify which of the HULL_TYPES to use in this run's MLP calculations
-const TX_OPTIONS			ENDPOINTS_TX_MODE		= PARTIAL_TX_PREALLOCATED;				// Specifies GPU data tx mode for MLP endpoints as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
-const TX_OPTIONS			DROP_TX_MODE			= FULL_TX;				// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
-const ENDPOINTS_ALGORITHMS	ENDPOINTS_ALG			= NO_BOOL_ARRAY;						// Specifies if boolean array is used to store whether a proton hit/missed the hull (BOOL) or uses the 1st MLP voxel (NO_BOOL_ARRAY)
-const MLP_ALGORITHMS		MLP_ALGORITHM			= TABULATED;							// Specifies whether calculations are performed explicitly (STANDARD) or if lookup tables are used for MLP calculations (TABULATED)
-const INITIAL_ITERATE		X_0						= HYBRID;								// Specify which of the HULL_TYPES to use in this run's MLP calculations
-const PROJECTION_ALGORITHMS	PROJECTION_ALGORITHM	= DROP;									// Specify which of the projection algorithms to use for image reconstruction
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//-------------------------------------------------------------------------------- Execution and early exit options ----------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//const char OUTPUT_DIRECTORY[]		= "C://Users//Blake//Documents//Visual Studio 2010//Projects//pCT_Reconstruction_R01//pCT_Reconstruction_R01//";		// Blake's Laptop
-//const char INPUT_DIRECTORY[]		= "//home//share//organized_data//";																					// Workstation #2
-//const char OUTPUT_DIRECTORY[]		= "//home//share//reconstruction_data//";																				// Workstation #2
-//const char INPUT_DIRECTORY[]		= "//local//pCT_data//organized_data//";																				// WHartnell
-//const char OUTPUT_DIRECTORY[]		= "//local//pCT_data//reconstruction_data//";																			// WHartnell
-//const char INPUT_DIRECTORY[]		= "//local//pCT_data//organized_data//";																				// JPertwee
-//const char OUTPUT_DIRECTORY[]		= "//local//pCT_data//reconstruction_data//";																			// JPertwee
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//const char INPUT_FROM[]			= "input_CTP404_4M//Simulated//14-10-28";																					// CTP404_Sensitom_4M
-//const char INPUT_FROM[]			= "CTP404_Sensitom//Experimental//15-05-16//0061//Output//15-06-25";														// CTP404_Sensitom
-//const char INPUT_FROM[]			= "Edge_Phantom//Experimental//15-05-16//0057//Output//15-05-25";															// Edge_Phantom
-//const char INPUT_FROM[]			= "Head_Phantom//Experimental//15-05-16//0059_Sup//Output//15-06-25";														// Head_Phantom
-//const char INPUT_FROM[]			= "Head_Phantom//Experimental//15-05-16//0060_inf//Output//15-06-25";														// Head_Phantom
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//const char OUTPUT_TO[]		= "input_CTP404_4M//Simulated//14-10-28";																					// CTP404_Sensitom_4M
-//const char OUTPUT_TO[]		= "CTP404_Sensitom//Experimental//15-05-16//0061";																		// CTP404_Sensitom
-//const char OUTPUT_TO[]			= "Edge_Phantom//Experimental//15-05-16//0057";																			// Edge_Phantom
-//const char OUTPUT_TO[]		= "Head_Phantom//Experimental//15-05-16//0059_Sup";																		// Head_Phantom
-//const char OUTPUT_TO[]		= "Head_Phantom//Experimental//15-05-16//0060_Inf";																		// Head_Phantom
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const char PHANTOM[]				= "CTP404_Sensitom_4M";
-//const char PHANTOM[]				= "CTP404_Sensitom";
-//const char PHANTOM[]				= "Edge_Phantom";
-//const char PHANTOM[]				= "Head_Phantom";
-const char RUN_NUMBER[]				= "0001";
-//const char RUN_NUMBER[]				= "0061";
-//const char RUN_NUMBER[]				= "0057";
-//const char RUN_NUMBER[]				= "0059_Sup";
-//const char RUN_NUMBER[]				= "0060_Inf";
-const char RUN_DATE[]				= "14-10-28";
-//const char RUN_DATE[]				= "15-05-16";
-const char PREPROCESSED_DATE[]		= "14-10-28";
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const char KODIAK_RECON_DIR[]		= "//data/ion//pCT_data//reconstruction_data//";																			// Kodiak
-const char WS2_RECON_DIR[]			= "//home//share//reconstruction_data//";																				// Workstation #2
-const char WHARTNELL_RECON_DIR[]	= "//local//pCT_Data//reconstruction_data//";																			// WHartnell
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/	
-//char GLOBAL_RESULTS_PATH[]		= {"C://Users//Blake//Documents//Visual Studio 2010//Projects//pCT_Reconstruction_R01//pCT_Reconstruction_R01"};
-//char GLOBAL_RESULTS_PATH[]		= {"//home//share//reconstruction_data"};
-//char GLOBAL_RESULTS_PATH[]		= {"//local//reconstruction_data"};
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/	
-
-const char KODIAK_CODE_DIR[]		= "//data/ion//pCT_code//Reconstruction//";
-const char WS2_CODE_DIR[]			= "//home//share//pCT_code//";
-const char WHARTNELL_CODE_DIR[]		= "//local//pCT_code//";
-const char JPERTWEE_CODE_DIR[]		= "//local//pCT_code//";
-//const char KODIAK_SCP_BASE[]		= "scp -r schultze@kodiak:";
-const char KODIAK_LOGIN[]			= "schultze@kodiak:";
-const char WHARTNELL_LOGIN[]		= "schultze@whartnell:";
-const char JPERTWEE_LOGIN[]			= "schultze@kodiak:";
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-char INPUT_DIRECTORY[256];
-char OUTPUT_DIRECTORY[256];
-char INPUT_FROM[256];
-char OUTPUT_TO[256];
-char DATA_TYPE[32];
-char EXECUTION_DATE[9];																		// Specify which of the projection algorithms to use for image reconstruction						
-
-char CONFIG_DIRECTORY[256];
-char OUTPUT_TO_UNIQUE[256];
-char KODIAK_OUTPUT_PATH[256];
-char WS2_OUTPUT_PATH[256];
-char WHARTNELL_OUTPUT_PATH[256];
-char IMPORT_FBP_PATH[256];
-char INPUT_ITERATE_PATH[256];																// Path 
-
-
-
-//char* OBJECT, *SCAN_TYPE, *RUN_DATE, *RUN_NUMBER, *PROJECTION_DATA_DATE, *PREPROCESS_DATE, *RECONSTRUCTION_DATE;
-char* USER_NAME;
-char* PATH_2_PCT_DATA_DIR, *DATA_TYPE_DIR, *PROJECTION_DATA_DIR, *PREPROCESSING_DIR, *RECONSTRUCTION_DIR;
+const char INPUT_DIRECTORY[]	= "//local//pCT_data//organized_data//";
+const char OUTPUT_DIRECTORY[]	= "//local//pCT_data//reconstruction_data//";
+const char INPUT_FOLDER[]		= "CTP404_Sensitom//Simulated//G_15-05-24//0001//Output//15-05-24";
+const char OUTPUT_FOLDER[]      = "CTP404_Sensitom//Simulated//G_15-05-24//0001//Output//15-05-24";
+const char PHANTOM_NAME[]		= "CTP404_Sensitom";
+const char RUN_DATE[]			= "15-05-24";
+const char RUN_NUMBER[]			= "0001";
+const char PREPROCESS_DATE[]	= "15-05-24";
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------------------------- Iterative Image Reconstruction Parameters ------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------------------ Blob Parameters -----------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define BETA_BLOB						0.0707107											// The lattice constant BETA is 1/sqrt(2) multiplied by the voxel side length.
-#define SBETA							0.707107											// Stepping distance divided by BETA
-#define ETA_BLOB						2.00												// Computation found in 'Most Likely Paths and Blob Detection' notes
-#define ETA_BLOB_SQUARED				4.00												// Used solely to remove a repeated multiplication
-#define BLOB_RADIUS						0.245314											// Constant multiple of corresponding voxel side length
-#define BLOB_INT_LEN					0.522594											// Constant used for intersection lengths (c.f. blob documentation for effective mean length)
-
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------- Host/GPU computation and structure information ---------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define MAX_INTERSECTIONS				1280												// Limit on the # of intersections expected for proton's MLP; = # voxels along image diagonal
-#define DROP_BLOCK_SIZE					3200												// # of histories in each DROP block, i.e., # of histories used per image update
-#define THREADS_PER_BLOCK				1024												// # of threads per GPU block for preprocessing kernels
-#define ENDPOINTS_PER_BLOCK 			320													// # of threads per GPU block for collect_MLP_endpoints_GPU kernel
-#define HISTORIES_PER_BLOCK 			320													// # of threads per GPU block for block_update_GPU kernel
-#define ENDPOINTS_PER_THREAD 			1													// # of MLP endpoints each thread is responsible for calculating in collect_MLP_endpoints_GPU kernel
-#define HISTORIES_PER_THREAD 			1													// # of histories each thread is responsible for in MLP/DROP kernel block_update_GPU
-#define VOXELS_PER_THREAD 				1													// # of voxels each thread is responsible for updating for reconstruction image initialization/updates
-#define MAX_GPU_HISTORIES				4000000												// [#] Number of histories to process on the GPU at a time for preprocessing, based on GPU capacity
-#define MAX_CUTS_HISTORIES				1500000												// [#] Number of histories to process on the GPU at a time for statistical cuts, based on GPU capacity
-#define MAX_ENDPOINTS_HISTORIES			10240000											// [#] Number of histories to process on the GPU at a time for MLP endpoints, based on GPU capacity
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------------ Testing configurations/options controls ---------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------- Input data specification configurations ----------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-unsigned int PHANTOM_NAME_SIZE;
-unsigned int DATA_SOURCE_SIZE;
-unsigned int PREPARED_BY_SIZE;
-unsigned int SKIP_2_DATA_SIZE;
-unsigned int VERSION_ID;
-unsigned int PROJECTION_INTERVAL;
-const bool BINARY_ENCODING				= true;												// Input data provided in binary (T) encoded files or ASCI text files (F)
-const bool SINGLE_DATA_FILE				= false;											// Individual file for each gantry angle (T) or single data file for all data (F)
-const bool SSD_IN_MM					= true;												// SSD distances from rotation axis given in mm (T) or cm (F)
-const bool DATA_IN_MM					= true;												// Input data given in mm (T) or cm (F)
-const bool MICAH_SIM					= false;											// Specify whether the input data is from Micah's simulator (T) or not (F)
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//--------------------------------------------------------------------------------- Preprocessing option configurations ----------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const bool DEBUG_TEXT_ON				= true;												// Provide (T) or suppress (F) print statements to console during execution
-const bool SAMPLE_STD_DEV				= true;												// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
-const bool FBP_ON						= true;												// Turn FBP on (T) or off (F)
-const bool MEDIAN_FILTER_FBP			= true;												// Apply median filter to FBP (T) or not (F)
-const bool AVG_FILTER_FBP				= false;											// Apply averaging filter to FBP (T) or not (F)
-const bool IMPORT_FILTERED_FBP			= false;											// Import and use filtered FBP image (T) or not (F)
-const bool SC_ON						= false;											// Turn Space Carving on (T) or off (F)
-const bool MSC_ON						= true;												// Turn Modified Space Carving on (T) or off (F)
-const bool SM_ON						= false;											// Turn Space Modeling on (T) or off (F)
-const bool AVG_FILTER_HULL				= true;												// Apply averaging filter to hull (T) or not (F)
-const bool AVG_FILTER_ITERATE			= false;											// Apply averaging filter to initial iterate (T) or not (F)
-const bool DIRECT_IMAGE_RECONSTRUCTION	= false;											// Begin image reconstruction immediately upon execution (T) or perform preprocessing first (F)
-const bool COUNT_0_WEPLS				= false;											// Count the number of histories with WEPL = 0 (T) or not (F)
-const bool MLP_FILE_EXISTS				= false;											// Specifies whether the file containing the MLP data for this object/settings already exists (T) or not (F)
-const bool MLP_ENDPOINTS_FILE_EXISTS	= false;											// Specifies whether the file containing the MLP endpoint data for this object/settings already exists (T) or not (F)
+const bool BINARY_ENCODING	   = true;									// Input data provided in binary (T) encoded files or ASCI text files (F)
+const bool SINGLE_DATA_FILE    = false;									// Individual file for each gantry angle (T) or single data file for all data (F)
+const bool SSD_IN_MM		   = true;									// SSD distances from rotation axis given in mm (T) or cm (F)
+const bool DATA_IN_MM		   = true;									// Input data given in mm (T) or cm (F)
+const bool MICAH_SIM		   = false;									// Specify whether the input data is from Micah's simulator (T) or not (F)
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------------ Output option configurations --------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const bool WRITE_SC_HULL			= true;													// Write SC hull to disk (T) or not (F)
-const bool WRITE_MSC_COUNTS			= true;													// Write MSC counts array to disk (T) or not (F) before performing edge detection 
-const bool WRITE_MSC_HULL			= true;													// Write MSC hull to disk (T) or not (F)
-const bool WRITE_SM_COUNTS			= true;													// Write SM counts array to disk (T) or not (F) before performing edge detection 
-const bool WRITE_SM_HULL			= true;													// Write SM hull to disk (T) or not (F)
-const bool WRITE_FBP_IMAGE			= true;													// Write FBP image before thresholding to disk (T) or not (F)
-const bool WRITE_FBP_HULL			= true;													// Write FBP hull to disk (T) or not (F)
-const bool WRITE_AVG_FBP			= true;													// Write average filtered FBP image before thresholding to disk (T) or not (F)
-const bool WRITE_MEDIAN_FBP			= true;													// Write median filtered FBP image to disk (T) or not (F)
-const bool WRITE_FILTERED_HULL		= true;													// Write average filtered FBP image to disk (T) or not (F)
-const bool WRITE_X_HULL				= true;													// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
-const bool WRITE_X_0				= true;													// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
-const bool WRITE_X_KI				= true;													// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
-const bool WRITE_X					= false;												// Write the reconstructed image to disk (T) or not (F)
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//--------------------------------------------------------------------------- Binned data analysis options and configurations ----------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const bool WRITE_BIN_WEPLS			= false;												// Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
-const bool WRITE_WEPL_DISTS			= false;												// Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
-const bool WRITE_SSD_ANGLES			= false;												// Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F) 
+const bool WRITE_BIN_WEPLS		= false;								// Write WEPLs for each bin to disk (T) for WEPL distribution analysis, or do not (F)
+const bool WRITE_WEPL_DISTS		= false;								// Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
+const bool WRITE_SSD_ANGLES		= false;								// Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F) 
+const bool WRITE_SC_HULL		= false;									// Write SC hull to disk (T) or not (F)
+const bool WRITE_MSC_COUNTS		= false;									// Write MSC counts array to disk (T) or not (F) before performing edge detection 
+const bool WRITE_MSC_HULL		= false;									// Write MSC hull to disk (T) or not (F)
+const bool WRITE_SM_COUNTS		= false;									// Write SM counts array to disk (T) or not (F) before performing edge detection 
+const bool WRITE_SM_HULL		= false;									// Write SM hull to disk (T) or not (F)
+const bool WRITE_FBP_IMAGE		= false;									// Write FBP image before thresholding to disk (T) or not (F)
+const bool WRITE_FBP_HULL		= false;									// Write FBP hull to disk (T) or not (F)
+const bool WRITE_AVG_FBP		= false;								// Write average filtered FBP image before thresholding to disk (T) or not (F)
+const bool WRITE_MEDIAN_FBP		= true;									// Write median filtered FBP image to disk (T) or not (F)
+const bool WRITE_FILTERED_HULL	= false;									// Write average filtered FBP image to disk (T) or not (F)
+const bool WRITE_X_HULL			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_X_0			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_X_KI			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
+const bool WRITE_X				= false;								// Write the reconstructed image to disk (T) or not (F)
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /************************************************************************************** Preprocessing Constants **************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
-/*****************************************************************************************************************************************************************************************************/						
+/*****************************************************************************************************************************************************************************************************/			
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//------------------------------------------------------------------------- Host/GPU computation and structure information ---------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+#define THREADS_PER_BLOCK		1024									// [#] # of threads per GPU block for preprocessing kernels
+#define ENDPOINTS_PER_BLOCK 	320										// [#] # of threads per GPU block for collect_MLP_endpoints_GPU kernel
+#define HISTORIES_PER_BLOCK 	320										// [#] # of threads per GPU block for block_update_GPU kernel
+#define ENDPOINTS_PER_THREAD 	1										// [#] # of MLP endpoints each thread is responsible for calculating in collect_MLP_endpoints_GPU kernel
+#define HISTORIES_PER_THREAD 	1										// [#] # of histories each thread is responsible for in MLP/DROP kernel block_update_GPU
+#define VOXELS_PER_THREAD 		1										// [#] # of voxels each thread is responsible for updating for reconstruction image initialization/updates
+#define MAX_GPU_HISTORIES		4000000									// [#] Number of histories to process on the GPU at a time for preprocessing, based on GPU capacity
+#define MAX_CUTS_HISTORIES		1500000									// [#] Number of histories to process on the GPU at a time for statistical cuts, based on GPU capacity
+#define MAX_ENDPOINTS_HISTORIES 10240000								// [#] Number of histories to process on the GPU at a time for MLP endpoints, based on GPU capacity
+#define MAX_INTERSECTIONS		1280									// [#] Limit on the # of intersections expected for proton's MLP; = # voxels along image diagonal
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------ Scanning and detector system (source distance, tracking plane dimensions) configurations --------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define GANTRY_ANGLE_INTERVAL		4.0														// [degrees] Angle between successive projection angles 
-#define GANTRY_ANGLES				static_cast<int>( 360 / GANTRY_ANGLE_INTERVAL )			// [#] Total number of projection angles
-#define NUM_SCANS					1														// [#] Total number of scans
-#define NUM_FILES					( NUM_SCANS * GANTRY_ANGLES )							// [#] 1 file per gantry angle per translation
-#define SSD_T_SIZE					35.0													// [cm] Length of SSD in t (lateral) direction
-#define SSD_V_SIZE					10.0													// [cm] Length of SSD in v (vertical) direction
+#define GANTRY_ANGLE_INTERVAL	4.0										// [degrees] Angle between successive projection angles 
+#define GANTRY_ANGLES			int( 360 / GANTRY_ANGLE_INTERVAL )		// [#] Total number of projection angles
+#define NUM_SCANS				1										// [#] Total number of scans
+#define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
+#define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
+#define SSD_V_SIZE				6.0										// [cm] Length of SSD in v (vertical) direction
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //-------------------------------------------------------------- Binning (for statistical analysis) and sinogram (for FBP) configurations ----------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define T_SHIFT						0.0														// [cm] Amount by which to shift all t coordinates on input
-#define U_SHIFT						0.0														// [cm] Amount by which to shift all u coordinates on input
-#define V_SHIFT						0.0														// [cm] Amount by which to shift all v coordinates on input
-#define T_BIN_SIZE					0.1														// [cm] Distance between adjacent bins in t (lateral) direction
-#define T_BINS						static_cast<int>( SSD_T_SIZE / T_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
-#define V_BIN_SIZE					0.25													// [cm] Distance between adjacent bins in v (vertical) direction
-#define V_BINS						static_cast<int>( SSD_V_SIZE/ V_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
-#define ANGULAR_BIN_SIZE			4.0														// [degrees] Angle between adjacent bins in angular (rotation) direction
-#define ANGULAR_BINS				static_cast<int>( 360 / ANGULAR_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for path angle 
-#define NUM_BINS					( ANGULAR_BINS * T_BINS * V_BINS )						// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
-#define SIGMAS_TO_KEEP				3														// [#] Number of standard deviations from mean to allow before cutting the history 
-#define RAM_LAK_TAU					2/ROOT_TWO * T_BIN_SIZE									// Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
+#define T_SHIFT					0.0										// [cm] Amount by which to shift all t coordinates on input
+#define U_SHIFT					0.0										// [cm] Amount by which to shift all u coordinates on input
+#define V_SHIFT					0.0										// [cm] Amount by which to shift all v coordinates on input
+//#define T_SHIFT				   2.05									// [cm] Amount by which to shift all t coordinates on input
+//#define U_SHIFT				   -0.16								// [cm] Amount by which to shift all u coordinates on input
+#define T_BIN_SIZE				0.1										// [cm] Distance between adjacent bins in t (lateral) direction
+#define T_BINS					int( SSD_T_SIZE / T_BIN_SIZE + 0.5 )	// [#] Number of bins (i.e. quantization levels) for t (lateral) direction 
+#define V_BIN_SIZE				0.25									// [cm] Distance between adjacent bins in v (vertical) direction
+#define V_BINS					int( SSD_V_SIZE/ V_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for v (vertical) direction 
+#define ANGULAR_BIN_SIZE		4.0										// [degrees] Angle between adjacent bins in angular (rotation) direction
+#define ANGULAR_BINS			int( 360 / ANGULAR_BIN_SIZE + 0.5 )		// [#] Number of bins (i.e. quantization levels) for path angle 
+#define NUM_BINS				( ANGULAR_BINS * T_BINS * V_BINS )		// [#] Total number of bins corresponding to possible 3-tuples [ANGULAR_BIN, T_BIN, V_BIN]
+#define SIGMAS_TO_KEEP			2										// [#] Number of standard deviations from mean to allow before cutting the history 
+#define RAM_LAK_TAU				2/ROOT_TWO * T_BIN_SIZE					// [#] Defines tau in Ram-Lak filter calculation, estimated from largest frequency in slice 
+#define FBP_THRESHOLD			0.6										// [cm] RSP threshold used to generate FBP_hull from FBP_image
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------- Reconstruction cylinder configurations ---------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+#define RECON_CYL_RADIUS		10.0									// [cm] Radius of reconstruction cylinder
+#define RECON_CYL_DIAMETER		( 2 * RECON_CYL_RADIUS )				// [cm] Diameter of reconstruction cylinder
+#define RECON_CYL_HEIGHT		(SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //-------------------------------------------------------------------------------- Reconstruction image configurations ----------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define RECON_CYL_RADIUS			12.0													// [cm] Radius of reconstruction cylinder
-#define RECON_CYL_DIAMETER			(2 * RECON_CYL_RADIUS)									// [cm] Diameter of reconstruction cylinder
-#define RECON_CYL_HEIGHT			(SSD_V_SIZE - 1.0)										// [cm] Height of reconstruction cylinder
-#define IMAGE_WIDTH					RECON_CYL_DIAMETER										// [cm] Distance between left and right edges of each slice in image
-#define IMAGE_HEIGHT				RECON_CYL_DIAMETER										// [cm] Distance between top and bottom edges of each slice in image
-#define IMAGE_THICKNESS				( SLICES * SLICE_THICKNESS )							// [cm] Distance between bottom of bottom slice and top of the top slice of image
-#define COLUMNS						static_cast<int>(RECON_CYL_DIAMETER / VOXEL_WIDTH)		// [#] Number of voxels in the x direction (i.e., number of columns) of image
-#define ROWS						static_cast<int>(RECON_CYL_DIAMETER / VOXEL_HEIGHT)		// [#] Number of voxels in the y direction (i.e., number of rows) of image
-#define SLICES						static_cast<int>( RECON_CYL_HEIGHT / SLICE_THICKNESS)	// [#] Number of voxels in the z direction (i.e., number of slices) of image
-#define NUM_VOXELS					(COLUMNS * ROWS * SLICES)								// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
-#define VOXEL_WIDTH					0.1														// [cm] Distance between left and right edges of each voxel in image
-#define VOXEL_HEIGHT				0.1														// [cm] Distance between top and bottom edges of each voxel in image
-#define VOXEL_THICKNESS				0.25													// [cm] Distance between top and bottom of each slice in image
-#define SLICE_THICKNESS				0.25													// [cm] Distance between top and bottom of each slice in image
-#define X_ZERO_COORDINATE			-RECON_CYL_RADIUS										// [cm] x-coordinate corresponding to front edge of 1st voxel (i.e. column) in image space
-#define Y_ZERO_COORDINATE			RECON_CYL_RADIUS										// [cm] y-coordinate corresponding to front edge of 1st voxel (i.e. row) in image space
-#define Z_ZERO_COORDINATE			(RECON_CYL_HEIGHT / 2)									// [cm] z-coordinate corresponding to front edge of 1st voxel (i.e. slice) in image space
+//DISCRETIZATION_SIZES
+//DISCRETIZATION_DIMENSIONS
+//SIZES_DIMENSIONS
+#define IMAGE_WIDTH				RECON_CYL_DIAMETER						// [cm] Distance between left and right edges of each slice in image
+#define IMAGE_HEIGHT			RECON_CYL_DIAMETER						// [cm] Distance between top and bottom edges of each slice in image
+#define IMAGE_THICKNESS			( SLICES * SLICE_THICKNESS )			// [cm] Distance between bottom of bottom slice and top of the top slice of image
+#define COLUMNS					200										// [#] Number of voxels in the x direction (i.e., number of columns) of image
+#define ROWS					200										// [#] Number of voxels in the y direction (i.e., number of rows) of image
+#define SLICES					int( RECON_CYL_HEIGHT / SLICE_THICKNESS)// [#] Number of voxels in the z direction (i.e., number of slices) of image
+#define NUM_VOXELS				( COLUMNS * ROWS * SLICES )				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
+#define VOXEL_WIDTH				0.1										// [cm] Distance between left and right edges of each voxel in image
+#define VOXEL_HEIGHT			0.1										// [cm] Distance between top and bottom edges of each voxel in image
+#define VOXEL_THICKNESS			0.25									// [cm] Distance between top and bottom of each slice in image
+#define SLICE_THICKNESS			0.25									// [cm] Distance between top and bottom of each slice in image
+#define VOXEL_DIAMETER			sqrt(pow(VOXEL_WIDTH, 2) + pow(VOXEL_HEIGHT, 2) + pow(VOXEL_THICKNESS, 2))
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------------ Hull-Detection Parameters -------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define SC_LOWER_THRESHOLD			0.0														// [cm] If WEPL >= SC_LOWER_THRESHOLD, SC assumes the proton missed the object
-#define SC_UPPER_THRESHOLD			0.0														// [cm] If WEPL <= SC_UPPER_THRESHOLD, SC assumes the proton missed the object
-#define MSC_UPPER_THRESHOLD			0.0														// [cm] If WEPL >= MSC_LOWER_THRESHOLD, MSC assumes the proton missed the object
-#define MSC_LOWER_THRESHOLD			-10.0													// [cm] If WEPL <= MSC_UPPER_THRESHOLD, MSC assumes the proton missed the object
-#define MSC_DIFF_THRESH				75														// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
-#define SM_LOWER_THRESHOLD			6.0														// [cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
-#define SM_UPPER_THRESHOLD			21.0													// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
-#define SM_SCALE_THRESHOLD			1.0														// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
-#define FBP_HULL_THRESHOLD			0.6														// [cm] RSP threshold used to generate FBP_hull from FBP_image
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//---------------------------------------------------------------------------- Average/median filtering options/parameters ---------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-UINT HULL_AVG_FILTER_RADIUS			= 0;													// [#] Radius of the average filter to apply to hull image
-UINT FBP_MED_FILTER_RADIUS			= 3;													// [#] Radius of the median filter to apply to FBP image
-UINT FBP_AVG_FILTER_RADIUS			= 1;													// [#] Radius of the average filter to apply to FBP image
-UINT ITERATE_AVG_FILTER_RADIUS		= 3;													// [#] Radius of the average filter to apply to initial iterate
-double HULL_AVG_FILTER_THRESHOLD	= 0.1;													// [#] Threshold applied to average filtered hull separating voxels to include/exclude from hull (i.e. set to 0/1)
-double FBP_AVG_FILTER_THRESHOLD		= 0.1;													// [#] Threshold applied to average filtered FBP separating voxels to include/exclude from FBP hull (i.e. set to 0/1)
-double ITERATE_AVG_FILTER_THRESHOLD	= 0.1;													// [#] Threshold applied to average filtered initial iterate below which a voxel is excluded from reconstruction (i.e. set to 0)
+#define SC_LOWER_THRESHOLD		0.0										// [cm] If WEPL >= SC_LOWER_THRESHOLD, SC assumes the proton missed the object
+#define SC_UPPER_THRESHOLD		0.0										// [cm] If WEPL <= SC_UPPER_THRESHOLD, SC assumes the proton missed the object
+#define MSC_UPPER_THRESHOLD		0.0										// [cm] If WEPL >= MSC_LOWER_THRESHOLD, MSC assumes the proton missed the object
+#define MSC_LOWER_THRESHOLD		-10.0									// [cm] If WEPL <= MSC_UPPER_THRESHOLD, MSC assumes the proton missed the object
+#define MSC_DIFF_THRESH			150										// [#] Threshold on difference in counts between adjacent voxels used by MSC for edge detection
+#define SM_LOWER_THRESHOLD		6.0										// [cm] If WEPL >= SM_THRESHOLD, SM assumes the proton passed through the object
+#define SM_UPPER_THRESHOLD		21.0									// [cm] If WEPL > SM_UPPER_THRESHOLD, SM ignores this history
+#define SM_SCALE_THRESHOLD		1.0										// [cm] Threshold scaling factor used by SM to adjust edge detection sensitivity
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------- MLP Parameters -------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const bool TVS_ON					= true;													// Perform total variation superiorization (TVS) (T) or not (F)
-const bool TVS_FIRST				= true;													// Perform TVS before DROP updates (T) or after image is updated by DROP block (F)
-const bool TVS_PARALLEL				= false;												// Use the parallel implementation of TVS (T) or the host only version (F)
-float LAMBDA						= 0.0005;												// Relaxation parameter to use in image iterative projection reconstruction algorithms	
-int PSI_SIGN						= 1;													// Sign of the perturbation used in robust reconstruction imposing Tikhonov, ridge regression, total least square, minmax, maxmax, 
-double ETA							= 2.5;													// Radius of bounded region in which a solution is sought, commonly set based on the bound of expected error in measurements
-#define ITERATIONS					6														// # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define BOUND_IMAGE					1														// If any voxel in the image exceeds 2.0, set it to exactly 2.0
+#define IGNORE_SHORT_MLP		ON										// [T/F] Remove proton histories with short MLP paths from use in reconstruction (ON) or not (OFF)
+#define MIN_MLP_LENGTH			30										// [#] Minimum # of intersections required to use in reconstruction so proton's skimming object are ignored
+#define VOXEL_STEP_SIZE			( VOXEL_WIDTH / 2 )						// [cm] Length of the step taken along the path, i.e. change in depth per step for
+#define MLP_U_STEP				( VOXEL_WIDTH / 2)						// [cm] Size of the step taken along u direction during MLP; depth difference between successive MLP points
+const int max_path_elements		= int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2))); // Defines size of GPU array used to store a proton history's MLP voxel #s 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------- Tabulated data file names --------------------------------------------------------------------------------------/
+//----------------------------------------------------------------- Iterative projection method (feasibility seeking) settings/parameters ------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define TRIG_TABLE_MIN				-2 * PI													// [radians] Minimum angle contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_MAX				4 * PI													// [radians] Maximum angle contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_RANGE			(TRIG_TABLE_MAX - TRIG_TABLE_MIN)						// [radians] Range of angles contained in the sin/cos lookup table used for MLP
-#define TRIG_TABLE_STEP				(0.001 * ANGLE_TO_RADIANS)								// [radians] Step size in radians between elements of sin/cos lookup table used for MLP
-#define TRIG_TABLE_ELEMENTS			static_cast<int>(TRIG_TABLE_RANGE / TRIG_TABLE_STEP)	// [#] # of elements contained in the sin/cos lookup table used for MLP
-#define COEFF_TABLE_RANGE			40.0													// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
-#define COEFF_TABLE_STEP			0.00005													// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-#define COEFF_TABLE_SHIFT			static_cast<int>(MLP_U_STEP / COEFF_TABLE_STEP)			// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-#define COEFF_TABLE_ELEMENTS		static_cast<int>(COEFF_TABLE_RANGE / COEFF_TABLE_STEP)	// [#] # of elements contained in the polynomial lookup tables used for MLP
-#define POLY_TABLE_RANGE			40.0													// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
-#define POLY_TABLE_STEP				0.00005													// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-#define POLY_TABLE_SHIFT			static_cast<int>(MLP_U_STEP / POLY_TABLE_STEP)			// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
-#define POLY_TABLE_ELEMENTS			static_cast<int>(POLY_TABLE_RANGE / POLY_TABLE_STEP)	// [#] # of elements contained in the polynomial lookup tables used for MLP
+ULL PRIME_OFFSET					= 26410633;							// [#] Separation between successive histories used in ordering histories for reconstruction
+double ETA							= 2.5;								// [#] Coefficient of perturbation used in robust methods
+unsigned int METHOD					= 1;								// [#] Integer indicating the desired robust method to use (deprecated, non in use)
+int PSI_SIGN						= 1;								// [#] Use a positive (1) or negative (-1) perturbation in robust methods
+#define ITERATIONS					12									// [#] # of iterations through the entire set of histories to perform in iterative image reconstruction
+#define BOUND_IMAGE					OFF									// [T/F] If any voxel in the image exceeds 2.0, set it to exactly 2.0
+#define S_CURVE_ON					OFF									// [T/F] Turn on application of S-curve scaling of updates of voxels near the boundary
+#define SIGMOID_STEEPNESS			1.25								// [#] Scaling factor 'k' of logistic curve: 1 / (1 + exp[k(LOGISTIC_MID_SHIFT - voxel)])
+#define SIGMOID_MID_SHIFT			10									// [#] x-coordinate where the signoid curve is half of its maximum value
+#define DUAL_SIDED_S_CURVE			ON									// [T/F] Apply a single-sided (OFF) or double-sided (ON) s-curve attenuation of voxel update values
+#define DROP_BLOCK_SIZE				53200								// [#] # of histories in each DROP block, i.e., # of histories used per image update
+//#define LAMBDA					0.00015								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
+float LAMBDA						= 0.0017;							// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------- Memory allocation size for arrays (binning, image) -------------------------------------------------------------------------/
+//----------------------------------------------------------------------- Total variation superiorization (TVS) options/parameters -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define SIZE_BINS_CHAR				( NUM_BINS   * sizeof(char)		)						// Amount of memory required for a character array used for binning
-#define SIZE_BINS_BOOL				( NUM_BINS   * sizeof(bool)		)						// Amount of memory required for a boolean array used for binning
-#define SIZE_BINS_INT				( NUM_BINS   * sizeof(int)		)						// Amount of memory required for a integer array used for binning
-#define SIZE_BINS_UINT				( NUM_BINS   * sizeof(UINT)		)						// Amount of memory required for a integer array used for binning
-#define SIZE_BINS_FLOAT				( NUM_BINS	 * sizeof(float)	)						// Amount of memory required for a floating point array used for binning
-#define SIZE_IMAGE_CHAR				( NUM_VOXELS * sizeof(char)		)						// Amount of memory required for a character array used for binning
-#define SIZE_IMAGE_BOOL				( NUM_VOXELS * sizeof(bool)		)						// Amount of memory required for a boolean array used for binning
-#define SIZE_IMAGE_INT				( NUM_VOXELS * sizeof(int)		)						// Amount of memory required for a integer array used for binning
-#define SIZE_IMAGE_UINT				( NUM_VOXELS * sizeof(UINT)		)						// Amount of memory required for a integer array used for binning
-#define SIZE_IMAGE_FLOAT			( NUM_VOXELS * sizeof(float)	)						// Amount of memory required for a floating point array used for binning
-#define SIZE_IMAGE_DOUBLE			( NUM_VOXELS * sizeof(double)	)						// Amount of memory required for a floating point array used for binning
+#define TVS_ON						ON									// [T/F] Perform total variation superiorization (TVS) during reconstruction
+#define TVS_OLD						OFF									// [T/F] Perform original version of total variation superiorization (TVS)
+#define NTVS_ON						(TVS_ON && !TVS_OLD)				// [T/F] Perform total variation superiorization (TVS) during reconstruction
+//#define NTVS_ON					OFF									// [T/F] Perform total variation superiorization (TVS) during reconstruction
+#define TVS_FIRST					ON									// [T/F] Perform TVS before (ON) or after (OFF) feasibility seeking during reconstruction
+#define TVS_PARALLEL				OFF									// [T/F] Use the sequential (OFF) or parallel (ON) implementation of TVS
+#define TVS_CONDITIONED				OFF									// [T/F] Verify TVS perturbation improves total variation TV (ON) or not (OFF)
+#define TVS_MIN_ETA					1E-40								// [#] Specify minimum perturbation coefficient to include in precalculated coefficient array 
+#define TV_THRESHOLD				(1/1000)							// [#] Value of TV difference ratio |TV_y - TV_y_previous| / TV_y between successive betas where beta is not decreased more
+#define A							0.75								// [#] Perturbation coefficient generation kernel value: BETA_K_N = A^L
+#define L_0							0	                                // [#,>=0] Initial value of L used in calculating the perturbation coefficient: A^L
+#define PERTURB_DOWN_FACTOR			(1/A - 1)							// [#] Used in scaling perturbation to yield image w/ reduced perturbation from image previously perturbed w/ larger perturbation
+int L								= 0;								// [#] Variable storing perturbation coefficient kernel exponent L used in calculating the perturbation coefficient: A^L
+float BETA_0						= 1.0;								// [#] Inital value of TVS perturbation coefficient
+float BETA							= BETA_0;							// [#] TVS perturbation coefficient 
+float BETA_K_N						= powf(A, L);						// [#] Value of BETA used in classical TVS as perturbation coefficient
+UINT TVS_REPETITIONS				= 5;								// [#] Specifies # of times to perform TVS for each iteration of DROP
+
+const bool RECONSTRUCT_X_0 = false;
+#define X0_ITERATIONS					5									// [#] # of iterations through the entire set of histories to perform in iterative image reconstruction
+float X0_LAMBDA						= 0.0002;							// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
+#define X0_DROP_BLOCK_SIZE				25600								// [#] # of histories in each DROP block, i.e., # of histories used per image update
+#define X0_BOUND_IMAGE					OFF									// [T/F] If any voxel in the image exceeds 2.0, set it to exactly 2.0
+#define X0_TVS_ON						ON									// [T/F] Perform total variation superiorization (TVS) during reconstruction
+#define X0_TVS_OLD						OFF									// [T/F] Perform original version of total variation superiorization (TVS)
+#define X0_NTVS_ON						(TVS_ON && !TVS_OLD)				// [T/F] Perform total variation superiorization (TVS) during reconstruction
+//#define NTVS_ON					OFF									// [T/F] Perform total variation superiorization (TVS) during reconstruction
+#define X0_TVS_FIRST					OFF									// [T/F] Perform TVS before (ON) or after (OFF) feasibility seeking during reconstruction
+#define X0_TVS_PARALLEL				OFF									// [T/F] Use the sequential (OFF) or parallel (ON) implementation of TVS
+#define X0_TVS_CONDITIONED				OFF									// [T/F] Verify TVS perturbation improves total variation TV (ON) or not (OFF)
+#define X0_A							0.75								// [#] Perturbation coefficient generation kernel value: BETA_K_N = A^L
+UINT X0_TVS_REPETITIONS				= 5;								// [#] Specifies # of times to perform TVS for each iteration of DROP
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//---------------------------------------------------------------------------- Average/median filtering options/parameters ---------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const bool APPLY_AIR_THRESHOLD		= true;
+double AIR_THRESHOLD				= 0.2;
+#define UPDATE_X_APPLY_AIR_THRESHOLD	ON
+#define UPDATE_X_AIR_THRESHOLD		0.1
+const bool AVG_FILTER_FBP			= false;							// [T/F] Apply averaging filter to FBP (T) or not (F)										// Turn Space Modeling on (T) or off (F)
+const bool AVG_FILTER_HULL			= false;								// [T/F] Apply averaging filter to hull (T) or not (F)
+const bool AVG_FILTER_X_0			= false;							// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+const bool MEDIAN_FILTER_FBP		= true;								// [T/F] Apply median filter to FBP (T) or not (F)
+const bool MEDIAN_FILTER_HULL		= false;							// [T/F] Apply median filter to hull (T) or not (F)
+const bool MEDIAN_FILTER_X_0		= false;							// [T/F] Apply averaging filter to initial iterate (T) or not (F)
+UINT FBP_AVG_FILTER_RADIUS			= 0;								// [#] Radius of the average filter to apply to FBP image
+UINT HULL_AVG_FILTER_RADIUS			= 0;								// [#] Radius of the average filter to apply to hull image
+UINT X_0_AVG_FILTER_RADIUS			= 0;								// [#] Radius of the average filter to apply to initial iterate
+UINT FBP_MED_FILTER_RADIUS			= 2;								// [#] Radius of the median filter to apply to hull image
+UINT HULL_MED_FILTER_RADIUS			= 0;								// [#] Radius of the median filter to apply to FBP image
+UINT X_0_MED_FILTER_RADIUS			= 0;								// [#] Radius of the median filter to apply to initial iterate
+double HULL_AVG_FILTER_THRESHOLD	= 0.1;								// [#] Threshold applied to average filtered hull separating voxels to include/exclude from hull (i.e. set to 0/1)
+double FBP_AVG_FILTER_THRESHOLD		= 0.1;								// [#] Threshold applied to average filtered FBP separating voxels to include/exclude from FBP hull (i.e. set to 0/1)
+double X_0_AVG_FILTER_THRESHOLD		= 0.1;								// [#] Threshold applied to average filtered initial iterate below which a voxel is excluded from reconstruction (i.e. set to 0)
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
-/************************************************************************************** Precalculated Constants **************************************************************************************/
+/********************************************************************************************* Constants *********************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
-/*****************************************************************************************************************************************************************************************************/						
+/*****************************************************************************************************************************************************************************************************/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//---------------------------------------------------------- Preprocessing/reconstruction parameters/options and beam/material properties ------------------------------------------------------------/
+//------------------------------------------------------------------------------------------- Filenames ----------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define BYTES_PER_HISTORY			48														// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format
-#define X_INCREASING_DIRECTION		RIGHT													// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
-#define Y_INCREASING_DIRECTION		DOWN													// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
-#define Z_INCREASING_DIRECTION		DOWN													// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
-#define SOURCE_RADIUS				260.7													// [cm] Distance  to source/scatterer 
-#define BEAM_ENERGY					200														// [MeV] Nominal energy of the proton beam 
-#define E_0							13.6													// [MeV/c] empirical constant
-#define X0							36.08													// [cm] radiation length
-#define RSP_AIR						0.00113													// [cm/cm] Approximate RSP of air
-#define MAX_ITERATIONS				15														// [#] Max # of iterations ever used in image reconstruction so execution times file has enough columns for iteration times
-#define MLP_U_STEP					( VOXEL_WIDTH / 2)										// Size of the step taken along u direction during MLP; depth difference between successive MLP points
-#define A_0							7.457E-6												// Coefficient of x^0 of 5th order polynomial fit of [1 / ( beta^2(u)*p^2(u) )] term of MLP scattering matrices Sigma 1/2 for 200 MeV beam
-#define A_1							4.548E-7												// Coefficient of x^1 of 5th order polynomial fit of [1 / ( beta^2(u)*p^2(u) )] term of MLP scattering matrices Sigma 1/2 for 200 MeV beam
-#define A_2							-5.777E-8												// Coefficient of x^2 of 5th order polynomial fit of [1 / ( beta^2(u)*p^2(u) )] term of MLP scattering matrices Sigma 1/2 for 200 MeV beam
-#define A_3							1.301E-9												// Coefficient of x^3 of 5th order polynomial fit of [1 / ( beta^2(u)*p^2(u) )] term of MLP scattering matrices Sigma 1/2 for 200 MeV beam
-#define A_4							-9.228E-10												// Coefficient of x^4 of 5th order polynomial fit of [1 / ( beta^2(u)*p^2(u) )] term of MLP scattering matrices Sigma 1/2 for 200 MeV beam
-#define A_5							2.687E-11												// Coefficient of x^5 of 5th order polynomial fit of [1 / ( beta^2(u)*p^2(u) )] term of MLP scattering matrices Sigma 1/2 for 200 MeV beam
-#define A_0_OVER_2					A_0/2													// Precalculated value of A_0/2 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_0_OVER_3					A_0/3													// Precalculated value of A_0/3 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_1_OVER_2					A_1/2													// Precalculated value of A_1/2 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_1_OVER_3					A_1/3													// Precalculated value of A_1/3 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_1_OVER_4					A_1/4													// Precalculated value of A_1/4 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_1_OVER_6					A_1/6													// Precalculated value of A_1/6 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_1_OVER_12					A_1/12													// Precalculated value of A_1/12 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_2_OVER_3					A_2/3													// Precalculated value of A_2/3 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_2_OVER_4					A_2/4													// Precalculated value of A_2/4 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_2_OVER_5					A_2/5													// Precalculated value of A_2/5 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_2_OVER_12					A_2/12													// Precalculated value of A_2/12 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_2_OVER_30					A_2/30													// Precalculated value of A_2/30 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_3_OVER_4					A_3/4													// Precalculated value of A_3/4 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_3_OVER_5					A_3/5													// Precalculated value of A_3/5 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_3_OVER_6					A_3/6													// Precalculated value of A_3/6 used in MLP routine so this constant does not need to be repeatedly calculated explicitly		
-#define A_3_OVER_20					A_3/20													// Precalculated value of A_3/20 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_3_OVER_60					A_3/60													// Precalculated value of A_3/60 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_4_OVER_5					A_4/5													// Precalculated value of A_4/5 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_4_OVER_6					A_4/6													// Precalculated value of A_4/6 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_4_OVER_7					A_4/7													// Precalculated value of A_4/7 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_4_OVER_30					A_4/30													// Precalculated value of A_4/30 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_4_OVER_105				A_4/105													// Precalculated value of A_4/105 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_5_OVER_6					A_5/6													// Precalculated value of A_5/6 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_5_OVER_7					A_5/7													// Precalculated value of A_5/7 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define A_5_OVER_8					A_5/8													// Precalculated value of A_5/8 used in MLP routine so this constant does not need to be repeatedly calculated explicitly			
-#define A_5_OVER_42					A_5/42													// Precalculated value of A_5/42 used in MLP routine so this constant does not need to be repeatedly calculated explicitly			
-#define A_5_OVER_168				A_5/168													// Precalculated value of A_5/168 used in MLP routine so this constant does not need to be repeatedly calculated explicitly
-#define VOXEL_ALLOWANCE				1.0e-7													// [cm] Distance from voxel edge below which the edge is considered to have been reached
-#define TV_THRESHOLD				(1/10000)												// [#] Value of TV difference ratio |TV_y - TV_y_previous| / TV_y between successive betas where beta is not decreased more
+const char TESTED_BY_STRING[]		= "Blake Schultze";					// [string] Name written to the execution log specifying the user that generated the data 
+//const char SECTION_EXIT_STRING[]	= {"====>"};						// [string] String prefix of task completion console text notifications using section_exit function
+const char ON_STRING[]				= "ON";								// [string] String used s5,12pecifying an optional execution procedure is on (boolean variable=true)
+const char OFF_STRING[]				= "OFF";							// [string] String used specifying an optional execution procedure is off (boolean variable=true)
+const char KODIAK_SERVER_NAME[]		= "kodiak.baylor.edu";				// [string] String to use for the name of the Kodiak master node
+const char ECSN1_SERVER_NAME[]		= "ecsn001";						// [string] String to use for the server name of the Tardis compute node ecsn001/WHartnell
+const char ECSN2_SERVER_NAME[]		= "ecsn002";						// [string] String to use for the server name of the Tardis compute node ecsn002/PTroughton
+const char ECSN3_SERVER_NAME[]		= "ecsn003";						// [string] String to use for the server name of the Tardis compute node ecsn003/JPertwee
+const char ECSN4_SERVER_NAME[]		= "ecsn004";						// [string] String to use for the server name of the Tardis compute node ecsn004/TBaker
+const char ECSN5_SERVER_NAME[]		= "ecsn005";						// [string] String to use for the server name of the Tardis compute node ecsn005/PDavison
+const char WS1_SERVER_NAME[]		= "tardis-student1.ecs.baylor.edu";	// [string] String to use for the server name of Workstation #1
+const char WS2_SERVER_NAME[]		= "tardis-student2.ecs.baylor.edu";	// [string] String to use for the server name of Workstation #2
+const char KODIAK_HOSTNAME_STRING[]	= "Kodiak";							// [string] String to use for the name of the Kodiak cluster
+const char ECSN1_HOSTNAME_STRING[]	= "WHartnell";						// [string] String to use for the name of the Tardis' compute node ecsn001/WHartnell
+const char ECSN2_HOSTNAME_STRING[]	= "PTRoughton";						// [string] String to use for the name of the Tardis' compute node ecsn002/PTroughton
+const char ECSN3_HOSTNAME_STRING[]	= "JPertwee";						// [string] String to use for the name of the Tardis' compute node ecsn003/JPertwee
+const char ECSN4_HOSTNAME_STRING[]	= "TBaker";							// [string] String to use for the name of the Tardis' compute node ecsn004/TBaker
+const char ECSN5_HOSTNAME_STRING[]	= "PDavison";						// [string] String to use for the name of the Tardis' compute node ecsn005/PDavison
+const char WS_HOSTNAME_STRING[]		= "Workstation";					// [string] String to use for the name of the workstations (#1/#2) 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//-------------------------------------------------------------------------- Mathematical constants and unit conversions -----------------------------------------------------------------------------/
+//--------------------------------------------------------------------- Hostnames ($HOSTNAME) of remote servers and cluster nodes  -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define PHI							((1 + sqrt(5.0) ) / 2)									// [#] Positive golden ratio, positive solution of PHI^2-PHI-1 = 0; also PHI = a/b when a/b = (a + b) / a 
-#define PHI_NEGATIVE				((1 - sqrt(5.0) ) / 2)									// [#] Negative golden ratio, negative solution of PHI^2-PHI-1 = 0; 
-#define PI_OVER_4					( atan( 1.0 ) )											// [radians] 1*pi/4 radians =   pi/4 radians = 45 degrees
-#define PI_OVER_2					( 2 * atan( 1.0 ) )										// [radians] 2*pi/4 radians =   pi/2 radians = 90 degrees
-#define THREE_PI_OVER_4				( 3 * atan( 1.0 ) )										// [radians] 3*pi/4 radians = 3*pi/4 radians = 135 degrees
-#define PI							( 4 * atan( 1.0 ) )										// [radians] 4*pi/4 radians =   pi   radians = 180 degrees
-#define FIVE_PI_OVER_4				( 5 * atan( 1.0 ) )										// [radians] 5*pi/4 radians = 5*pi/4 radians = 225 degrees
-#define SIX_PI_OVER_4				( 5 * atan( 1.0 ) )										// [radians] 6*pi/4 radians = 3*pi/2 radians = 270 degrees
-#define SEVEN_PI_OVER_4				( 7 * atan( 1.0 ) )										// [radians] 7*pi/4 radians = 7*pi/4 radians = 315 degrees
-#define TWO_PI						( 8 * atan( 1.0 ) )										// [radians] 8*pi/4 radians = 2*pi   radians = 360 degrees = 0 degrees
-#define ANGLE_TO_RADIANS			( PI/180.0 )											// [radians/degree] Convertion from angle to radians
-#define RADIANS_TO_ANGLE			( 180.0/PI )											// [degrees/radian] Convertion from radians to angle
-#define ROOT_TWO					sqrtf(2.0)												// [#] 2^(1/2) = Square root of 2 
-#define MM_TO_CM					0.1														// [cm/mm] 10 [mm] = 1 [cm] => 1 [mm] = 0.1 [cm]
+std::string kodiak_ID				( "n130"							);	// Hostname ID ($HOSTNAME) of Kodiak head node
+std::string whartnell_ID			( "ecsn001"							);	// Hostname ID ($HOSTNAME) of WHartnell compute node
+std::string ptroughton_ID			( "ecsn002"							);	// Hostname ID ($HOSTNAME) of PTRoughton compute node
+std::string jpertwee_ID				( "ecsn003"							);	// Hostname ID ($HOSTNAME) of JPertwee compute node
+std::string tbaker_ID				( "ecsn004"							);	// Hostname ID ($HOSTNAME) of TBaker compute node
+std::string pdavison_ID				( "ecsn005"							);	// Hostname ID ($HOSTNAME) of PDavison compute node
+std::string whartnell_hostname		( "whartnell"						);	// Hostname ID ($HOSTNAME) of WHartnell compute node
+std::string workstation_2_hostname	( "tardis-student2.ecs.baylor.edu"	);	// Hostname ID ($HOSTNAME) of WHartnell compute node
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------------------ Precalculated Constants ---------------------------------------------------------------------------------------/
+//--------------------------------------------- Secure copy (scp) and secure shell (ssh) login commands for local/remote communuications/operations --------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define START						true													// [bool] Used as an alias for true for starting timer
-#define STOP						false													// [bool] Used as an alias for false for stopping timer
-#define RIGHT						1														// [#] Specifies that moving right corresponds with an increase in x position, used in voxel walk 
-#define LEFT						-1														// [#] Specifies that moving left corresponds with a decrease in x position, used in voxel walk 
-#define UP							1														// [#] Specifies that moving up corresponds with an increase in y/z position, used in voxel walk 
-#define DOWN						-1														// [#] Specifies that moving down corresponds with a decrease in y/z position, used in voxel walk 
-#define BOOL_FORMAT					"%d"													// Specifies format to use for writing/printing boolean data using {s/sn/f/v/vn}printf statements
-#define CHAR_FORMAT					"%c"													// Specifies format to use for writing/printing character data using {s/sn/f/v/vn}printf statements
-#define INT_FORMAT					"%d"													// Specifies format to use for writing/printing integer data using {s/sn/f/v/vn}printf statements
-#define FLOAT_FORMAT				"%f"													// Specifies format to use for writing/printing floating point data using {s/sn/f/v/vn}printf statements
-#define STRING_FORMAT				"%s"													// Specifies format to use for writing/printing strings data using {s/sn/f/v/vn}printf statements
-#define CONSOLE_WINDOW_WIDTH		80														// [#] Terminal window character width
-#define DARK						0														// [#] Color prompt value specifying the usage of dark colors
-#define LIGHT						1														// [#] Color prompt value specifying the usage of light colors
-#define BLACK						30														// [#] Color prompt value specifying the usage of black color
-#define RED							31														// [#] Color prompt value specifying the usage of red color
-#define GREEN						32														// [#] Color prompt value specifying the usage of green color
-#define BROWN						33														// [#] Color prompt value specifying the usage of brown color
-#define BLUE						34														// [#] Color prompt value specifying the usage of blue color
-#define PURPLE						35														// [#] Color prompt value specifying the usage of purple color
-#define CYAN						36														// [#] Color prompt value specifying the usage of cyan color
-const char SECTION_EXIT_STRING[]	= "====>";												// Character string to place preceding task completion statement printed to console window
-const char OWNER_ACCESS[]			= "744";												// Permissions to give owner rwx permissions but all other users only r permission to a folder/file
-const char GROUP_ACCESS[]			= "774";												// Permissions to give owner and group rwx permissions but all other users only r permission to a folder/file
-const char GLOBAL_ACCESS[]			= "777";												// Permissions to give everuone rwx permissions to a folder/file
-/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-/*--------------------------------------------------------------- Configuration and execution logging file names ----------------------------------------------------------*/
-/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
-const char INPUT_DATA_BASENAME[]		= "projection";										// Base name of projection data files projection_xxx.bin for each gantry angle xxx
-const char INPUT_DATA_EXTENSION[]		= ".bin";											// File extension of projection data files projection_xxx.bin for each gantry angle xxx
-const char CONFIG_FILENAME[]			= "settings.cfg";									// Name of the file used to control the program options/parameters as key=value pairs
-const char CONFIG_OUT_FILENAME[]		= "settings_log.cfg";								// Name of the file used to control the program options/parameters as key=value pairs
-const char LOG_FILENAME[]				= "log.csv";										// Name of the file logging the execution information associated with each data set generated
-const char STDOUT_FILENAME[]			= "stdout.txt";										// Name of the file where the standard output stream stdout is redirected
-const char STDIN_FILENAME[]				= "stdin.txt";										// Name of the file where the standard input stream stdin is redirected
-const char STDERR_FILENAME[]			= "stderr.txt";										// Name of the file where the standard error stream stderr is redirected
-const char EXECUTION_TIMES_BASENAME[]	= "execution_times";								// Base name of global .csv and run specific .txt files specifying the execution times for various portions of preprocessing/recosntruction
-const char SIN_TABLE_FILENAME[]			= "sin_table.bin";									// Prefix of the file containing the tabulated values of sine function for angles [0, 2PI]
-const char COS_TABLE_FILENAME[]			= "cos_table.bin";									// Prefix of the file containing the tabulated values of cosine function for angles [0, 2PI]
-const char COEFFICIENT_FILENAME[]		= "coefficient.bin";								// Prefix of the file containing the tabulated values of the scattering coefficient for u_2-u_1/u_1 values in increments of 0.001
-const char POLY_1_2_FILENAME[]			= "poly_1_2.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {1,2,3,4,5,6} in increments of 0.001
-const char POLY_2_3_FILENAME[]			= "poly_2_3.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,3,4,5,6,7} in increments of 0.001
-const char POLY_3_4_FILENAME[]			= "poly_3_4.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,4,5,6,7,8} in increments of 0.001
-const char POLY_2_6_FILENAME[]			= "poly_2_6.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,6,12,20,30,42} in increments of 0.001
-const char POLY_3_12_FILENAME[]			= "poly_3_12.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,12,30,60,105,168} in increments of 0.001
+const char BAYLOR_USERNAME[]		= "schultzeb";											// User name on Baylor/ECS accounts
+const char KODIAK_USERNAME[]		= "schultze";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char TARDIS_USERNAME[]		= "schultze";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char RECON_GROUP_HOME_DIR[]	= "recon";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char RECON_GROUP_USERNAME[]	= "ionrecon";											// User name on Kodiak/Tardis cluster head/compute nodes
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//------------------------------------------------------------ Input/Output data folder names/paths associated with pCT data format ------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const char PCT_PARENT_DIR[]			= "//ion";														// Path to the pCT data/code in permanent storage on the network drive mounted and accessible by all Kodiak/Tardis nodes at Baylor
+const char TARDIS_PARENT_DIR[]		= "//local";													// Path to the pCT data/code stored locally for usage on the Tardis compute nodes at Baylor
+const char PCT_DATA_FOLDER[]		= "pCT_data";											// Name of folder containing all of the pCT data
+const char PCT_CODE_FOLDER[]		= "pCT_code";											// Name of folder containing all of the pCT code
+const char HOME_FOLDER[]			= "home";												// Name of folder containing all of the pCT code
+const char GIT_FOLDER[]				= "git";												// Name of folder in the organized_data directory containing the reconstruction data	
+const char SRC_CODE_FOLDER[]		= "src";												// Name of folder containing all of the pCT code
+const char INCLUDE_CODE_FOLDER[]	= "include";											// Name of folder containing all of the pCT code
+const char RAW_DATA_FOLDER[]		= "raw_data";											// Name of folder in pCT_data directory containing the raw experimental data
+const char PROCESSED_DATA_FOLDER[]	= "processed_data";										// Name of folder in pCT_data directory containing the preprocessed raw data
+const char PROJECTION_DATA_FOLDER[]	= "projection_data";									// Name of folder in pCT_data directory containing the projection data used as input to reconstruction
+const char RECON_DATA_FOLDER[]		= "reconstruction_data";								// Name of folder in pCT_data directory containing the reconstruction data/image
+const char ORGANIZED_DATA_FOLDER[]	= "organized_data";										// Name of folder in pCT_data containing the organized data 
+const char EXPERIMENTAL_FOLDER[]	= "Experimental";										// Name of folder in the organized_data directory containing experimental data 
+const char SIMULATED_FOLDER[]		= "Simulated";											// Name of folder in the organized_data directory containing simulated data
+const char GEANT4_DIR_PREFIX[]		= "G_";													// Prefix of date folder names in the case of GEANT4 simulated data 
+const char TOPAS_DIR_PREFIX[]		= "T_";													// Prefix of date folder names in the case of TOPAS simulated data 
+const char RAW_LINKS_FOLDER[]		= "Input";												// Name of folder in the organized_data directory containing raw experimental data
+const char PROJECTION_LINKS_FOLDER[]= "Output";												// Name of folder in the organized_data directory containing the projection data
+const char RECONSTRUCTION_FOLDER[]	= "Reconstruction";										// Name of folder in the organized_data directory containing the reconstruction data	
+const char RECON_PROGRAM_NAME[]		= "pCT_Reconstruction";									// Name of pCT reconstruction program
+const char RECON_GROUP_NAME[]		= "recon";												// Name of pCT reconstruction program
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const std::string workstation_1_hostname("tardis-student1.ecs.baylor.edu");					// Host name of workstation #1 at BRIC ay Baylor
-const std::string workstation_2_hostname("tardis-student2.ecs.baylor.edu");					// Host name of workstation #2 at BRIC ay Baylor
-const std::string kodiak_hostname("n130");													// Host name of Kodiak cluster's master node at BRIC ay Baylor
-const std::string whartnell_hostname("whartnell");											// Host name of Tardis cluster's master node at BRIC ay Baylor
-const std::string whartnell_ID("ecsn001");													// Host ID # of Tardis cluster's master node at BRIC ay Baylor
-const std::string jpertwee_ID("ecsn003");													// Host ID # of Tardis cluster's compute node JPertwee at BRIC ay Baylor
-const std::string jpertwee_hostname("jpertwee");											// Host name of Tardis cluster's compute node JPertwee at BRIC ay Baylor
+//----------------------------------------------------------------------------------------- Bash commands/options --------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------------------ Bash commands ---------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const char BASH_CHANGE_DIR[]		= "cd";													// Command to secure copy data/directories between clusters/nodes
+const char BASH_ECHO_CMD[]			= "echo -e";											// Command to secure copy data/directories between clusters/nodes
+const char BASH_SECURE_COPY[]		= "scp -rCp -c blowfish";								// Command to secure copy data/directories between clusters/nodes
+const char BASH_COPY_DIR[]			= "cp -apRv";											// Command to secure copy data/directories between clusters/nodes
+const char BASH_COPY_FILE[]			= "cp -v";												// Command to secure copy data/directories between clusters/nodes
+const char BASH_MKDIR_CHAIN[]		= "mkdir -p";											// Command to secure copy data/directories between clusters/nodes
+const char BASH_SET_FULL_ACCESS[]	= "chmod -R 777";										// Command to change file permissions to rwx for everyone
+const char BASH_SET_PERMISSIONS[]	= "chmod -Rv";											// Command to change file permissions to rwx for everyone
+const char BASH_CHANGE_PERMISSIONS[]= "chmod -Rc";											// Command to change file permissions to rwx for everyone
 const char HOSTNAME_CMD[]			= "uname -n";											// Bash command to acquire the hostname
 const char USERNAME_CMD[]			= "id -un";												// Bash command to acquire the user name logged in
 const char USERID_CMD[]				= "id -u";												// Bash command to acquire the user ID logged in
@@ -535,98 +535,546 @@ const char USERID_EFFECT_ENVVAR[]	= "echo $EUID";											// Bash command to r
 const char GROUPS_ENVVAR[]			= "echo $GROUPS";										// Bash command to return the group names environment variable of user logged in
 const char OSTYPE_ENVVAR[]			= "echo $OSTYPE";										// Bash command to return the operating system environment variable on system user is logged in to
 const char PATH_ENVVAR[]			= "echo $PATH";											// Bash command to return the path environment variable for the various compilers/applications for user logged in
-const char WORK_DIR_ENVVAR[]		= "echo $PWD";											// Bash command to return the current directory environment variable of user logged in
+const char WORKING_DIR_ENVVAR[]		= "echo $PWD";											// Bash command to return the current directory environment variable of user logged in
+const char OWNER_ACCESS[]			= "744";												// Permissions to give owner rwx permissions but all other users only r permission to a folder/file
+const char GROUP_ACCESS[]			= "774";												// Permissions to give owner and group rwx permissions but all other users only r permission to a folder/file
+const char GLOBAL_ACCESS[]			= "777";												// Permissions to give everyone rwx permissions to a folder/file
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+/*--------------------------------------------------------------- Configuration and execution logging file names ----------------------------------------------------------*/
+/*-------------------------------------------------------------------------------------------------------------------------------------------------------------------------*/
+const char PROJECTION_DATA_BASENAME[]	= "projection";										// Base name of projection data files projection_xxx.bin for each gantry angle xxx
+const char PROJECTION_DATA_EXTENSION[]	= ".bin";											// File extension of projection data files projection_xxx.bin for each gantry angle xxx
+const char CONFIG_FILENAME[]			= "settings.cfg";									// Name of the file used to control the program options/parameters as key=value pairs
+const char CONFIG_OUT_FILENAME[]		= "settings_log.cfg";								// Name of the file used to control the program options/parameters as key=value pairs
+const char STDOUT_FILENAME[]			= "stdout.txt";										// Name of the file where the standard output stream stdout is redirected
+const char STDIN_FILENAME[]				= "stdin.txt";										// Name of the file where the standard input stream stdin is redirected
+const char STDERR_FILENAME[]			= "stderr.txt";										// Name of the file where the standard error stream stderr is redirected
+const char EXECUTION_LOG_BASENAME[]		= "execution_log";									// Base name of global .csv and run specific .txt files specifying the execution times for various portions of preprocessing/recosntruction
+const char SIN_TABLE_FILENAME[]			= "sin_table.bin";									// Prefix of the file containing the tabulated values of sine function for angles [0, 2PI]
+const char COS_TABLE_FILENAME[]			= "cos_table.bin";									// Prefix of the file containing the tabulated values of cosine function for angles [0, 2PI]
+const char COEFFICIENT_FILENAME[]		= "coefficient.bin";								// Prefix of the file containing the tabulated values of the scattering coefficient for u_2-u_1/u_1 values in increments of 0.001
+const char POLY_1_2_FILENAME[]			= "poly_1_2.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {1,2,3,4,5,6} in increments of 0.001
+const char POLY_2_3_FILENAME[]			= "poly_2_3.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,3,4,5,6,7} in increments of 0.001
+const char POLY_3_4_FILENAME[]			= "poly_3_4.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,4,5,6,7,8} in increments of 0.001
+const char POLY_2_6_FILENAME[]			= "poly_2_6.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {2,6,12,20,30,42} in increments of 0.001
+const char POLY_3_12_FILENAME[]			= "poly_3_12.bin";									// Prefix of the file containing the tabulated values of the polynomial with coefficients {3,12,30,60,105,168} in increments of 0.001
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------------------ Output folder names/paths associated with pCT data format ---------------------------------------------------------------------------------------/
+//------------------------------------------------------------------------------------------- Filenames ----------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const char PCT_PATH_GLOBAL[]		= "//data//ion";										// Path to the pCT data/code in permanent storage on the network drive mounted and accessible by all Kodiak/Tardis nodes at Baylor
-const char PCT_PATH_TARDIS[]		= "C://Users//Blake//Documents//Education//Research//pCT";											// Path to the pCT data/code stored locally for usage on the Tardis compute nodes at Baylor
-//const char PCT_PATH_TARDIS[]		= "//local";											// Path to the pCT data/code stored locally for usage on the Tardis compute nodes at Baylor
-const char PCT_DATA_FOLDER[]		= "pCT_data";											// Name of folder containing all of the pCT data
-const char PCT_CODE_FOLDER[]		= "pCT_code";											// Name of folder containing all of the pCT code
-const char RAW_DATA_FOLDER[]		= "raw_data";											// Name of folder in pCT_data directory containing the raw experimental data
-const char PROCESSED_DATA_FOLDER[]	= "processed_data";										// Name of folder in pCT_data directory containing the preprocessed raw data
-const char PROJECTION_DATA_FOLDER[]	= "projection_data";									// Name of folder in pCT_data directory containing the projection data used as input to reconstruction
-const char RECON_DATA_FOLDER[]		= "reconstruction_data";								// Name of folder in pCT_data directory containing the reconstruction data/image
-const char ORGANIZED_DATA_FOLDER[]	= "organized_data";										// Name of folder in pCT_data containing the organized data 
-const char EXPERIMENTAL_FOLDER[]	= "Experimental";										// Name of folder in the organized_data directory containing experimental data 
-const char SIMULATED_FOLDER[]		= "Simulated";											// Name of folder in the organized_data directory containing simulated data
-const char INPUT_FOLDER[]			= "Input";												// Name of folder in the organized_data directory containing raw experimental data
-const char OUTPUT_FOLDER[]			= "Output";												// Name of folder in the organized_data directory containing the projection data
-const char RECONSTRUCTION_FOLDER[]	= "Reconstruction";										// Name of folder in the organized_data directory containing the reconstruction data	
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------------ Column header names used in execution times files -------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const char TESTED_BY_STRING[]		= "Blake Schultze";										// String to write to execution times files specifying the person that executed the reconstruction program
-const char FULL_TX_STRING[]			= "FULL_TX";											// String to write to execution times files when full data transfer is used for MLP endpoints/MLP+DROP 
-const char PARTIAL_TX_STRING[]		= "PARTIAL_TX";											// String to write to execution times files when partial data transfer is used for MLP endpoints/MLP+DROP 
-const char PARTIAL_TX_PRE_STRING[]	= "PARTIAL_TX_PREALLOCATED";							// String to write to execution times files when partial data transfer reusing GPU arrays is used for MLP endpoints/MLP+DROP 
-const char BOOL_ARRAY_STRING[]		= "BOOL_ARRAY";											// String to write to execution times files when boolean array is used to identify reconstruction histories in MLP endpoint routine
-const char NO_BOOL_ARRAY_STRING[]	= "NO_BOOL_ARRAY";										// String to write to execution times files when no boolean array is used to identify reconstruction histories in MLP endpoint routine
-const char STANDARD_STRING[]		= "STANDARD";											// String to write to execution times files when standard MLP routine is used for reconstruction
-const char TABULATED_STRING[]		= "TABULATED";											// String to write to execution times files when MLP routine uses tabulated values for reconstruction
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//---------------------------------------------------------------------------------------- Output filenames ------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const char SC_HULL_FILENAME[]			= "SC_hull";										// Filename of the space/silhouette carving hull image
-const char MSC_HULL_FILENAME[]			= "MSC_hull";										// Filename of the modified space/silhouette carving hull image
-const char SM_HULL_FILENAME[]			= "SM_hull";										// Filename of the space/silhouette modeling hull image
-const char FBP_HULL_FILENAME[]			= "FBP_hull";										// Filename of the filtered back projection hull image
-const char SM_COUNTS_FILENAME[]			= "SM_counts";										// Filename of the space/silhouette carving hull image
-const char MSC_COUNTS_FILENAME[]		= "MSC_counts";										// Filename of the space/silhouette carving hull image
-const char HULL_FILENAME[]				= "hull";											// Filename of the hull image selected from the available hulls that is used in reconstruction 
-const char HULL_AVG_FILTER_FILENAME[]	= "hull_avg_filtered";								// Filename of the hull image selected from the available hulls and average filtered that is used in reconstruction 
-const char HULL_MED_FILTER_FILENAME[]	= "hull_median_filtered";							// Filename of the hull image selected from the available hulls and median filtered that is used in reconstruction 
-const char SINOGRAM_FILENAME[]			= "sinogram";										// Filename of the sinogram image
-const char FBP_FILENAME[]				= "FBP";											// Filename of the filtered back projection image
-const char X_0_FILENAME[]				= "x_0";											// Filename of the initial iterate used in image reconstruction
-const char X_FILENAME[]					= "x";
-const char MLP_PATHS_FILENAME[]			= "MLPs";
-const char MLP_PATHS_ERROR_FILENAME[]	= "MLP_error";
-const char MLP_ENDPOINTS_FILENAME[]		= "MLP_endpoints";
+const char SC_HULL_FILENAME[]			= "SC_hull";
+const char MSC_HULL_FILENAME[]			= "MSC_hull";
+const char SM_HULL_FILENAME[]			= "SM_hull";
+const char FBP_HULL_FILENAME[]			= "FBP_hull";
+const char SM_COUNTS_FILENAME[]			= "SM_counts";
+const char MSC_COUNTS_FILENAME[]		= "MSC_counts";
+const char HULL_FILENAME[]				= "hull";
+const char HULL_AVG_FILTER_FILENAME[]	= "hull_avg_filtered";
+const char HULL_MED_FILTER_FILENAME[]	= "hull_median_filtered";
+const char INPUT_HULL_FILENAME[]		= "input_hull.bin";
+const char SINOGRAM_FILENAME[]			= "sinogram";
+const char SINOGRAM_PRE_FILENAME[]		= "sinogram_pre";
+const char FBP_FILENAME[]				= "FBP";
+const char FBP_AFTER_FILENAME[]			= "FBP_after";
+const char FBP_IMAGE_FILTER_FILENAME[]	= "FBP_image_filtered";
+const char FBP_MED_FILTER_FILENAME[]	= "FBP_median_filtered";
+const char FBP_AVG_FILTER_FILENAME[]	= "FBP_avg_filtered";
 const char INPUT_ITERATE_FILENAME[]		= "FBP_med7.bin";
 const char IMPORT_FBP_FILENAME[]		= "FBP_med";
-const char INPUT_HULL_FILENAME[]		= "input_hull.bin";
+const char X_0_FILENAME[]				= "x_0";
+const char X_FILENAME[]					= "x";
+const char BIN_COUNTS_PRE_FILENAME[]	= "bin_counts_pre";
 const char BIN_COUNTS_FILENAME[]		= "bin_counts_h_pre";
+const char BIN_COUNTS_POST_FILENAME[]	= "bin_counts_post";
 const char MEAN_WEPL_FILENAME[]			= "mean_WEPL_h";
 const char MEAN_REL_UT_FILENAME[]		= "mean_rel_ut_angle_h";
 const char MEAN_REL_UV_FILENAME[]		= "mean_rel_uv_angle_h";
 const char STDDEV_REL_UT_FILENAME[]		= "stddev_rel_ut_angle_h";
 const char STDDEV_REL_UV_FILENAME[]		= "stddev_rel_uv_angle_h";
 const char STDDEV_WEPL_FILENAME[]		= "stddev_WEPL_h";
-const char BIN_COUNTS_PRE_FILENAME[]	= "bin_counts_pre";
-const char SINOGRAM_PRE_FILENAME[]		= "sinogram_pre";
-const char BIN_COUNTS_POST_FILENAME[]	= "bin_counts_post";
-const char FBP_AFTER_FILENAME[]			= "FBP_after";
-const char FBP_IMAGE_FILTER_FILENAME[]	= "FBP_image_filtered";
-const char FBP_MED_FILTER_FILENAME[]	= "FBP_median_filtered";
+const char MLP_PATHS_FILENAME[]			= "MLP_paths";
+const char MLP_PATHS_ERROR_FILENAME[]	= "MLP_path_error";
+const char MLP_ENDPOINTS_FILENAME[]		= "MLP_endpoints";
+const char TV_MEASUREMENTS_FILENAME[]	= "TV_measurements";	
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------- Strings corresponding to enum type members used in naming column header names in execution times files ---------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const char OLD_FORMAT_STRING[]		= "OLD_FORMAT";						// String for enum "DATA_FORMATS" member "STANDARD"
+const char VERSION_0_STRING[]		= "VERSION_0";						// String for enum "DATA_FORMATS" member "STANDARD"
+const char VERSION_1_STRING[]		= "VERSION_1";						// String for enum "DATA_FORMATS" member "STANDARD"
+const char EXPERIMENTAL_STRING[]	= "EXPERIMENTAL";					// String for enum "SCAN_TYPES" member "STANDARD"
+const char SIMULATED_G_STRING[]		= "SIMULATED_G";					// String for enum "SCAN_TYPES" member "STANDARD"
+const char SIMULATED_T_STRING[]		= "SIMULATED_T";					// String for enum "SCAN_TYPES" member "STANDARD"
+const char TEXT_STRING[]			= "TEXT";							// String for enum "FILE_TYPES" member "STANDARD"
+const char BINARY_STRING[]			= "BINARY";							// String for enum "FILE_TYPES" member "STANDARD"
+const char DEFAULT_RAND_STRING[]	= "DEFAULT_RAND";					// String for enum "RAND_GENERATORS" member "STANDARD"
+const char MINSTD_RAND_STRING[]		= "MINSTD_RAND";					// String for enum "RAND_GENERATORS" member "STANDARD"
+const char MINSTD_RAND0_STRING[]	= "MINSTD_RAND0";					// String for enum "RAND_GENERATORS" member "STANDARD"
+const char MT19937_STRING[]			= "MT19937";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char MT19937_64_STRING[]		= "MT19937_64";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char RANLUX24_STRING[]		= "RANLUX24";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char RANLUX48_STRING[]		= "RANLUX48";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char KNUTH_B_STRING[]			= "KNUTH_B";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char VOXELS_STRING[]			= "VOXELS";							// String for enum "IMAGE_BASES" member "STANDARD"
+const char BLOBS_STRING[]			= "BLOBS";							// String for enum "IMAGE_BASES" member "STANDARD"
+const char MEANS_STRING[]			= "MEANS";							// String for enum "BIN_ANALYSIS_TYPE" member "STANDARD"
+const char COUNTS_STRING[]			= "COUNTS";							// String for enum "BIN_ANALYSIS_TYPE" member "STANDARD"
+const char MEMBERS_STRING[]			= "MEMBERS";						// String for enum "BIN_ANALYSIS_TYPE" member "STANDARD"
+const char ALL_BINS_STRING[]		= "ALL_BINS";						// String for enum "BIN_ANALYSIS_FOR" member "STANDARD"
+const char SPECIFIC_BINS_STRING[]	= "SPECIFIC_BINS";					// String for enum "BIN_ANALYSIS_FOR" member "STANDARD"
+const char BY_BIN_STRING[]			= "BY_BIN";							// String for enum "BIN_ORGANIZATION" member "STANDARD"
+const char BY_HISTORY_STRING[]		= "BY_HISTORY";						// String for enum "BIN_ORGANIZATION" member "STANDARD"
+const char WEPLS_STRING[]			= "WEPLS";							// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
+const char ANGLES_STRING[]			= "ANGLES";							// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
+const char POSITIONS_STRING[]		= "POSITIONS";						// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
+const char BIN_NUMS_STRING[]		= "BIN_NUMS";						// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
+const char RAM_LAK_STRING[]			= "RAM_LAK";						// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char SHEPP_LOGAN_STRING[]		= "SHEPP_LOGAN";					// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char UNFILTERED_STRING[]		= "UNFILTERED";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char MEDIAN_FILTER_STRING[]	= "MEDIAN";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char AVERAGE_FILTER_STRING[]	= "AVERAGE";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char MED_2_AVG_FILTER_STRING[]= "MED_2_AVG";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char AVG_2_MED_FILTER_STRING[]= "AVG_2_MED";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char NO_FILTER_STRING[]		= "NO_FILTER";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char SC_HULL_STRING[]			= "SC_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
+const char MSC_HULL_STRING[]		= "MSC_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
+const char SM_HULL_STRING[]			= "SM_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
+const char FBP_HULL_STRING[]		= "FBP_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
+const char X_HULL_STRING[]			= "X_HULL";							// String for enum "HULL_TYPES" member "STANDARD"
+const char HULL_STRING[]			= "HULL";							// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char FBP_IMAGE_STRING[]		= "FBP_IMAGE";						// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char HYBRID_STRING[]			= "HYBRID";							// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char ZEROS_STRING[]			= "ZEROS";							// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char IMPORT_STRING[]			= "IMPORT";							// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char FULL_TX_STRING[]			= "FULL_TX";						// String for enum "TX_OPTIONS" member "STANDARD"
+const char PARTIAL_TX_STRING[]		= "PARTIAL_TX";						// String for enum "TX_OPTIONS" member "STANDARD"
+const char PARTIAL_TX_PREALLOCATED_STRING[]= "PARTIAL_TX_PREALLOCATED";	// String for enum "TX_OPTIONS" member "STANDARD"
+const char BOOL_STRING[]			= "BOOL";							// String for enum "ENDPOINTS_ALGORITHMS" member "STANDARD"
+const char YES_BOOL_STRING[]		= "YES_BOOL";						// String for enum "ENDPOINTS_ALGORITHMS" member "STANDARD"
+const char NO_BOOL_STRING[]			= "NO_BOOL";						// String for enum "ENDPOINTS_ALGORITHMS" member "STANDARD"	
+const char STANDARD_STRING[]		= "STANDARD";						// String for enum "MLP_ALGORITHMS" member "STANDARD"
+const char TABULATED_STRING[]		= "TABULATED";						// String for enum "MLP_ALGORITHMS" member "STANDARD"	
+const char ART_STRING[]				= "ART";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char SART_STRING[]			= "SART";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char DROP_STRING[]			= "DROP";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char BIP_STRING[]				= "BIP";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char SAP_STRING[]				= "SAP";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char ROBUSTA_STRING[]			= "ROBUSTA";						// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char ROBUSTB_STRING[]			= "ROBUSTB";						// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char SIGMOID_STRING[]			= "SIGMOID";						// String for enum "S_CURVES" member "STANDARD"
+const char TANH_STRING[]			= "TANH";							// String for enum "S_CURVES" member "STANDARD"
+const char ATAN_STRING[]			= "ATAN";							// String for enum "S_CURVES" member "STANDARD"
+const char ERF_STRING[]				= "ERF";							// String for enum "S_CURVES" member "STANDARD"
+const char LIN_OVER_ROOT_STRING[]	= "LIN_OVER_ROOT";					// String for enum "S_CURVES" member "STANDARD" 
+const char OLS_STRING[]				= "OLS";							// String for enum "ROBUST_METHODS" member "OLS" 
+const char TLS_STRING[]				= "TLS";							// String for enum "ROBUST_METHODS" member "TLS" 
+const char TIKHONOV_STRING[]		= "TIKHONOV";						// String for enum "ROBUST_METHODS" member "STANDARD" 
+const char RIDGE_STRING[]			= "RIDGE";							// String for enum "ROBUST_METHODS" member "RIDGE" 
+const char MINMIN_STRING[]			= "MINMIN";							// String for enum "ROBUST_METHODS" member "MINMIN" 
+const char MINMAX_STRING[]			= "MINMAX";							// String for enum "ROBUST_METHODS" member "MINMAX" 
+const char SQUARE_STRING[]			= "SQUARE";							// String for enum "STRUCTURAL_ELEMENTS" member "SQUARE"  
+const char DISK_STRING[]			= "DISK";							// String for enum "STRUCTURAL_ELEMENTS" member "DISK" 								
+const char EROSION_STRING[]			= "EROSION";						// String for enum "MORPHOLOGICAL_OPS" member "EROSION" 
+const char DILATION_STRING[]		= "DILATION";						// String for enum "MORPHOLOGICAL_OPS" member "DILATION" 
+const char OPENING_STRING[]			= "OPENING";						// String for enum "MORPHOLOGICAL_OPS" member "OPENING" 
+const char CLOSING_STRING[]			= "CLOSING";						// String for enum "MORPHOLOGICAL_OPS" member "CLOSING" 			
+const char OBJECT_L_STRING[]		= "OBJECT_L";						// String for enum "LOG_ENTRIES" member "OBJECT_L"  
+const char SCAN_TYPE_L_STRING[]		= "SCAN_TYPE_L";					// String for enum "LOG_ENTRIES" member "SCAN_TYPE_L"  
+const char RUN_DATE_L_STRING[]		= "RUN_DATE_L";						// String for enum "LOG_ENTRIES" member "RUN_DATE_L"  
+const char RUN_NUMBER_L_STRING[]	= "RUN_NUMBER_L";					// String for enum "LOG_ENTRIES" member "RUN_NUMBER_L" 			
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//---------------------------------------------------------------------------------------- Output filenames ------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const int MAX_ITERATIONS			= 15;										// [#] Max # of feasibility seeking iterations (specifies # of iteration execution time columns needed in execution log)
+#define E_0						13.6											// [MeV/c] empirical constant
+#define X0						36.08											// [cm] radiation length
+#define RSP_AIR					0.00113											// [cm/cm] Approximate RSP of air
+#define BEAM_ENERGY				200												// [MeV] Initial energy of proton beam 
+#define SOURCE_RADIUS			260.7											// [cm] Distance  to source/scatterer 
+
+// Coefficients of 5th order polynomial fit to the term [1 / ( beta^2(u)*p^2(u) )] present in scattering covariance matrices Sigma 1/2 for:
+// 200 MeV protons
+#define A_0						7.457  * pow( (float)10, (float)-6.0  )			// Coefficient of polynomial fit term x^0
+#define A_1						4.548  * pow( (float)10, (float)-7.0  )			// Coefficient of polynomial fit term x^1
+#define A_2						-5.777 * pow( (float)10, (float)-8.0  )			// Coefficient of polynomial fit term x^2
+#define A_3						1.301  * pow( (float)10, (float)-8.0  )			// Coefficient of polynomial fit term x^3
+#define A_4						-9.228 * pow( (float)10, (float)-10.0 )			// Coefficient of polynomial fit term x^4
+#define A_5						2.687  * pow( (float)10, (float)-11.0 )			// Coefficient of polynomial fit term x^5
+
+//// 200 MeV protons
+//#define A_0						202.20574
+//#define A_1						-7.6174839
+//#define A_2						0.9413194
+//#define A_3						-0.1141406
+//#define A_4						0.0055340
+//#define A_5						-0.0000972
+
+// Common fractional values of A_i coefficients appearing in polynomial expansions of MLP calculations, precalculating saves time
+#define A_0_OVER_2				A_0/2 
+#define A_0_OVER_3				A_0/3
+#define A_1_OVER_2				A_1/2
+#define A_1_OVER_3				A_1/3
+#define A_1_OVER_4				A_1/4
+#define A_1_OVER_6				A_1/6
+#define A_1_OVER_12				A_1/12
+#define A_2_OVER_3				A_2/3
+#define A_2_OVER_4				A_2/4
+#define A_2_OVER_5				A_2/5
+#define A_2_OVER_12				A_2/12
+#define A_2_OVER_30				A_2/30
+#define A_3_OVER_4				A_3/4
+#define A_3_OVER_5				A_3/5
+#define A_3_OVER_6				A_3/6
+#define A_3_OVER_20				A_3/20
+#define A_3_OVER_60				A_3/60
+#define A_4_OVER_5				A_4/5
+#define A_4_OVER_6				A_4/6
+#define A_4_OVER_7				A_4/7
+#define A_4_OVER_30				A_4/30
+#define A_4_OVER_105			A_4/105
+#define A_5_OVER_6				A_5/6
+#define A_5_OVER_7				A_5/7
+#define A_5_OVER_8				A_5/8
+#define A_5_OVER_42				A_5/42
+#define A_5_OVER_168			A_5/168
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------- Tabulated data file names --------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+#define TRIG_TABLE_MIN			-2 * PI															// [radians] Minimum angle contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_MAX			4 * PI															// [radians] Maximum angle contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_RANGE		(TRIG_TABLE_MAX - TRIG_TABLE_MIN)								// [radians] Range of angles contained in the sin/cos lookup table used for MLP
+#define TRIG_TABLE_STEP			(0.001 * ANGLE_TO_RADIANS)										// [radians] Step size in radians between elements of sin/cos lookup table used for MLP
+#define TRIG_TABLE_ELEMENTS		static_cast<int>(TRIG_TABLE_RANGE / TRIG_TABLE_STEP + 0.5)		// [#] # of elements contained in the sin/cos lookup table used for MLP
+#define COEFF_TABLE_RANGE		40.0															// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+#define COEFF_TABLE_STEP		0.00005															// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define COEFF_TABLE_SHIFT		static_cast<int>(MLP_U_STEP / COEFF_TABLE_STEP  + 0.5 )			// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define COEFF_TABLE_ELEMENTS	static_cast<int>(COEFF_TABLE_RANGE / COEFF_TABLE_STEP + 0.5 )	// [#] # of elements contained in the polynomial lookup tables used for MLP
+#define POLY_TABLE_RANGE		40.0															// [cm] Range of depths u contained in the polynomial lookup tables used for MLP
+#define POLY_TABLE_STEP			0.00005															// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define POLY_TABLE_SHIFT		static_cast<int>(MLP_U_STEP / POLY_TABLE_STEP  + 0.5 )			// [cm] Step of 1/1000 cm for elements of the polynomial lookup tables used for MLP
+#define POLY_TABLE_ELEMENTS		static_cast<int>(POLY_TABLE_RANGE / POLY_TABLE_STEP + 0.5 )		// [#] # of elements contained in the polynomial lookup tables used for MLP
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------- Memory allocation size for arrays (binning, image) -------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+#define SIZE_BINS_CHAR			( NUM_BINS   * sizeof(char)	 )			// Amount of memory required for a character array used for binning
+#define SIZE_BINS_BOOL			( NUM_BINS   * sizeof(bool)	 )			// Amount of memory required for a boolean array used for binning
+#define SIZE_BINS_INT			( NUM_BINS   * sizeof(int)	 )			// Amount of memory required for a integer array used for binning
+#define SIZE_BINS_UINT			( NUM_BINS   * sizeof(unsigned int)	 )	// Amount of memory required for a integer array used for binning
+#define SIZE_BINS_FLOAT			( NUM_BINS	 * sizeof(float) )			// Amount of memory required for a floating point array used for binning
+#define SIZE_IMAGE_CHAR			( NUM_VOXELS * sizeof(char)	 )			// Amount of memory required for a character array used for binning
+#define SIZE_IMAGE_BOOL			( NUM_VOXELS * sizeof(bool)	 )			// Amount of memory required for a boolean array used for binning
+#define SIZE_IMAGE_INT			( NUM_VOXELS * sizeof(int)	 )			// Amount of memory required for a integer array used for binning
+#define SIZE_IMAGE_UINT			( NUM_VOXELS * sizeof(unsigned int)	 )	// Amount of memory required for a integer array used for binning
+#define SIZE_IMAGE_FLOAT		( NUM_VOXELS * sizeof(float) )			// Amount of memory required for a floating point array used for binning
+#define SIZE_IMAGE_DOUBLE		( NUM_VOXELS * sizeof(double) )			// Amount of memory required for a floating point array used for binning
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//------------------------------------------------------------------------------------ Precalculated Constants ---------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+
+#define BYTES_PER_HISTORY		48										// [bytes] Data size of each history, 44 for actual data and 4 empty bytes, for old data format (OLD_VERSION)
+#define PHI						((1 + sqrt(5.0) ) / 2)					// [#] Positive golden ratio, positive solution of PHI^2-PHI-1 = 0; also PHI = a/b when a/b = (a + b) / a 
+#define PHI_NEGATIVE			((1 - sqrt(5.0) ) / 2)					// [#] Negative golden ratio, negative solution of PHI^2-PHI-1 = 0; 
+#define PI_OVER_4				( atan( 1.0 ) )							// [radians] 1*pi/4 radians =   pi/4 radians = 45 degrees
+#define PI_OVER_2				( 2 * atan( 1.0 ) )						// [radians] 2*pi/4 radians =   pi/2 radians = 90 degrees
+#define THREE_PI_OVER_4			( 3 * atan( 1.0 ) )						// [radians] 3*pi/4 radians = 3*pi/4 radians = 135 degrees
+#define PI						( 4 * atan( 1.0 ) )						// [radians] 4*pi/4 radians =   pi   radians = 180 degrees
+#define FIVE_PI_OVER_4			( 5 * atan( 1.0 ) )						// [radians] 5*pi/4 radians = 5*pi/4 radians = 225 degrees
+#define SIX_PI_OVER_4			( 5 * atan( 1.0 ) )						// [radians] 6*pi/4 radians = 3*pi/2 radians = 270 degrees
+#define SEVEN_PI_OVER_4			( 7 * atan( 1.0 ) )						// [radians] 7*pi/4 radians = 7*pi/4 radians = 315 degrees
+#define TWO_PI					( 8 * atan( 1.0 ) )						// [radians] 8*pi/4 radians = 2*pi   radians = 360 degrees = 0 degrees
+#define ROOT_PI_OVER_TWO		(sqrt(PI)/2)							// [#] Square root of pi divided by 2
+#define PI_OVER_TWO				(PI/2)									// [#] Square root of pi divided by 2
+#define TWO_OVER_PI				(2/PI)									// [#] Square root of pi divided by 2
+#define ANGLE_TO_RADIANS		( PI/180.0 )							// [radians/degree] Multiplicative factor used to convert from angle to radians
+#define RADIANS_TO_ANGLE		( 180.0/PI )							// [degrees/radian] Multiplicative factor used to convert from radians to angle
+#define ROOT_TWO				sqrtf(2.0)								// [#] 2^(1/2) = square root of 2 
+#define MM_TO_CM				0.1										// [cm/mm] Multiplicative factor used to convert from mm to cm: 10 [mm] = 1 [cm] => 1 [mm] = 0.1 [cm]
+#define CM_TO_MM				10.0									// [mm/cm] Multiplicative factor used to convert from cm to mm: 1 [cm] = 10 [mm]
+#define VOXEL_ALLOWANCE			1.0e-7									// [cm] Distance from a voxel edge a point must come within before considered to be on the edge
+#define RIGHT					1										// [#] Specifies that moving right corresponds with an increase in x position, used in voxel walk 
+#define LEFT					-1										// [#] Specifies that moving left corresponds with a decrease in x position, used in voxel walk 
+#define UP						1										// [#] Specifies that moving up corresponds with an increase in y/z position, used in voxel walk 
+#define DOWN					-1										// [#] Specifies that moving down corresponds with a decrease in y/z position, used in voxel walk 
+#define CONSOLE_WINDOW_WIDTH	80										// [#] Specifies character width of stdout console window
+#define MAJOR_SECTION_SEPARATOR	'*'										// [character] Specifies character to use in major section separator
+#define MINOR_SECTION_SEPARATOR	'-'										// [character] Specifies character to use in minor section separator
+#define SECTION_EXIT_STRING		"======>"								// [string] String prefix of task completion console text notifications using section_exit function
+#define DARK					0										// [#] Integer encoding of 'dark' text color shading option used in printing colored text to stdout (console window)
+#define LIGHT					1										// [#] Integer encoding of 'light' text color shading option used in printing colored text to stdout (console window) 	
+#define BLACK					30										// [#] Integer encoding of 'black' text color used in printing colored text to stdout (console window)
+#define RED						31										// [#] Integer encoding of 'red' text color used in printing colored text to stdout (console window)
+#define GREEN					32										// [#] Integer encoding of 'green' text color used in printing colored text to stdout (console window)
+#define BROWN					33										// [#] Integer encoding of 'brown' text color used in printing colored text to stdout (console window)
+#define BLUE					34										// [#] Integer encoding of 'blue' text color used in printing colored text to stdout (console window)
+#define PURPLE					35										// [#] Integer encoding of 'purple' text color used in printing colored text to stdout (console window)
+#define CYAN					36										// [#] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
+#define BLACK_TEXT				"0;30"									// [string] Integer encoding of 'black' text color used in printing colored text to stdout (console window)
+#define GRAY_TEXT				"1;30"									// [string] Integer encoding of 'black' text color used in printing colored text to stdout (console window)
+#define RED_TEXT				"0;31"									// [string] Integer encoding of 'red' text color used in printing colored text to stdout (console window)
+#define LIGHT_RED_TEXT			"1;31"									// [string] Integer encoding of 'red' text color used in printing colored text to stdout (console window)
+#define GREEN_TEXT				"0;32"									// [string] Integer encoding of 'green' text color used in printing colored text to stdout (console window)
+#define LIGHT_GREEN_TEXT		"1;32"									// [string] Integer encoding of 'green' text color used in printing colored text to stdout (console window)
+#define BROWN_TEXT				"0;33"									// [string] Integer encoding of 'brown' text color used in printing colored text to stdout (console window)
+#define YELLOW_TEXT				"1;33"									// [string] Integer encoding of 'brown' text color used in printing colored text to stdout (console window)
+#define BLUE_TEXT				"0;34"									// [string] Integer encoding of 'blue' text color used in printing colored text to stdout (console window)
+#define LIGHT_BLUE_TEXT			"1;34"									// [string] Integer encoding of 'blue' text color used in printing colored text to stdout (console window)
+#define PURPLE_TEXT				"0;35"									// [string] Integer encoding of 'purple' text color used in printing colored text to stdout (console window)
+#define LIGHT_PURPLE_TEXT		"1;35"									// [string] Integer encoding of 'purple' text color used in printing colored text to stdout (console window)
+#define CYAN_TEXT				"0;36"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
+#define LIGHT_CYAN_TEXT			"1;36"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
+#define LIGHT_GRAY_TEXT			"0;37"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
+#define WHITE_TEXT				"1;37"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
+#define GRAY_BACKGROUND			"5;40"									// [string] Integer encoding of 'black' text color used in printing colored text to stdout (console window)
+#define BLACK_BACKGROUND		"6;40"									// [string] Integer encoding of 'black' text color used in printing colored text to stdout (console window)
+#define LIGHT_RED_BACKGROUND	"5;41"									// [string] Integer encoding of 'red' text color used in printing colored text to stdout (console window)
+#define RED_BACKGROUND			"6;41"									// [string] Integer encoding of 'red' text color used in printing colored text to stdout (console window)
+#define LIGHT_GREEN_BACKGROUND	"5;42"									// [string] Integer encoding of 'green' text color used in printing colored text to stdout (console window)
+#define GREEN_BACKGROUND		"6;42"									// [string] Integer encoding of 'green' text color used in printing colored text to stdout (console window)
+#define BROWN_BACKGROUND		"5;43"									// [string] Integer encoding of 'brown' text color used in printing colored text to stdout (console window)
+#define YELLOW_BACKGROUND		"6;43"									// [string] Integer encoding of 'brown' text color used in printing colored text to stdout (console window)
+#define LIGHT_BLUE_BACKGROUND	"5;44"									// [string] Integer encoding of 'blue' text color used in printing colored text to stdout (console window)
+#define BLUE_BACKGROUND			"6;44"									// [string] Integer encoding of 'blue' text color used in printing colored text to stdout (console window)
+#define LIGHT_PURPLE_BACKGROUND	"5;45"									// [string] Integer encoding of 'purple' text color used in printing colored text to stdout (console window)
+#define PURPLE_BACKGROUND		"6;45"									// [string] Integer encoding of 'purple' text color used in printing colored text to stdout (console window)
+#define LIGHT_CYAN_BACKGROUND	"5;46"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
+#define CYAN_BACKGROUND			"6;46"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
+#define WHITE_BACKGROUND		"5;47"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
+#define LIGHT_GRAY_BACKGROUND	"6;47"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
+#define UNDERLINE_TEXT			";4"									// [string] Integer encoding specifying text be underlined when printing colored text to stdout (console window)
+#define DONT_UNDERLINE_TEXT		""										// [string] Empty encoding specifying text NOT be underlined when printing colored text to stdout (console window)
+#define OPEN_COLOR_ESCAPE_SEQ	"\033["								// [string] Escape sequence setting removing color from subsequent console output text
+#define CLOSE_COLOR_ESCAPE_SEQ	"\033[m"								// [string] Escape sequence setting removing color from subsequent console output text
+#define NOCOLOR					"\033[0m"								// [string] Escape sequence setting removing color from subsequent console output text
+//#define BLACK					"\033[0;30m"							// [string] Escape sequence setting the color of subsequent console output text to black
+#define DARKGRAY				"\033[1;30m"							// [string] Escape sequence setting the color of subsequent console output text to dark gray
+//#define RED					"\033[0;31m"							// [string] Escape sequence setting the color of subsequent console output text to red
+#define LIGHTRED				"\033[1;31m"							// [string] Escape sequence setting the color of subsequent console output text to light red
+//#define GREEN					"\033[0;32m"							// [string] Escape sequence setting the color of subsequent console output text to green
+#define LIGHTGREEN				"\033[1;32m"							// [string] Escape sequence setting the color of subsequent console output text to light green
+//#define BROWN					"\033[1;33m"							// [string] Escape sequence setting the color of subsequent console output text to brown
+//#define YELLOW				"\033[0;33m"							// [string] Escape sequence setting the color of subsequent console output text to yellow
+//#define BLUE					"\033[0;34m"							// [string] Escape sequence setting the color of subsequent console output text to blue
+#define LIGHTBLUE				"\033[1;34m"							// [string] Escape sequence setting the color of subsequent console output text to light blue
+//#define PURPLE				"\033[0;35m"							// [string] Escape sequence setting the color of subsequent console output text to purple
+#define LIGHTPURPLE				"\033[1;35m"							// [string] Escape sequence setting the color of subsequent console output text to light purple
+//#define CYAN					"\033[0;36m"							// [string] Escape sequence setting the color of subsequent console output text to cyan
+#define LIGHTCYAN				"\033[1;36m"							// [string] Escape sequence setting the color of subsequent console output text to light cyan
+#define LIGHTGRAY				"\033[0;37m"							// [string] Escape sequence setting the color of subsequent console output text to light gray
+//#define WHITE					"\033[1;37m"							// [string] Escape sequence setting the color of subsequent console output text to white
+#define X_INCREASING_DIRECTION	RIGHT									// [#] specifies direction (LEFT/RIGHT) along x-axis in which voxel #s increase
+#define Y_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along y-axis in which voxel #s increase
+#define Z_INCREASING_DIRECTION	DOWN									// [#] specifies direction (UP/DOWN) along z-axis in which voxel #s increase
+#define X_ZERO_COORDINATE		-RECON_CYL_RADIUS						// [cm] x-coordinate corresponding to front edge of 1st voxel (i.e. column) in image space
+#define Y_ZERO_COORDINATE		RECON_CYL_RADIUS						// [cm] y-coordinate corresponding to front edge of 1st voxel (i.e. row) in image space
+#define Z_ZERO_COORDINATE		RECON_CYL_HEIGHT/2						// [cm] z-coordinate corresponding to front edge of 1st voxel (i.e. slice) in image space
+#define PRINT_TV				true									// [bool] Print total variation measurement
+#define DONT_PRINT_TV			false									// [bool] Dont print total variation measurement
+#define CHAR_ID_CHAR			'c'
+#define BOOL_ID_CHAR			'b'
+#define INT_ID_CHAR				'i'
+#define UINT_ID_CHAR			'j'
+#define STRING_ID_CHAR			's'
+#define FLOAT_ID_CHAR			'f'
+#define DOUBLE_ID_CHAR			'd'
+#define BOOL_FORMAT				"%d"									// [string] Specifies format to use for writing/printing boolean data using {s/sn/f/v/vn}printf statements
+#define CHAR_FORMAT				"%c"									// [string] Specifies format to use for writing/printing character data using {s/sn/f/v/vn}printf statements
+#define INT_FORMAT				"%d"									// [string] Specifies format to use for writing/printing integer data using {s/sn/f/v/vn}printf statements
+#define FLOAT_FORMAT			"%6.6lf"								// [string] Specifies format to use for writing/printing floating point data using {s/sn/f/v/vn}printf statements
+#define STRING_FORMAT			"%s"									// [string] Specifies format to use for writing/printing strings data using {s/sn/f/v/vn}printf statements
+#define GIT_COMMIT_DATE_STRING_LENGTH		30
+#define print_type_name(var) ( std::cout << type_name(var) << endl )
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
-/****************************************************************************************** Global Variables *****************************************************************************************/
+/********************************************************************************* Preprocessing Array Declerations **********************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------- Main function argument and generic reusable variables ----------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 unsigned int num_run_arguments;
 char** run_arguments;
-char print_statement[256];
+char print_statement[1024];
+char system_command[512];
+char bash_command[512];
+//char color_command[512];
+int num_voxel_scales;
+double* voxel_scales;
+float TV_x_final;
+std::vector<float> TV_x_values;
+std::map<std::string,unsigned int> switchmap;
 cudaError_t cudaStatus;	
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-// CTP_404
-// 20367505: 32955315 -> 32955313									// No average filtering on hull
-// 20367499: 32955306 ->32955301									// No average filtering on hull
-// 20573129: 5143282->5143291										// r=1
-// 20648251: 33409572->33409567										// r=2
-// 20648257: 33409582 -> 33409577/33409603//5162071;				// r=2
-// 20764061: 33596956->33596939/33596977							// r=3 
 
-// CTP_404M
-// 20153778: 5038452-> 5038457										// r=1
-//ULL NUM_RECON_HISTORIES = 20574733
-ULL NUM_RECON_HISTORIES =105642524;
-ULL PRIME_OFFSET = 26410633;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//-------------------------------------------------- Declaration of arrays number of histories per file, projection, angle, total, and translation ---------------------------------------------------/
+//--------------------------------------------------------- Declaration of character arrays for path variables assigned at execution time ------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+char CURRENT_DATA_DIR[256];
+char CURRENT_RECON_DIR[256];
+char CURRENT_CODE_PARENT[256];
+char CURRENT_RCODE_PARENT[256];
+char CURRENT_COMPUTE_NODE[32];
+char CURRENT_COMPUTE_NODE_ALIAS[32];	
+
+char USERNAME[32];
+char USE_TARDIS_USERNAME[32];	
+char USE_KODIAK_USERNAME[32];	
+char USE_BAYLOR_USERNAME[32];	
+char USE_HOME_DIR_USERNAME[32];	
+char USE_CODE_OWNER_NAME[32];	
+char USE_RCODE_OWNER_NAME[32];	
+char COMMON_ORG_DATA_SUBDIRECTORY[256];
+char COMMON_RECON_DATA_SUBDIRECTORY[256];
+char COMMON_RCODE_SUBDIRECTORY[256];
+char COMMON_GIT_CODE_SUBDIRECTORY[256];
+char EXECUTED_CODE_DIR[256];
+char LOCAL_OUTPUT_CODE_DIR[256];
+char GLOBAL_OUTPUT_CODE_DIR[256];
+
+char PCT_DATA_DIR_SET[256];
+char PCT_ORG_DATA_DIR_SET[256];
+char PCT_RECON_DIR_SET[256];
+char PCT_CODE_PARENT_SET[256];
+char PCT_RCODE_PARENT_SET[256];
+char PCT_GIT_RCODE_PARENT_SET[256];
+char TARDIS_DATA_DIR_SET[256];
+char TARDIS_ORG_DATA_DIR_SET[256];
+char TARDIS_RECON_DIR_SET[256];
+char TARDIS_CODE_PARENT_SET[256];
+char TARDIS_RCODE_PARENT_SET[256];
+char TARDIS_GIT_RCODE_PARENT_SET[256];
+char SHARED_HOME_DIR_SET[256];
+char SHARED_DATA_DIR_SET[256];
+char SHARED_ORG_DATA_DIR_SET[256];
+char SHARED_RECON_DIR_SET[256];
+char SHARED_CODE_PARENT_SET[256];
+char SHARED_RCODE_PARENT_SET[256];
+char SHARED_GIT_RCODE_PARENT_SET[256];
+char MY_HOME_DIR_SET[256];
+char MY_DATA_DIR_SET[256];
+char MY_ORG_DATA_DIR_SET[256];
+char MY_RECON_DIR_SET[256];
+char MY_CODE_PARENT_SET[256];
+char MY_RCODE_PARENT_SET[256];
+char MY_GIT_RCODE_PARENT_SET[256];
+char WS2_CODE_PARENT_SET[256];
+char WS2_RECON_DIR_SET[256];
+char MYLAPTOP_RECON_DIR_SET[256];
+char MYLAPTOP_ORG_DATA_DIR_SET[256];
+
+char GIT_COMMIT_HASH_STRING[128];
+char GIT_BRANCH_INFO_STRING[128];
+char GIT_REPO_PATH[256];
+char GIT_BRANCH_NAME[256];
+char GIT_COMMIT_HASH[256];
+char GIT_COMMIT_DATE[256];
+char GIT_LOG_INFO[256];
+char GIT_REPO_INFO[256];
+
+
+char LOCAL_INPUT_DATA_PATH[256];
+char LOCAL_OUTPUT_DATA_PATH[256];
+char GLOBAL_INPUT_DATA_PATH[256];
+char GLOBAL_OUTPUT_DATA_PATH[256];
+//char GLOBAL_OUTPUT_FOLDER_DESTINATION[256];
+char INPUT_DIRECTORY_SET[256];
+char OUTPUT_DIRECTORY_SET[256];
+char INPUT_FOLDER_SET[256];
+char OUTPUT_FOLDER_SET[256];
+
+
+char EXECUTED_INCLUDE_CODE_PATH[256];
+char EXECUTED_SRC_CODE_PATH[256];
+char LOCAL_OUTPUT_INCLUDE_CODE_PATH[256];
+char GLOBAL_OUTPUT_INCLUDE_CODE_PATH[256];
+char LOCAL_OUTPUT_SRC_CODE_PATH[256];
+char GLOBAL_OUTPUT_SRC_CODE_PATH[256];
+char GLOBAL_EXECUTION_LOG_PATH[256];
+char LOCAL_EXECUTION_LOG_PATH[256];
+char LOCAL_EXECUTION_INFO_PATH[256];
+char GLOBAL_EXECUTION_INFO_PATH[512];
+char LOCAL_TV_MEASUREMENTS_PATH[256];
+char GLOBAL_TV_MEASUREMENTS_PATH[256];
+std::vector<std::string> OUTPUT_FILE_LIST;
+std::vector<std::string> IMAGE_LIST;
+std::vector<std::string> LOCAL_DATA_FILE_LIST;
+std::vector<std::string> GLOBAL_DATA_FILE_LIST;
+
+char* CONFIG_DIRECTORY;
+char IMPORT_FBP_PATH[256];
+char INPUT_ITERATE_PATH[256];
+char OUTPUT_FOLDER_UNIQUE[256];
+char KODIAK_OUTPUT_PATH[256];
+char WS2_OUTPUT_PATH[256];
+char WHARTNELL_OUTPUT_PATH[256];
+char EXECUTION_DATE[9];
+char EXECUTION_YY_MM_DD[9];
+char EXECUTION_TIME_GMT[9];
+char EXECUTION_TIME_LOCAL[9];
+char EXECUTION_DATE_TIME[128];
+char KODIAK_SSH_LOGIN[64];												// ssh command addressing username@server for Kodiak e.g. "schultze@kodiak.baylor.edu:"
+char WHARTNELL_SSH_LOGIN[64];											// ssh command addressing username@server for WHartnell e.g. "schultze@kodiak:"
+char PTROUGHTON_SSH_LOGIN[64];											// ssh command addressing username@server for PTRoughton e.g. "schultze@ptroughton:"
+char JPERTWEE_SSH_LOGIN[64];											// ssh command addressing username@server for JPertwee e.g. "schultze@jpertwee:"
+char TBAKER_SSH_LOGIN[64];												// ssh command addressing username@server for TBaker e.g. "schultze@tbaker:"
+char PDAVISON_SSH_LOGIN[64];											// ssh command addressing username@server for PDavison e.g. "schultze@pdavison:"
+char WS1_SSH_LOGIN[64];											// ssh command addressing username@server for PDavison e.g. "schultze@pdavison:"
+char WS2_SSH_LOGIN[64];											// ssh command addressing username@server for PDavison e.g. "schultze@pdavison:"
+//char GLOBAL_RESULTS_PATH[]				= {"C://Users//Blake//Documents//Visual Studio 2010//Projects//pCT_Reconstruction_R01//pCT_Reconstruction_R01"};
+//char GLOBAL_RESULTS_PATH[]				= {"//home//share//reconstruction_data"};
+//char GLOBAL_RESULTS_PATH[]				= {"//local//reconstruction_data"};
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------- Variables assigned values at runtime ----------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+// Used in reading data from disk
+unsigned int PHANTOM_NAME_SIZE;
+unsigned int DATA_SOURCE_SIZE;
+unsigned int PREPARED_BY_SIZE;
+unsigned int SKIP_2_DATA_SIZE;
+unsigned int VERSION_ID;
+unsigned int PROJECTION_INTERVAL;
+
+// Character arrays used to write whether the corresponding optional procedures are ON/OFF to execution logs
+char SAMPLE_STD_DEV_STRING[8];
+char FBP_FILTER_STRING[32];
+char HULL_FILTER_STRING[32];
+char X_0_FILTER_STRING[32];
+char AVG_FILTER_FBP_STRING[8];
+char AVG_FILTER_HULL_STRING[8];
+char AVG_FILTER_X_0_STRING[8];
+char MEDIAN_FILTER_FBP_STRING[8];
+char MEDIAN_FILTER_HULL_STRING[8];
+char MEDIAN_FILTER_X_0_STRING[8];
+char IGNORE_SHORT_MLP_STRING[8];
+char BOUND_IMAGE_STRING[8];
+char S_CURVE_ON_STRING[8];	
+char DUAL_SIDED_S_CURVE_STRING[8];	
+char TVS_ON_STRING[8];	
+char TVS_FIRST_STRING[8];	
+char TVS_PARALLEL_STRING[8];	
+char TVS_CONDITIONED_STRING[8];	
+
+// Character arrays used to write enum variable options selected to execution logs
+char SCAN_TYPE_STRING[32];
+char SINOGRAM_FILTER_STRING[32];
+char ENDPOINTS_HULL_STRING[32];
+char ENDPOINTS_ALG_STRING[32];
+char ENDPOINTS_TX_MODE_STRING[32];
+char MLP_ALGORITHM_STRING[32];
+char X_0_STRING[32];
+char PROJECTION_ALGORITHM_STRING[32];
+char RECON_TX_MODE_STRING[32];
+char ROBUST_METHOD_STRING[32];
+char S_CURVE_STRING[32];
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------- Execution timing variables -------------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+clock_t program_start, program_end, pause_cycles = 0;
+clock_t begin_endpoints = 0, begin_init_image = 0, begin_tables = 0, begin_DROP_iteration = 0, begin_DROP = 0, begin_TVS_iteration = 0, begin_TVS = 0, begin_update_calcs = 0, begin_update_image = 0, begin_data_reads = 0, begin_preprocessing = 0, begin_reconstruction = 0, begin_program = 0, begin_data_tx = 0;
+double execution_time_endpoints = 0, execution_time_init_image = 0, execution_time_DROP_iteration = 0, execution_time_TVS_iteration = 0, execution_time_DROP = 0, execution_time_TVS = 0, execution_time_update_calcs = 0, execution_time_update_image = 0, execution_time_tables = 0;
+double execution_time_data_reads = 0, execution_time_preprocessing = 0, execution_time_reconstruction = 0, execution_time_program = 0,  execution_time_data_tx = 0; 
+std::vector<double> execution_times_DROP_iterations;
+std::vector<double> execution_times_TVS_iterations;
+FILE* execution_log_file;
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//-------------------------------------------------------- Declaration of variables/arrays used to record information related to # of histories ------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 int total_histories = 0, recon_vol_histories = 0, maximum_histories_per_file = 0;
 int* histories_per_projection, * histories_per_gantry_angle, * histories_per_file;
@@ -634,35 +1082,16 @@ int* recon_vol_histories_per_projection;
 int histories_per_scan[NUM_SCANS];
 int post_cut_histories = 0;
 int reconstruction_histories = 0;
-int zero_WEPL = 0;
-int zero_WEPL_files = 0;
+
 double percentage_pass_each_intersection_cut, percentage_pass_intersection_cuts, percentage_pass_statistical_cuts, percentage_pass_hull_cuts;
-ULL* history_sequence;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------- Declaration of array used to store tracking plane distances from rotation axis -----------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 std::vector<float> projection_angles;
 float SSD_u_Positions[8];
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------- Execution timing variables -------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-clock_t program_start, program_end, pause_cycles = 0;
-clock_t begin_endpoints = 0, begin_init_image = 0, begin_tables = 0, begin_DROP_iteration = 0, begin_DROP = 0, begin_update_calcs = 0, begin_update_image = 0, begin_data_reads = 0, begin_preprocessing = 0, begin_reconstruction = 0, begin_program = 0;
-double execution_time_endpoints = 0, execution_time_init_image = 0, execution_time_DROP_iteration = 0, execution_time_DROP = 0, execution_time_update_calcs = 0, execution_time_update_image = 0, execution_time_tables = 0;
-double execution_time_data_reads = 0, execution_time_preprocessing = 0, execution_time_reconstruction = 0, execution_time_program = 0; 
-std::vector<double> execution_times_DROP_iterations;
-FILE* execution_times_file;
-/*****************************************************************************************************************************************************************************************************/
-/*****************************************************************************************************************************************************************************************************/
-/************************************************************************************ Global Array Declerations **************************************************************************************/
-/*****************************************************************************************************************************************************************************************************/
-/*****************************************************************************************************************************************************************************************************/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------- Declaration of image arrays for use on host(_h) or device (_d) -------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-FILE* sin_table_file, * cos_table_file, * scattering_table_file, * poly_1_2_file, * poly_2_3_file, * poly_3_4_file, * poly_2_6_file, * poly_3_12_file;
-double* sin_table_h, * cos_table_h, * scattering_table_h, * poly_1_2_h, * poly_2_3_h, * poly_3_4_h, * poly_2_6_h, * poly_3_12_h;
-double* sin_table_d, * cos_table_d, * scattering_table_d, * poly_1_2_d, * poly_2_3_d, * poly_3_4_d, * poly_2_6_d, * poly_3_12_d;
+float* ut_entry_angle, * uv_entry_angle, * ut_exit_angle, * uv_exit_angle; 
+int zero_WEPL = 0;
+int zero_WEPL_files = 0;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------ Declaration of arrays for storage of input data for use on the host (_h) --------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -698,7 +1127,6 @@ int* voxel_x_d, voxel_y_d, voxel_z_d;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------- Declaration of statistical analysis arrays for use on host(_h) or device (_d) ------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-float* ut_entry_angle, * uv_entry_angle, * ut_exit_angle, * uv_exit_angle; 
 float* mean_WEPL_h, * mean_WEPL_d;
 float* mean_energy_h, * mean_energy_d;
 float* mean_rel_ut_angle_h, * mean_rel_ut_angle_d;
@@ -708,7 +1136,7 @@ float* stddev_rel_ut_angle_h, * stddev_rel_ut_angle_d;
 float* stddev_rel_uv_angle_h, * stddev_rel_uv_angle_d;
 float* stddev_WEPL_h, * stddev_WEPL_d;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------- Declaration of pre/post filter sinogram for FBP for use on host(_h) or device (_d) ---------------------------------------------------------/
+//--------------------------------------------------------------------- Declaration of host(_h) and device (_d) image arrays -------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 float* sinogram_h, * sinogram_d;
 float* sinogram_filtered_h, * sinogram_filtered_d;
@@ -717,6 +1145,8 @@ bool* MSC_hull_h, * MSC_hull_d;
 bool* SM_hull_h, * SM_hull_d;
 bool* FBP_hull_h, * FBP_hull_d;
 bool* hull_h, * hull_d;
+uint* hull_voxels_h, * hull_voxels_d;
+std::vector<uint> hull_voxels_vector;
 int* MSC_counts_h, * MSC_counts_d;
 int* SM_counts_h, * SM_counts_d;
 int* MLP_test_image_h, * MLP_test_image_d;
@@ -724,22 +1154,36 @@ float* FBP_image_h, * FBP_image_d;
 float* FBP_image_filtered_h, * FBP_image_filtered_d;
 float* FBP_median_filtered_h, * FBP_median_filtered_d;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//------------------------------------------------------------------ Declaration of DROP arrays for use on host(_h) or device (_d) -------------------------------------------------------------------/
+//------------------------------------------------------- Declaration of host(_h) and device (_d) arrays used for MLP and reconstruction -------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-bool* traversed_hull_h, * traversed_hull_d;													// Indicates whether the protons entered and exited (traversed) the object hull and should be used in image reconstruction
-float* x_h, * x_d;																			// The target image x containing RSP values for each voxel in the object and 0 for each voxel outside the object																// 
-float* x_update_h, * x_update_d;															// Update value calculated each iteration which is then applied to the image x
-unsigned int* S_h, * S_d;																	// Counts of how many times each voxel was intersected by a proton in the current DROP block
-unsigned int* MLP_h, * MLP_d;																// Voxels intersected along the MLP path of the current proton
-unsigned int* MLP_block_h, * MLP_block_d;													// Voxels intersected along the MLP paths of protons in the current DROP block
-float* A_ij_h, * A_ij_d;																	// Chord length of the intersection of proton i with voxel j, i.e., the ith row and jth column of A = A(i,j)
-double* norm_Ai;																			// L2 norm of row i of A matrix, i.e., Ai 
-
+bool* intersected_hull_h, * intersected_hull_d;
+ULL* history_sequence;
+unsigned int* num_voxel_intersections_h, * num_voxel_intersections_d;
+unsigned int* S_h, * S_d;
+unsigned int* block_voxels_h, *block_voxels_d;
+unsigned int* block_counts_h, * block_counts_d;
+double* x_update_h;
+float* x_update_d;
+double* norm_Ai;
+float* x_h, * x_d;
+float* x_before_TVS_h, * x_before_TVS_d;
+float* x_TVS_h, * x_TVS_d;
+unsigned int* global_a_i;
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//-------------------------------------------------- Declaration of host(_h) and device (_d) arrays used in total variation superiorization (TVS) ----------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+int TVS_ETA_SEQUENCE_LENGTH;
 float* G_x_h, * G_y_h, * G_norm_h, * G_h, * v_h, * y_h;
 float* G_x_d, * G_y_d, * G_norm_d, * G_d, * v_d, * y_d;
-float BETA = 1.0;
 float* TV_x_h, * TV_y_h;
 float* TV_x_d, * TV_y_d;
+float* TVS_eta_sequence_h, * TVS_eta_sequence_d;
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//----------------------------------------------------------------- Declaration of image arrays for use on host(_h) or device (_d) -------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+FILE* sin_table_file, * cos_table_file, * scattering_table_file, * poly_1_2_file, * poly_2_3_file, * poly_3_4_file, * poly_2_6_file, * poly_3_12_file;
+double* sin_table_h, * cos_table_h, * scattering_table_h, * poly_1_2_h, * poly_2_3_h, * poly_3_4_h, * poly_2_6_h, * poly_3_12_h;
+double* sin_table_d, * cos_table_d, * scattering_table_d, * poly_1_2_d, * poly_2_3_d, * poly_3_4_d, * poly_2_6_d, * poly_3_12_d;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------- Declaration of vectors used to accumulate data from histories that have passed currently applied cuts ------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -756,10 +1200,10 @@ std::vector<float>	xy_entry_angle_vector;
 std::vector<float>	xz_entry_angle_vector;	
 std::vector<float>	xy_exit_angle_vector;	
 std::vector<float>	xz_exit_angle_vector;	
-std::vector<UINT>	first_MLP_voxel_vector;
-std::vector<int>	voxel_x_vector;
-std::vector<int>	voxel_y_vector;
-std::vector<int>	voxel_z_vector;
+std::vector<unsigned int> first_MLP_voxel_vector;
+std::vector<int> voxel_x_vector;
+std::vector<int> voxel_y_vector;
+std::vector<int> voxel_z_vector;
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /*********************************************************************************** End of Parameter Definitions ************************************************************************************/

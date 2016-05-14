@@ -11,8 +11,8 @@ echo "Run Date = ${run_date}"												# Print run date to terminal window
 ######################################################################################################################################
 ######################## Determine path to pCT data directory (parent directory of projection_data directory) ########################
 ######################################################################################################################################
-#data_directory="projection_data"											# Name of directory where all projection data is stored
-data_directory="raw_data"													# Name of directory where all raw data is stored
+data_directory="projection_data"											# Name of directory where all projection data is stored
+#data_directory="raw_data"													# Name of directory where all raw data is stored
 pCT_path=${data_path%%${data_directory}*}									# Extract pCT data path from projection data path
 echo "Path to pCT data directory = ${pCT_path}"								# Print path to pCT data directory to terminal window
 ######################################################################################################################################
@@ -55,11 +55,12 @@ for ((angle=0; angle<360; angle+=$angle_interval)); do						# For each angle in 
 			elif [[ $objectID == "Rod" ]]; then object_name="Rod"
 			elif [[ $objectID == "Water" ]]; then object_name="Water"	
 			elif [[ $objectID == "Sensitom" ]]; then object_name="CTP404_Sensitom"
+			elif [[ $objectID == "LinePair" ]]; then object_name="CTP528_Linepair"
 			elif [[ $objectID == "LowCon" ]]; then object_name="CTP515_Low_Contrast"
 			elif [[ $objectID == "Dose16" ]]; then object_name="CTP554_Dose"
-			elif [[ $objectID == "CIRSPHP0" ]]; then object_name="CTP404_PedHead_0"
-			elif [[ $objectID == "CIRSPHP1" ]]; then object_name="CTP404_PedHead_1"
-			elif [[ $objectID == "LMUDECT" ]]; then object_name="CTP404_LMU_DECT"
+			elif [[ $objectID == "CIRS_PHP_0" ]]; then object_name="HN715_PedHead_0"
+			elif [[ $objectID == "CIRS_PHP_1" ]]; then object_name="HN715_PedHead_1"
+			elif [[ $objectID == "LMUDECT" ]]; then object_name="LMU_DECT"
 			elif [[ $objectID == "CIRSEdge" ]]; then object_name="CIRS_Edge"
 			else error_flag="true"
 			fi

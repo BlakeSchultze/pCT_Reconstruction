@@ -1,0 +1,7 @@
+Configuration Properties->VC++ Directories
+1) C:\root\bin;
+2) C:\root\include;$(ROOTSYS)\include;
+4) C:\root\lib\;$(ROOTSYS)\lib;
+
+Linker->Input->Additional Dependencies
+C:\root\lib\libASImage.lib;C:\root\lib\libASImageGui.lib;C:\root\lib\libCint.lib;C:\root\lib\libCore.lib;C:\root\lib\libMathCore.lib;C:\root\lib\libEG.lib;C:\root\lib\libEGPythia6.lib;C:\root\lib\libGed.lib;C:\root\lib\libGeom.lib;C:\root\lib\libGeomPainter.lib;C:\root\lib\libGpad.lib;C:\root\lib\libGraf.lib;C:\root\lib\libGraf3d.lib;C:\root\lib\libGui.lib;C:\root\lib\libHist.lib;C:\root\lib\libHistPainter.lib;C:\root\lib\libHtml.lib;C:\root\lib\libPhysics.lib;C:\root\lib\libPostscript.lib;C:\root\lib\libRGL.lib;C:\root\lib\libRint.lib;C:\root\lib\libTree.lib;C:\root\lib\libTreePlayer.lib;C:\root\lib\libTreeViewer.lib;
