@@ -19,10 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\pCT_Reconstruction_Data_Segments_Blake.cu" />
+    <CudaCompile Include="..\src\pCT_Reconstruction_Data_Segments_Blake.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\pCT_Reconstruction_Data_Segments_Blake.h" />
+    <ClInclude Include="..\include\pCT_Reconstruction_Data_Segments_Blake.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5CC0F789-F486-4EAB-8EAF-A769803FC3A3}</ProjectGuid>
