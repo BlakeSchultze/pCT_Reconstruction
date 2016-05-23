@@ -207,7 +207,7 @@ const bool RUN_ON						= true;										// Specify whether execution proceeds wi
 const bool FUNCTION_TESTING				= OFF;										// Write output to "testing" directory (T) or to organized dat directory (F)
 const bool USING_RSYNC					= false;									// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
 const bool SHARE_OUTPUT_DATA			= ON;										// Specify whether data should be copied to shared (T) or personal (F) the network-attached storage device
-const bool USE_GIT_CODE					= false;
+const bool USE_GIT_CODE					= true;
 const bool USE_GROUP_CODE				= false;
 const bool TESTING_ON					= false;									// Write output to "testing" directory (T) or to organized dat directory (F)
 const bool BLOCK_TESTING_ON				= false;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
@@ -510,6 +510,10 @@ const char KODIAK_USERNAME[]		= "schultze";											// User name on Kodiak/Tar
 const char TARDIS_USERNAME[]		= "schultze";											// User name on Kodiak/Tardis cluster head/compute nodes
 const char RECON_GROUP_HOME_DIR[]	= "recon";											// User name on Kodiak/Tardis cluster head/compute nodes
 const char RECON_GROUP_USERNAME[]	= "ionrecon";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char GIT_ACCOUNT[]			= "BlakeSchultze";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char GIT_REPOSITORY[]			= "pCT_Reconstruction";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char RECON_PROGRAM_NAME[]		= "pCT_Reconstruction";									// Name of pCT reconstruction program
+const char RECON_GROUP_NAME[]		= "recon";												// Name of pCT reconstruction program
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------ Input/Output data folder names/paths associated with pCT data format ------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -533,8 +537,6 @@ const char TOPAS_DIR_PREFIX[]		= "T_";													// Prefix of date folder name
 const char RAW_LINKS_FOLDER[]		= "Input";												// Name of folder in the organized_data directory containing raw experimental data
 const char PROJECTION_LINKS_FOLDER[]= "Output";												// Name of folder in the organized_data directory containing the projection data
 const char RECONSTRUCTION_FOLDER[]	= "Reconstruction";										// Name of folder in the organized_data directory containing the reconstruction data	
-const char RECON_PROGRAM_NAME[]		= "pCT_Reconstruction";									// Name of pCT reconstruction program
-const char RECON_GROUP_NAME[]		= "recon";												// Name of pCT reconstruction program
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------- Bash commands/options --------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -930,7 +932,7 @@ unsigned int NUM_RUN_ARGUMENTS;
 char** RUN_ARGUMENTS;
 char* CONFIG_DIRECTORY;
 std::map<std::string, unsigned int> EXECUTION_LOG_SWITCHMAP;
-unsigned int PHANTOM_AME_SIZE;
+unsigned int PHANTOM_NAME_SIZE;
 unsigned int DATA_SOURCE_SIZE;
 unsigned int PREPARED_BY_SIZE;
 unsigned int SKIP_2_DATA_SIZE;

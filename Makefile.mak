@@ -56,7 +56,7 @@ endif
 DARWIN = $(strip $(findstring DARWIN, $(OSUPPER)))
 
 # Location of the CUDA Toolkit binaries and libraries
-CUDA_PATH       ?= /usr/local/cuda-5.5
+CUDA_PATH       ?= /cm/shared/apps/cuda70/toolkit/7.0.28
 CUDA_INC_PATH   ?= $(CUDA_PATH)/include
 CUDA_BIN_PATH   ?= $(CUDA_PATH)/bin
 ifneq ($(DARWIN),)
@@ -74,7 +74,7 @@ NVCC            ?= $(CUDA_BIN_PATH)/nvcc
 GCC             ?= g++
 
 # Extra user flags
-EXTRA_NVCCFLAGS ?=
+EXTRA_NVCCFLAGS ?= -std=c++11 -O3
 EXTRA_LDFLAGS   ?=
 EXTRA_CCFLAGS   ?= -fopenmp
 
@@ -126,7 +126,7 @@ all: build
 
 build: pCT_Reconstruction
 
-pCT_Reconstruction.o: pCT_Reconstruction.cu pCT_Reconstruction.h
+pCT_Reconstruction.o: pCT_Reconstruction_Data_Segments_Blake.cu pCT_Reconstruction_Data_Segments_Blake.h
 	$(NVCC) $(NVCCFLAGS) $(EXTRA_NVCCFLAGS) $(GENCODE_FLAGS) $(INCLUDES) -o $@ -c $<
 
 pCT_Reconstruction: pCT_Reconstruction.o

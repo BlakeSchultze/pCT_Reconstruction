@@ -752,13 +752,12 @@ void set_git_branch_info()
 		sprintf( CURRENT_CODE_PARENT, "%s", MY_CODE_PARENT_SET);
 		sprintf( CURRENT_RCODE_PARENT, "%s", MY_RCODE_PARENT_SET);
 	}
-
 	//////////////////////////////////////////////////////
 	char git_branch_name_command[256];
 	char git_commit_hash_command[256];
 	char git_commit_date_command[256];
 	print_colored_text("Querying git repository info...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
-	sprintf(GIT_REPO_PATH, "%s//git//%s", TARDIS_RCODE_PARENT_SET, RECON_PROGRAM_NAME);	
+	sprintf(GIT_REPO_PATH, "%s//git//%s//%s", TARDIS_RCODE_PARENT_SET, GIT_ACCOUNT, GIT_REPOSITORY);	
 	sprintf(git_branch_name_command, "cd %s; git rev-parse --abbrev-ref HEAD", GIT_REPO_PATH);
 	sprintf(git_commit_hash_command, "cd %s; git rev-parse HEAD", GIT_REPO_PATH);
 	sprintf(git_commit_date_command, "cd %s; git log --pretty=format:\"%%cd\"", GIT_REPO_PATH);
@@ -776,9 +775,13 @@ void set_git_branch_info()
 	sprintf(GIT_REPO_INFO, "%s : %s (%s)", git_branch_name_string.c_str(), git_commit_hash_string.c_str(), git_commit_date_string.c_str());
 	
 	// Colorize and print the git info strings 
+	std::string git_account_string_colored = colored_text(GIT_ACCOUNT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
+	std::string git_repository_string_colored = colored_text(GIT_REPOSITORY, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
 	std::string git_branch_name_string_colored = colored_text(git_branch_name_string, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
 	std::string git_commit_hash_string_colored = colored_text(git_commit_hash_string, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
 	std::string git_commit_date_string_colored = colored_text(git_commit_date_string, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_labeled_value("Current git account =", git_account_string_colored.c_str(), GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
+	print_labeled_value("Current git repository =", git_repository_string_colored.c_str(), GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
 	print_labeled_value("Current git branch =", git_branch_name_string_colored.c_str(), GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
 	print_labeled_value("Current git commit hash =", git_commit_hash_string_colored.c_str(), GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
 	print_labeled_value("Current git commit date =", git_commit_date_string_colored.c_str(), GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
@@ -1097,7 +1100,7 @@ void set_enum_strings()
 	}
 
 }
-void set_procedure_on_off_string(const bool procedure_on_off, const char* procedure_on_off_string)
+void set_procedure_on_off_string(const bool procedure_on_off, char* procedure_on_off_string)
 {
 	if(procedure_on_off)
 		sprintf(procedure_on_off_string, "%s", ON_CSTRING);
@@ -1108,7 +1111,7 @@ void set_procedures_on_off_strings()
 {
 	print_colored_text( "Assigning strings corresponding to boolean variable values...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	//	
-	if(SAMPLE_STD_DEV_CSTRING)
+	if(SAMPLE_STD_DEV)
 		sprintf(SAMPLE_STD_DEV_CSTRING, "%s", ON_CSTRING);
 	else
 		sprintf(SAMPLE_STD_DEV_CSTRING, "%s", OFF_CSTRING);
@@ -6754,6 +6757,7 @@ void print_history_sequence(ULL* sequence, ULL print_start, ULL print_end )
 }
 void apply_history_sequence(ULL N, ULL offset_prime, ULL* sequence)
 {
+	uint read_index;
 	if(RECON_HISTORY_ORDERING == PRIME_PERMUTATION)
 	{
 		// 
@@ -6919,7 +6923,7 @@ void recon_DROP_initializations()
 	if(exit_prompt( "Enter 'c' to continue execution, any other character exits program", 'c'))
 		exit_program();*/
 	
-	switch{DROP_BLOCK_ORDER}
+	switch(DROP_BLOCK_ORDER)
 	{
 		case SEQUENTIAL:			break;
 		case ROTATE_LEFT:		rotate_blocks_left();		break;
