@@ -703,7 +703,7 @@ void set_compute_system_directories()
 	sprintf(COMMON_ORG_DATA_SUBDIRECTORY, "%s//%s", PCT_DATA_FOLDER, ORGANIZED_DATA_FOLDER);
 	sprintf(COMMON_RECON_DATA_SUBDIRECTORY, "%s//%s", PCT_DATA_FOLDER, RECON_DATA_FOLDER);
 	sprintf(COMMON_RCODE_SUBDIRECTORY, "%s//%s//%s", PCT_CODE_FOLDER, RECONSTRUCTION_FOLDER, USE_RCODE_OWNER_NAME);
-	sprintf(COMMON_GIT_CODE_SUBDIRECTORY, "%s//%s", GIT_FOLDER, RECON_PROGRAM_NAME);
+	sprintf(COMMON_GIT_CODE_SUBDIRECTORY, "%s//%s//%s", GIT_FOLDER, GIT_ACCOUNT, GIT_REPOSITORY);	
 		
 	sprintf(PCT_DATA_DIR_SET, "%s//%s", PCT_PARENT_DIR, PCT_DATA_FOLDER);
 	sprintf(PCT_ORG_DATA_DIR_SET, "%s//%s", PCT_PARENT_DIR, COMMON_ORG_DATA_SUBDIRECTORY);
@@ -757,7 +757,7 @@ void set_git_branch_info()
 	char git_commit_hash_command[256];
 	char git_commit_date_command[256];
 	print_colored_text("Querying git repository info...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
-	sprintf(GIT_REPO_PATH, "%s//git//%s//%s", TARDIS_RCODE_PARENT_SET, GIT_ACCOUNT, GIT_REPOSITORY);	
+	sprintf(GIT_REPO_PATH, "%s//%s", TARDIS_RCODE_PARENT_SET, COMMON_GIT_CODE_SUBDIRECTORY);	
 	sprintf(git_branch_name_command, "cd %s; git rev-parse --abbrev-ref HEAD", GIT_REPO_PATH);
 	sprintf(git_commit_hash_command, "cd %s; git rev-parse HEAD", GIT_REPO_PATH);
 	sprintf(git_commit_date_command, "cd %s; git log --pretty=format:\"%%cd\"", GIT_REPO_PATH);

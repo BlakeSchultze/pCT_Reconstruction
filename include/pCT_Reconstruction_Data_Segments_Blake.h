@@ -257,21 +257,21 @@ const bool IMPORT_MLP_LOOKUP_TABLES		= false;									// Import MLP lookup table
 const char INPUT_DIRECTORY[]	= "//local//pCT_data//organized_data//";
 const char OUTPUT_DIRECTORY[]	= "//local//pCT_data//reconstruction_data//";
 
-const SCAN_TYPES				SCAN_TYPE				= SIMULATED_G;			  		// Specifies which of the defined filters will be used in FBP
-const char INPUT_FOLDER[]		= "CTP404_Sensitom//Simulated//G_15-05-24//0001//Output//15-05-24";
-const char OUTPUT_FOLDER[]      = "CTP404_Sensitom//Simulated//G_15-05-24//0001//Output//15-05-24";
-const char PHANTOM_NAME[]		= "CTP404_Sensitom";
-const char RUN_DATE[]			= "15-05-24";
-const char RUN_NUMBER[]			= "0001";
-const char PREPROCESS_DATE[]	= "15-05-24";
+//const SCAN_TYPES				SCAN_TYPE				= SIMULATED_G;			  		// Specifies which of the defined filters will be used in FBP
+//const char INPUT_FOLDER[]		= "CTP404_Sensitom//Simulated//G_15-05-24//0001//Output//15-05-24";
+//const char OUTPUT_FOLDER[]      = "CTP404_Sensitom//Simulated//G_15-05-24//0001//Output//15-05-24";
+//const char PHANTOM_NAME[]		= "CTP404_Sensitom";
+//const char RUN_DATE[]			= "15-05-24";
+//const char RUN_NUMBER[]			= "0001";
+//const char PREPROCESS_DATE[]	= "15-05-24";
 
-//const SCAN_TYPES				SCAN_TYPE				= EXPERIMENTAL;			  		// Specifies which of the defined filters will be used in FBP
-//const char INPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
-//const char OUTPUT_FOLDER[]    = "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
-//const char PHANTOM[]			= "Water";
-//const char RUN_NUMBER[]		= "0069_Cont";
-//const char RUN_DATE[]			= "16-04-23";
-//const char PREPROCESS_DATE[]	= "16-04-23";
+const SCAN_TYPES				SCAN_TYPE				= EXPERIMENTAL;			  		// Specifies which of the defined filters will be used in FBP
+const char INPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
+const char OUTPUT_FOLDER[]    = "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
+const char PHANTOM[]			= "Water";
+const char RUN_NUMBER[]		= "0069_Cont";
+const char RUN_DATE[]			= "16-04-23";
+const char PREPROCESS_DATE[]	= "16-04-23";
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------------------------- Iterative Image Reconstruction Parameters ------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -399,9 +399,9 @@ double ETA							= 2.5;								// [#] Coefficient of perturbation used in robust
 unsigned int METHOD					= 1;								// [#] Integer indicating the desired robust method to use (deprecated, non in use)
 int PSI_SIGN						= 1;								// [#] Use a positive (1) or negative (-1) perturbation in robust methods
 #define ITERATIONS					12									// [#] # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define DROP_BLOCK_SIZE				53200								// [#] # of histories in each DROP block, i.e., # of histories used per image update
+#define DROP_BLOCK_SIZE				25600								// [#] # of histories in each DROP block, i.e., # of histories used per image update
 //#define LAMBDA					0.00015								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
-float LAMBDA						= 0.0017;							// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
+float LAMBDA						= 0.0010;							// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Total variation superiorization (TVS) options/parameters -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
