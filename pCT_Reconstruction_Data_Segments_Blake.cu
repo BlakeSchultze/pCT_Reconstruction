@@ -113,7 +113,7 @@ void IO_setup();
 void program_startup_tasks();
 
 // Execution Control Functions
-void define_switchmap();
+void define_execution_log_order();
 void init_execution_log_csv();
 void execution_log_2_txt();
 void execution_log_2_csv();
@@ -362,7 +362,7 @@ __global__ void test_func_device( double*, double*, double* );
 /***********************************************************************************************************************************************************************************************************************/
 /***************************************************************************************************** Program Main ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-int main(int num_run_arguments, char** run_arguments)
+int main(int NUM_RUN_ARGUMENTS, char** RUN_ARGUMENTS)
 {
 	if( FUNCTION_TESTING )
 		test_func();			
@@ -627,7 +627,7 @@ void check_4_missing_input()
 			sprintf(cp_command, "%s %s//* %s%s", BASH_COPY_DIR, global_input_dir, INPUT_DIRECTORY, INPUT_FOLDER );
 			system(cp_command);		
 		}
-		print_section_exit( "Finished input data verification", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+		print_section_exit( "Finished input data verification", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	}
 }
 bool verify_input_data()
@@ -655,19 +655,19 @@ void set_compute_node()
 	print_colored_text("Querying the current compute node...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 			
 	if( terminal_string.compare(kodiak_ID) == 0 )
-		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", KODIAK_HOSTNAME_STRING);
+		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", KODIAK_HOSTNAME_CSTRING);
 	else if( ( terminal_string.compare(whartnell_ID) ) == 0 || ( terminal_string.compare(whartnell_hostname) == 0 ) )
-		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN1_HOSTNAME_STRING);
+		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN1_HOSTNAME_CSTRING);
 	else if( terminal_string.compare(ptroughton_ID) == 0 )
-		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN2_HOSTNAME_STRING);
+		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN2_HOSTNAME_CSTRING);
 	else if( terminal_string.compare(jpertwee_ID) == 0 )
-		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN3_HOSTNAME_STRING);
+		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN3_HOSTNAME_CSTRING);
 	else if( terminal_string.compare(tbaker_ID) == 0 )
-		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN4_HOSTNAME_STRING);
+		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN4_HOSTNAME_CSTRING);
 	else if( terminal_string.compare(pdavison_ID) == 0 )
-		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN5_HOSTNAME_STRING);
+		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", ECSN5_HOSTNAME_CSTRING);
 	else if( terminal_string.compare(workstation_2_hostname) == 0 )
-		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", WS_HOSTNAME_STRING);
+		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "%s", WS_HOSTNAME_CSTRING);
 	else
 		sprintf( CURRENT_COMPUTE_NODE_ALIAS, "Unknown Host");
 	std::string compute_node_string = colored_text(CURRENT_COMPUTE_NODE, LIGHT_PURPLE_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
@@ -765,7 +765,7 @@ void set_git_branch_info()
 	std::string git_branch_name_string = terminal_response(git_branch_name_command);
 	std::string git_commit_hash_string = terminal_response(git_commit_hash_command);
 	std::string git_commit_dates_string = terminal_response(git_commit_date_command);
-	std::string git_commit_date_string = git_commit_dates_string.substr(0, GIT_COMMIT_DATE_STRING_LENGTH);	
+	std::string git_commit_date_string = git_commit_dates_string.substr(0, GIT_COMMIT_DATE_CSTRING_LENGTH);	
 	git_branch_name_string.pop_back();
 	git_commit_hash_string.pop_back();
 	git_commit_date_string.pop_back();	
@@ -881,9 +881,9 @@ void set_and_make_output_folder()
 	if( AIR_THRESH_TESTING_ON )
 	{
 		if(naming_applied)
-			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_AIR_%d.%d_I_%3.2f_U_%3.2f", OUTPUT_FOLDER_UNIQUE, APPLY_AIR_THRESHOLD, UPDATE_X_APPLY_AIR_THRESHOLD, AIR_THRESHOLD, UPDATE_X_AIR_THRESHOLD );
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_AIR_%d.%d_I_%3.2f_U_%3.2f", OUTPUT_FOLDER_UNIQUE, IDENTIFY_X_0_AIR, IDENTIFY_X_N_AIR, X_0_AIR_THRESHOLD, X_N_AIR_THRESHOLD );
 		else
-			sprintf(OUTPUT_FOLDER_UNIQUE, "%sAIR_%d.%d_I_%3.2f_U_%3.2f", OUTPUT_FOLDER_UNIQUE, APPLY_AIR_THRESHOLD, UPDATE_X_APPLY_AIR_THRESHOLD, AIR_THRESHOLD, UPDATE_X_AIR_THRESHOLD );
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%sAIR_%d.%d_I_%3.2f_U_%3.2f", OUTPUT_FOLDER_UNIQUE, IDENTIFY_X_0_AIR, IDENTIFY_X_N_AIR, X_0_AIR_THRESHOLD, X_N_AIR_THRESHOLD );
 		//sprintf(OUTPUT_FOLDER_UNIQUE, "%s//TV_%d_A_%3f_L0_%d_Nk_%d", OUTPUT_FOLDER, TVS_CONDITIONED, A, L_0, TVS_REPETITIONS );
 		naming_applied = true;
 	}
@@ -917,7 +917,7 @@ void set_and_make_output_folder()
 		sprintf(OUTPUT_FOLDER_UNIQUE, "%s_%u", OUTPUT_FOLDER_UNIQUE, i );	
 	print_colored_text("Writing output data/images to:", GREEN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 	print_colored_text(OUTPUT_FOLDER_UNIQUE, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
-	print_section_exit("Finished assigning and creating output data directory", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );		
+	print_section_exit("Finished assigning and creating output data directory", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );		
 }
 void set_IO_folder_names()
 {
@@ -942,7 +942,7 @@ void set_IO_folder_names()
 	else
 	{
 		print_section_header("ERROR", MAJOR_SECTION_SEPARATOR, WHITE_TEXT, WHITE_TEXT, RED_BACKGROUND, DONT_UNDERLINE_TEXT);
-		print_section_exit("Invalid scan type specified", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
+		print_section_exit("Invalid scan type specified", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
 		exit_program_if(true);
 	}	
 	sprintf(LOCAL_INPUT_DATA_PATH, "%s//%s", INPUT_DIRECTORY_SET, INPUT_FOLDER);
@@ -996,183 +996,201 @@ void set_enum_strings()
 	print_colored_text( "Assigning strings corresponding to enum variable values...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	switch( SCAN_TYPE )
 	{
-		case EXPERIMENTAL:				sprintf(SCAN_TYPE_STRING, "%s", EXPERIMENTAL_STRING);						break;
-		case SIMULATED_G:				sprintf(SCAN_TYPE_STRING, "%s", SIMULATED_G_STRING);						break;
-		case SIMULATED_T:				sprintf(SCAN_TYPE_STRING, "%s", SIMULATED_T_STRING);						break;		
+		case EXPERIMENTAL:				sprintf(SCAN_TYPE_CSTRING, "%s", EXPERIMENTAL_CSTRING);						break;
+		case SIMULATED_G:				sprintf(SCAN_TYPE_CSTRING, "%s", SIMULATED_G_CSTRING);						break;
+		case SIMULATED_T:				sprintf(SCAN_TYPE_CSTRING, "%s", SIMULATED_T_CSTRING);						break;		
 	}
 	switch( SINOGRAM_FILTER )
 	{
-		case RAM_LAK:					sprintf(SINOGRAM_FILTER_STRING, "%s", RAM_LAK_STRING);						break;
-		case SHEPP_LOGAN:				sprintf(SINOGRAM_FILTER_STRING, "%s", SHEPP_LOGAN_STRING);					break;
-		case UNFILTERED:				sprintf(SINOGRAM_FILTER_STRING, "%s", UNFILTERED_STRING);					break;		
+		case RAM_LAK:					sprintf(SINOGRAM_FILTER_CSTRING, "%s", RAM_LAK_CSTRING);						break;
+		case SHEPP_LOGAN:				sprintf(SINOGRAM_FILTER_CSTRING, "%s", SHEPP_LOGAN_CSTRING);					break;
+		case UNFILTERED:				sprintf(SINOGRAM_FILTER_CSTRING, "%s", UNFILTERED_CSTRING);					break;		
 	}
 	switch( FBP_FILTER )
 	{
-		case NO_FILTER:					sprintf(FBP_FILTER_STRING, "%s", NO_FILTER_STRING);							break;
-		case MEDIAN:					sprintf(FBP_FILTER_STRING, "%s", MEDIAN_FILTER_STRING);						break;
-		case AVERAGE:					sprintf(FBP_FILTER_STRING, "%s", AVERAGE_FILTER_STRING);					break;
-		case MED_2_AVG:					sprintf(FBP_FILTER_STRING, "%s", MED_2_AVG_FILTER_STRING);					break;
-		case AVG_2_MED:					sprintf(FBP_FILTER_STRING, "%s", AVG_2_MED_FILTER_STRING);					break;		
+		case NO_FILTER:					sprintf(FBP_FILTER_CSTRING, "%s", NO_FILTER_CSTRING);							break;
+		case MEDIAN:					sprintf(FBP_FILTER_CSTRING, "%s", MEDIAN_FILTER_CSTRING);						break;
+		case AVERAGE:					sprintf(FBP_FILTER_CSTRING, "%s", AVERAGE_FILTER_CSTRING);					break;
+		case MED_2_AVG:					sprintf(FBP_FILTER_CSTRING, "%s", MED_2_AVG_FILTER_CSTRING);					break;
+		case AVG_2_MED:					sprintf(FBP_FILTER_CSTRING, "%s", AVG_2_MED_FILTER_CSTRING);					break;		
 	}
 	switch( HULL_FILTER )
 	{
-		case NO_FILTER:					sprintf(HULL_FILTER_STRING, "%s", NO_FILTER_STRING);						break;
-		case MEDIAN:					sprintf(HULL_FILTER_STRING, "%s", MEDIAN_FILTER_STRING);					break;
-		case AVERAGE:					sprintf(HULL_FILTER_STRING, "%s", AVERAGE_FILTER_STRING);					break;
-		case MED_2_AVG:					sprintf(HULL_FILTER_STRING, "%s", MED_2_AVG_FILTER_STRING);					break;
-		case AVG_2_MED:					sprintf(HULL_FILTER_STRING, "%s", AVG_2_MED_FILTER_STRING);					break;		
+		case NO_FILTER:					sprintf(HULL_FILTER_CSTRING, "%s", NO_FILTER_CSTRING);						break;
+		case MEDIAN:					sprintf(HULL_FILTER_CSTRING, "%s", MEDIAN_FILTER_CSTRING);					break;
+		case AVERAGE:					sprintf(HULL_FILTER_CSTRING, "%s", AVERAGE_FILTER_CSTRING);					break;
+		case MED_2_AVG:					sprintf(HULL_FILTER_CSTRING, "%s", MED_2_AVG_FILTER_CSTRING);					break;
+		case AVG_2_MED:					sprintf(HULL_FILTER_CSTRING, "%s", AVG_2_MED_FILTER_CSTRING);					break;		
 	}
 	switch( X_0_FILTER )
 	{
-		case NO_FILTER:					sprintf(X_0_FILTER_STRING, "%s", NO_FILTER_STRING);							break;
-		case MEDIAN:					sprintf(X_0_FILTER_STRING, "%s", MEDIAN_FILTER_STRING);						break;
-		case AVERAGE:					sprintf(X_0_FILTER_STRING, "%s", AVERAGE_FILTER_STRING);					break;
-		case MED_2_AVG:					sprintf(X_0_FILTER_STRING, "%s", MED_2_AVG_FILTER_STRING);					break;
-		case AVG_2_MED:					sprintf(X_0_FILTER_STRING, "%s", AVG_2_MED_FILTER_STRING);					break;		
+		case NO_FILTER:					sprintf(X_0_FILTER_CSTRING, "%s", NO_FILTER_CSTRING);							break;
+		case MEDIAN:					sprintf(X_0_FILTER_CSTRING, "%s", MEDIAN_FILTER_CSTRING);						break;
+		case AVERAGE:					sprintf(X_0_FILTER_CSTRING, "%s", AVERAGE_FILTER_CSTRING);					break;
+		case MED_2_AVG:					sprintf(X_0_FILTER_CSTRING, "%s", MED_2_AVG_FILTER_CSTRING);					break;
+		case AVG_2_MED:					sprintf(X_0_FILTER_CSTRING, "%s", AVG_2_MED_FILTER_CSTRING);					break;		
 	}
 	switch( ENDPOINTS_HULL )
 	{
-		case SC_HULL:					sprintf(ENDPOINTS_HULL_STRING, "%s", SC_HULL_STRING);						break;
-		case MSC_HULL:					sprintf(ENDPOINTS_HULL_STRING, "%s", MSC_HULL_STRING);						break;
-		case SM_HULL:					sprintf(ENDPOINTS_HULL_STRING, "%s", SM_HULL_STRING);						break;
-		case FBP_HULL:					sprintf(ENDPOINTS_HULL_STRING, "%s", FBP_HULL_STRING);						break;		
+		case SC_HULL:					sprintf(ENDPOINTS_HULL_CSTRING, "%s", SC_HULL_CSTRING);						break;
+		case MSC_HULL:					sprintf(ENDPOINTS_HULL_CSTRING, "%s", MSC_HULL_CSTRING);						break;
+		case SM_HULL:					sprintf(ENDPOINTS_HULL_CSTRING, "%s", SM_HULL_CSTRING);						break;
+		case FBP_HULL:					sprintf(ENDPOINTS_HULL_CSTRING, "%s", FBP_HULL_CSTRING);						break;		
 	}
 	switch( ENDPOINTS_ALG )
 	{
-		case YES_BOOL:					sprintf(ENDPOINTS_ALG_STRING, "%s", BOOL_STRING);							break;
-		case NO_BOOL:					sprintf(ENDPOINTS_ALG_STRING, "%s", NO_BOOL_STRING);						break;
+		case YES_BOOL:					sprintf(ENDPOINTS_ALG_CSTRING, "%s", BOOL_CSTRING);							break;
+		case NO_BOOL:					sprintf(ENDPOINTS_ALG_CSTRING, "%s", NO_BOOL_CSTRING);						break;
 	}
 	switch( ENDPOINTS_TX_MODE )
 	{
-		case FULL_TX:					sprintf(ENDPOINTS_TX_MODE_STRING, "%s", FULL_TX_STRING);					break;
-		case PARTIAL_TX:				sprintf(ENDPOINTS_TX_MODE_STRING, "%s", PARTIAL_TX_STRING);					break;
-		case PARTIAL_TX_PREALLOCATED:	sprintf(ENDPOINTS_TX_MODE_STRING, "%s", PARTIAL_TX_PREALLOCATED_STRING);	break;		
+		case FULL_TX:					sprintf(ENDPOINTS_TX_MODE_CSTRING, "%s", FULL_TX_CSTRING);					break;
+		case PARTIAL_TX:				sprintf(ENDPOINTS_TX_MODE_CSTRING, "%s", PARTIAL_TX_CSTRING);					break;
+		case PARTIAL_TX_PREALLOCATED:	sprintf(ENDPOINTS_TX_MODE_CSTRING, "%s", PARTIAL_TX_PREALLOCATED_CSTRING);	break;		
 	}
 	switch( MLP_ALGORITHM )
 	{
-		case TABULATED:					sprintf(MLP_ALGORITHM_STRING, "%s", TABULATED_STRING);						break;
-		case STANDARD:					sprintf(MLP_ALGORITHM_STRING, "%s", STANDARD_STRING);						break;
+		case TABULATED:					sprintf(MLP_ALGORITHM_CSTRING, "%s", TABULATED_CSTRING);						break;
+		case STANDARD:					sprintf(MLP_ALGORITHM_CSTRING, "%s", STANDARD_CSTRING);						break;
 	}
 	switch( X_0 )
 	{ 
-		case X_HULL:					sprintf(X_0_STRING, "%s", HULL_STRING);										break;
-		case FBP_IMAGE:					sprintf(X_0_STRING, "%s", FBP_IMAGE_STRING);								break;
-		case HYBRID:					sprintf(X_0_STRING, "%s", HYBRID_STRING);									break;
-		case ZEROS:						sprintf(X_0_STRING, "%s", ZEROS_STRING);									break;
-		case IMPORT:					sprintf(X_0_STRING, "%s", IMPORT_STRING);									break;
+		case X_HULL:					sprintf(X_0_CSTRING, "%s", HULL_CSTRING);										break;
+		case FBP_IMAGE:					sprintf(X_0_CSTRING, "%s", FBP_IMAGE_CSTRING);								break;
+		case HYBRID:					sprintf(X_0_CSTRING, "%s", HYBRID_CSTRING);									break;
+		case ZEROS:						sprintf(X_0_CSTRING, "%s", ZEROS_CSTRING);									break;
+		case IMPORT:					sprintf(X_0_CSTRING, "%s", IMPORT_CSTRING);									break;
 	}
 	switch( PROJECTION_ALGORITHM )
 	{
-		case ART:						sprintf(PROJECTION_ALGORITHM_STRING, "%s", ART_STRING);						break;
-		case SART:						sprintf(PROJECTION_ALGORITHM_STRING, "%s", SART_STRING);					break;
-		case DROP:						sprintf(PROJECTION_ALGORITHM_STRING, "%s", DROP_STRING);					break;
-		case BIP:						sprintf(PROJECTION_ALGORITHM_STRING, "%s", BIP_STRING);						break;
-		case SAP:						sprintf(PROJECTION_ALGORITHM_STRING, "%s", SAP_STRING);						break;
-		case ROBUSTA:					sprintf(PROJECTION_ALGORITHM_STRING, "%s", ROBUSTA_STRING);					break;
-		case ROBUSTB:					sprintf(PROJECTION_ALGORITHM_STRING, "%s", ROBUSTB_STRING);					break;
+		case ART:						sprintf(PROJECTION_ALGORITHM_CSTRING, "%s", ART_CSTRING);						break;
+		case SART:						sprintf(PROJECTION_ALGORITHM_CSTRING, "%s", SART_CSTRING);					break;
+		case DROP:						sprintf(PROJECTION_ALGORITHM_CSTRING, "%s", DROP_CSTRING);					break;
+		case BIP:						sprintf(PROJECTION_ALGORITHM_CSTRING, "%s", BIP_CSTRING);						break;
+		case SAP:						sprintf(PROJECTION_ALGORITHM_CSTRING, "%s", SAP_CSTRING);						break;
+		case ROBUSTA:					sprintf(PROJECTION_ALGORITHM_CSTRING, "%s", ROBUSTA_CSTRING);					break;
+		case ROBUSTB:					sprintf(PROJECTION_ALGORITHM_CSTRING, "%s", ROBUSTB_CSTRING);					break;
 	}
 	switch( RECON_TX_MODE )
 	{
-		case FULL_TX:					sprintf(RECON_TX_MODE_STRING, "%s", FULL_TX_STRING);						break;
-		case PARTIAL_TX:				sprintf(RECON_TX_MODE_STRING, "%s", PARTIAL_TX_STRING);						break;
-		case PARTIAL_TX_PREALLOCATED:	sprintf(RECON_TX_MODE_STRING, "%s", PARTIAL_TX_PREALLOCATED_STRING);		break;
+		case FULL_TX:					sprintf(RECON_TX_MODE_CSTRING, "%s", FULL_TX_CSTRING);						break;
+		case PARTIAL_TX:				sprintf(RECON_TX_MODE_CSTRING, "%s", PARTIAL_TX_CSTRING);						break;
+		case PARTIAL_TX_PREALLOCATED:	sprintf(RECON_TX_MODE_CSTRING, "%s", PARTIAL_TX_PREALLOCATED_CSTRING);		break;
 	}
 	switch( ROBUST_METHOD )
 	{
-		case OLS:						sprintf(ROBUST_METHOD_STRING, "%s", OLS_STRING);							break;
-		case TLS:						sprintf(ROBUST_METHOD_STRING, "%s", TLS_STRING);							break;
-		case TIKHONOV:					sprintf(ROBUST_METHOD_STRING, "%s", TIKHONOV_STRING);						break;
-		case RIDGE:						sprintf(ROBUST_METHOD_STRING, "%s", RIDGE_STRING);							break;
-		case MINMIN:					sprintf(ROBUST_METHOD_STRING, "%s", MINMIN_STRING);							break;
-		case MINMAX:					sprintf(ROBUST_METHOD_STRING, "%s", MINMAX_STRING);							break;
+		case OLS:						sprintf(ROBUST_METHOD_CSTRING, "%s", OLS_CSTRING);							break;
+		case TLS:						sprintf(ROBUST_METHOD_CSTRING, "%s", TLS_CSTRING);							break;
+		case TIKHONOV:					sprintf(ROBUST_METHOD_CSTRING, "%s", TIKHONOV_CSTRING);						break;
+		case RIDGE:						sprintf(ROBUST_METHOD_CSTRING, "%s", RIDGE_CSTRING);							break;
+		case MINMIN:					sprintf(ROBUST_METHOD_CSTRING, "%s", MINMIN_CSTRING);							break;
+		case MINMAX:					sprintf(ROBUST_METHOD_CSTRING, "%s", MINMAX_CSTRING);							break;
 	}
 	switch( S_CURVE )
 	{
-		case SIGMOID:					sprintf(S_CURVE_STRING, "%s", SIGMOID_STRING);								break;
-		case TANH:						sprintf(S_CURVE_STRING, "%s", TANH_STRING);									break;
-		case ATAN:						sprintf(S_CURVE_STRING, "%s", ATAN_STRING);									break;
-		case ERF:						sprintf(S_CURVE_STRING, "%s", ERF_STRING);									break;
-		case LIN_OVER_ROOT:				sprintf(S_CURVE_STRING, "%s", LIN_OVER_ROOT_STRING);						break;		
+		case SIGMOID:					sprintf(S_CURVE_CSTRING, "%s", SIGMOID_CSTRING);								break;
+		case TANH:						sprintf(S_CURVE_CSTRING, "%s", TANH_CSTRING);									break;
+		case ATAN:						sprintf(S_CURVE_CSTRING, "%s", ATAN_CSTRING);									break;
+		case ERF:						sprintf(S_CURVE_CSTRING, "%s", ERF_CSTRING);									break;
+		case LIN_OVER_ROOT:				sprintf(S_CURVE_CSTRING, "%s", LIN_OVER_ROOT_CSTRING);						break;		
 	}
+
+}
+void set_procedure_on_off_string(const bool procedure_on_off, const char* procedure_on_off_string)
+{
+	if(procedure_on_off)
+		sprintf(procedure_on_off_string, "%s", ON_CSTRING);
+	else
+		sprintf(procedure_on_off_string, "%s", OFF_CSTRING);	
 }
 void set_procedures_on_off_strings()
 {
 	print_colored_text( "Assigning strings corresponding to boolean variable values...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	//	
-	if(SAMPLE_STD_DEV_STRING)
-		sprintf(SAMPLE_STD_DEV_STRING, "%s", ON_STRING);
+	if(SAMPLE_STD_DEV_CSTRING)
+		sprintf(SAMPLE_STD_DEV_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(SAMPLE_STD_DEV_STRING, "%s", OFF_STRING);
+		sprintf(SAMPLE_STD_DEV_CSTRING, "%s", OFF_CSTRING);
 	//	
 	if(AVG_FILTER_FBP)
-		sprintf(AVG_FILTER_FBP_STRING, "%s", ON_STRING);
+		sprintf(AVG_FILTER_FBP_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(AVG_FILTER_FBP_STRING, "%s", OFF_STRING);
+		sprintf(AVG_FILTER_FBP_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(AVG_FILTER_HULL)
-		sprintf(AVG_FILTER_HULL_STRING, "%s", ON_STRING);
+		sprintf(AVG_FILTER_HULL_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(AVG_FILTER_HULL_STRING, "%s", OFF_STRING);
+		sprintf(AVG_FILTER_HULL_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(AVG_FILTER_X_0)
-		sprintf(AVG_FILTER_X_0_STRING, "%s", ON_STRING);
+		sprintf(AVG_FILTER_X_0_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(AVG_FILTER_X_0_STRING, "%s", OFF_STRING);
+		sprintf(AVG_FILTER_X_0_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(MEDIAN_FILTER_FBP)
-		sprintf(MEDIAN_FILTER_FBP_STRING, "%s", ON_STRING);
+		sprintf(MEDIAN_FILTER_FBP_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(MEDIAN_FILTER_FBP_STRING, "%s", OFF_STRING);
+		sprintf(MEDIAN_FILTER_FBP_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(MEDIAN_FILTER_HULL)
-		sprintf(MEDIAN_FILTER_HULL_STRING, "%s", ON_STRING);
+		sprintf(MEDIAN_FILTER_HULL_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(MEDIAN_FILTER_HULL_STRING, "%s", OFF_STRING);
+		sprintf(MEDIAN_FILTER_HULL_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(MEDIAN_FILTER_X_0)
-		sprintf(MEDIAN_FILTER_X_0_STRING, "%s", ON_STRING);
+		sprintf(MEDIAN_FILTER_X_0_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(MEDIAN_FILTER_X_0_STRING, "%s", OFF_STRING);
+		sprintf(MEDIAN_FILTER_X_0_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(IGNORE_SHORT_MLP == 1)
-		sprintf(IGNORE_SHORT_MLP_STRING, "%s", ON_STRING);
+		sprintf(IGNORE_SHORT_MLP_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(IGNORE_SHORT_MLP_STRING, "%s", OFF_STRING);
+		sprintf(IGNORE_SHORT_MLP_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(BOUND_IMAGE == 1)
-		sprintf(BOUND_IMAGE_STRING, "%s", ON_STRING);
+		sprintf(BOUND_IMAGE_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(BOUND_IMAGE_STRING, "%s", OFF_STRING);
+		sprintf(BOUND_IMAGE_CSTRING, "%s", OFF_CSTRING);	
+	//
+	if(IDENTIFY_X_0_AIR)
+		sprintf(IDENTIFY_X_0_AIR_CSTRING, "%s", ON_CSTRING);
+	else
+		sprintf(IDENTIFY_X_0_AIR_CSTRING, "%s", OFF_CSTRING);	
+	//
+	if(IDENTIFY_X_N_AIR)
+		sprintf(IDENTIFY_X_N_AIR_CSTRING, "%s", ON_CSTRING);
+	else
+		sprintf(IDENTIFY_X_N_AIR_CSTRING, "%s", OFF_CSTRING);	
 	//
 	if(S_CURVE_ON == 1)
-		sprintf(S_CURVE_ON_STRING, "%s", ON_STRING);
+		sprintf(S_CURVE_ON_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(S_CURVE_ON_STRING, "%s", OFF_STRING);
+		sprintf(S_CURVE_ON_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(DUAL_SIDED_S_CURVE == 1)
-		sprintf(DUAL_SIDED_S_CURVE_STRING, "%s", ON_STRING);
+		sprintf(DUAL_SIDED_S_CURVE_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(DUAL_SIDED_S_CURVE_STRING, "%s", OFF_STRING);
+		sprintf(DUAL_SIDED_S_CURVE_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(TVS_ON == 1)
-		sprintf(TVS_ON_STRING, "%s", ON_STRING);
+		sprintf(TVS_ON_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(TVS_ON_STRING, "%s", OFF_STRING);
+		sprintf(TVS_ON_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(TVS_FIRST == 1)
-		sprintf(TVS_FIRST_STRING, "%s", ON_STRING);
+		sprintf(TVS_FIRST_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(TVS_FIRST_STRING, "%s", OFF_STRING);
+		sprintf(TVS_FIRST_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(TVS_PARALLEL == 1)
-		sprintf(TVS_PARALLEL_STRING, "%s", ON_STRING);
+		sprintf(TVS_PARALLEL_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(TVS_PARALLEL_STRING, "%s", OFF_STRING);
+		sprintf(TVS_PARALLEL_CSTRING, "%s", OFF_CSTRING);
 	//
 	if(TVS_CONDITIONED == 1)
-		sprintf(TVS_CONDITIONED_STRING, "%s", ON_STRING);
+		sprintf(TVS_CONDITIONED_CSTRING, "%s", ON_CSTRING);
 	else
-		sprintf(TVS_CONDITIONED_STRING, "%s", OFF_STRING);		
+		sprintf(TVS_CONDITIONED_CSTRING, "%s", OFF_CSTRING);		
 }
 void string_assigments()
 {
@@ -1280,40 +1298,40 @@ void program_startup_tasks()
 /***********************************************************************************************************************************************************************************************************************/
 /************************************************************************ Program exit/output data management tasks ****************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void define_switchmap()
+void define_execution_log_order()
 {
 	// Generate mapping of all possible keys to integer ID so key can be used to control switch statement
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_DIRECTORY"), 1));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_DIRECTORY"), 2));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("INPUT_FOLDER"), 3));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_FOLDER"), 4));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("PROJECTION_DATA_BASENAME"), 5));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("PROJECTION_DATA_EXTENSION"), 6));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("GANTRY_ANGLES"), 7));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("NUM_SCANS"), 8));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_T_SIZE"), 9));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SSD_V_SIZE"), 10));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_SHIFT"), 11));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("U_SHIFT"), 12));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BIN_SIZE"), 13));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("T_BINS"), 14));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BIN_SIZE"), 15));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("V_BINS"), 16));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ANGULAR_BIN_SIZE"), 17));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SIGMAS_TO_KEEP"), 18));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_RADIUS"), 19));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_HEIGHT"), 20));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_WIDTH"), 21));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_HEIGHT"), 22));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_THICKNESS"), 23));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("COLUMNS"), 24));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("ROWS"), 25));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("SLICES"), 26));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_WIDTH"), 27));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_HEIGHT"), 28));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_THICKNESS"), 29));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("LAMBDA"), 30));
-	switchmap.insert( std::pair<std::string,unsigned int>(std::string("parameter"), 31));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("INPUT_DIRECTORY"), 1));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_DIRECTORY"), 2));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("INPUT_FOLDER"), 3));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("OUTPUT_FOLDER"), 4));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("PROJECTION_DATA_BASENAME"), 5));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("PROJECTION_DATA_EXTENSION"), 6));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("GANTRY_ANGLES"), 7));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("NUM_SCANS"), 8));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("SSD_T_SIZE"), 9));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("SSD_V_SIZE"), 10));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("T_SHIFT"), 11));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("U_SHIFT"), 12));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("T_BIN_SIZE"), 13));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("T_BINS"), 14));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("V_BIN_SIZE"), 15));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("V_BINS"), 16));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("ANGULAR_BIN_SIZE"), 17));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("SIGMAS_TO_KEEP"), 18));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_RADIUS"), 19));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("RECON_CYL_HEIGHT"), 20));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_WIDTH"), 21));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_HEIGHT"), 22));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("IMAGE_THICKNESS"), 23));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("COLUMNS"), 24));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("ROWS"), 25));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("SLICES"), 26));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_WIDTH"), 27));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_HEIGHT"), 28));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("VOXEL_THICKNESS"), 29));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("LAMBDA"), 30));
+	EXECUTION_LOG_SWITCHMAP.insert( std::pair<std::string,unsigned int>(std::string("parameter"), 31));
 
 }
 void execution_log_2_txt()
@@ -1326,7 +1344,7 @@ void execution_log_2_txt()
 	fprintf(execution_log_file, "Execution Date/Time = %s\n",				EXECUTION_DATE_TIME					);	// 1
 	fprintf(execution_log_file, "Execution Host = %s\n",					CURRENT_COMPUTE_NODE_ALIAS				);	// 2	
 	fprintf(execution_log_file, "Executed Git Branch : Commit Hash (Commit Date) = %s\n",		GIT_REPO_INFO				);	// 3
-	fprintf(execution_log_file, "Executed By = %s\n",						TESTED_BY_STRING					);	// 4
+	fprintf(execution_log_file, "Executed By = %s\n",						TESTED_BY_CSTRING					);	// 4
 	fprintf(execution_log_file, "INPUT_DIRECTORY = %s\n",					INPUT_DIRECTORY						);	// 5
 	fprintf(execution_log_file, "INPUT_FOLDER = %s\n",						INPUT_FOLDER						);	// 6
 	fprintf(execution_log_file, "OUTPUT_DIRECTORY = %s\n",					OUTPUT_DIRECTORY					);	// 7
@@ -1358,7 +1376,7 @@ void execution_log_2_txt()
 				
 	fprintf(execution_log_file, "NUM_SCANS = %d\n",							NUM_SCANS							);	// 38
 	fprintf(execution_log_file, "GANTRY_ANGLE_INTERVAL = %6.6lf\n",			GANTRY_ANGLE_INTERVAL				);	// 39	
-	fprintf(execution_log_file, "SCAN_TYPE = %s\n",							SCAN_TYPE_STRING					);	// 40
+	fprintf(execution_log_file, "SCAN_TYPE = %s\n",							SCAN_TYPE_CSTRING					);	// 40
 	fprintf(execution_log_file, "T_SHIFT = %6.6lf\n",						T_SHIFT								);	// 41
 	fprintf(execution_log_file, "U_SHIFT = %6.6lf\n",						U_SHIFT								);	// 42
 	fprintf(execution_log_file, "V_SHIFT = %6.6lf\n",						V_SHIFT								);	// 43
@@ -1369,7 +1387,7 @@ void execution_log_2_txt()
 	fprintf(execution_log_file, "V_BIN_SIZE = %6.6lf\n",					V_BIN_SIZE							);	// 47
 	fprintf(execution_log_file, "ANGULAR_BIN_SIZE = %6.6lf\n",				ANGULAR_BIN_SIZE					);	// 48
 	fprintf(execution_log_file, "SIGMAS_TO_KEEP = %d\n",					SIGMAS_TO_KEEP						);	// 49
-	fprintf(execution_log_file, "SAMPLE_STD_DEV = %s\n",					SAMPLE_STD_DEV_STRING				);	// 50
+	fprintf(execution_log_file, "SAMPLE_STD_DEV = %s\n",					SAMPLE_STD_DEV_CSTRING				);	// 50
 	//fprintf(execution_log_file, "SAMPLE_STD_DEV = %d\n",						SAMPLE_STD_DEV					);	// 50
 
 	fprintf(execution_log_file, "RECON_CYL_RADIUS = %6.6lf\n",				RECON_CYL_RADIUS					);	// 51
@@ -1394,13 +1412,13 @@ void execution_log_2_txt()
 	fprintf(execution_log_file, "SM_UPPER_THRESHOLD = %6.6lf\n",			SM_UPPER_THRESHOLD					);	// 68
 	fprintf(execution_log_file, "SM_SCALE_THRESHOLD = %6.6lf\n",			SM_SCALE_THRESHOLD					);	// 69
 
-	fprintf(execution_log_file, "SINOGRAM_FILTER = %s\n",						SINOGRAM_FILTER_STRING					);	// 70
-	fprintf(execution_log_file, "AVG_FILTER_FBP = %s\n",					AVG_FILTER_FBP_STRING				);	// 71
-	fprintf(execution_log_file, "AVG_FILTER_HULL = %s\n",					AVG_FILTER_HULL_STRING				);	// 72
-	fprintf(execution_log_file, "AVG_FILTER_X_0 = %s\n",					AVG_FILTER_X_0_STRING				);	// 73
-	fprintf(execution_log_file, "MEDIAN_FILTER_FBP = %s\n",					MEDIAN_FILTER_FBP_STRING			);	// 74
-	fprintf(execution_log_file, "MEDIAN_FILTER_HULL = %s\n",				MEDIAN_FILTER_HULL_STRING			);	// 75
-	fprintf(execution_log_file, "MEDIAN_FILTER_X_0 = %s\n",					MEDIAN_FILTER_X_0_STRING			);	// 76
+	fprintf(execution_log_file, "SINOGRAM_FILTER = %s\n",						SINOGRAM_FILTER_CSTRING					);	// 70
+	fprintf(execution_log_file, "AVG_FILTER_FBP = %s\n",					AVG_FILTER_FBP_CSTRING				);	// 71
+	fprintf(execution_log_file, "AVG_FILTER_HULL = %s\n",					AVG_FILTER_HULL_CSTRING				);	// 72
+	fprintf(execution_log_file, "AVG_FILTER_X_0 = %s\n",					AVG_FILTER_X_0_CSTRING				);	// 73
+	fprintf(execution_log_file, "MEDIAN_FILTER_FBP = %s\n",					MEDIAN_FILTER_FBP_CSTRING			);	// 74
+	fprintf(execution_log_file, "MEDIAN_FILTER_HULL = %s\n",				MEDIAN_FILTER_HULL_CSTRING			);	// 75
+	fprintf(execution_log_file, "MEDIAN_FILTER_X_0 = %s\n",					MEDIAN_FILTER_X_0_CSTRING			);	// 76
 	//fprintf(execution_log_file, "AVG_FILTER_FBP = %d\n",						AVG_FILTER_FBP					);	// 69
 	//fprintf(execution_log_file, "AVG_FILTER_HULL = %d\n",						AVG_FILTER_HULL					);	// 70
 	//fprintf(execution_log_file, "AVG_FILTER_X_0 = %d\n",						AVG_FILTER_X_0					);	// 71
@@ -1426,40 +1444,46 @@ void execution_log_2_txt()
 	fprintf(execution_log_file, "POLY_TABLE_RANGE = %6.6lf\n",				POLY_TABLE_RANGE					);	// 91
 	fprintf(execution_log_file, "POLY_TABLE_STEP = %6.6lf\n",				POLY_TABLE_STEP						);	// 92
 	
-	fprintf(execution_log_file, "ENDPOINTS_ALG = %s\n",						ENDPOINTS_ALG_STRING				);	// 93
-	fprintf(execution_log_file, "ENDPOINTS_TX_MODE = %s\n",					ENDPOINTS_TX_MODE_STRING			);	// 94
-	fprintf(execution_log_file, "ENDPOINTS_HULL = %s\n",					ENDPOINTS_HULL_STRING				);	// 95
-	fprintf(execution_log_file, "MLP_ALGORITHM = %s\n",						MLP_ALGORITHM_STRING				);	// 96
+	fprintf(execution_log_file, "ENDPOINTS_ALG = %s\n",						ENDPOINTS_ALG_CSTRING				);	// 93
+	fprintf(execution_log_file, "ENDPOINTS_TX_MODE = %s\n",					ENDPOINTS_TX_MODE_CSTRING			);	// 94
+	fprintf(execution_log_file, "ENDPOINTS_HULL = %s\n",					ENDPOINTS_HULL_CSTRING				);	// 95
+	fprintf(execution_log_file, "MLP_ALGORITHM = %s\n",						MLP_ALGORITHM_CSTRING				);	// 96
 	//fprintf(execution_log_file, "IGNORE_SHORT_MLP = %d\n",					IGNORE_SHORT_MLP					);	// 95
-	fprintf(execution_log_file, "IGNORE_SHORT_MLP = %s\n",					IGNORE_SHORT_MLP_STRING				);	// 97
+	fprintf(execution_log_file, "IGNORE_SHORT_MLP = %s\n",					IGNORE_SHORT_MLP_CSTRING				);	// 97
 	fprintf(execution_log_file, "MIN_MLP_LENGTH = %d\n",					MIN_MLP_LENGTH						);	// 98
 	fprintf(execution_log_file, "MLP_U_STEP = %6.6lf\n",					MLP_U_STEP							);	// 99
 	
-	fprintf(execution_log_file, "X_0_STRING = %s\n",						X_0_STRING							);	// 100
-	fprintf(execution_log_file, "PROJECTION_ALGORITHM_STRING = %s\n",		PROJECTION_ALGORITHM_STRING			);	// 101
-	fprintf(execution_log_file, "RECON_TX_MODE = %s\n",						RECON_TX_MODE_STRING				);	// 102
+	fprintf(execution_log_file, "X_0_CSTRING = %s\n",						X_0_CSTRING							);	// 100
+	fprintf(execution_log_file, "PROJECTION_ALGORITHM_CSTRING = %s\n",		PROJECTION_ALGORITHM_CSTRING			);	// 101
+	fprintf(execution_log_file, "RECON_TX_MODE = %s\n",						RECON_TX_MODE_CSTRING				);	// 102
 	fprintf(execution_log_file, "ITERATIONS = %d\n",						ITERATIONS							);	// 103
 	fprintf(execution_log_file, "DROP_BLOCK_SIZE = %d\n",					DROP_BLOCK_SIZE						);	// 104
 	fprintf(execution_log_file, "LAMBDA = %6.6lf\n",						LAMBDA								);	// 105
-	fprintf(execution_log_file, "BOUND_IMAGE = %s\n",						BOUND_IMAGE_STRING					);	// 106
+	//fprintf(execution_log_file, "BOUND_IMAGE = %s\n",						BOUND_IMAGE_CSTRING					);	// 106
 	//fprintf(execution_log_file, "BOUND_IMAGE = %d\n",							BOUND_IMAGE						);	// 104
 	
-	fprintf(execution_log_file, "ROBUST_METHOD = %s\n",						ROBUST_METHOD_STRING				);	// 107
+	fprintf(execution_log_file, "ROBUST_METHOD = %s\n",						ROBUST_METHOD_CSTRING				);	// 107
 	fprintf(execution_log_file, "ETA = %6.6lf\n",							ETA									);	// 108
 	fprintf(execution_log_file, "PSI_SIGN = %d\n",							PSI_SIGN							);	// 109
 	
-	fprintf(execution_log_file, "S_CURVE = %s\n",							S_CURVE_STRING						);	// 110
-	fprintf(execution_log_file, "S_CURVE_ON = %s\n",						S_CURVE_ON_STRING					);	// 111
-	fprintf(execution_log_file, "DUAL_SIDED_S_CURVE = %s\n",				DUAL_SIDED_S_CURVE_STRING			);	// 112
+	fprintf(execution_log_file, "BOUND_IMAGE = %s\n",						BOUND_IMAGE_CSTRING					);	// 106
+	fprintf(execution_log_file, "IDENTIFY_X_0_AIR = %s\n",					IDENTIFY_X_0_AIR_CSTRING			);	// 106
+	fprintf(execution_log_file, "X_0_AIR_THRESHOLD = %6.6lf\n",				X_0_AIR_THRESHOLD					);	// 108
+	fprintf(execution_log_file, "IDENTIFY_X_N_AIR = %s\n",					IDENTIFY_X_N_AIR_CSTRING			);	// 106
+	fprintf(execution_log_file, "X_N_AIR_THRESHOLD = %6.6lf\n",				X_N_AIR_THRESHOLD					);	// 108
+
+	fprintf(execution_log_file, "S_CURVE = %s\n",							S_CURVE_CSTRING						);	// 110
+	fprintf(execution_log_file, "S_CURVE_ON = %s\n",						S_CURVE_ON_CSTRING					);	// 111
+	fprintf(execution_log_file, "DUAL_SIDED_S_CURVE = %s\n",				DUAL_SIDED_S_CURVE_CSTRING			);	// 112
 	//fprintf(execution_log_file, "S_CURVE_ON = %d\n",							S_CURVE_ON						);	// 109
 	//fprintf(execution_log_file, "DUAL_SIDED_S_CURVE = %d\n",					DUAL_SIDED_S_CURVE				);	// 110
 	fprintf(execution_log_file, "SIGMOID_STEEPNESS = %6.6lf\n",				SIGMOID_STEEPNESS					);	// 113
 	fprintf(execution_log_file, "SIGMOID_MID_SHIFT = %6.6lf\n",				SIGMOID_MID_SHIFT					);	// 114
 		
-	fprintf(execution_log_file, "TVS_ON = %s\n",							TVS_ON_STRING						);	// 115
-	fprintf(execution_log_file, "TVS_FIRST = %s\n",							TVS_FIRST_STRING					);	// 116
-	fprintf(execution_log_file, "TVS_PARALLEL = %s\n",						TVS_PARALLEL_STRING					);	// 117
-	fprintf(execution_log_file, "TVS_CONDITIONED = %s\n",					TVS_CONDITIONED_STRING				);	// 118
+	fprintf(execution_log_file, "TVS_ON = %s\n",							TVS_ON_CSTRING						);	// 115
+	fprintf(execution_log_file, "TVS_FIRST = %s\n",							TVS_FIRST_CSTRING					);	// 116
+	fprintf(execution_log_file, "TVS_PARALLEL = %s\n",						TVS_PARALLEL_CSTRING					);	// 117
+	fprintf(execution_log_file, "TVS_CONDITIONED = %s\n",					TVS_CONDITIONED_CSTRING				);	// 118
 	fprintf(execution_log_file, "TVS_REPETITIONS = %d\n",					TVS_REPETITIONS						);	// 119
 	fprintf(execution_log_file, "BETA_0 = %6.6lf\n",						BETA_0								);	// 120
 	fprintf(execution_log_file, "A = %6.6lf\n",								A									);	// 121
@@ -1469,7 +1493,7 @@ void execution_log_2_txt()
 	
 	OUTPUT_FILE_LIST.push_back(std::string(LOCAL_EXECUTION_INFO_PATH));
 	LOCAL_DATA_FILE_LIST.push_back(std::string(LOCAL_EXECUTION_INFO_PATH));	
-	print_section_exit( "Finished writing execution info to local file", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_section_exit( "Finished writing execution info to local file", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 }
 void execution_log_2_csv()
 {
@@ -1489,157 +1513,146 @@ void execution_log_2_csv()
 		
 	FILE* execution_log_file = fopen( LOCAL_EXECUTION_LOG_PATH, "a+" );
 	fprintf(execution_log_file, "%s, ",				EXECUTION_DATE_TIME					);	// 1
-	fprintf(execution_log_file, "%s, ",				CURRENT_COMPUTE_NODE_ALIAS				);	// 2	
-	fprintf(execution_log_file, "%s, ",				GIT_REPO_INFO				);	// 3
-	fprintf(execution_log_file, "%s, ",				TESTED_BY_STRING					);	// 4
+	fprintf(execution_log_file, "%s, ",				CURRENT_COMPUTE_NODE_ALIAS			);	// 2	
+	fprintf(execution_log_file, "%s, ",				GIT_REPO_INFO						);	// 3
+	fprintf(execution_log_file, "%s, ",				TESTED_BY_CSTRING					);	// 4
 	fprintf(execution_log_file, "%s, ",				INPUT_DIRECTORY						);	// 5
 	fprintf(execution_log_file, "%s, ",				INPUT_FOLDER						);	// 6
 	fprintf(execution_log_file, "%s, ",				OUTPUT_DIRECTORY					);	// 7
 	fprintf(execution_log_file, "%s, ",				OUTPUT_FOLDER_UNIQUE				);	// 8
-	fprintf(execution_log_file, "%d, ",				total_histories						);	// 8
-	fprintf(execution_log_file, "%d, ",				recon_vol_histories					);	// 8
-	fprintf(execution_log_file, "%d, ",				post_cut_histories					);	// 8
-	fprintf(execution_log_file, "%d, ",				reconstruction_histories			);	// 8	
-	fprintf(execution_log_file, "%6.6lf, ",			execution_time_data_reads			);	// 9
-	fprintf(execution_log_file, "%6.6lf, ",			execution_time_preprocessing		);	// 10
-	fprintf(execution_log_file, "%6.6lf, ",			execution_time_endpoints			);	// 11
-	fprintf(execution_log_file, "%6.6lf, ",			execution_time_tables				);	// 12
-	fprintf(execution_log_file, "%6.6lf, ",			execution_time_init_image			);	// 13
-	fprintf(execution_log_file, "%6.6lf, ",			execution_time_DROP					);	// 14
+	fprintf(execution_log_file, "%d, ",				total_histories						);	// 9
+	fprintf(execution_log_file, "%d, ",				recon_vol_histories					);	// 10
+	fprintf(execution_log_file, "%d, ",				post_cut_histories					);	// 11
+	fprintf(execution_log_file, "%d, ",				reconstruction_histories			);	// 12
+	fprintf(execution_log_file, "%6.6lf, ",			execution_time_data_reads			);	// 13
+	fprintf(execution_log_file, "%6.6lf, ",			execution_time_preprocessing		);	// 14
+	fprintf(execution_log_file, "%6.6lf, ",			execution_time_endpoints			);	// 15
+	fprintf(execution_log_file, "%6.6lf, ",			execution_time_tables				);	// 16
+	fprintf(execution_log_file, "%6.6lf, ",			execution_time_init_image			);	// 17
+	fprintf(execution_log_file, "%6.6lf, ",			execution_time_DROP					);	// 18
 	for( i = 0; i < execution_times_DROP_iterations.size(); i++ )
-		fprintf(execution_log_file, " %6.6lf, ", execution_times_DROP_iterations[i]		);	// 15-26
+		fprintf(execution_log_file, " %6.6lf, ", execution_times_DROP_iterations[i]		);	// 19-33
 	for( ; i < MAX_ITERATIONS; i++ )
-		fprintf(execution_log_file, ", ");													
-	fprintf(execution_log_file, "%6.6lf, ",			execution_time_reconstruction		);	// 27
-	fprintf(execution_log_file, "%6.6lf, ",			execution_time_program				);	// 28
+		fprintf(execution_log_file, ", "												);													
+	fprintf(execution_log_file, "%6.6lf, ",			execution_time_reconstruction		);	// 34
+	fprintf(execution_log_file, "%6.6lf, ",			execution_time_program				);	// 35
 	
-	fprintf(execution_log_file, "%d, ",				THREADS_PER_BLOCK					);	// 29	
-	fprintf(execution_log_file, "%d, ",				ENDPOINTS_PER_BLOCK					);	// 30
-	fprintf(execution_log_file, "%d, ",				HISTORIES_PER_BLOCK					);	// 31
-	fprintf(execution_log_file, "%d, ",				ENDPOINTS_PER_THREAD				);	// 32
-	fprintf(execution_log_file, "%d, ",				HISTORIES_PER_THREAD				);	// 33
-	fprintf(execution_log_file, "%d, ",				VOXELS_PER_THREAD					);	// 34
-	fprintf(execution_log_file, "%d, ",				MAX_GPU_HISTORIES					);	// 35
-	fprintf(execution_log_file, "%d, ",				MAX_CUTS_HISTORIES					);	// 36
-	fprintf(execution_log_file, "%d, ",				MAX_ENDPOINTS_HISTORIES				);	// 37
+	fprintf(execution_log_file, "%d, ",				THREADS_PER_BLOCK					);	// 36	
+	fprintf(execution_log_file, "%d, ",				ENDPOINTS_PER_BLOCK					);	// 37
+	fprintf(execution_log_file, "%d, ",				HISTORIES_PER_BLOCK					);	// 38
+	fprintf(execution_log_file, "%d, ",				ENDPOINTS_PER_THREAD				);	// 39
+	fprintf(execution_log_file, "%d, ",				HISTORIES_PER_THREAD				);	// 40
+	fprintf(execution_log_file, "%d, ",				VOXELS_PER_THREAD					);	// 41
+	fprintf(execution_log_file, "%d, ",				MAX_GPU_HISTORIES					);	// 42
+	fprintf(execution_log_file, "%d, ",				MAX_CUTS_HISTORIES					);	// 43
+	fprintf(execution_log_file, "%d, ",				MAX_ENDPOINTS_HISTORIES				);	// 44
 				
-	fprintf(execution_log_file, "%d, ",				NUM_SCANS							);	// 38
-	fprintf(execution_log_file, "%6.6lf, ",			GANTRY_ANGLE_INTERVAL				);	// 39	
-	fprintf(execution_log_file, "%s, ",				SCAN_TYPE_STRING					);	// 40
-	fprintf(execution_log_file, "%6.6lf, ",			T_SHIFT								);	// 41
-	fprintf(execution_log_file, "%6.6lf, ",			U_SHIFT								);	// 42
-	fprintf(execution_log_file, "%6.6lf, ",			V_SHIFT								);	// 43
+	fprintf(execution_log_file, "%d, ",				NUM_SCANS							);	// 45
+	fprintf(execution_log_file, "%6.6lf, ",			GANTRY_ANGLE_INTERVAL				);	// 46	
+	fprintf(execution_log_file, "%s, ",				SCAN_TYPE_CSTRING					);	// 47
+	fprintf(execution_log_file, "%6.6lf, ",			T_SHIFT								);	// 48
+	fprintf(execution_log_file, "%6.6lf, ",			U_SHIFT								);	// 49
+	fprintf(execution_log_file, "%6.6lf, ",			V_SHIFT								);	// 50
 	
-	fprintf(execution_log_file, "%6.6lf, ",			SSD_T_SIZE							);	// 44
-	fprintf(execution_log_file, "%6.6lf, ",			SSD_V_SIZE							);	// 45
-	fprintf(execution_log_file, "%6.6lf, ",			T_BIN_SIZE							);	// 46
-	fprintf(execution_log_file, "%6.6lf, ",			V_BIN_SIZE							);	// 47
-	fprintf(execution_log_file, "%6.6lf, ",			ANGULAR_BIN_SIZE					);	// 48
-	fprintf(execution_log_file, "%d, ",				SIGMAS_TO_KEEP						);	// 49
-	fprintf(execution_log_file, "%s, ",				SAMPLE_STD_DEV_STRING				);	// 50
-	//fprintf(execution_log_file, "%d, ",				SAMPLE_STD_DEV						);	// 50
+	fprintf(execution_log_file, "%6.6lf, ",			SSD_T_SIZE							);	// 51
+	fprintf(execution_log_file, "%6.6lf, ",			SSD_V_SIZE							);	// 52
+	fprintf(execution_log_file, "%6.6lf, ",			T_BIN_SIZE							);	// 53
+	fprintf(execution_log_file, "%6.6lf, ",			V_BIN_SIZE							);	// 54
+	fprintf(execution_log_file, "%6.6lf, ",			ANGULAR_BIN_SIZE					);	// 55
+	fprintf(execution_log_file, "%d, ",				SIGMAS_TO_KEEP						);	// 56
+	fprintf(execution_log_file, "%s, ",				SAMPLE_STD_DEV_CSTRING				);	// 57
 	
-	fprintf(execution_log_file, "%6.6lf, ",			RECON_CYL_RADIUS					);	// 51
-	fprintf(execution_log_file, "%6.6lf, ",			RECON_CYL_HEIGHT					);	// 52
-
-	fprintf(execution_log_file, "%d, ",				COLUMNS								);	// 53
-	fprintf(execution_log_file, "%d, ",				ROWS								);	// 54
-	fprintf(execution_log_file, "%d, ",				SLICES								);	// 55
-	fprintf(execution_log_file, "%6.6lf, ",			VOXEL_WIDTH							);	// 56
-	fprintf(execution_log_file, "%6.6lf, ",			VOXEL_HEIGHT						);	// 57
-	fprintf(execution_log_file, "%6.6lf, ",			VOXEL_THICKNESS						);	// 58
-	fprintf(execution_log_file, "%6.6lf, ",			IMAGE_WIDTH							);	// 59
-	fprintf(execution_log_file, "%6.6lf, ",			IMAGE_HEIGHT						);	// 60
-	fprintf(execution_log_file, "%6.6lf, ",			IMAGE_THICKNESS						);	// 61
+	fprintf(execution_log_file, "%6.6lf, ",			RECON_CYL_RADIUS					);	// 58
+	fprintf(execution_log_file, "%6.6lf, ",			RECON_CYL_HEIGHT					);	// 59
+	fprintf(execution_log_file, "%d, ",				COLUMNS							);	// 60
+	fprintf(execution_log_file, "%d, ",				ROWS								);	// 61
+	fprintf(execution_log_file, "%d, ",				SLICES								);	// 62
+	fprintf(execution_log_file, "%6.6lf, ",			VOXEL_WIDTH							);	// 63
+	fprintf(execution_log_file, "%6.6lf, ",			VOXEL_HEIGHT						);	// 64
+	fprintf(execution_log_file, "%6.6lf, ",			VOXEL_THICKNESS						);	// 65
+	fprintf(execution_log_file, "%6.6lf, ",			IMAGE_WIDTH							);	// 66
+	fprintf(execution_log_file, "%6.6lf, ",			IMAGE_HEIGHT						);	// 67
+	fprintf(execution_log_file, "%6.6lf, ",			IMAGE_THICKNESS						);	// 68
 		
-	fprintf(execution_log_file, "%6.6lf, ",			SC_LOWER_THRESHOLD					);	// 62
-	fprintf(execution_log_file, "%6.6lf, ",			SC_UPPER_THRESHOLD					);	// 63
-	fprintf(execution_log_file, "%6.6lf, ",			MSC_LOWER_THRESHOLD					);	// 65
-	fprintf(execution_log_file, "%6.6lf, ",			MSC_UPPER_THRESHOLD					);	// 64
-	fprintf(execution_log_file, "%d, ",				MSC_DIFF_THRESH						);	// 66
-	fprintf(execution_log_file, "%6.6lf, ",			SM_LOWER_THRESHOLD					);	// 67
-	fprintf(execution_log_file, "%6.6lf, ",			SM_UPPER_THRESHOLD					);	// 68
-	fprintf(execution_log_file, "%6.6lf, ",			SM_SCALE_THRESHOLD					);	// 69
+	fprintf(execution_log_file, "%6.6lf, ",			SC_LOWER_THRESHOLD					);	// 69
+	fprintf(execution_log_file, "%6.6lf, ",			SC_UPPER_THRESHOLD					);	// 70
+	fprintf(execution_log_file, "%6.6lf, ",			MSC_LOWER_THRESHOLD					);	// 71
+	fprintf(execution_log_file, "%6.6lf, ",			MSC_UPPER_THRESHOLD					);	// 72
+	fprintf(execution_log_file, "%d, ",				MSC_DIFF_THRESH						);	// 73
+	fprintf(execution_log_file, "%6.6lf, ",			SM_LOWER_THRESHOLD					);	// 74
+	fprintf(execution_log_file, "%6.6lf, ",			SM_UPPER_THRESHOLD					);	// 75
+	fprintf(execution_log_file, "%6.6lf, ",			SM_SCALE_THRESHOLD					);	// 76
 
-	fprintf(execution_log_file, "%s, ",				SINOGRAM_FILTER_STRING					);	// 70
-	fprintf(execution_log_file, "%s, ",				AVG_FILTER_FBP_STRING				);	// 71
-	fprintf(execution_log_file, "%s, ",				AVG_FILTER_HULL_STRING				);	// 72
-	fprintf(execution_log_file, "%s, ",				AVG_FILTER_X_0_STRING				);	// 73
-	fprintf(execution_log_file, "%s, ",				MEDIAN_FILTER_FBP_STRING			);	// 74
-	fprintf(execution_log_file, "%s, ",				MEDIAN_FILTER_HULL_STRING			);	// 75
-	fprintf(execution_log_file, "%s, ",				MEDIAN_FILTER_X_0_STRING			);	// 76
-	//fprintf(execution_log_file, "%d, ",				AVG_FILTER_FBP						);	// 69
-	//fprintf(execution_log_file, "%d, ",				AVG_FILTER_HULL						);	// 70
-	//fprintf(execution_log_file, "%d, ",				AVG_FILTER_X_0						);	// 71
-	//fprintf(execution_log_file, "%d, ",				MEDIAN_FILTER_FBP					);	// 72
-	//fprintf(execution_log_file, "%d, ",				MEDIAN_FILTER_HULL					);	// 73
-	//fprintf(execution_log_file, "%d, ",				MEDIAN_FILTER_X_0					);	// 74
-
-	fprintf(execution_log_file, "%d, ",				FBP_AVG_FILTER_RADIUS				);	// 77	
-	fprintf(execution_log_file, "%d, ",				FBP_MED_FILTER_RADIUS				);	// 78
-	fprintf(execution_log_file, "%6.6lf, ",			FBP_AVG_FILTER_THRESHOLD			);	// 79	
-	fprintf(execution_log_file, "%d, ",				HULL_AVG_FILTER_RADIUS				);	// 80
-	fprintf(execution_log_file, "%d, ",				HULL_MED_FILTER_RADIUS				);	// 81
-	fprintf(execution_log_file, "%6.6lf, ",			HULL_AVG_FILTER_THRESHOLD			);	// 82
-	fprintf(execution_log_file, "%d, ",				X_0_AVG_FILTER_RADIUS				);	// 83
-	fprintf(execution_log_file, "%d, ",				X_0_MED_FILTER_RADIUS				);	// 84
-	fprintf(execution_log_file, "%6.6lf, ",			X_0_AVG_FILTER_THRESHOLD			);	// 85
-
-	fprintf(execution_log_file, "%6.6lf, ",			TRIG_TABLE_MIN						);	// 86
-	fprintf(execution_log_file, "%6.6lf, ",			TRIG_TABLE_MAX						);	// 87
-	fprintf(execution_log_file, "%6.6lf, ",			TRIG_TABLE_STEP						);	// 88
-	fprintf(execution_log_file, "%6.6lf, ",			COEFF_TABLE_RANGE					);	// 89
-	fprintf(execution_log_file, "%6.6lf, ",			COEFF_TABLE_STEP					);	// 90
-	fprintf(execution_log_file, "%6.6lf, ",			POLY_TABLE_RANGE					);	// 91
-	fprintf(execution_log_file, "%6.6lf, ",			POLY_TABLE_STEP						);	// 92
-
-	fprintf(execution_log_file, "%s, ",				ENDPOINTS_ALG_STRING				);	// 93
-	fprintf(execution_log_file, "%s, ",				ENDPOINTS_TX_MODE_STRING			);	// 94
-	fprintf(execution_log_file, "%s, ",				ENDPOINTS_HULL_STRING				);	// 95
-	fprintf(execution_log_file, "%s, ",				MLP_ALGORITHM_STRING				);	// 96
-	//fprintf(execution_log_file, "%d, ",				IGNORE_SHORT_MLP					);	// 95
-	fprintf(execution_log_file, "%s, ",				IGNORE_SHORT_MLP_STRING				);	// 97
-	fprintf(execution_log_file, "%d, ",				MIN_MLP_LENGTH						);	// 98
-	fprintf(execution_log_file, "%6.6lf, ",			MLP_U_STEP							);	// 99
+	fprintf(execution_log_file, "%s, ",				SINOGRAM_FILTER_CSTRING				);	// 77
+	fprintf(execution_log_file, "%s, ",				AVG_FILTER_FBP_CSTRING				);	// 78
+	fprintf(execution_log_file, "%s, ",				AVG_FILTER_HULL_CSTRING				);	// 79
+	fprintf(execution_log_file, "%s, ",				AVG_FILTER_X_0_CSTRING				);	// 80
+	fprintf(execution_log_file, "%s, ",				MEDIAN_FILTER_FBP_CSTRING			);	// 81
+	fprintf(execution_log_file, "%s, ",				MEDIAN_FILTER_HULL_CSTRING			);	// 82
+	fprintf(execution_log_file, "%s, ",				MEDIAN_FILTER_X_0_CSTRING			);	// 83
 	
-	fprintf(execution_log_file, "%s, ",				X_0_STRING							);	// 100
-	fprintf(execution_log_file, "%s, ",				PROJECTION_ALGORITHM_STRING			);	// 101
-	fprintf(execution_log_file, "%s, ",				RECON_TX_MODE_STRING				);	// 102
-	fprintf(execution_log_file, "%d, ",				ITERATIONS							);	// 103
-	fprintf(execution_log_file, "%d, ",				DROP_BLOCK_SIZE						);	// 104
-	fprintf(execution_log_file, "%6.6lf, ",			LAMBDA								);	// 105
-	fprintf(execution_log_file, "%s, ",				BOUND_IMAGE_STRING					);	// 106
-	//fprintf(execution_log_file, "%d, ",				BOUND_IMAGE							);	// 104
+	fprintf(execution_log_file, "%d, ",				FBP_AVG_FILTER_RADIUS				);	// 84
+	fprintf(execution_log_file, "%d, ",				FBP_MED_FILTER_RADIUS				);	// 85
+	fprintf(execution_log_file, "%6.6lf, ",			FBP_AVG_FILTER_THRESHOLD			);	// 86
+	fprintf(execution_log_file, "%d, ",				HULL_AVG_FILTER_RADIUS				);	// 87
+	fprintf(execution_log_file, "%d, ",				HULL_MED_FILTER_RADIUS				);	// 88
+	fprintf(execution_log_file, "%6.6lf, ",			HULL_AVG_FILTER_THRESHOLD			);	// 89
+	fprintf(execution_log_file, "%d, ",				X_0_AVG_FILTER_RADIUS				);	// 90
+	fprintf(execution_log_file, "%d, ",				X_0_MED_FILTER_RADIUS				);	// 91
+	fprintf(execution_log_file, "%6.6lf, ",			X_0_AVG_FILTER_THRESHOLD			);	// 92
+
+	fprintf(execution_log_file, "%6.6lf, ",			TRIG_TABLE_MIN						);	// 93
+	fprintf(execution_log_file, "%6.6lf, ",			TRIG_TABLE_MAX						);	// 94
+	fprintf(execution_log_file, "%6.6lf, ",			TRIG_TABLE_STEP						);	// 95
+	fprintf(execution_log_file, "%6.6lf, ",			COEFF_TABLE_RANGE					);	// 96
+	fprintf(execution_log_file, "%6.6lf, ",			COEFF_TABLE_STEP					);	// 97
+	fprintf(execution_log_file, "%6.6lf, ",			POLY_TABLE_RANGE					);	// 98
+	fprintf(execution_log_file, "%6.6lf, ",			POLY_TABLE_STEP						);	// 99
+
+	fprintf(execution_log_file, "%s, ",				ENDPOINTS_ALG_CSTRING				);	// 100
+	fprintf(execution_log_file, "%s, ",				ENDPOINTS_TX_MODE_CSTRING			);	// 101
+	fprintf(execution_log_file, "%s, ",				ENDPOINTS_HULL_CSTRING				);	// 102
+	fprintf(execution_log_file, "%s, ",				MLP_ALGORITHM_CSTRING				);	// 103
+	fprintf(execution_log_file, "%s, ",				IGNORE_SHORT_MLP_CSTRING			);	// 104
+	fprintf(execution_log_file, "%d, ",				MIN_MLP_LENGTH						);	// 105
+	fprintf(execution_log_file, "%6.6lf, ",			MLP_U_STEP							);	// 106
 	
-	fprintf(execution_log_file, "%s, ",				ROBUST_METHOD_STRING				);	// 107
-	fprintf(execution_log_file, "%6.6lf, ",			ETA									);	// 108
-	fprintf(execution_log_file, "%d, ",				PSI_SIGN							);	// 109
+	fprintf(execution_log_file, "%s, ",				X_0_CSTRING							);	// 107
+	fprintf(execution_log_file, "%s, ",				PROJECTION_ALGORITHM_CSTRING		);	// 108
+	fprintf(execution_log_file, "%s, ",				RECON_TX_MODE_CSTRING				);	// 109
+	fprintf(execution_log_file, "%d, ",				ITERATIONS							);	// 110
+	fprintf(execution_log_file, "%d, ",				DROP_BLOCK_SIZE						);	// 111
+	fprintf(execution_log_file, "%6.6lf, ",			LAMBDA								);	// 112
 	
-	fprintf(execution_log_file, "%s, ",				S_CURVE_STRING						);	// 110
-	fprintf(execution_log_file, "%s, ",				S_CURVE_ON_STRING					);	// 111
-	fprintf(execution_log_file, "%s, ",				DUAL_SIDED_S_CURVE_STRING			);	// 112
-	//fprintf(execution_log_file, "%d, ",				S_CURVE_ON							);	// 109
-	//fprintf(execution_log_file, "%d, ",				DUAL_SIDED_S_CURVE					);	// 110
-	fprintf(execution_log_file, "%6.6lf, ",			SIGMOID_STEEPNESS					);	// 113
-	fprintf(execution_log_file, "%6.6lf, ",			SIGMOID_MID_SHIFT					);	// 114
+	fprintf(execution_log_file, "%s, ",				ROBUST_METHOD_CSTRING				);	// 113
+	fprintf(execution_log_file, "%6.6lf, ",			ETA									);	// 114
+	fprintf(execution_log_file, "%d, ",				PSI_SIGN							);	// 115
+
+	fprintf(execution_log_file, "%s, ",				BOUND_IMAGE_CSTRING					);	// 116
+	fprintf(execution_log_file, "%s, ",				IDENTIFY_X_0_AIR_CSTRING			);	// 117
+	fprintf(execution_log_file, "%6.6lf, ",			X_0_AIR_THRESHOLD					);	// 118
+	fprintf(execution_log_file, "%s, ",				IDENTIFY_X_N_AIR_CSTRING			);	// 119
+	fprintf(execution_log_file, "%6.6lf, ",			X_N_AIR_THRESHOLD					);	// 120
 		
-	//fprintf(execution_log_file, "%d, ",				TVS_ON								);	// 113
-	//fprintf(execution_log_file, "%d, ",				TVS_FIRST							);	// 114
-	//fprintf(execution_log_file, "%d, ",				TVS_PARALLEL						);	// 115
-	//fprintf(execution_log_file, "%d, ",				TVS_CONDITIONED						);	// 116
-	fprintf(execution_log_file, "%s, ",				TVS_ON_STRING						);	// 115
-	fprintf(execution_log_file, "%s, ",				TVS_FIRST_STRING					);	// 116
-	fprintf(execution_log_file, "%s, ",				TVS_PARALLEL_STRING					);	// 117
-	fprintf(execution_log_file, "%s, ",				TVS_CONDITIONED_STRING				);	// 118
-	fprintf(execution_log_file, "%d, ",				TVS_REPETITIONS						);	// 119
-	fprintf(execution_log_file, "%6.6lf, ",			BETA_0								);	// 120
-	fprintf(execution_log_file, "%6.6lf, ",			A									);	// 121
-	fprintf(execution_log_file, "%d, ",				L_0									);	// 122
-	fprintf(execution_log_file, "\n"														);	// end line, go to beginning of next entry
+	fprintf(execution_log_file, "%s, ",				S_CURVE_CSTRING						);	// 121
+	fprintf(execution_log_file, "%s, ",				S_CURVE_ON_CSTRING					);	// 122
+	fprintf(execution_log_file, "%s, ",				DUAL_SIDED_S_CURVE_CSTRING			);	// 123
+	fprintf(execution_log_file, "%6.6lf, ",			SIGMOID_STEEPNESS					);	// 124
+	fprintf(execution_log_file, "%6.6lf, ",			SIGMOID_MID_SHIFT					);	// 125
+	
+	fprintf(execution_log_file, "%s, ",				TVS_ON_CSTRING						);	// 126
+	fprintf(execution_log_file, "%s, ",				TVS_FIRST_CSTRING					);	// 127
+	fprintf(execution_log_file, "%s, ",				TVS_PARALLEL_CSTRING				);	// 128
+	fprintf(execution_log_file, "%s, ",				TVS_CONDITIONED_CSTRING				);	// 129
+	fprintf(execution_log_file, "%d, ",				TVS_REPETITIONS						);	// 130
+	fprintf(execution_log_file, "%6.6lf, ",			BETA_0								);	// 131
+	fprintf(execution_log_file, "%6.6lf, ",			A									);	// 132
+	fprintf(execution_log_file, "%d, ",				L_0									);	// 133
+	fprintf(execution_log_file, "\n"													);	// end line, go to beginning of next entry
 	fclose(execution_log_file);
 	print_colored_text("Copying updated execution log back to the network-attached storage device...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 	copy_data(BASH_COPY_FILE, LOCAL_EXECUTION_LOG_PATH, GLOBAL_EXECUTION_LOG_PATH);		
-	print_section_exit( "Finshed updating global execution log with current execution info", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finshed updating global execution log with current execution info", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	GLOBAL_DATA_FILE_LIST.push_back(std::string(GLOBAL_EXECUTION_LOG_PATH));		
 	OUTPUT_FILE_LIST.push_back(std::string(LOCAL_EXECUTION_LOG_PATH));
 	LOCAL_DATA_FILE_LIST.push_back(std::string(LOCAL_EXECUTION_LOG_PATH));	
@@ -1651,7 +1664,7 @@ void init_execution_log_csv()
 	fprintf(execution_log_file, "Execution Properties: Date/Time (EXECUTION_DATE_TIME), "			);	// 2
 	fprintf(execution_log_file, "Execution Properties: Compute Node (CURRENT_COMPUTE_NODE_ALIAS), "				);	// 3	
 	fprintf(execution_log_file, "Execution Properties: Git Branch : Commit Hash (Commit Date) (GIT_REPO_INFO), "	);	// 3
-	fprintf(execution_log_file, "Execution Properties: Executed By (TESTED_BY_STRING), "					);	// 4
+	fprintf(execution_log_file, "Execution Properties: Executed By (TESTED_BY_CSTRING), "					);	// 4
 	fprintf(execution_log_file, "Data Paths: Input Data Directory (INPUT_DIRECTORY), "				);	// 5
 	fprintf(execution_log_file, "Data Paths: Input Data Folder (INPUT_FOLDER), "				);	// 6
 	fprintf(execution_log_file, "Data Paths: Output Data/Image Directory (OUTPUT_DIRECTORY), "			);	// 7
@@ -1698,7 +1711,6 @@ void init_execution_log_csv()
 	
 	fprintf(execution_log_file, "Reconstruction Volume: Cylinder Radius [cm] (RECON_CYL_RADIUS), "			);	// 51
 	fprintf(execution_log_file, "Reconstruction Volume: Cylinder Height [cm] (RECON_CYL_HEIGHT), "			);	// 52
-
 	fprintf(execution_log_file, "Reconstructed Images: # Columns (COLUMNS), "						);	// 53
 	fprintf(execution_log_file, "Reconstructed Images: # Rows (ROWS), "						);	// 54
 	fprintf(execution_log_file, "Reconstructed Images: # Slices (SLICES), "						);	// 55
@@ -1744,25 +1756,31 @@ void init_execution_log_csv()
 	fprintf(execution_log_file, "MLP Lookup Tables: Polynomial Tables Depth Range [cm] (POLY_TABLE_RANGE), "			);	// 91
 	fprintf(execution_log_file, "MLP Lookup Tables: Polynomial Tables Depth Resolution [cm] (POLY_TABLE_STEP), "				);	// 92
 	
-	fprintf(execution_log_file, "MLP Endpoints: Algorithm (ENDPOINTS_ALG_STRING), "				);	// 93
-	fprintf(execution_log_file, "MLP Endpoints: Data Transfer Mode (ENDPOINTS_TX_MODE_STRING), "			);	// 94
-	fprintf(execution_log_file, "MLP Endpoints: Hull Used (ENDPOINTS_HULL_STRING), "				);	// 95
-	fprintf(execution_log_file, "MLP: Algorithm (MLP_ALGORITHM_STRING), "				);	// 96
-	fprintf(execution_log_file, "MLP: Ignore Short MLPs ON/OFF (IGNORE_SHORT_MLP_STRING), "			);	// 97
+	fprintf(execution_log_file, "MLP Endpoints: Algorithm (ENDPOINTS_ALG_CSTRING), "				);	// 93
+	fprintf(execution_log_file, "MLP Endpoints: Data Transfer Mode (ENDPOINTS_TX_MODE_CSTRING), "			);	// 94
+	fprintf(execution_log_file, "MLP Endpoints: Hull Used (ENDPOINTS_HULL_CSTRING), "				);	// 95
+	fprintf(execution_log_file, "MLP: Algorithm (MLP_ALGORITHM_CSTRING), "				);	// 96
+	fprintf(execution_log_file, "MLP: Ignore Short MLPs ON/OFF (IGNORE_SHORT_MLP_CSTRING), "			);	// 97
 	fprintf(execution_log_file, "MLP: Ignore MLP Paths w/ # Voxels Below (MIN_MLP_LENGTH), "				);	// 98
 	fprintf(execution_log_file, "MLP: Calculate MLP at Depths Separated by [cm] (MLP_U_STEP), "					);	// 99
 	
-	fprintf(execution_log_file, "Reconstruction: Initial Iterate Type (X_0_STRING), "					);	// 100
-	fprintf(execution_log_file, "Reconstruction: Iterative Projection Algorithm (PROJECTION_ALGORITHM_STRING), "	);	// 101
+	fprintf(execution_log_file, "Reconstruction: Initial Iterate Type (X_0_CSTRING), "					);	// 100
+	fprintf(execution_log_file, "Reconstruction: Iterative Projection Algorithm (PROJECTION_ALGORITHM_CSTRING), "	);	// 101
 	fprintf(execution_log_file, "Reconstruction: Data Transfer Mode (RECON_TX_MODE), "				);	// 102
 	fprintf(execution_log_file, "Reconstruction: # Iterations (ITERATIONS), "					);	// 103
 	fprintf(execution_log_file, "Reconstruction: DROP Block Size (DROP_BLOCK_SIZE), "				);	// 104
 	fprintf(execution_log_file, "Reconstruction: Relaxation Parameter (LAMBDA), "						);	// 105
-	fprintf(execution_log_file, "Reconstruction: Bound Image (BOUND_IMAGE), "					);	// 106
+	//fprintf(execution_log_file, "Reconstruction: Bound Image (BOUND_IMAGE), "					);	// 106
 	
 	fprintf(execution_log_file, "Robust Reconstruction: Algorithm (ROBUST_METHOD), "				);	// 107
 	fprintf(execution_log_file, "Robust Reconstruction: Perturbation Magnitude (ETA), "							);	// 108
 	fprintf(execution_log_file, "Robust Reconstruction: Perturbation Sign (PSI_SIGN), "					);	// 109
+	
+	fprintf(execution_log_file, "Reconstruction: Bound Image (BOUND_IMAGE), "					);	// 106
+	fprintf(execution_log_file, "Reconstruction: Identify Air Pockets in Initial Iterate (IDENTIFY_X_0_AIR_CSTRING), "					);	// 106
+	fprintf(execution_log_file, "Reconstruction: RSP Threshold Applied to Initial Iterate (X_0_AIR_THRESHOLD), "					);	// 106
+	fprintf(execution_log_file, "Reconstruction: Identify Air Pockets in Each Iterate (IDENTIFY_X_N_AIR_CSTRING), "					);	// 106
+	fprintf(execution_log_file, "Reconstruction: RSP Threshold Applied to Each Iterate (X_N_AIR_THRESHOLD), "					);	// 106
 	
 	fprintf(execution_log_file, "S-Curve Attenutation: Method (S_CURVE), "						);	// 110
 	fprintf(execution_log_file, "S-Curve Attenutation: ON/OFF (S_CURVE_ON), "					);	// 111
@@ -1781,7 +1799,7 @@ void init_execution_log_csv()
 	fprintf(execution_log_file, "\n"							);	// end line, go to beginning of next entry
 	fclose(execution_log_file);
 
-	print_section_exit( "Finished initializing global execution log", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finished initializing global execution log", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 }
 void write_TV_measurements()
 {
@@ -1813,7 +1831,7 @@ void apply_permissions()
 		set_file_permissions(LOCAL_OUTPUT_DATA_PATH, GLOBAL_ACCESS);
 		set_file_permissions(GLOBAL_OUTPUT_DATA_PATH, GLOBAL_ACCESS);	
 	}
-	print_section_exit( "Finished applying file permissions", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finished applying file permissions", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 }
 void cp_output_2_kodiak()
 {
@@ -1828,14 +1846,14 @@ void cp_output_2_kodiak()
 	/********************************************************************************************************************************************************/				
 	print_section_header("Copying reconstruction results to the network-attached storage device", MINOR_SECTION_SEPARATOR, LIGHT_CYAN_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	copy_folder_contents(BASH_COPY_DIR, LOCAL_OUTPUT_DATA_PATH, GLOBAL_OUTPUT_DATA_PATH);
-	print_section_exit( "Finshed copying local output data to the network-attached storage device", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finshed copying local output data to the network-attached storage device", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	/********************************************************************************************************************************************************/
 	/*							Copy directory containing reconstruction code compiled/executed to generate reconstruction results to Kodiak								*/
 	/********************************************************************************************************************************************************/				
 	print_section_header("Copying executed code to the network-attached storage device...", MINOR_SECTION_SEPARATOR, LIGHT_CYAN_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	copy_data(BASH_COPY_DIR, EXECUTED_SRC_CODE_PATH, GLOBAL_OUTPUT_SRC_CODE_PATH);		
 	copy_data(BASH_COPY_DIR, EXECUTED_INCLUDE_CODE_PATH, GLOBAL_OUTPUT_INCLUDE_CODE_PATH);		
-	print_section_exit( "cp data transfers complete", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );			
+	print_section_exit( "cp data transfers complete", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );			
 }
 void scp_output_2_kodiak()
 {
@@ -1873,7 +1891,7 @@ void scp_output_2_kodiak()
 	/********************************************************************************************************************************************************/
 	/*							Copy directory containing reconstruction code compiled/executed to generate reconstruction results to Kodiak								*/
 	/********************************************************************************************************************************************************/					
-	print_section_exit( "scp data transfers complete", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );			
+	print_section_exit( "scp data transfers complete", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );			
 }
 void program_completion_tasks()
 {
@@ -2108,7 +2126,7 @@ void count_histories()
 			printf("There are a total of %d histories in Scan Number %d \n", histories_per_scan[scan_number], scan_number + 1);
 		printf("There are a total of %d histories\n", total_histories);
 	}*/
-	//print_section_exit( "Finished counting proton histories", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	//print_section_exit( "Finished counting proton histories", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 }
 void count_histories_old()
 {
@@ -3746,7 +3764,7 @@ void import_and_process_data()
 	initializations();				// allocate and initialize host and GPU memory for statistical
 	count_histories();				// count the number of histories per file, per scan, total, etc.
 	reserve_vector_capacity();		// Reserve enough memory so vectors don't grow into another reserved memory space, wasting time since they must be moved
-	print_section_exit( "Finished counting proton histories and initialization of arrays/vectors", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_section_exit( "Finished counting proton histories and initialization of arrays/vectors", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 	
 	print_section_header( "Importing and processing proton history data...", MINOR_SECTION_SEPARATOR, LIGHT_CYAN_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
 	print_colored_text( "Iteratively reading data from hard disk...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
@@ -3777,7 +3795,7 @@ void import_and_process_data()
 	//shrink_vectors( recon_vol_histories );	// Shrink vector capacities to their size = # histories remaining reconstruction volume intersection cuts
 	print_colored_text( print_statement, GREEN_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
 
-	print_section_exit( "Finished importing/processing input data and accumulating hull intersection info", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finished importing/processing input data and accumulating hull intersection info", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	execution_time_data_reads = timer( STOP, begin_data_reads, "for reading data, coordinate conversions/intersections, hull detection counts, and binning");	
 }		
 /***********************************************************************************************************************************************************************************************************************/
@@ -4195,7 +4213,7 @@ void statistical_calculations_and_cuts()
 	post_cut_memory_clean();
 	resize_vectors( post_cut_histories );
 	//shrink_vectors( post_cut_histories );
-	print_section_exit( "Finished statistical cuts", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_section_exit( "Finished statistical cuts", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 	exit_program_if( EXIT_AFTER_CUTS, "through statistical data cuts" );
 }		
 /***********************************************************************************************************************************************************************************************************************/
@@ -4245,7 +4263,7 @@ void construct_sinogram()
 	//array_2_disk( BIN_COUNTS_POST_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, bin_counts_h, T_BINS, ANGULAR_BINS, V_BINS, NUM_BINS, true );
 	
 	cudaFree(bin_counts_d);
-	print_section_exit( "Finished generating sinogram", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finished generating sinogram", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	exit_program_if( EXIT_AFTER_SINOGRAM, "through sinogram generation" );	
 }
 __global__ void construct_sinogram_GPU( int* bin_counts, float* sinogram )
@@ -4343,7 +4361,7 @@ void FBP()
 		free(FBP_image_h);
 	
 	cudaFree(FBP_image_d);
-	print_section_exit( "Finished filtered backprojection", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finished filtered backprojection", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 }
 void filter()
 {
@@ -5309,7 +5327,7 @@ void hull_detection_finish()
 		if( ENDPOINTS_HULL != SM_HULL )
 			free( SM_counts_h );
 	}
-	print_section_exit( "Finished hull detection", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_section_exit( "Finished hull detection", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 	exit_program_if( EXIT_AFTER_HULLS, "through hull detection" );		
 }
 void hull_conversion_int_2_bool( int* int_hull )
@@ -5362,7 +5380,7 @@ void hull_selection()
 		if(hull_h[voxel])
 			hull_voxels_vector.push_back(voxel);
 	}
-	print_section_exit( "Finished hull selection", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finished hull selection", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 }
 void preprocessing()
 {
@@ -6356,7 +6374,7 @@ void reconstruction_cuts()
 	}
 	sprintf(print_statement, "------> Protons that intersected the hull and will be used for reconstruction = %d", reconstruction_histories);
 	print_colored_text( print_statement, GREEN_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
-	print_section_exit( "Finished removing unnecessary reconstruction histories", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_section_exit( "Finished removing unnecessary reconstruction histories", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 	execution_time_endpoints = timer( STOP, begin_endpoints, "for finding MLP endpoints");
 	
 	// Reduce the size of the vectors to reconstruction_histories and shrink their capacity to match
@@ -6580,7 +6598,7 @@ void setup_MLP_lookup_tables()
 	}
 	MLP_lookup_table_2_GPU();
 	execution_time_tables = timer( STOP, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
-	print_section_exit( "Finished setting up MLP lookup tables and transferring them to GPU", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finished setting up MLP lookup tables and transferring them to GPU", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 }
 void free_MLP_lookup_tables()
 {
@@ -6671,11 +6689,11 @@ void define_initial_iterate()
 	}
 	//cudaMalloc((void**) &x_d, SIZE_IMAGE_FLOAT );
 	//cudaMemcpy( x_d, x_h, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice );
-	if(APPLY_AIR_THRESHOLD)
+	if(IDENTIFY_X_0_AIR)
 	{
 		for(int voxel = 0; voxel < NUM_VOXELS; voxel++)
 		{
-			if(x_h[voxel] < AIR_THRESHOLD)
+			if(x_h[voxel] < X_0_AIR_THRESHOLD)
 				x_h[voxel] = 0.0;
 		}
 	}
@@ -6685,7 +6703,7 @@ void define_initial_iterate()
 	if(RECONSTRUCT_X_0)
 		reconstruct_initial_iterate();
 	exit_program_if( EXIT_AFTER_X_O, "through initial iterate generation" );
-	print_section_exit( "Finished generating initial iterate", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	print_section_exit( "Finished generating initial iterate", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 }
 void generate_preprocessing_images()
 {
@@ -6704,34 +6722,210 @@ void generate_preprocessing_images()
 /***********************************************************************************************************************************************************************************************************************/
 /******************************************************************************************* Generate history ordering for reconstruction ******************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void generate_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
+void generate_history_sequence(ULL N, ULL offset_prime, ULL* sequence )
 {
-    history_sequence[0] = 0;
-    for( ULL i = 1; i < N; i++ )
-        history_sequence[i] = ( history_sequence[i-1] + offset_prime ) % N;
+    sequence = (ULL*) calloc( N, sizeof(ULL));
+	for( ULL i = 1; i < N; i++ )
+        sequence[i] = ( sequence[i-1] + offset_prime ) % N;
 }
-void verify_history_sequence(ULL N, ULL offset_prime, ULL* history_sequence )
+void verify_history_sequence(ULL N, ULL offset_prime, ULL* sequence )
 {
 	for( ULL i = 1; i < N; i++ )
     {
-        if(history_sequence[i] == 1)
+        if(sequence[i] == 1)
         {
             printf("repeats at i = %llu\n", i);
-            printf("sequence[i] = %llu\n", history_sequence[i]);
+            printf("history_sequence[i] = %llu\n", sequence[i]);
             break;
         }
-        if(history_sequence[i] > N)
+        if(sequence[i] > N)
         {
             printf("exceeds at i = %llu\n", i);
-            printf("sequence[i] = %llu\n", history_sequence[i]);
+            printf("history_sequence[i] = %llu\n", sequence[i]);
             break;
         }
     }
 }
-void print_history_sequence(ULL* history_sequence, ULL print_start, ULL print_end )
+void print_history_sequence(ULL* sequence, ULL print_start, ULL print_end )
 {
     for( ULL i = print_start; i < print_end; i++ )
-		printf("history_sequence[i] = %llu\n", history_sequence[i]);
+		printf("history_sequence[i] = %llu\n", sequence[i]);
+}
+void apply_history_sequence(ULL N, ULL offset_prime, ULL* sequence)
+{
+	if(RECON_HISTORY_ORDERING == PRIME_PERMUTATION)
+	{
+		// 
+		bin_num_vector_reconstruction.reserve(N);
+		//gantry_angle_vector.reserve(gantry_angle_vector);
+		WEPL_vector_reconstruction.reserve(N);
+		x_entry_vector_reconstruction.reserve(N);
+		y_entry_vector_reconstruction.reserve(N);
+		z_entry_vector_reconstruction.reserve(N);
+		x_exit_vector_reconstruction.reserve(N);
+		y_exit_vector_reconstruction.reserve(N);
+		z_exit_vector_reconstruction.reserve(N);
+		xy_entry_angle_vector_reconstruction.reserve(N);
+		xz_entry_angle_vector_reconstruction.reserve(N);
+		xy_exit_angle_vector_reconstruction.reserve(N);
+		xz_exit_angle_vector_reconstruction.reserve(N);
+		first_MLP_voxel_vector_reconstruction.reserve(N);
+	
+		// 
+		generate_history_sequence(N, offset_prime, sequence );
+		
+		for(int i = 0; i < N; i++ ) 
+		{  
+			read_index = sequence[i];
+			bin_num_vector_reconstruction.push_back(bin_num_vector[read_index]);
+			//gantry_angle_vector.push_back(gantry_angle_vector[read_index]);
+			WEPL_vector_reconstruction.push_back(WEPL_vector[read_index]);
+			x_entry_vector_reconstruction.push_back(x_entry_vector[read_index]);
+			y_entry_vector_reconstruction.push_back(y_entry_vector[read_index]);
+			z_entry_vector_reconstruction.push_back(z_entry_vector[read_index]);
+			x_exit_vector_reconstruction.push_back(x_exit_vector[read_index]);
+			y_exit_vector_reconstruction.push_back(y_exit_vector[read_index]);
+			z_exit_vector_reconstruction.push_back(z_exit_vector[read_index]);
+			xy_entry_angle_vector_reconstruction.push_back(xy_entry_angle_vector[read_index]);
+			xz_entry_angle_vector_reconstruction.push_back(xz_entry_angle_vector[read_index]);
+			xy_exit_angle_vector_reconstruction.push_back(xy_exit_angle_vector[read_index]);
+			xz_exit_angle_vector_reconstruction.push_back(xz_exit_angle_vector[read_index]);
+			first_MLP_voxel_vector_reconstruction.push_back(first_MLP_voxel_vector[read_index]);		
+		}
+	}
+	else if(RECON_HISTORY_ORDERING == SEQUENTIAL)
+	{
+		bin_num_vector_reconstruction = bin_num_vector;
+		//gantry_angle_vector = gantry_angle_vector;
+		WEPL_vector_reconstruction = WEPL_vector;
+		x_entry_vector_reconstruction = x_entry_vector;
+		y_entry_vector_reconstruction = y_entry_vector;
+		z_entry_vector_reconstruction = z_entry_vector;
+		x_exit_vector_reconstruction = x_exit_vector;
+		y_exit_vector_reconstruction = y_exit_vector;
+		z_exit_vector_reconstruction = z_exit_vector;
+		xy_entry_angle_vector_reconstruction = xy_entry_angle_vector;
+		xz_entry_angle_vector_reconstruction = xz_entry_angle_vector;
+		xy_exit_angle_vector_reconstruction = xy_exit_angle_vector;
+		xz_exit_angle_vector_reconstruction = xz_exit_angle_vector;
+		first_MLP_voxel_vector_reconstruction = first_MLP_voxel_vector;		
+	}
+//	bin_num_vector_ordered = ;			
+//		gantry_angle_vector_ordered;	
+//		WEPL_vector_ordered;		
+//		x_entry_vector_ordered;		
+//		y_entry_vector_ordered;		
+//		z_entry_vector_ordered;		
+//		x_exit_vector_ordered;			
+//		y_exit_vector_ordered;			
+//		z_exit_vector_ordered;			
+//		xy_entry_angle_vector_ordered;	
+//		xz_entry_angle_vector_ordered;	
+//		xy_exit_angle_vector_ordered;	
+//		xz_exit_angle_vector_ordered;	
+//		first_MLP_voxel_vector_ordered;
+//		voxel_x_vector_ordered;
+//		voxel_y_vector_ordered;
+//		voxel_z_vector_ordered;		
+}
+void shuffle_blocks()
+{
+	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	std::shuffle (DROP_block_order.begin(),				DROP_block_order.end(),				std::default_random_engine(seed));
+	std::shuffle (DROP_block_sizes.begin(),				DROP_block_sizes.end(),				std::default_random_engine(seed));
+	std::shuffle (DROP_block_start_positions.begin(),	DROP_block_start_positions.end(),	std::default_random_engine(seed));
+	/*std::srand ( seed );
+	std::random_shuffle ( DROP_block_order.begin(), DROP_block_order.end() );
+	std::srand ( seed );
+	std::random_shuffle ( DROP_block_sizes.begin(), DROP_block_sizes.end() );
+	std::srand ( seed );
+	std::random_shuffle ( DROP_block_start_positions.begin(), DROP_block_start_positions.end() );
+	*/
+	//unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	//std::shuffle (DROP_block_order.begin(), DROP_block_order.end(), std::default_random_engine(seed));
+	//std::shuffle (DROP_block_sizes.begin(), DROP_block_sizes.end(), std::default_random_engine(seed));
+	//std::shuffle (DROP_block_start_positions.begin(), DROP_block_start_positions.end(), std::default_random_engine(seed));
+}
+void rotate_blocks_left()
+{
+	 std::rotate(DROP_block_order.begin(),				DROP_block_order.begin() + 1,			DROP_block_order.end());
+	 std::rotate(DROP_block_sizes.begin(),				DROP_block_sizes.begin() + 1,			DROP_block_sizes.end());
+	 std::rotate(DROP_block_start_positions.begin(),	DROP_block_start_positions.begin() + 1, DROP_block_start_positions.end());
+}
+void rotate_blocks_right()
+{
+	std::rotate(DROP_block_order.rbegin(),				DROP_block_order.rbegin() + 1,				DROP_block_order.rend());
+	std::rotate(DROP_block_sizes.rbegin(),				DROP_block_sizes.rbegin() + 1,				DROP_block_sizes.rend());
+	std::rotate(DROP_block_start_positions.rbegin(),	DROP_block_start_positions.rbegin() + 1,	DROP_block_start_positions.rend());
+}
+void print_DROP_block_info()
+{
+	for(int i = 0; i < num_DROP_blocks; i++)
+	{
+		cout << "i = " << i << ": " << DROP_block_order[i] << std::endl;
+	}
+	cout << endl;
+	for(int i = 0; i < num_DROP_blocks; i++)
+	{
+		cout << "i = " << i << ": " << DROP_block_sizes[i] << std::endl;
+	}
+	cout << endl;
+	for(int i = 0; i < num_DROP_blocks; i++)
+	{
+		cout << "i = " << i << ": " << DROP_block_start_positions[i] << std::endl;
+	}
+	cout << endl;	
+}
+void recon_DROP_initializations()
+{
+	DROP_last_block_size = reconstruction_histories % DROP_BLOCK_SIZE;
+	num_DROP_blocks = static_cast<UINT>(ceil(reconstruction_histories / DROP_BLOCK_SIZE));
+	
+	// Construct temporary vectors with DROP block info 
+	std::vector<UINT> DROP_block_sizes_constructor( num_DROP_blocks, DROP_BLOCK_SIZE);
+	std::vector<UINT> DROP_block_order_constructor( num_DROP_blocks);
+	std::vector<UINT> DROP_block_start_positions_constructor( num_DROP_blocks, DROP_BLOCK_SIZE);	
+	DROP_block_sizes_constructor.back() = DROP_last_block_size;
+	std::iota (DROP_block_order_constructor.begin(), DROP_block_order_constructor.end(), 0);
+	DROP_block_start_positions_constructor.front() = 0;	
+	for(int i = 1; i < num_DROP_blocks; i++)
+		DROP_block_start_positions_constructor[i] += DROP_block_start_positions_constructor[i - 1];
+	
+	// Use temporary vectors to set DROP block info vectors
+	DROP_block_sizes = DROP_block_sizes_constructor;
+	DROP_block_order = DROP_block_order_constructor;
+	DROP_block_start_positions = DROP_block_start_positions_constructor;
+
+	/*std::cout << "Initial block info construction" << std::endl;
+	print_DROP_block_info();
+	
+	
+	std::cout << "Rotate left block info" << std::endl;
+	rotate_blocks_left();
+	print_DROP_block_info();
+	if(exit_prompt( "Enter 'c' to continue execution, any other character exits program", 'c'))
+		exit_program();
+	
+	std::cout << "Rotate right block info" << std::endl;
+	rotate_blocks_right();
+	print_DROP_block_info();
+	if(exit_prompt( "Enter 'c' to continue execution, any other character exits program", 'c'))
+		exit_program();
+	
+	std::cout << "Shuffled block info" << std::endl;
+	shuffle_blocks();
+	print_DROP_block_info();
+	if(exit_prompt( "Enter 'c' to continue execution, any other character exits program", 'c'))
+		exit_program();*/
+	
+	switch{DROP_BLOCK_ORDER}
+	{
+		case SEQUENTIAL:			break;
+		case ROTATE_LEFT:		rotate_blocks_left();		break;
+		case ROTATE_RIGHT:		rotate_blocks_right();		break;
+		case RANDOMLY_SHUFFLE:		shuffle_blocks();			break;
+	}
+	//print_DROP_block_info();	
 }
 /**************************************************************************************************************************************************************************/
 /******************************************* MLP and image update calculation/application functions ***********************************************************************/
@@ -7289,8 +7483,8 @@ __global__ void image_update_GPU (float* x, float* x_update, unsigned int* S)
 			x[voxel] += x_update[voxel] / S[voxel];
 			x_update[voxel] = 0.0;
 			S[voxel] = 0;
-			#if UPDATE_X_APPLY_AIR_THRESHOLD 
-				if(x[voxel] < UPDATE_X_AIR_THRESHOLD)
+			#if IDENTIFY_X_N_AIR 
+				if(x[voxel] < X_N_AIR_THRESHOLD)
 					x[voxel] = 0.0;
 			#endif
 		}
@@ -7812,6 +8006,96 @@ void DROP_GPU(const unsigned int num_histories, const int iterations, double rel
 	#elif (DROP_TX_MODE==PARTIAL_TX)
 		//DROP_partial_tx_iteration(num_histories, iteration);
 	#endif 
+	#if TVS_ON	
+		allocate_perturbation_arrays(false);
+		generate_TVS_eta_sequence();
+		x_TVS_h = (float*)calloc(NUM_VOXELS, sizeof(float));	
+	#endif 
+
+	sprintf(print_statement, "Performing reconstruction with TVS repeated %d times before each DROP iteration and writing output data/images to:", TVS_REPETITIONS);
+	print_colored_text(print_statement, CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_colored_text(OUTPUT_FOLDER_UNIQUE, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );		
+	for(unsigned int iteration = 1; iteration <= iterations ; ++iteration) 
+	{	    
+		sprintf(iterate_filename, "%s%d", "x_", iteration );
+		sprintf(print_statement, "Performing iteration %u of image reconstruction...", iteration);
+		print_section_header(print_statement, MINOR_SECTION_SEPARATOR, LIGHT_BLUE_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
+		#if TVS_ON && TVS_FIRST
+			#if TVS_OLD
+				TVS_REPETITIONS = 1;
+			#endif
+			NTVS_iteration(iteration);		
+		#endif
+		// Transfer data for ALL reconstruction_histories before beginning image reconstruction, using the MLP lookup tables each time
+		#if (DROP_TX_MODE==FULL_TX)
+			DROP_full_tx_iteration(num_histories, iteration, relaxation_parameter);
+		// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, using the MLP lookup tables each time
+		#elif (DROP_TX_MODE==PARTIAL_TX_PREALLOCATED)
+			DROP_partial_tx_preallocated_iteration(num_histories, iteration, relaxation_parameter);
+		// Transfer data to GPU as needed but allocate and resuse the GPU arrays each kernel launch, using the MLP lookup tables each time
+		#elif (DROP_TX_MODE==PARTIAL_TX)
+			DROP_partial_tx_iteration(num_histories, iteration, relaxation_parameter);
+		#endif 
+		#if TVS_ON && !TVS_FIRST
+			#if TVS_OLD
+				TVS_REPETITIONS = 1;
+			#endif
+			NTVS_iteration(iteration);		
+		#endif		
+		// Transfer the updated image to the host and write it to disk
+		if( WRITE_X_KI ) 
+		{
+			x_GPU_2_host();
+			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+		}
+	}// end: for( unsigned int iteration = 1; iteration < iterations; iteration++)	
+	#if (DROP_TX_MODE==FULL_TX)
+		DROP_deallocations();
+	#elif (DROP_TX_MODE==PARTIAL_TX_PREALLOCATED)
+		DROP_deallocations();
+	#elif (DROP_TX_MODE==PARTIAL_TX)
+		//DROP_partial_tx_iteration(num_histories, iteration);
+	#endif 
+	#if TVS_ON	
+		deallocate_perturbation_arrays(false);
+	#endif 	
+	#if (MLP_ALGORITHM == TABULATED)
+		free_MLP_lookup_tables();	
+	#endif 
+	DROP_free_update_arrays();
+	execution_time_DROP = timer( STOP, begin_DROP, "for all iterations of DROP");
+}
+void DROP_GPU_PCD(const unsigned int num_histories, const int iterations, double relaxation_parameter)	
+{
+	// RECON_TX_MODE = FULL_TX, MLP_ALGORITHM = TABULATED
+	char iterate_filename[256];
+	unsigned int start_position = 0;
+	unsigned int column_blocks = static_cast<unsigned int>( COLUMNS / VOXELS_PER_THREAD );
+	dim3 dimBlock( SLICES );
+	dim3 dimGrid( column_blocks, ROWS );	
+	// Host and GPU array allocations and host->GPU transfers/initializations for DROP and TVS
+	timer( START, begin_DROP, "for all iterations of DROP");	
+	setup_MLP_lookup_tables();
+#if (DROP_BRANCHING)
+	if (DROP_TX_MODE==FULL_TX)
+	{
+		DROP_allocations(num_histories);
+		DROP_host_2_device( start_position, num_histories);
+	}
+	else if (DROP_TX_MODE==PARTIAL_TX_PREALLOCATED)
+		DROP_allocations(DROP_BLOCK_SIZE);
+	else if (DROP_TX_MODE==PARTIAL_TX)
+		//DROP_partial_tx_iteration(num_histories, iteration);
+#elif PCD_DROP
+	#if PCD_DROP_FULL_TX
+		DROP_allocations(num_histories);
+		DROP_host_2_device( start_position, num_histories);
+	#elif PCD_DROP_PARTIAL_TX
+		DROP_allocations(DROP_BLOCK_SIZE);
+	#elif PCD_DROP_PARTIAL_TX_PREALLOCATED
+		//DROP_partial_tx_iteration(num_histories, iteration);
+	#endif 	
+#endif
 	#if TVS_ON	
 		allocate_perturbation_arrays(false);
 		generate_TVS_eta_sequence();
@@ -8407,7 +8691,7 @@ void image_reconstruction()
 	if( PROJECTION_ALGORITHM == DROP )
 		DROP_GPU(reconstruction_histories);
 	//DROP_free_update_arrays();	
-	print_section_exit( "Finished image reconstruction", SECTION_EXIT_STRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );		
+	print_section_exit( "Finished image reconstruction", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );		
 	print_section_header( "Timing information", MINOR_SECTION_SEPARATOR, LIGHT_CYAN_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
 	execution_time_reconstruction = timer( STOP, begin_reconstruction, "for complete image reconstruction");		
 }
@@ -9197,6 +9481,7 @@ void create_random_number_generator_engines()
 int randi(int min_value, int max_value)
 {
 	unsigned seed = std::chrono::system_clock::now().time_since_epoch().count();
+	//unsigned RANDI_SEED = std::chrono::system_clock::now().time_since_epoch().count();
 	//std::default_random_engine generator(RANDI_SEED);
 	std::default_random_engine generator(seed);
 	std::uniform_int_distribution<int> distribution(min_value, max_value);

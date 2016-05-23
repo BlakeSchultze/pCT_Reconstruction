@@ -80,11 +80,11 @@ using std::chrono::system_clock;
 typedef unsigned long long ULL;
 typedef unsigned int UINT;
 typedef unsigned int uint;
+typedef std::vector<UINT>::iterator block_iterator;
 #define ON						(0==0)									// [T/F] Definition of boolean "ON" as equivalent to 'true'
 #define OFF						(!ON)									// [T/F] Definition of boolean "OFF" as equivalent to 'false' (technically 'not true')
 #define START					true									// [T/F] Used as an alias for true for starting timer
 #define STOP					false									// [T/F] Used as an alias for false for stopping timer
-
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Struct definitions and global variable instantiations ----------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -98,39 +98,40 @@ enum MetaSyntacticVariable{
     SOME_ENUM(MAKE_ENUM)
 };
 
-#define MAKE_STRINGS(VAR) #VAR,
+#define MAKE_CSTRINGS(VAR) #VAR,
 const char* const MetaSyntacticVariableNames[] = {
-    SOME_ENUM(MAKE_STRINGS)
+    SOME_ENUM(MAKE_CSTRINGS)
 };
-unsigned RANDI_SEED = std::chrono::system_clock::now().time_since_epoch().count();
 	
-enum DATA_FORMATS			{ OLD_FORMAT, VERSION_0, VERSION_1, END_DATA_FORMATS						};				// Define the data formats that are supported
-enum SCAN_TYPES				{ EXPERIMENTAL, SIMULATED_G, SIMULATED_T, END_SCAN_TYPES					};				// Experimental or simulated (GEANT4 or TOPAS) data
-enum FILE_TYPES				{ TEXT, BINARY, END_FILE_TYPES												};				// Experimental or simulated data
+enum DATA_FORMATS			{ OLD_FORMAT, VERSION_0, VERSION_1, END_DATA_FORMATS							};				// Define the data formats that are supported
+enum SCAN_TYPES				{ EXPERIMENTAL, SIMULATED_G, SIMULATED_T, END_SCAN_TYPES						};				// Experimental or simulated (GEANT4 or TOPAS) data
+enum FILE_TYPES				{ TEXT, BINARY, END_FILE_TYPES													};				// Experimental or simulated data
 enum RAND_GENERATORS		{ DEFAULT_RAND, MINSTD_RAND, MINSTD_RAND0, MT19937,											// Defines the available random number generator engines 
-								MT19937_64, RANLUX24, RANLUX48, KNUTH_B, END_RAND_GENERATORS			};				// ...
-enum IMAGE_BASES			{ VOXELS, BLOBS, END_IMAGE_BASES											};				// Defines whether images are formed using voxels or blobs as the basis elements
-enum BIN_ANALYSIS_TYPE		{ MEANS, COUNTS, MEMBERS, END_BIN_ANALYSIS_TYPE								};				// Choices for what information about the binned data is desired 
-enum BIN_ANALYSIS_FOR		{ ALL_BINS, SPECIFIC_BINS, END_BIN_ANALYSIS_FOR								};				// Choices for which bins the desired data should come from
-enum BIN_ORGANIZATION		{ BY_BIN, BY_HISTORY, END_BIN_ORGANIZATION									};				// Binned data is either organized in order by bin or by history w/ bin # specified separately
-enum BIN_ANALYSIS_OF		{ WEPLS, ANGLES, POSITIONS, BIN_NUMS, END_BIN_ANALYSIS_OF					};				// Choices for which type of binned data is desired
-enum FBP_FILTER_TYPES		{ RAM_LAK, SHEPP_LOGAN, UNFILTERED, END_FBP_FILTER_TYPES							};				// Define the types of filters that are available for use in FBP
+								MT19937_64, RANLUX24, RANLUX48, KNUTH_B, END_RAND_GENERATORS				};				// ...
+enum IMAGE_BASES			{ VOXELS, BLOBS, END_IMAGE_BASES												};				// Defines whether images are formed using voxels or blobs as the basis elements
+enum BIN_ANALYSIS_TYPE		{ MEANS, COUNTS, MEMBERS, END_BIN_ANALYSIS_TYPE									};				// Choices for what information about the binned data is desired 
+enum BIN_ANALYSIS_FOR		{ ALL_BINS, SPECIFIC_BINS, END_BIN_ANALYSIS_FOR									};				// Choices for which bins the desired data should come from
+enum BIN_ORGANIZATION		{ BY_BIN, BY_HISTORY, END_BIN_ORGANIZATION										};				// Binned data is either organized in order by bin or by history w/ bin # specified separately
+enum BIN_ANALYSIS_OF		{ WEPLS, ANGLES, POSITIONS, BIN_NUMS, END_BIN_ANALYSIS_OF						};				// Choices for which type of binned data is desired
+enum FBP_FILTER_TYPES		{ RAM_LAK, SHEPP_LOGAN, UNFILTERED, END_FBP_FILTER_TYPES						};				// Define the types of filters that are available for use in FBP
 enum IMAGE_FILTERING_OPTIONS{ NO_FILTER, MEDIAN, AVERAGE, MED_2_AVG, AVG_2_MED, END_IMAGE_FILTERING_OPTIONS	};
-enum HULL_TYPES				{ SC_HULL, MSC_HULL, SM_HULL, FBP_HULL, END_HULL_TYPES						};				// Define valid choices for which hull to use in MLP calculations
-enum INITIAL_ITERATE		{ X_HULL, FBP_IMAGE, HYBRID, ZEROS, IMPORT, END_INITIAL_ITERATE				};				// Define valid choices for which hull to use in MLP calculations
-enum TX_OPTIONS				{ FULL_TX, PARTIAL_TX, PARTIAL_TX_PREALLOCATED, END_TX_OPTIONS				};				// Define valid choices for the host->GPU data transfer method
-enum ENDPOINTS_ALGORITHMS	{ YES_BOOL, NO_BOOL, END_ENDPOINTS_ALGORITHMS								};				// Define the method used to identify protons that miss/hit the hull in MLP endpoints calculations
-enum MLP_ALGORITHMS			{ STANDARD, TABULATED, END_MLP_ALGORITHMS									};				// Define whether standard explicit calculations or lookup tables are used in MLP calculations
-enum PROJECTION_ALGORITHMS	{ ART, SART, DROP, BIP, SAP, ROBUSTA, ROBUSTB, END_PROJECTION_ALGORITHMS	};				// Define valid choices for iterative projection algorithm to use
-enum S_CURVES				{ SIGMOID, TANH, ATAN, ERF, LIN_OVER_ROOT, END_S_CURVES						};				// Define valid choices for iterative projection algorithm to use
-enum ROBUST_METHODS			{ OLS, TLS, TIKHONOV, RIDGE, MINMIN, MINMAX, END_ROBUST_METHODS				};				// Defines the robust regression methods available for robust image reconstruction
-enum STRUCTURAL_ELEMENTS	{ SQUARE, DISK, END_STRUCTURAL_ELEMENTS										};				// Defines the structural elements available to the morphological operators
-enum MORPHOLOGICAL_OPS		{ ERODE, DILATE, OPEN, CLOSE, END_MORPHOLOGICAL_OPS							};				// Defines the mathematical morphology operators available for image processing 
+enum HULL_TYPES				{ SC_HULL, MSC_HULL, SM_HULL, FBP_HULL, END_HULL_TYPES							};				// Define valid choices for which hull to use in MLP calculations
+enum INITIAL_ITERATE		{ X_HULL, FBP_IMAGE, HYBRID, ZEROS, IMPORT, END_INITIAL_ITERATE					};				// Define valid choices for which hull to use in MLP calculations
+enum TX_OPTIONS				{ FULL_TX, PARTIAL_TX, PARTIAL_TX_PREALLOCATED, END_TX_OPTIONS					};				// Define valid choices for the host->GPU data transfer method
+enum ENDPOINTS_ALGORITHMS	{ YES_BOOL, NO_BOOL, END_ENDPOINTS_ALGORITHMS									};				// Define the method used to identify protons that miss/hit the hull in MLP endpoints calculations
+enum MLP_ALGORITHMS			{ STANDARD, TABULATED, END_MLP_ALGORITHMS										};				// Define whether standard explicit calculations or lookup tables are used in MLP calculations
+enum PROJECTION_ALGORITHMS	{ ART, SART, DROP, BIP, SAP, ROBUSTA, ROBUSTB, END_PROJECTION_ALGORITHMS		};				// Define valid choices for iterative projection algorithm to use
+enum S_CURVES				{ SIGMOID, TANH, ATAN, ERF, LIN_OVER_ROOT, END_S_CURVES							};				// Define valid choices for iterative projection algorithm to use
+enum ROBUST_METHODS			{ OLS, TLS, TIKHONOV, RIDGE, MINMIN, MINMAX, END_ROBUST_METHODS					};				// Defines the robust regression methods available for robust image reconstruction
+enum STRUCTURAL_ELEMENTS	{ SQUARE, DISK, END_STRUCTURAL_ELEMENTS											};				// Defines the structural elements available to the morphological operators
+enum MORPHOLOGICAL_OPS		{ ERODE, DILATE, OPEN, CLOSE, END_MORPHOLOGICAL_OPS								};				// Defines the mathematical morphology operators available for image processing 
 enum LOG_ENTRIES			{ OBJECT_L, SCAN_TYPE_L, RUN_DATE_L, RUN_NUMBER_L,											// Define the headings of each column in the execution log 
 							ACQUIRED_BY_L, PROJECTION_DATA_DATE_L, CALIBRATED_BY_L, 									// ...	 	
 							PREPROCESS_DATE_L, PREPROCESSED_BY_L, RECONSTRUCTION_DATE_L,								// ...
-							RECONSTRUCTED_BY_L, COMMENTS_L, END_LOG_ENTRIES								};				// ...
-enum CODE_SOURCES			{ LOCAL, GLOBAL, USER_HOME, GROUP_HOME, END_CODE_SOURCES					};				// Define the data formats that are supported
+							RECONSTRUCTED_BY_L, COMMENTS_L, END_LOG_ENTRIES									};				// ...
+enum CODE_SOURCES			{ LOCAL, GLOBAL, USER_HOME, GROUP_HOME, END_CODE_SOURCES						};				// Define the data formats that are supported
+enum HISTORY_ORDERING		{ SEQUENTIAL, PRIME_PERMUTATION, END_HISTORY_ORDERING							};				// Define the data formats that are supported
+enum BLOCK_ORDERING			{ CYCLIC, ROTATE_LEFT, ROTATE_RIGHT, RANDOMLY_SHUFFLE, END_BLOCK_ORDERING					};				// Define the data formats that are supported
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Struct definitions and global variable instantiations ----------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -163,7 +164,8 @@ configurations *configurations_d;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 const RAND_GENERATORS		RAND_ENGINE				= DEFAULT_RAND;					// Specify the random number generator engine to use
 const RAND_GENERATORS		TVS_RAND_ENGINE			= DEFAULT_RAND;					// Specify the random number generator engine to use
-const SCAN_TYPES			SCAN_TYPE				= SIMULATED_G;			  		// Specifies which of the defined filters will be used in FBP
+//const SCAN_TYPES			SCAN_TYPE				= SIMULATED_G;			  		// Specifies which of the defined filters will be used in FBP
+////const SCAN_TYPES			SCAN_TYPE				= EXPERIMENTAL;			  		// Specifies which of the defined filters will be used in FBP
 const FILE_TYPES			FILE_TYPE				= BINARY;						// Experimental or simulated data
 const DATA_FORMATS			DATA_FORMAT				= VERSION_0;					// Specify which data format to use for this run
 const IMAGE_BASES			IMAGE_BASIS				= VOXELS;						// Specifies which basis is used to construct the images
@@ -182,6 +184,21 @@ const TX_OPTIONS			DROP_TX_MODE			= FULL_TX;						// Specifies GPU data tx mode 
 const S_CURVES				S_CURVE					= SIGMOID;						// Specify S-curve to use to scale updates applied to voxels around the object boundary
 const ROBUST_METHODS		ROBUST_METHOD			= TIKHONOV;						// Specifies robust method used in robust image reconstruction
 const CODE_SOURCES			CODE_SOURCE				= LOCAL;						// Specify the random number generator engine to use
+const HISTORY_ORDERING		RECON_HISTORY_ORDERING	= SEQUENTIAL;
+const BLOCK_ORDERING		DROP_BLOCK_ORDER		= CYCLIC;
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//---------- Control if mutually exclusive code is selectively compiled w/ precompiler directives (PCDs) or conditionally executed via branching -----------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/	
+
+// Precompiler directive controls
+const bool DROP_BRANCHING = true;
+const bool PCD_DROP = true && !DROP_BRANCHING;
+
+// Branching controls
+const bool PCD_DROP_FULL_TX = true;
+const bool PCD_DROP_PARTIAL_TX = true && !PCD_DROP_PARTIAL_TX;
+const bool PCD_DROP_PARTIAL_TX_PREALLOCATED = true && !PCD_DROP_PARTIAL_TX;
+
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //-------------------------------------------------------------------------------- Execution and early exit options ----------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -239,12 +256,22 @@ const bool IMPORT_MLP_LOOKUP_TABLES		= false;									// Import MLP lookup table
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 const char INPUT_DIRECTORY[]	= "//local//pCT_data//organized_data//";
 const char OUTPUT_DIRECTORY[]	= "//local//pCT_data//reconstruction_data//";
+
+const SCAN_TYPES				SCAN_TYPE				= SIMULATED_G;			  		// Specifies which of the defined filters will be used in FBP
 const char INPUT_FOLDER[]		= "CTP404_Sensitom//Simulated//G_15-05-24//0001//Output//15-05-24";
 const char OUTPUT_FOLDER[]      = "CTP404_Sensitom//Simulated//G_15-05-24//0001//Output//15-05-24";
 const char PHANTOM_NAME[]		= "CTP404_Sensitom";
 const char RUN_DATE[]			= "15-05-24";
 const char RUN_NUMBER[]			= "0001";
 const char PREPROCESS_DATE[]	= "15-05-24";
+
+//const SCAN_TYPES				SCAN_TYPE				= EXPERIMENTAL;			  		// Specifies which of the defined filters will be used in FBP
+//const char INPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
+//const char OUTPUT_FOLDER[]    = "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
+//const char PHANTOM[]			= "Water";
+//const char RUN_NUMBER[]		= "0069_Cont";
+//const char RUN_DATE[]			= "16-04-23";
+//const char PREPROCESS_DATE[]	= "16-04-23";
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------------------------- Iterative Image Reconstruction Parameters ------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -372,11 +399,6 @@ double ETA							= 2.5;								// [#] Coefficient of perturbation used in robust
 unsigned int METHOD					= 1;								// [#] Integer indicating the desired robust method to use (deprecated, non in use)
 int PSI_SIGN						= 1;								// [#] Use a positive (1) or negative (-1) perturbation in robust methods
 #define ITERATIONS					12									// [#] # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define BOUND_IMAGE					OFF									// [T/F] If any voxel in the image exceeds 2.0, set it to exactly 2.0
-#define S_CURVE_ON					OFF									// [T/F] Turn on application of S-curve scaling of updates of voxels near the boundary
-#define SIGMOID_STEEPNESS			1.25								// [#] Scaling factor 'k' of logistic curve: 1 / (1 + exp[k(LOGISTIC_MID_SHIFT - voxel)])
-#define SIGMOID_MID_SHIFT			10									// [#] x-coordinate where the signoid curve is half of its maximum value
-#define DUAL_SIDED_S_CURVE			ON									// [T/F] Apply a single-sided (OFF) or double-sided (ON) s-curve attenuation of voxel update values
 #define DROP_BLOCK_SIZE				53200								// [#] # of histories in each DROP block, i.e., # of histories used per image update
 //#define LAMBDA					0.00015								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
 float LAMBDA						= 0.0017;							// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
@@ -418,10 +440,15 @@ UINT X0_TVS_REPETITIONS				= 5;								// [#] Specifies # of times to perform TV
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //---------------------------------------------------------------------------- Average/median filtering options/parameters ---------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const bool APPLY_AIR_THRESHOLD		= true;
-double AIR_THRESHOLD				= 0.2;
-#define UPDATE_X_APPLY_AIR_THRESHOLD	ON
-#define UPDATE_X_AIR_THRESHOLD		0.1
+const bool IDENTIFY_X_0_AIR		= true;
+double X_0_AIR_THRESHOLD				= 0.2;
+#define IDENTIFY_X_N_AIR	ON
+#define X_N_AIR_THRESHOLD		0.1
+#define BOUND_IMAGE					OFF									// [T/F] If any voxel in the image exceeds 2.0, set it to exactly 2.0
+#define S_CURVE_ON					OFF									// [T/F] Turn on application of S-curve scaling of updates of voxels near the boundary
+#define SIGMOID_STEEPNESS			1.25								// [#] Scaling factor 'k' of logistic curve: 1 / (1 + exp[k(LOGISTIC_MID_SHIFT - voxel)])
+#define SIGMOID_MID_SHIFT			10									// [#] x-coordinate where the signoid curve is half of its maximum value
+#define DUAL_SIDED_S_CURVE			ON									// [T/F] Apply a single-sided (OFF) or double-sided (ON) s-curve attenuation of voxel update values
 const bool AVG_FILTER_FBP			= false;							// [T/F] Apply averaging filter to FBP (T) or not (F)										// Turn Space Modeling on (T) or off (F)
 const bool AVG_FILTER_HULL			= false;								// [T/F] Apply averaging filter to hull (T) or not (F)
 const bool AVG_FILTER_X_0			= false;							// [T/F] Apply averaging filter to initial iterate (T) or not (F)
@@ -445,10 +472,10 @@ double X_0_AVG_FILTER_THRESHOLD		= 0.1;								// [#] Threshold applied to avera
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------------------- Filenames ----------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const char TESTED_BY_STRING[]		= "Blake Schultze";					// [string] Name written to the execution log specifying the user that generated the data 
-//const char SECTION_EXIT_STRING[]	= {"====>"};						// [string] String prefix of task completion console text notifications using section_exit function
-const char ON_STRING[]				= "ON";								// [string] String used s5,12pecifying an optional execution procedure is on (boolean variable=true)
-const char OFF_STRING[]				= "OFF";							// [string] String used specifying an optional execution procedure is off (boolean variable=true)
+const char TESTED_BY_CSTRING[]		= "Blake Schultze";					// [string] Name written to the execution log specifying the user that generated the data 
+//const char SECTION_EXIT_CSTRING[]	= {"====>"};						// [string] String prefix of task completion console text notifications using section_exit function
+const char ON_CSTRING[]				= "ON";								// [string] String used s5,12pecifying an optional execution procedure is on (boolean variable=true)
+const char OFF_CSTRING[]				= "OFF";							// [string] String used specifying an optional execution procedure is off (boolean variable=true)
 const char KODIAK_SERVER_NAME[]		= "kodiak.baylor.edu";				// [string] String to use for the name of the Kodiak master node
 const char ECSN1_SERVER_NAME[]		= "ecsn001";						// [string] String to use for the server name of the Tardis compute node ecsn001/WHartnell
 const char ECSN2_SERVER_NAME[]		= "ecsn002";						// [string] String to use for the server name of the Tardis compute node ecsn002/PTroughton
@@ -457,13 +484,13 @@ const char ECSN4_SERVER_NAME[]		= "ecsn004";						// [string] String to use for 
 const char ECSN5_SERVER_NAME[]		= "ecsn005";						// [string] String to use for the server name of the Tardis compute node ecsn005/PDavison
 const char WS1_SERVER_NAME[]		= "tardis-student1.ecs.baylor.edu";	// [string] String to use for the server name of Workstation #1
 const char WS2_SERVER_NAME[]		= "tardis-student2.ecs.baylor.edu";	// [string] String to use for the server name of Workstation #2
-const char KODIAK_HOSTNAME_STRING[]	= "Kodiak";							// [string] String to use for the name of the Kodiak cluster
-const char ECSN1_HOSTNAME_STRING[]	= "WHartnell";						// [string] String to use for the name of the Tardis' compute node ecsn001/WHartnell
-const char ECSN2_HOSTNAME_STRING[]	= "PTRoughton";						// [string] String to use for the name of the Tardis' compute node ecsn002/PTroughton
-const char ECSN3_HOSTNAME_STRING[]	= "JPertwee";						// [string] String to use for the name of the Tardis' compute node ecsn003/JPertwee
-const char ECSN4_HOSTNAME_STRING[]	= "TBaker";							// [string] String to use for the name of the Tardis' compute node ecsn004/TBaker
-const char ECSN5_HOSTNAME_STRING[]	= "PDavison";						// [string] String to use for the name of the Tardis' compute node ecsn005/PDavison
-const char WS_HOSTNAME_STRING[]		= "Workstation";					// [string] String to use for the name of the workstations (#1/#2) 
+const char KODIAK_HOSTNAME_CSTRING[]	= "Kodiak";							// [string] String to use for the name of the Kodiak cluster
+const char ECSN1_HOSTNAME_CSTRING[]	= "WHartnell";						// [string] String to use for the name of the Tardis' compute node ecsn001/WHartnell
+const char ECSN2_HOSTNAME_CSTRING[]	= "PTRoughton";						// [string] String to use for the name of the Tardis' compute node ecsn002/PTroughton
+const char ECSN3_HOSTNAME_CSTRING[]	= "JPertwee";						// [string] String to use for the name of the Tardis' compute node ecsn003/JPertwee
+const char ECSN4_HOSTNAME_CSTRING[]	= "TBaker";							// [string] String to use for the name of the Tardis' compute node ecsn004/TBaker
+const char ECSN5_HOSTNAME_CSTRING[]	= "PDavison";						// [string] String to use for the name of the Tardis' compute node ecsn005/PDavison
+const char WS_HOSTNAME_CSTRING[]		= "Workstation";					// [string] String to use for the name of the workstations (#1/#2) 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------------------- Hostnames ($HOSTNAME) of remote servers and cluster nodes  -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -598,90 +625,92 @@ const char TV_MEASUREMENTS_FILENAME[]	= "TV_measurements";
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------- Strings corresponding to enum type members used in naming column header names in execution times files ---------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const char OLD_FORMAT_STRING[]		= "OLD_FORMAT";						// String for enum "DATA_FORMATS" member "STANDARD"
-const char VERSION_0_STRING[]		= "VERSION_0";						// String for enum "DATA_FORMATS" member "STANDARD"
-const char VERSION_1_STRING[]		= "VERSION_1";						// String for enum "DATA_FORMATS" member "STANDARD"
-const char EXPERIMENTAL_STRING[]	= "EXPERIMENTAL";					// String for enum "SCAN_TYPES" member "STANDARD"
-const char SIMULATED_G_STRING[]		= "SIMULATED_G";					// String for enum "SCAN_TYPES" member "STANDARD"
-const char SIMULATED_T_STRING[]		= "SIMULATED_T";					// String for enum "SCAN_TYPES" member "STANDARD"
-const char TEXT_STRING[]			= "TEXT";							// String for enum "FILE_TYPES" member "STANDARD"
-const char BINARY_STRING[]			= "BINARY";							// String for enum "FILE_TYPES" member "STANDARD"
-const char DEFAULT_RAND_STRING[]	= "DEFAULT_RAND";					// String for enum "RAND_GENERATORS" member "STANDARD"
-const char MINSTD_RAND_STRING[]		= "MINSTD_RAND";					// String for enum "RAND_GENERATORS" member "STANDARD"
-const char MINSTD_RAND0_STRING[]	= "MINSTD_RAND0";					// String for enum "RAND_GENERATORS" member "STANDARD"
-const char MT19937_STRING[]			= "MT19937";						// String for enum "RAND_GENERATORS" member "STANDARD"
-const char MT19937_64_STRING[]		= "MT19937_64";						// String for enum "RAND_GENERATORS" member "STANDARD"
-const char RANLUX24_STRING[]		= "RANLUX24";						// String for enum "RAND_GENERATORS" member "STANDARD"
-const char RANLUX48_STRING[]		= "RANLUX48";						// String for enum "RAND_GENERATORS" member "STANDARD"
-const char KNUTH_B_STRING[]			= "KNUTH_B";						// String for enum "RAND_GENERATORS" member "STANDARD"
-const char VOXELS_STRING[]			= "VOXELS";							// String for enum "IMAGE_BASES" member "STANDARD"
-const char BLOBS_STRING[]			= "BLOBS";							// String for enum "IMAGE_BASES" member "STANDARD"
-const char MEANS_STRING[]			= "MEANS";							// String for enum "BIN_ANALYSIS_TYPE" member "STANDARD"
-const char COUNTS_STRING[]			= "COUNTS";							// String for enum "BIN_ANALYSIS_TYPE" member "STANDARD"
-const char MEMBERS_STRING[]			= "MEMBERS";						// String for enum "BIN_ANALYSIS_TYPE" member "STANDARD"
-const char ALL_BINS_STRING[]		= "ALL_BINS";						// String for enum "BIN_ANALYSIS_FOR" member "STANDARD"
-const char SPECIFIC_BINS_STRING[]	= "SPECIFIC_BINS";					// String for enum "BIN_ANALYSIS_FOR" member "STANDARD"
-const char BY_BIN_STRING[]			= "BY_BIN";							// String for enum "BIN_ORGANIZATION" member "STANDARD"
-const char BY_HISTORY_STRING[]		= "BY_HISTORY";						// String for enum "BIN_ORGANIZATION" member "STANDARD"
-const char WEPLS_STRING[]			= "WEPLS";							// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
-const char ANGLES_STRING[]			= "ANGLES";							// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
-const char POSITIONS_STRING[]		= "POSITIONS";						// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
-const char BIN_NUMS_STRING[]		= "BIN_NUMS";						// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
-const char RAM_LAK_STRING[]			= "RAM_LAK";						// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
-const char SHEPP_LOGAN_STRING[]		= "SHEPP_LOGAN";					// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
-const char UNFILTERED_STRING[]		= "UNFILTERED";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
-const char MEDIAN_FILTER_STRING[]	= "MEDIAN";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
-const char AVERAGE_FILTER_STRING[]	= "AVERAGE";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
-const char MED_2_AVG_FILTER_STRING[]= "MED_2_AVG";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
-const char AVG_2_MED_FILTER_STRING[]= "AVG_2_MED";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
-const char NO_FILTER_STRING[]		= "NO_FILTER";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
-const char SC_HULL_STRING[]			= "SC_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
-const char MSC_HULL_STRING[]		= "MSC_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
-const char SM_HULL_STRING[]			= "SM_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
-const char FBP_HULL_STRING[]		= "FBP_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
-const char X_HULL_STRING[]			= "X_HULL";							// String for enum "HULL_TYPES" member "STANDARD"
-const char HULL_STRING[]			= "HULL";							// String for enum "INITIAL_ITERATE" member "STANDARD"
-const char FBP_IMAGE_STRING[]		= "FBP_IMAGE";						// String for enum "INITIAL_ITERATE" member "STANDARD"
-const char HYBRID_STRING[]			= "HYBRID";							// String for enum "INITIAL_ITERATE" member "STANDARD"
-const char ZEROS_STRING[]			= "ZEROS";							// String for enum "INITIAL_ITERATE" member "STANDARD"
-const char IMPORT_STRING[]			= "IMPORT";							// String for enum "INITIAL_ITERATE" member "STANDARD"
-const char FULL_TX_STRING[]			= "FULL_TX";						// String for enum "TX_OPTIONS" member "STANDARD"
-const char PARTIAL_TX_STRING[]		= "PARTIAL_TX";						// String for enum "TX_OPTIONS" member "STANDARD"
-const char PARTIAL_TX_PREALLOCATED_STRING[]= "PARTIAL_TX_PREALLOCATED";	// String for enum "TX_OPTIONS" member "STANDARD"
-const char BOOL_STRING[]			= "BOOL";							// String for enum "ENDPOINTS_ALGORITHMS" member "STANDARD"
-const char YES_BOOL_STRING[]		= "YES_BOOL";						// String for enum "ENDPOINTS_ALGORITHMS" member "STANDARD"
-const char NO_BOOL_STRING[]			= "NO_BOOL";						// String for enum "ENDPOINTS_ALGORITHMS" member "STANDARD"	
-const char STANDARD_STRING[]		= "STANDARD";						// String for enum "MLP_ALGORITHMS" member "STANDARD"
-const char TABULATED_STRING[]		= "TABULATED";						// String for enum "MLP_ALGORITHMS" member "STANDARD"	
-const char ART_STRING[]				= "ART";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
-const char SART_STRING[]			= "SART";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
-const char DROP_STRING[]			= "DROP";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
-const char BIP_STRING[]				= "BIP";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
-const char SAP_STRING[]				= "SAP";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
-const char ROBUSTA_STRING[]			= "ROBUSTA";						// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
-const char ROBUSTB_STRING[]			= "ROBUSTB";						// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
-const char SIGMOID_STRING[]			= "SIGMOID";						// String for enum "S_CURVES" member "STANDARD"
-const char TANH_STRING[]			= "TANH";							// String for enum "S_CURVES" member "STANDARD"
-const char ATAN_STRING[]			= "ATAN";							// String for enum "S_CURVES" member "STANDARD"
-const char ERF_STRING[]				= "ERF";							// String for enum "S_CURVES" member "STANDARD"
-const char LIN_OVER_ROOT_STRING[]	= "LIN_OVER_ROOT";					// String for enum "S_CURVES" member "STANDARD" 
-const char OLS_STRING[]				= "OLS";							// String for enum "ROBUST_METHODS" member "OLS" 
-const char TLS_STRING[]				= "TLS";							// String for enum "ROBUST_METHODS" member "TLS" 
-const char TIKHONOV_STRING[]		= "TIKHONOV";						// String for enum "ROBUST_METHODS" member "STANDARD" 
-const char RIDGE_STRING[]			= "RIDGE";							// String for enum "ROBUST_METHODS" member "RIDGE" 
-const char MINMIN_STRING[]			= "MINMIN";							// String for enum "ROBUST_METHODS" member "MINMIN" 
-const char MINMAX_STRING[]			= "MINMAX";							// String for enum "ROBUST_METHODS" member "MINMAX" 
-const char SQUARE_STRING[]			= "SQUARE";							// String for enum "STRUCTURAL_ELEMENTS" member "SQUARE"  
-const char DISK_STRING[]			= "DISK";							// String for enum "STRUCTURAL_ELEMENTS" member "DISK" 								
-const char EROSION_STRING[]			= "EROSION";						// String for enum "MORPHOLOGICAL_OPS" member "EROSION" 
-const char DILATION_STRING[]		= "DILATION";						// String for enum "MORPHOLOGICAL_OPS" member "DILATION" 
-const char OPENING_STRING[]			= "OPENING";						// String for enum "MORPHOLOGICAL_OPS" member "OPENING" 
-const char CLOSING_STRING[]			= "CLOSING";						// String for enum "MORPHOLOGICAL_OPS" member "CLOSING" 			
-const char OBJECT_L_STRING[]		= "OBJECT_L";						// String for enum "LOG_ENTRIES" member "OBJECT_L"  
-const char SCAN_TYPE_L_STRING[]		= "SCAN_TYPE_L";					// String for enum "LOG_ENTRIES" member "SCAN_TYPE_L"  
-const char RUN_DATE_L_STRING[]		= "RUN_DATE_L";						// String for enum "LOG_ENTRIES" member "RUN_DATE_L"  
-const char RUN_NUMBER_L_STRING[]	= "RUN_NUMBER_L";					// String for enum "LOG_ENTRIES" member "RUN_NUMBER_L" 			
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const char OLD_FORMAT_CSTRING[]		= "OLD_FORMAT";						// String for enum "DATA_FORMATS" member "STANDARD"
+const char VERSION_0_CSTRING[]		= "VERSION_0";						// String for enum "DATA_FORMATS" member "STANDARD"
+const char VERSION_1_CSTRING[]		= "VERSION_1";						// String for enum "DATA_FORMATS" member "STANDARD"
+const char EXPERIMENTAL_CSTRING[]	= "EXPERIMENTAL";					// String for enum "SCAN_TYPES" member "STANDARD"
+const char SIMULATED_G_CSTRING[]		= "SIMULATED_G";					// String for enum "SCAN_TYPES" member "STANDARD"
+const char SIMULATED_T_CSTRING[]		= "SIMULATED_T";					// String for enum "SCAN_TYPES" member "STANDARD"
+const char TEXT_CSTRING[]			= "TEXT";							// String for enum "FILE_TYPES" member "STANDARD"
+const char BINARY_CSTRING[]			= "BINARY";							// String for enum "FILE_TYPES" member "STANDARD"
+const char DEFAULT_RAND_CSTRING[]	= "DEFAULT_RAND";					// String for enum "RAND_GENERATORS" member "STANDARD"
+const char MINSTD_RAND_CSTRING[]		= "MINSTD_RAND";					// String for enum "RAND_GENERATORS" member "STANDARD"
+const char MINSTD_RAND0_CSTRING[]	= "MINSTD_RAND0";					// String for enum "RAND_GENERATORS" member "STANDARD"
+const char MT19937_CSTRING[]			= "MT19937";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char MT19937_64_CSTRING[]		= "MT19937_64";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char RANLUX24_CSTRING[]		= "RANLUX24";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char RANLUX48_CSTRING[]		= "RANLUX48";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char KNUTH_B_CSTRING[]			= "KNUTH_B";						// String for enum "RAND_GENERATORS" member "STANDARD"
+const char VOXELS_CSTRING[]			= "VOXELS";							// String for enum "IMAGE_BASES" member "STANDARD"
+const char BLOBS_CSTRING[]			= "BLOBS";							// String for enum "IMAGE_BASES" member "STANDARD"
+const char MEANS_CSTRING[]			= "MEANS";							// String for enum "BIN_ANALYSIS_TYPE" member "STANDARD"
+const char COUNTS_CSTRING[]			= "COUNTS";							// String for enum "BIN_ANALYSIS_TYPE" member "STANDARD"
+const char MEMBERS_CSTRING[]			= "MEMBERS";						// String for enum "BIN_ANALYSIS_TYPE" member "STANDARD"
+const char ALL_BINS_CSTRING[]		= "ALL_BINS";						// String for enum "BIN_ANALYSIS_FOR" member "STANDARD"
+const char SPECIFIC_BINS_CSTRING[]	= "SPECIFIC_BINS";					// String for enum "BIN_ANALYSIS_FOR" member "STANDARD"
+const char BY_BIN_CSTRING[]			= "BY_BIN";							// String for enum "BIN_ORGANIZATION" member "STANDARD"
+const char BY_HISTORY_CSTRING[]		= "BY_HISTORY";						// String for enum "BIN_ORGANIZATION" member "STANDARD"
+const char WEPLS_CSTRING[]			= "WEPLS";							// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
+const char ANGLES_CSTRING[]			= "ANGLES";							// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
+const char POSITIONS_CSTRING[]		= "POSITIONS";						// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
+const char BIN_NUMS_CSTRING[]		= "BIN_NUMS";						// String for enum "BIN_ANALYSIS_OF" member "STANDARD"
+const char RAM_LAK_CSTRING[]			= "RAM_LAK";						// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char SHEPP_LOGAN_CSTRING[]		= "SHEPP_LOGAN";					// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char UNFILTERED_CSTRING[]		= "UNFILTERED";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char MEDIAN_FILTER_CSTRING[]	= "MEDIAN";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char AVERAGE_FILTER_CSTRING[]	= "AVERAGE";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char MED_2_AVG_FILTER_CSTRING[]= "MED_2_AVG";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char AVG_2_MED_FILTER_CSTRING[]= "AVG_2_MED";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char NO_FILTER_CSTRING[]		= "NO_FILTER";							// String for enum "SINOGRAM_FILTER_TYPES" member "STANDARD"
+const char SC_HULL_CSTRING[]			= "SC_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
+const char MSC_HULL_CSTRING[]		= "MSC_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
+const char SM_HULL_CSTRING[]			= "SM_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
+const char FBP_HULL_CSTRING[]		= "FBP_HULL";						// String for enum "HULL_TYPES" member "STANDARD"
+const char X_HULL_CSTRING[]			= "X_HULL";							// String for enum "HULL_TYPES" member "STANDARD"
+const char HULL_CSTRING[]			= "HULL";							// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char FBP_IMAGE_CSTRING[]		= "FBP_IMAGE";						// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char HYBRID_CSTRING[]			= "HYBRID";							// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char ZEROS_CSTRING[]			= "ZEROS";							// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char IMPORT_CSTRING[]			= "IMPORT";							// String for enum "INITIAL_ITERATE" member "STANDARD"
+const char FULL_TX_CSTRING[]			= "FULL_TX";						// String for enum "TX_OPTIONS" member "STANDARD"
+const char PARTIAL_TX_CSTRING[]		= "PARTIAL_TX";						// String for enum "TX_OPTIONS" member "STANDARD"
+const char PARTIAL_TX_PREALLOCATED_CSTRING[]= "PARTIAL_TX_PREALLOCATED";	// String for enum "TX_OPTIONS" member "STANDARD"
+const char BOOL_CSTRING[]			= "BOOL";							// String for enum "ENDPOINTS_ALGORITHMS" member "STANDARD"
+const char YES_BOOL_CSTRING[]		= "YES_BOOL";						// String for enum "ENDPOINTS_ALGORITHMS" member "STANDARD"
+const char NO_BOOL_CSTRING[]			= "NO_BOOL";						// String for enum "ENDPOINTS_ALGORITHMS" member "STANDARD"	
+const char STANDARD_CSTRING[]		= "STANDARD";						// String for enum "MLP_ALGORITHMS" member "STANDARD"
+const char TABULATED_CSTRING[]		= "TABULATED";						// String for enum "MLP_ALGORITHMS" member "STANDARD"	
+const char ART_CSTRING[]				= "ART";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char SART_CSTRING[]			= "SART";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char DROP_CSTRING[]			= "DROP";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char BIP_CSTRING[]				= "BIP";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char SAP_CSTRING[]				= "SAP";							// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char ROBUSTA_CSTRING[]			= "ROBUSTA";						// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char ROBUSTB_CSTRING[]			= "ROBUSTB";						// String for enum "PROJECTION_ALGORITHMS" member "STANDARD"
+const char SIGMOID_CSTRING[]			= "SIGMOID";						// String for enum "S_CURVES" member "STANDARD"
+const char TANH_CSTRING[]			= "TANH";							// String for enum "S_CURVES" member "STANDARD"
+const char ATAN_CSTRING[]			= "ATAN";							// String for enum "S_CURVES" member "STANDARD"
+const char ERF_CSTRING[]				= "ERF";							// String for enum "S_CURVES" member "STANDARD"
+const char LIN_OVER_ROOT_CSTRING[]	= "LIN_OVER_ROOT";					// String for enum "S_CURVES" member "STANDARD" 
+const char OLS_CSTRING[]				= "OLS";							// String for enum "ROBUST_METHODS" member "OLS" 
+const char TLS_CSTRING[]				= "TLS";							// String for enum "ROBUST_METHODS" member "TLS" 
+const char TIKHONOV_CSTRING[]		= "TIKHONOV";						// String for enum "ROBUST_METHODS" member "STANDARD" 
+const char RIDGE_CSTRING[]			= "RIDGE";							// String for enum "ROBUST_METHODS" member "RIDGE" 
+const char MINMIN_CSTRING[]			= "MINMIN";							// String for enum "ROBUST_METHODS" member "MINMIN" 
+const char MINMAX_CSTRING[]			= "MINMAX";							// String for enum "ROBUST_METHODS" member "MINMAX" 
+const char SQUARE_CSTRING[]			= "SQUARE";							// String for enum "STRUCTURAL_ELEMENTS" member "SQUARE"  
+const char DISK_CSTRING[]			= "DISK";							// String for enum "STRUCTURAL_ELEMENTS" member "DISK" 								
+const char EROSION_CSTRING[]			= "EROSION";						// String for enum "MORPHOLOGICAL_OPS" member "EROSION" 
+const char DILATION_CSTRING[]		= "DILATION";						// String for enum "MORPHOLOGICAL_OPS" member "DILATION" 
+const char OPENING_CSTRING[]			= "OPENING";						// String for enum "MORPHOLOGICAL_OPS" member "OPENING" 
+const char CLOSING_CSTRING[]			= "CLOSING";						// String for enum "MORPHOLOGICAL_OPS" member "CLOSING" 			
+const char OBJECT_L_CSTRING[]		= "OBJECT_L";						// String for enum "LOG_ENTRIES" member "OBJECT_L"  
+const char SCAN_TYPE_L_CSTRING[]		= "SCAN_TYPE_L";					// String for enum "LOG_ENTRIES" member "SCAN_TYPE_L"  
+const char RUN_DATE_L_CSTRING[]		= "RUN_DATE_L";						// String for enum "LOG_ENTRIES" member "RUN_DATE_L"  
+const char RUN_NUMBER_L_CSTRING[]	= "RUN_NUMBER_L";					// String for enum "LOG_ENTRIES" member "RUN_NUMBER_L" 			
+std::string ON_STRING("ON");
+std::string OFF_STRING("OFF");
+	//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //---------------------------------------------------------------------------------------- Output filenames ------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 const int MAX_ITERATIONS			= 15;										// [#] Max # of feasibility seeking iterations (specifies # of iteration execution time columns needed in execution log)
@@ -797,7 +826,7 @@ const int MAX_ITERATIONS			= 15;										// [#] Max # of feasibility seeking it
 #define CONSOLE_WINDOW_WIDTH	80										// [#] Specifies character width of stdout console window
 #define MAJOR_SECTION_SEPARATOR	'*'										// [character] Specifies character to use in major section separator
 #define MINOR_SECTION_SEPARATOR	'-'										// [character] Specifies character to use in minor section separator
-#define SECTION_EXIT_STRING		"======>"								// [string] String prefix of task completion console text notifications using section_exit function
+#define SECTION_EXIT_CSTRING		"======>"								// [string] String prefix of task completion console text notifications using section_exit function
 #define DARK					0										// [#] Integer encoding of 'dark' text color shading option used in printing colored text to stdout (console window)
 #define LIGHT					1										// [#] Integer encoding of 'light' text color shading option used in printing colored text to stdout (console window) 	
 #define BLACK					30										// [#] Integer encoding of 'black' text color used in printing colored text to stdout (console window)
@@ -880,7 +909,7 @@ const int MAX_ITERATIONS			= 15;										// [#] Max # of feasibility seeking it
 #define INT_FORMAT				"%d"									// [string] Specifies format to use for writing/printing integer data using {s/sn/f/v/vn}printf statements
 #define FLOAT_FORMAT			"%6.6lf"								// [string] Specifies format to use for writing/printing floating point data using {s/sn/f/v/vn}printf statements
 #define STRING_FORMAT			"%s"									// [string] Specifies format to use for writing/printing strings data using {s/sn/f/v/vn}printf statements
-#define GIT_COMMIT_DATE_STRING_LENGTH		30
+#define GIT_COMMIT_DATE_CSTRING_LENGTH		30
 #define print_type_name(var) ( std::cout << type_name(var) << endl )
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
@@ -890,29 +919,89 @@ const int MAX_ITERATIONS			= 15;										// [#] Max # of feasibility seeking it
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Main function argument and generic reusable variables ----------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-unsigned int num_run_arguments;
-char** run_arguments;
+// Generic reused variables
+cudaError_t cudaStatus;	
 char print_statement[1024];
 char system_command[512];
 char bash_command[512];
-//char color_command[512];
-int num_voxel_scales;
-double* voxel_scales;
-float TV_x_final;
-std::vector<float> TV_x_values;
-std::map<std::string,unsigned int> switchmap;
-cudaError_t cudaStatus;	
+
+// Global execution and IO related variables
+unsigned int NUM_RUN_ARGUMENTS;
+char** RUN_ARGUMENTS;
+char* CONFIG_DIRECTORY;
+std::map<std::string, unsigned int> EXECUTION_LOG_SWITCHMAP;
+unsigned int PHANTOM_AME_SIZE;
+unsigned int DATA_SOURCE_SIZE;
+unsigned int PREPARED_BY_SIZE;
+unsigned int SKIP_2_DATA_SIZE;
+unsigned int VERSION_ID;
+unsigned int PROJECTION_INTERVAL;
+std::vector<std::string> OUTPUT_FILE_LIST;
+std::vector<std::string> IMAGE_LIST;
+std::vector<std::string> LOCAL_DATA_FILE_LIST;
+std::vector<std::string> GLOBAL_DATA_FILE_LIST;
 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------- Declaration of character arrays for path variables assigned at execution time ------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-char CURRENT_DATA_DIR[256];
-char CURRENT_RECON_DIR[256];
-char CURRENT_CODE_PARENT[256];
-char CURRENT_RCODE_PARENT[256];
+//-------------------------- string_assigments()
+// set_ssh_server_login_strings()
+char KODIAK_SSH_LOGIN[64];												// ssh command addressing username@server for Kodiak e.g. "schultze@kodiak.baylor.edu:"
+char WHARTNELL_SSH_LOGIN[64];											// ssh command addressing username@server for WHartnell e.g. "schultze@kodiak:"
+char PTROUGHTON_SSH_LOGIN[64];											// ssh command addressing username@server for PTRoughton e.g. "schultze@ptroughton:"
+char JPERTWEE_SSH_LOGIN[64];											// ssh command addressing username@server for JPertwee e.g. "schultze@jpertwee:"
+char TBAKER_SSH_LOGIN[64];												// ssh command addressing username@server for TBaker e.g. "schultze@tbaker:"
+char PDAVISON_SSH_LOGIN[64];											// ssh command addressing username@server for PDavison e.g. "schultze@pdavison:"
+char WS1_SSH_LOGIN[64];											// ssh command addressing username@server for PDavison e.g. "schultze@pdavison:"
+char WS2_SSH_LOGIN[64];											// ssh command addressing username@server for PDavison e.g. "schultze@pdavison:"
+
+// set_enum_strings(): Character arrays used to write enum variable options selected to execution logs
+char SCAN_TYPE_CSTRING[32];
+char SINOGRAM_FILTER_CSTRING[32];
+char ENDPOINTS_HULL_CSTRING[32];
+char ENDPOINTS_ALG_CSTRING[32];
+char ENDPOINTS_TX_MODE_CSTRING[32];
+char MLP_ALGORITHM_CSTRING[32];
+char X_0_CSTRING[32];
+char PROJECTION_ALGORITHM_CSTRING[32];
+char RECON_TX_MODE_CSTRING[32];
+char ROBUST_METHOD_CSTRING[32];
+char S_CURVE_CSTRING[32];
+
+// set_procedures_on_off_strings(): Character arrays used to write whether the corresponding optional procedures are ON/OFF to execution logs
+char SAMPLE_STD_DEV_CSTRING[8];
+char FBP_FILTER_CSTRING[32];
+char HULL_FILTER_CSTRING[32];
+char X_0_FILTER_CSTRING[32];
+char AVG_FILTER_FBP_CSTRING[8];
+char AVG_FILTER_HULL_CSTRING[8];
+char AVG_FILTER_X_0_CSTRING[8];
+char MEDIAN_FILTER_FBP_CSTRING[8];
+char MEDIAN_FILTER_HULL_CSTRING[8];
+char MEDIAN_FILTER_X_0_CSTRING[8];
+char IGNORE_SHORT_MLP_CSTRING[8];
+char BOUND_IMAGE_CSTRING[8];
+char IDENTIFY_X_0_AIR_CSTRING[8];
+char IDENTIFY_X_N_AIR_CSTRING[8];
+char S_CURVE_ON_CSTRING[8];	
+char DUAL_SIDED_S_CURVE_CSTRING[8];	
+char TVS_ON_CSTRING[8];	
+char TVS_FIRST_CSTRING[8];	
+char TVS_PARALLEL_CSTRING[8];	
+char TVS_CONDITIONED_CSTRING[8];	
+
+char EXECUTION_DATE[9];
+char EXECUTION_YY_MM_DD[9];
+char EXECUTION_DATE_TIME[128];
+char EXECUTION_TIME_GMT[9];
+char EXECUTION_TIME_LOCAL[9];
+
+//-------------------------- IO_setup()
+// set_compute_node()
 char CURRENT_COMPUTE_NODE[32];
 char CURRENT_COMPUTE_NODE_ALIAS[32];	
 
+// set_user_strings()
 char USERNAME[32];
 char USE_TARDIS_USERNAME[32];	
 char USE_KODIAK_USERNAME[32];	
@@ -920,14 +1009,12 @@ char USE_BAYLOR_USERNAME[32];
 char USE_HOME_DIR_USERNAME[32];	
 char USE_CODE_OWNER_NAME[32];	
 char USE_RCODE_OWNER_NAME[32];	
+
+// set_compute_system_directories()
 char COMMON_ORG_DATA_SUBDIRECTORY[256];
 char COMMON_RECON_DATA_SUBDIRECTORY[256];
 char COMMON_RCODE_SUBDIRECTORY[256];
 char COMMON_GIT_CODE_SUBDIRECTORY[256];
-char EXECUTED_CODE_DIR[256];
-char LOCAL_OUTPUT_CODE_DIR[256];
-char GLOBAL_OUTPUT_CODE_DIR[256];
-
 char PCT_DATA_DIR_SET[256];
 char PCT_ORG_DATA_DIR_SET[256];
 char PCT_RECON_DIR_SET[256];
@@ -959,8 +1046,11 @@ char WS2_RECON_DIR_SET[256];
 char MYLAPTOP_RECON_DIR_SET[256];
 char MYLAPTOP_ORG_DATA_DIR_SET[256];
 
-char GIT_COMMIT_HASH_STRING[128];
-char GIT_BRANCH_INFO_STRING[128];
+// set_git_branch_info()
+char CURRENT_CODE_PARENT[256];
+char CURRENT_RCODE_PARENT[256];
+char GIT_COMMIT_HASH_CSTRING[128];
+char GIT_BRANCH_INFO_CSTRING[128];
 char GIT_REPO_PATH[256];
 char GIT_BRANCH_NAME[256];
 char GIT_COMMIT_HASH[256];
@@ -968,101 +1058,40 @@ char GIT_COMMIT_DATE[256];
 char GIT_LOG_INFO[256];
 char GIT_REPO_INFO[256];
 
+// set_and_make_output_folder()
+char CURRENT_DATA_DIR[256];
+char CURRENT_RECON_DIR[256];
+char INPUT_DIRECTORY_SET[256];
+char OUTPUT_DIRECTORY_SET[256];
+char OUTPUT_FOLDER_UNIQUE[256];
 
+// set_IO_folder_names()
+char INPUT_FOLDER_SET[256];
+char OUTPUT_FOLDER_SET[256];
 char LOCAL_INPUT_DATA_PATH[256];
 char LOCAL_OUTPUT_DATA_PATH[256];
 char GLOBAL_INPUT_DATA_PATH[256];
 char GLOBAL_OUTPUT_DATA_PATH[256];
 //char GLOBAL_OUTPUT_FOLDER_DESTINATION[256];
-char INPUT_DIRECTORY_SET[256];
-char OUTPUT_DIRECTORY_SET[256];
-char INPUT_FOLDER_SET[256];
-char OUTPUT_FOLDER_SET[256];
-
-
-char EXECUTED_INCLUDE_CODE_PATH[256];
-char EXECUTED_SRC_CODE_PATH[256];
-char LOCAL_OUTPUT_INCLUDE_CODE_PATH[256];
-char GLOBAL_OUTPUT_INCLUDE_CODE_PATH[256];
-char LOCAL_OUTPUT_SRC_CODE_PATH[256];
-char GLOBAL_OUTPUT_SRC_CODE_PATH[256];
 char GLOBAL_EXECUTION_LOG_PATH[256];
 char LOCAL_EXECUTION_LOG_PATH[256];
 char LOCAL_EXECUTION_INFO_PATH[256];
 char GLOBAL_EXECUTION_INFO_PATH[512];
 char LOCAL_TV_MEASUREMENTS_PATH[256];
 char GLOBAL_TV_MEASUREMENTS_PATH[256];
-std::vector<std::string> OUTPUT_FILE_LIST;
-std::vector<std::string> IMAGE_LIST;
-std::vector<std::string> LOCAL_DATA_FILE_LIST;
-std::vector<std::string> GLOBAL_DATA_FILE_LIST;
-
-char* CONFIG_DIRECTORY;
-char IMPORT_FBP_PATH[256];
 char INPUT_ITERATE_PATH[256];
-char OUTPUT_FOLDER_UNIQUE[256];
-char KODIAK_OUTPUT_PATH[256];
-char WS2_OUTPUT_PATH[256];
-char WHARTNELL_OUTPUT_PATH[256];
-char EXECUTION_DATE[9];
-char EXECUTION_YY_MM_DD[9];
-char EXECUTION_TIME_GMT[9];
-char EXECUTION_TIME_LOCAL[9];
-char EXECUTION_DATE_TIME[128];
-char KODIAK_SSH_LOGIN[64];												// ssh command addressing username@server for Kodiak e.g. "schultze@kodiak.baylor.edu:"
-char WHARTNELL_SSH_LOGIN[64];											// ssh command addressing username@server for WHartnell e.g. "schultze@kodiak:"
-char PTROUGHTON_SSH_LOGIN[64];											// ssh command addressing username@server for PTRoughton e.g. "schultze@ptroughton:"
-char JPERTWEE_SSH_LOGIN[64];											// ssh command addressing username@server for JPertwee e.g. "schultze@jpertwee:"
-char TBAKER_SSH_LOGIN[64];												// ssh command addressing username@server for TBaker e.g. "schultze@tbaker:"
-char PDAVISON_SSH_LOGIN[64];											// ssh command addressing username@server for PDavison e.g. "schultze@pdavison:"
-char WS1_SSH_LOGIN[64];											// ssh command addressing username@server for PDavison e.g. "schultze@pdavison:"
-char WS2_SSH_LOGIN[64];											// ssh command addressing username@server for PDavison e.g. "schultze@pdavison:"
-//char GLOBAL_RESULTS_PATH[]				= {"C://Users//Blake//Documents//Visual Studio 2010//Projects//pCT_Reconstruction_R01//pCT_Reconstruction_R01"};
-//char GLOBAL_RESULTS_PATH[]				= {"//home//share//reconstruction_data"};
-//char GLOBAL_RESULTS_PATH[]				= {"//local//reconstruction_data"};
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//----------------------------------------------------------------------- Variables assigned values at runtime ----------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-// Used in reading data from disk
-unsigned int PHANTOM_NAME_SIZE;
-unsigned int DATA_SOURCE_SIZE;
-unsigned int PREPARED_BY_SIZE;
-unsigned int SKIP_2_DATA_SIZE;
-unsigned int VERSION_ID;
-unsigned int PROJECTION_INTERVAL;
+char IMPORT_FBP_PATH[256];
 
-// Character arrays used to write whether the corresponding optional procedures are ON/OFF to execution logs
-char SAMPLE_STD_DEV_STRING[8];
-char FBP_FILTER_STRING[32];
-char HULL_FILTER_STRING[32];
-char X_0_FILTER_STRING[32];
-char AVG_FILTER_FBP_STRING[8];
-char AVG_FILTER_HULL_STRING[8];
-char AVG_FILTER_X_0_STRING[8];
-char MEDIAN_FILTER_FBP_STRING[8];
-char MEDIAN_FILTER_HULL_STRING[8];
-char MEDIAN_FILTER_X_0_STRING[8];
-char IGNORE_SHORT_MLP_STRING[8];
-char BOUND_IMAGE_STRING[8];
-char S_CURVE_ON_STRING[8];	
-char DUAL_SIDED_S_CURVE_STRING[8];	
-char TVS_ON_STRING[8];	
-char TVS_FIRST_STRING[8];	
-char TVS_PARALLEL_STRING[8];	
-char TVS_CONDITIONED_STRING[8];	
-
-// Character arrays used to write enum variable options selected to execution logs
-char SCAN_TYPE_STRING[32];
-char SINOGRAM_FILTER_STRING[32];
-char ENDPOINTS_HULL_STRING[32];
-char ENDPOINTS_ALG_STRING[32];
-char ENDPOINTS_TX_MODE_STRING[32];
-char MLP_ALGORITHM_STRING[32];
-char X_0_STRING[32];
-char PROJECTION_ALGORITHM_STRING[32];
-char RECON_TX_MODE_STRING[32];
-char ROBUST_METHOD_STRING[32];
-char S_CURVE_STRING[32];
+// set_source_code_paths()
+char EXECUTED_CODE_DIR[256];
+char LOCAL_OUTPUT_CODE_DIR[256];
+char GLOBAL_OUTPUT_CODE_DIR[256];
+char EXECUTED_SRC_CODE_PATH[256];
+char EXECUTED_INCLUDE_CODE_PATH[256];
+char LOCAL_OUTPUT_SRC_CODE_PATH[256];
+char LOCAL_OUTPUT_INCLUDE_CODE_PATH[256];
+char GLOBAL_OUTPUT_SRC_CODE_PATH[256];
+char GLOBAL_OUTPUT_INCLUDE_CODE_PATH[256];
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------- Execution timing variables -------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -1156,6 +1185,8 @@ float* FBP_median_filtered_h, * FBP_median_filtered_d;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------- Declaration of host(_h) and device (_d) arrays used for MLP and reconstruction -------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+int num_voxel_scales;
+double* voxel_scales;
 bool* intersected_hull_h, * intersected_hull_d;
 ULL* history_sequence;
 unsigned int* num_voxel_intersections_h, * num_voxel_intersections_d;
@@ -1169,6 +1200,12 @@ float* x_h, * x_d;
 float* x_before_TVS_h, * x_before_TVS_d;
 float* x_TVS_h, * x_TVS_d;
 unsigned int* global_a_i;
+uint* DROP_blocks_ordered_h, DROP_blocks_ordered_d;
+uint* DROP_block_sizes_ordered_h, DROP_block_order_d;
+UINT DROP_last_block_size, num_DROP_blocks;
+std::vector<UINT> DROP_block_sizes;
+std::vector<UINT> DROP_block_order;
+std::vector<UINT> DROP_block_start_positions;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //-------------------------------------------------- Declaration of host(_h) and device (_d) arrays used in total variation superiorization (TVS) ----------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -1178,6 +1215,8 @@ float* G_x_d, * G_y_d, * G_norm_d, * G_d, * v_d, * y_d;
 float* TV_x_h, * TV_y_h;
 float* TV_x_d, * TV_y_d;
 float* TVS_eta_sequence_h, * TVS_eta_sequence_d;
+float TV_x_final;
+std::vector<float> TV_x_values;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------- Declaration of image arrays for use on host(_h) or device (_d) -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -1204,6 +1243,37 @@ std::vector<unsigned int> first_MLP_voxel_vector;
 std::vector<int> voxel_x_vector;
 std::vector<int> voxel_y_vector;
 std::vector<int> voxel_z_vector;
+
+std::vector<int>	bin_num_vector_ordered;			
+std::vector<int>	gantry_angle_vector_ordered;	
+std::vector<float>	WEPL_vector_ordered;		
+std::vector<float>	x_entry_vector_ordered;		
+std::vector<float>	y_entry_vector_ordered;		
+std::vector<float>	z_entry_vector_ordered;		
+std::vector<float>	x_exit_vector_ordered;			
+std::vector<float>	y_exit_vector_ordered;			
+std::vector<float>	z_exit_vector_ordered;			
+std::vector<float>	xy_entry_angle_vector_ordered;	
+std::vector<float>	xz_entry_angle_vector_ordered;	
+std::vector<float>	xy_exit_angle_vector_ordered;	
+std::vector<float>	xz_exit_angle_vector_ordered;	
+std::vector<unsigned int> first_MLP_voxel_vector_ordered;
+
+std::vector<int>	bin_num_vector_reconstruction;			
+std::vector<int>	gantry_angle_vector_reconstruction;	
+std::vector<float>	WEPL_vector_reconstruction;		
+std::vector<float>	x_entry_vector_reconstruction;		
+std::vector<float>	y_entry_vector_reconstruction;		
+std::vector<float>	z_entry_vector_reconstruction;		
+std::vector<float>	x_exit_vector_reconstruction;			
+std::vector<float>	y_exit_vector_reconstruction;			
+std::vector<float>	z_exit_vector_reconstruction;			
+std::vector<float>	xy_entry_angle_vector_reconstruction;	
+std::vector<float>	xz_entry_angle_vector_reconstruction;	
+std::vector<float>	xy_exit_angle_vector_reconstruction;	
+std::vector<float>	xz_exit_angle_vector_reconstruction;	
+std::vector<unsigned int> first_MLP_voxel_vector_reconstruction;
+
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /*********************************************************************************** End of Parameter Definitions ************************************************************************************/
