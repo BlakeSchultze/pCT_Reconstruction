@@ -19,18 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="..\pCT_Reconstruction.cu">
-      <TargetMachinePlatform Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">64</TargetMachinePlatform>
-      <TargetMachinePlatform Condition="'$(Configuration)|$(Platform)'=='Release|x64'">64</TargetMachinePlatform>
-      <AdditionalDeps Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-      </AdditionalDeps>
-      <UseHostInclude Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</UseHostInclude>
-      <Keep Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</Keep>
-      <Include Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ROOTSYS)$/include;$(IncludePath);%(Include)</Include>
-    </CudaCompile>
+    <CudaCompile Include="..\pCT_Reconstruction_Data_Segments_Blake.cu" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\pCT_Reconstruction.h" />
+    <ClInclude Include="..\pCT_Reconstruction_Data_Segments_Blake.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{5CC0F789-F486-4EAB-8EAF-A769803FC3A3}</ProjectGuid>

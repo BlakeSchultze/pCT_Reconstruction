@@ -4,7 +4,8 @@
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************** Proton CT Preprocessing and Image Reconstruction Code ******************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-#include "../include/pCT_Reconstruction_Data_Segments_Blake.h"
+//#include "../include/pCT_Reconstruction_Data_Segments_Blake.h"
+#include "pCT_Reconstruction_Data_Segments_Blake.h"
 //#include "...\include/pCT_Reconstruction_Data_Segments_Blake.h"
 //#include "C:\Users\Blake\Documents\GitHub\Baylor_ICTHUS\pCT_Reconstruction\include\pCT_Reconstruction_Data_Segments_Blake.h"
 //#include "..\include\pCT_Reconstruction_Data_Segments_Blake.h"
