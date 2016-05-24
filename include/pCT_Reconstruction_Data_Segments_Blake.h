@@ -399,9 +399,9 @@ double ETA							= 2.5;								// [#] Coefficient of perturbation used in robust
 unsigned int METHOD					= 1;								// [#] Integer indicating the desired robust method to use (deprecated, non in use)
 int PSI_SIGN						= 1;								// [#] Use a positive (1) or negative (-1) perturbation in robust methods
 #define ITERATIONS					10									// [#] # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define DROP_BLOCK_SIZE				102400								// [#] # of histories in each DROP block, i.e., # of histories used per image update
+#define DROP_BLOCK_SIZE				204800								// [#] # of histories in each DROP block, i.e., # of histories used per image update
 //#define LAMBDA					0.00015								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
-float LAMBDA						= 0.0008;								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
+float LAMBDA						= 0.001;								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Total variation superiorization (TVS) options/parameters -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/

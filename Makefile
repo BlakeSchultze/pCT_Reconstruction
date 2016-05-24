@@ -82,8 +82,9 @@ EXTRA_CCFLAGS   ?= -fopenmp
 GENCODE_SM10    := -gencode arch=compute_10,code=sm_10
 GENCODE_SM20    := -gencode arch=compute_20,code=sm_20
 GENCODE_SM30    := -gencode arch=compute_30,code=sm_30
+GENCODE_SM35    := -gencode arch=compute_35,code=sm_35
 #GENCODE_FLAGS   := $(GENCODE_SM10) $(GENCODE_SM20) $(GENCODE_SM30)
-GENCODE_FLAGS   := $(GENCODE_SM30)
+GENCODE_FLAGS   := $(GENCODE_SM35)
 
 # OS-specific build flags
 ifneq ($(DARWIN),) 
@@ -95,7 +96,7 @@ else
       CCFLAGS   := -m32
   else
       LDFLAGS   := -L$(CUDA_LIB_PATH) -lcudart
-      CCFLAGS   := -m64
+      CCFLAGS   += -std=c++11 -m64
   endif
 endif
 

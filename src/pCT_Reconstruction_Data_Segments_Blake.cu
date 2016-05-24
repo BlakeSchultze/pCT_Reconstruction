@@ -7658,6 +7658,10 @@ void DROP_full_tx_iteration(const int num_histories, const int iteration)
 		remaining_histories -= DROP_BLOCK_SIZE;		
 		start_position		+= DROP_BLOCK_SIZE;		
 	}// end: while( remaining_histories > 0)		
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess)
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching %s Kernel!\n", cudaStatus, "here");
+
 	execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, iteration_string);	
 	execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);		
 }
@@ -7809,6 +7813,10 @@ void DROP_full_tx_iteration(const int num_histories, const int iteration, double
 		remaining_histories -= DROP_BLOCK_SIZE;		
 		start_position		+= DROP_BLOCK_SIZE;		
 	}// end: while( remaining_histories > 0)		
+	cudaStatus = cudaDeviceSynchronize();
+	if (cudaStatus != cudaSuccess)
+		fprintf(stderr, "cudaDeviceSynchronize returned error code %d after launching %s Kernel!\n", cudaStatus, "here");
+
 	execution_time_DROP_iteration = timer( STOP, begin_DROP_iteration, iteration_string);	
 	execution_times_DROP_iterations.push_back(execution_time_DROP_iteration);		
 }
