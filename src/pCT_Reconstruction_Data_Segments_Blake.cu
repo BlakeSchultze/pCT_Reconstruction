@@ -4427,7 +4427,7 @@ void backprojection()
 	//	if( sinogram_filtered_h[i] != sinogram_filtered_h[i] )
 	//		printf("We have a nan in bin #%d\n", i);
 
-	double delta = GANTRY_ANGLE_INTERVAL * ANGLE_TO_RADIANS;
+	double delta = ANGULAR_BIN_SIZE * ANGLE_TO_RADIANS;
 	int voxel;
 	double x, y, z;
 	double u, t, v;
@@ -4511,7 +4511,7 @@ __global__ void backprojection_GPU( float* sinogram_filtered, float* FBP_image )
 	int voxel = slice * COLUMNS * ROWS + row * COLUMNS + column;	
 	if ( voxel < NUM_VOXELS )
 	{
-		double delta = GANTRY_ANGLE_INTERVAL * ANGLE_TO_RADIANS;
+		double delta = ANGULAR_BIN_SIZE * ANGLE_TO_RADIANS;
 		double u, t, v;
 		double detector_number_t, detector_number_v;
 		double eta, epsilon;
@@ -7952,12 +7952,15 @@ void DROP_GPU(const unsigned int num_histories)
 			#if TVS_OLD
 				TVS_REPETITIONS = 1;
 			#endif
-			NTVS_iteration(iteration);		
+			NTVS_iteration(iteration);	
+			x_host_2_GPU();									// Transfer perturbed image back to GPU for update	
 		#endif
 		// Transfer data for ALL reconstruction_histories before beginning image reconstruction, using the MLP lookup tables each time
 		#if (DROP_TX_MODE==FULL_TX)
 			DROP_full_tx_iteration(num_histories, iteration);
-		// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, using the MLP lookup tables each time
+			print_colored_text("Transferring iterate to host", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+			x_GPU_2_host();
+			// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, using the MLP lookup tables each time
 		#elif (DROP_TX_MODE==PARTIAL_TX_PREALLOCATED)
 			DROP_partial_tx_preallocated_iteration(num_histories, iteration);
 		// Transfer data to GPU as needed but allocate and resuse the GPU arrays each kernel launch, using the MLP lookup tables each time
@@ -7972,9 +7975,10 @@ void DROP_GPU(const unsigned int num_histories)
 		#endif		
 		// Transfer the updated image to the host and write it to disk
 		if( WRITE_X_KI ) 
-		{
-			x_GPU_2_host();
+		{			
+			print_colored_text("Writing iterate to disk", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			print_colored_text("Finished disk write", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 		}
 	}// end: for( unsigned int iteration = 1; iteration < iterations; iteration++)	
 	#if (DROP_TX_MODE==FULL_TX)
@@ -8050,8 +8054,12 @@ void DROP_GPU(const unsigned int num_histories, const int iterations, double rel
 		// Transfer the updated image to the host and write it to disk
 		if( WRITE_X_KI ) 
 		{
+			print_colored_text("Transferring iterate to host", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 			x_GPU_2_host();
+			print_colored_text("Writing iterate to disk", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			print_colored_text("Finished disk write", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	
 		}
 	}// end: for( unsigned int iteration = 1; iteration < iterations; iteration++)	
 	#if (DROP_TX_MODE==FULL_TX)
@@ -8599,13 +8607,14 @@ template<typename T> void iteratively_perturb_image_unconditional( T* image, boo
 }		
 void NTVS_iteration(const int iteration)
 {
-	x_GPU_2_host();									//effecti Transfer the updated image to the host and write it to disk
+	//x_GPU_2_host();									//effecti Transfer the updated image to the host and write it to disk
 	timer( START, begin_TVS_iteration, "for current NTVS iteration");
 	print_colored_text("Before NTVS:", YELLOW_TEXT, BLACK_BACKGROUND, UNDERLINE_TEXT );	
 	TV_x_values.push_back(calculate_total_variation(x_h, PRINT_TV));
 	#if TVS_CONDITIONED	
 		std::copy(x_h, x_h + NUM_VOXELS, x_TVS_h );
-		iteratively_perturb_image( x_h, hull_h, iteration);
+		iteratively_pe
+			rturb_image( x_h, hull_h, iteration);
 		//iteratively_perturb_image_in_place( x_h, hull_h, iteration);
 	#else
 		iteratively_perturb_image_unconditional( x_h, hull_h, iteration);
@@ -8615,7 +8624,7 @@ void NTVS_iteration(const int iteration)
 	execution_time_TVS_iteration = timer( STOP, begin_TVS_iteration, "for current NTVS iteration");	
 	execution_time_TVS += execution_time_TVS_iteration;
 	execution_times_TVS_iterations.push_back(execution_time_TVS_iteration);
-	x_host_2_GPU();									// Transfer perturbed image back to GPU for update	
+	//x_host_2_GPU();									// Transfer perturbed image back to GPU for update	
 }
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************* S-Curve Edge Attenuation Functions **************************************************************************************************************/
@@ -8918,7 +8927,7 @@ template<typename T> void bins_2_disk( const char* filename_base, const std::vec
 
 		va_end(specific_bins);
 		angular_bins.resize(angles.size());
-		std::transform(angles.begin(), angles.end(), angular_bins.begin(), std::bind2nd(std::divides<int>(), GANTRY_ANGLE_INTERVAL ) );
+		std::transform(angles.begin(), angles.end(), angular_bins.begin(), std::bind2nd(std::divides<int>(), ANGULAR_BIN_SIZE ) );
 	}
 	
 	int num_angles = (int) angular_bins.size();
@@ -8929,7 +8938,7 @@ template<typename T> void bins_2_disk( const char* filename_base, const std::vec
 
 	for( int angular_bin = 0; angular_bin < num_angles; angular_bin++)
 	{
-		angle = angular_bins[angular_bin] * GANTRY_ANGLE_INTERVAL;
+		angle = angular_bins[angular_bin] * ANGULAR_BIN_SIZE;
 		sprintf( filename, "%s%s/%s_%03d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, filename_base, angle, ".txt" );
 		output_file = fopen (filename, "w");
 		for( int v_bin = 0; v_bin < num_v_bins; v_bin++)

@@ -1,4 +1,4 @@
-﻿Build started 5/22/2016 7:54:33 PM.
+﻿Build started 5/23/2016 12:52:54 PM.
      1>Project "C:\Users\Blake\Documents\GitHub\BlakeSchultze\pCT_Reconstruction\Visual Studio Files\pCT_Reconstruction.vcxproj" on node 2 (Build target(s)).
      1>InitializeBuildStatus:
          Touching "x64\Release\pCT_Reconstruction.unsuccessfulbuild".
@@ -8,22 +8,19 @@
        Skipping target "AddCudaCompilePropsDeps" because all output files are up-to-date with respect to the input files.
        CudaBuild:
          Compiling CUDA source file ..\src\pCT_Reconstruction_Data_Segments_Blake.cu...
-         cmd.exe /C "C:\Users\Blake\AppData\Local\Temp\tmp8d1eb757d04a4ec499b5e7b95711270f.cmd"
+         cmd.exe /C "C:\Users\Blake\AppData\Local\Temp\tmp0835bbf5a6834153900f47697daf865e.cmd"
          "C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\bin\nvcc.exe" -gencode=arch=compute_30,code=\"sm_30,compute_30\" --use-local-env --cl-version 2012 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include"     --keep-dir x64\Release -maxrregcount=0  --machine 64 --compile -cudart static     -D_MBCS -Xcompiler "/EHsc /W3 /nologo /O2 /Zi  /MD  " -o x64\Release\pCT_Reconstruction_Data_Segments_Blake.cu.obj "C:\Users\Blake\Documents\GitHub\BlakeSchultze\pCT_Reconstruction\src\pCT_Reconstruction_Data_Segments_Blake.cu"
          
          C:\Users\Blake\Documents\GitHub\BlakeSchultze\pCT_Reconstruction\Visual Studio Files>"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\bin\nvcc.exe" -gencode=arch=compute_30,code=\"sm_30,compute_30\" --use-local-env --cl-version 2012 -ccbin "C:\Program Files (x86)\Microsoft Visual Studio 11.0\VC\bin\x86_amd64"  -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include" -I"C:\Program Files\NVIDIA GPU Computing Toolkit\CUDA\v6.5\include"     --keep-dir x64\Release -maxrregcount=0  --machine 64 --compile -cudart static     -D_MBCS -Xcompiler "/EHsc /W3 /nologo /O2 /Zi  /MD  " -o x64\Release\pCT_Reconstruction_Data_Segments_Blake.cu.obj "C:\Users\Blake\Documents\GitHub\BlakeSchultze\pCT_Reconstruction\src\pCT_Reconstruction_Data_Segments_Blake.cu" 
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8074): warning : variable "start_position" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8077): warning : variable "start_position" was declared but never referenced
          
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8074): warning : variable "start_position" was declared but never referenced
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8077): warning : variable "start_position" was declared but never referenced
          
          pCT_Reconstruction_Data_Segments_Blake.cu
      1>c:\users\blake\documents\github\blakeschultze\pct_reconstruction\src\../include/pCT_Reconstruction_Data_Segments_Blake.h(404): warning C4305: 'initializing' : truncation from 'double' to 'float'
      1>c:\users\blake\documents\github\blakeschultze\pct_reconstruction\src\../include/pCT_Reconstruction_Data_Segments_Blake.h(423): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
      1>c:\users\blake\documents\github\blakeschultze\pct_reconstruction\src\../include/pCT_Reconstruction_Data_Segments_Blake.h(428): warning C4305: 'initializing' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(23): warning C4800: 'void *' : forcing value to bool 'true' or 'false' (performance warning)
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2667): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2668): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2669): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2670): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2671): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2672): warning C4305: '*=' : truncation from 'double' to 'float'
@@ -34,84 +31,87 @@
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2677): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2678): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2679): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2800): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2801): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2802): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2680): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2681): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2682): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2803): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2804): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2805): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2806): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2807): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2808): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2839): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2840): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2841): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2809): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2810): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2811): warning C4244: '=' : conversion from 'double' to 'float', possible loss of data
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2842): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2875): warning C4018: '<=' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3060): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3065): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3066): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3067): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2843): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2844): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2845): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(2878): warning C4018: '<=' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3063): warning C4018: '<' : signed/unsigned mismatch
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3068): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3069): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3070): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3071): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3072): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3073): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3074): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3075): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3076): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3077): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3078): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3079): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3223): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3228): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3229): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3230): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3080): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3081): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3082): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3226): warning C4018: '<' : signed/unsigned mismatch
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3231): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3232): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3233): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3234): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3235): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3236): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3237): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3238): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3239): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3240): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3241): warning C4305: '*=' : truncation from 'double' to 'float'
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3242): warning C4305: '*=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3627): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4089): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4449): warning C4305: '=' : truncation from 'double' to 'float'
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4483): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4493): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4499): warning C4244: '*=' : conversion from 'double' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6781): warning C4244: '=' : conversion from 'ULL' to 'uint', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6835): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6865): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6870): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6875): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6893): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8020): warning C4018: '<=' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8110): warning C4018: '<=' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8165): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8168): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8747): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9470): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9485): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9494): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned int', possible loss of data
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9600): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3243): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3244): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3245): warning C4305: '*=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(3630): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4092): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4452): warning C4305: '=' : truncation from 'double' to 'float'
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4486): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4496): warning C4244: '+=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(4502): warning C4244: '*=' : conversion from 'double' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6784): warning C4244: '=' : conversion from 'ULL' to 'uint', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6838): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6868): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6873): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6878): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(6896): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8023): warning C4018: '<=' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8113): warning C4018: '<=' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8168): warning C4244: '=' : conversion from 'double' to 'int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8171): warning C4244: 'argument' : conversion from 'int' to 'float', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8750): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9473): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9488): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned int', possible loss of data
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9497): warning C4244: 'initializing' : conversion from '__int64' to 'unsigned int', possible loss of data
      1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9603): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9616): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9621): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9991): warning C4018: '<=' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9997): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(10011): warning C4018: '<=' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(10017): warning C4018: '<' : signed/unsigned mismatch
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8584): warning C4018: '<' : signed/unsigned mismatch
-                 C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8608) : see reference to function template instantiation 'void iteratively_perturb_image_unconditional<float>(T *,bool *,UINT)' being compiled
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9606): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9619): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9624): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(9994): warning C4018: '<=' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(10000): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(10014): warning C4018: '<=' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(10020): warning C4018: '<' : signed/unsigned mismatch
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8587): warning C4018: '<' : signed/unsigned mismatch
+                 C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8611) : see reference to function template instantiation 'void iteratively_perturb_image_unconditional<float>(T *,bool *,UINT)' being compiled
                  with
                  [
                      T=float
                  ]
-     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8499): warning C4018: '<' : signed/unsigned mismatch
-                 C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(10000) : see reference to function template instantiation 'void iteratively_perturb_image<float>(T *,bool *,UINT)' being compiled
+     1>C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(8502): warning C4018: '<' : signed/unsigned mismatch
+                 C:/Users/Blake/Documents/GitHub/BlakeSchultze/pCT_Reconstruction/src/pCT_Reconstruction_Data_Segments_Blake.cu(10003) : see reference to function template instantiation 'void iteratively_perturb_image<float>(T *,bool *,UINT)' being compiled
                  with
                  [
                      T=float
@@ -123,4 +123,4 @@
 
 Build FAILED.
 
-Time Elapsed 00:02:02.70
+Time Elapsed 00:01:23.60

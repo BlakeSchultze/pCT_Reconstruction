@@ -267,9 +267,9 @@ const char OUTPUT_DIRECTORY[]	= "//local//pCT_data//reconstruction_data//";
 
 const SCAN_TYPES				SCAN_TYPE				= EXPERIMENTAL;			  		// Specifies which of the defined filters will be used in FBP
 const char INPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
-const char OUTPUT_FOLDER[]    = "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
-const char PHANTOM[]			= "Water";
-const char RUN_NUMBER[]		= "0069_Cont";
+const char OUTPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
+const char PHANTOM_NAME[]		= "Water";
+const char RUN_NUMBER[]			= "0069_Cont";
 const char RUN_DATE[]			= "16-04-23";
 const char PREPROCESS_DATE[]	= "16-04-23";
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -398,10 +398,10 @@ ULL PRIME_OFFSET					= 26410633;							// [#] Separation between successive hist
 double ETA							= 2.5;								// [#] Coefficient of perturbation used in robust methods
 unsigned int METHOD					= 1;								// [#] Integer indicating the desired robust method to use (deprecated, non in use)
 int PSI_SIGN						= 1;								// [#] Use a positive (1) or negative (-1) perturbation in robust methods
-#define ITERATIONS					12									// [#] # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define DROP_BLOCK_SIZE				25600								// [#] # of histories in each DROP block, i.e., # of histories used per image update
+#define ITERATIONS					10									// [#] # of iterations through the entire set of histories to perform in iterative image reconstruction
+#define DROP_BLOCK_SIZE				102400								// [#] # of histories in each DROP block, i.e., # of histories used per image update
 //#define LAMBDA					0.00015								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
-float LAMBDA						= 0.0010;							// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
+float LAMBDA						= 0.0008;								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Total variation superiorization (TVS) options/parameters -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -442,7 +442,7 @@ UINT X0_TVS_REPETITIONS				= 5;								// [#] Specifies # of times to perform TV
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 const bool IDENTIFY_X_0_AIR		= true;
 double X_0_AIR_THRESHOLD				= 0.2;
-#define IDENTIFY_X_N_AIR	ON
+#define IDENTIFY_X_N_AIR	OFF
 #define X_N_AIR_THRESHOLD		0.1
 #define BOUND_IMAGE					OFF									// [T/F] If any voxel in the image exceeds 2.0, set it to exactly 2.0
 #define S_CURVE_ON					OFF									// [T/F] Turn on application of S-curve scaling of updates of voxels near the boundary
