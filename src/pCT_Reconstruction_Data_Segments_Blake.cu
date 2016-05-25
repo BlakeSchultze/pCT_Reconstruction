@@ -19,6 +19,8 @@
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************** Host functions declarations ********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
+void write_PNG(const char*, float*);
+
 bool file_exists (const char* );
 bool file_exists2 (const char* file_location) { return static_cast<bool>( std::ifstream(file_location) ); };
 bool file_exists3 (const char* file_location) { return std::ifstream(file_location).good(); };
@@ -4303,14 +4305,22 @@ void FBP()
 	backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );
 	cudaFree(sinogram_filtered_d);
 
+	if( WRITE_FBP_IMAGE || MEDIAN_FILTER_FBP || (X_0 == FBP_IMAGE) || (X_0 == HYBRID) )
+	{
+		print_colored_text( "Copying FBP image to host...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );		
+		cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );		
+	}
 	if( WRITE_FBP_IMAGE )
 	{
-		cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
+		print_colored_text( "Writing FBP image to disk...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );		
+		//cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
 		array_2_disk( FBP_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );	
+		write_PNG(FBP_FILENAME, FBP_image_h);		
 	}
 
 	if( IMPORT_FILTERED_FBP)
 	{
+		print_colored_text( "Importing FBP image from disk...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );		
 		float* image = (float*)calloc( NUM_VOXELS, sizeof(float));
 		sprintf(IMPORT_FBP_PATH,"%s%s/%s%d%s", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, IMPORT_FBP_FILENAME, 2*FBP_MED_FILTER_RADIUS+1,".bin" );
 		import_image( image, IMPORT_FBP_PATH );
@@ -4337,6 +4347,7 @@ void FBP()
 			cudaMemcpy(FBP_image_filtered_h, FBP_image_filtered_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost) ;
 			array_2_disk( FBP_AVG_FILTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_filtered_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
 			//FBP_image_h = FBP_image_filtered_h;
+			write_PNG("FBP_avg_filtered", FBP_image_h);	
 		}
 		cudaFree(FBP_image_filtered_d);
 	}
@@ -4344,7 +4355,7 @@ void FBP()
 	{
 		print_colored_text( "Applying median filter to FBP image...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 		FBP_median_filtered_h = (float*)calloc(NUM_VOXELS, sizeof(float));
-		cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
+		//cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyDeviceToHost );
 		//NTVS_timing_analysis();
 		median_filter_2D( FBP_image_h, FBP_median_filtered_h, FBP_MED_FILTER_RADIUS );
 		//NTVS_timing_analysis();
@@ -4354,7 +4365,11 @@ void FBP()
 		{
 			print_colored_text( "Writing median filtered FBP image to disk...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 			array_2_disk( FBP_MED_FILTER_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, FBP_image_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );		
+			write_PNG("FBP_med_filtered", FBP_image_h);	
+	
 		}
+		//cudaMemcpy( FBP_image_h, FBP_image_d, SIZE_IMAGE_FLOAT, cudaMemcpyHostToDevice);
+		
 	}	
 	// Generate FBP hull by thresholding FBP image
 	if( ENDPOINTS_HULL == FBP_HULL )
@@ -4364,6 +4379,7 @@ void FBP()
 	if( X_0 != FBP_IMAGE && X_0 != HYBRID )
 		free(FBP_image_h);
 	
+	//write_PNG("FBP", FBP_image_h);	
 	cudaFree(FBP_image_d);
 	print_section_exit( "Finished filtered backprojection", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 }
@@ -6047,7 +6063,7 @@ void reconstruction_cuts_full_tx( const int num_histories )
 		else
 			histories_2_process = remaining_histories;	
 
-		num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
+		num_blocks = static_cast<int>( (histories_2_process - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) );  
 		#if (ENDPOINTS_ALG == YES_BOOL)	
 			collect_MLP_endpoints_GPU<<< num_blocks, ENDPOINTS_PER_BLOCK >>>
 			( 
@@ -6099,7 +6115,7 @@ void reconstruction_cuts_full_tx_nobool( const int num_histories )
 		else
 			histories_2_process = remaining_histories;	
 
-		num_blocks = static_cast<int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
+		num_blocks = static_cast<int>( (histories_2_process - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) );  
 		collect_MLP_endpoints_GPU_nobool<<< num_blocks, ENDPOINTS_PER_BLOCK >>>
 		( 
 			first_MLP_voxel_d, hull_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, 
@@ -6702,8 +6718,10 @@ void define_initial_iterate()
 		}
 	}
 	if( WRITE_X_0 ) 
+	{
 		array_2_disk(X_0_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
-	
+		write_PNG(X_0_FILENAME, x_h);
+	}
 	if(RECONSTRUCT_X_0)
 		reconstruct_initial_iterate();
 	exit_program_if( EXIT_AFTER_X_O, "through initial iterate generation" );
@@ -7927,6 +7945,7 @@ void DROP_GPU(const unsigned int num_histories)
 {
 	// RECON_TX_MODE = FULL_TX, MLP_ALGORITHM = TABULATED
 	char iterate_filename[256];
+	//char fileNamePNG[512];
 	unsigned int start_position = 0;
 	unsigned int column_blocks = static_cast<unsigned int>( COLUMNS / VOXELS_PER_THREAD );
 	dim3 dimBlock( SLICES );
@@ -7986,6 +8005,8 @@ void DROP_GPU(const unsigned int num_histories)
 		{			
 			print_colored_text("Writing iterate to disk", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
+			// Print the image to a binary file
+			write_PNG(iterate_filename, x_h);
 			print_colored_text("Finished disk write", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 		}
 	}// end: for( unsigned int iteration = 1; iteration < iterations; iteration++)	
@@ -8003,6 +8024,41 @@ void DROP_GPU(const unsigned int num_histories)
 		free_MLP_lookup_tables();	
 	#endif 
 	execution_time_DROP = timer( STOP, begin_DROP, "for all iterations of DROP");
+}
+void write_PNG(const char* filename, float* image)
+{
+	char fileNamePNG[512];
+	char command[512];
+	char path[512];	
+	//print_colored_text("Writing binary image file to", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	//print_colored_text(path, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );			
+	sprintf(print_statement, "Writing %s.png to disk...", filename);
+	print_colored_text(print_statement, CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	
+	sprintf(path, "%s%s//%s.dat", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, filename);
+	FILE *imageFile = fopen(path, "wb");
+	//fwrite(image, sizeof(float), NUM_VOXELS, imageFile);
+	float pixel_value;
+	for(int k=0;k<SLICES;k++)
+	{
+		for(int m=0;m<ROWS;m++)		
+		{
+			for(int n=0;n<COLUMNS;n++)
+			{
+				pixel_value = image[(k*ROWS*COLUMNS)+(m*COLUMNS)+n]/2;
+				fwrite(&pixel_value, sizeof(pixel_value), 1, imageFile);
+			}
+		}
+	}
+	fclose(imageFile);
+	
+	// Convert the binary file to png, using imagemagick
+	sprintf(fileNamePNG, "%s%s//%s.png", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, filename);
+	//print_colored_text("Writing PNG image file to", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	//print_colored_text(fileNamePNG, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );		
+	//sprintf(path, "%s%s//%s.png", OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, filename);
+	sprintf(command, "convert -define quantum:format=floating-point -depth 32 -size %dx%d gray:%s %s", COLUMNS, ROWS*SLICES, path, fileNamePNG);
+	system(command);	
 }
 void DROP_GPU(const unsigned int num_histories, const int iterations, double relaxation_parameter)	
 {

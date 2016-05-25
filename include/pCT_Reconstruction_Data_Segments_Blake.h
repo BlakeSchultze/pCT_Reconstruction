@@ -294,7 +294,7 @@ const bool WRITE_MSC_COUNTS		= false;									// Write MSC counts array to disk 
 const bool WRITE_MSC_HULL		= false;									// Write MSC hull to disk (T) or not (F)
 const bool WRITE_SM_COUNTS		= false;									// Write SM counts array to disk (T) or not (F) before performing edge detection 
 const bool WRITE_SM_HULL		= false;									// Write SM hull to disk (T) or not (F)
-const bool WRITE_FBP_IMAGE		= false;									// Write FBP image before thresholding to disk (T) or not (F)
+const bool WRITE_FBP_IMAGE		= true;									// Write FBP image before thresholding to disk (T) or not (F)
 const bool WRITE_FBP_HULL		= false;									// Write FBP hull to disk (T) or not (F)
 const bool WRITE_AVG_FBP		= false;								// Write average filtered FBP image before thresholding to disk (T) or not (F)
 const bool WRITE_MEDIAN_FBP		= true;									// Write median filtered FBP image to disk (T) or not (F)
@@ -329,7 +329,7 @@ const bool WRITE_X				= false;								// Write the reconstructed image to disk (
 #define NUM_SCANS				1										// [#] Total number of scans
 #define NUM_FILES				( NUM_SCANS * GANTRY_ANGLES )			// [#] 1 file per gantry angle per translation
 #define SSD_T_SIZE				35.0									// [cm] Length of SSD in t (lateral) direction
-#define SSD_V_SIZE				6.0										// [cm] Length of SSD in v (vertical) direction
+#define SSD_V_SIZE				9.0										// [cm] Length of SSD in v (vertical) direction
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //-------------------------------------------------------------- Binning (for statistical analysis) and sinogram (for FBP) configurations ----------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -388,7 +388,7 @@ const bool WRITE_X				= false;								// Write the reconstructed image to disk (
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 #define IGNORE_SHORT_MLP		ON										// [T/F] Remove proton histories with short MLP paths from use in reconstruction (ON) or not (OFF)
 #define MIN_MLP_LENGTH			30										// [#] Minimum # of intersections required to use in reconstruction so proton's skimming object are ignored
-#define VOXEL_STEP_SIZE			( VOXEL_WIDTH / 2 )						// [cm] Length of the step taken along the path, i.e. change in depth per step for
+//#define MLP_U_STEP				( 3 * VOXEL_WIDTH / 4)						// [cm] Size of the step taken along u direction during MLP; depth difference between successive MLP points
 #define MLP_U_STEP				( VOXEL_WIDTH / 2)						// [cm] Size of the step taken along u direction during MLP; depth difference between successive MLP points
 const int max_path_elements		= int(sqrt(double( ROWS^2 + COLUMNS^2 + SLICES^2))); // Defines size of GPU array used to store a proton history's MLP voxel #s 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -399,9 +399,9 @@ double ETA							= 2.5;								// [#] Coefficient of perturbation used in robust
 unsigned int METHOD					= 1;								// [#] Integer indicating the desired robust method to use (deprecated, non in use)
 int PSI_SIGN						= 1;								// [#] Use a positive (1) or negative (-1) perturbation in robust methods
 #define ITERATIONS					10									// [#] # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define DROP_BLOCK_SIZE				204800								// [#] # of histories in each DROP block, i.e., # of histories used per image update
+#define DROP_BLOCK_SIZE				1638400								// [#] # of histories in each DROP block, i.e., # of histories used per image update
 //#define LAMBDA					0.00015								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
-float LAMBDA						= 0.001;								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
+float LAMBDA						= 0.005;								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Total variation superiorization (TVS) options/parameters -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -440,7 +440,7 @@ UINT X0_TVS_REPETITIONS				= 5;								// [#] Specifies # of times to perform TV
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //---------------------------------------------------------------------------- Average/median filtering options/parameters ---------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const bool IDENTIFY_X_0_AIR		= true;
+const bool IDENTIFY_X_0_AIR		= false;
 double X_0_AIR_THRESHOLD				= 0.2;
 #define IDENTIFY_X_N_AIR	OFF
 #define X_N_AIR_THRESHOLD		0.1
@@ -458,7 +458,7 @@ const bool MEDIAN_FILTER_X_0		= false;							// [T/F] Apply averaging filter to 
 UINT FBP_AVG_FILTER_RADIUS			= 0;								// [#] Radius of the average filter to apply to FBP image
 UINT HULL_AVG_FILTER_RADIUS			= 0;								// [#] Radius of the average filter to apply to hull image
 UINT X_0_AVG_FILTER_RADIUS			= 0;								// [#] Radius of the average filter to apply to initial iterate
-UINT FBP_MED_FILTER_RADIUS			= 2;								// [#] Radius of the median filter to apply to hull image
+UINT FBP_MED_FILTER_RADIUS			= 3;								// [#] Radius of the median filter to apply to hull image
 UINT HULL_MED_FILTER_RADIUS			= 0;								// [#] Radius of the median filter to apply to FBP image
 UINT X_0_MED_FILTER_RADIUS			= 0;								// [#] Radius of the median filter to apply to initial iterate
 double HULL_AVG_FILTER_THRESHOLD	= 0.1;								// [#] Threshold applied to average filtered hull separating voxels to include/exclude from hull (i.e. set to 0/1)

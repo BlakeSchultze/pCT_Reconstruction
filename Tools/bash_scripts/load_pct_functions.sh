@@ -1,3 +1,4 @@
+#!/bin/bash
 console_width=90
 dark="0;"
 light="1;"
@@ -431,8 +432,8 @@ function lsm()
     mtime_string=''
     file_type='d'
     period_identifier="days"
-	age=''
-	while getopts 'vm:d:f:o:t:sIMCAR' opt; do
+    age=''
+    while getopts 'vm:d:f:o:t:sIMCAR' opt; do
         case $opt in
             v) verbose_string='-printf %f\n';;
             m) match_string=${OPTARG};;
@@ -454,7 +455,7 @@ function lsm()
     elif [[ $modified_qualifier == "+" ]]; then age_identifier="greater than"; age=${mtime:1}
     else age_identifier="exactly"; age=${mtime:0}; fi
     if [[ ${age} == 1 ]]; then period_identifier="day"; fi
-	color_text " $match_string" 0,33 6,40; matching=$REPLY
+    color_text " $match_string" 0,33 6,40; matching=$REPLY
     color_text " $depth"        0,33 6,40; maxdepth=$REPLY
     color_text " $filename"     0,33 6,40; filenaming=$REPLY
     color_text " ${age_identifier} ${age} ${period_identifier} ago"     0,33 6,40; ordering=$REPLY
@@ -593,9 +594,9 @@ function load_CUDA_modules()
     then
         print_module_load "unload gcc"
         print_module_load "load cuda55"
-	      print_module_load "load cuda55/blas/5.5.22"
-	      print_module_load "load cuda55/fft/5.5.22"
-	      print_module_load "load cuda55/toolkit/5.5.22"
+          print_module_load "load cuda55/blas/5.5.22"
+          print_module_load "load cuda55/fft/5.5.22"
+          print_module_load "load cuda55/toolkit/5.5.22"
     #---------------------------------------------------------------------------------------------#
     elif [ ${load_CUDA} == 65 ]
     then
@@ -604,8 +605,8 @@ function load_CUDA_modules()
         print_module_load "load cuda65/blas/6.5.14"
         print_module_load "load cuda65/fft/6.5.14"
         print_module_load "load cuda65/gdk/340.29"
- 	      print_module_load "load cuda65/nsight/6.5.14"
- 	      print_module_load "load cuda65/profiler/6.5.14"
+          print_module_load "load cuda65/nsight/6.5.14"
+          print_module_load "load cuda65/profiler/6.5.14"
         print_module_load "load cuda65/toolkit/6.5.14"
     #---------------------------------------------------------------------------------------------#
     elif [ ${load_CUDA} == 70 ]
@@ -613,12 +614,12 @@ function load_CUDA_modules()
         print_module_load "unload gcc"
         print_module_load "load gcc/4.9.2"
         print_module_load "load cuda70"
-	      print_module_load "load cuda70/blas/7.0.28"
-	      print_module_load "load cuda70/fft/7.0.28"
-	      print_module_load "load cuda70/gdk/346.46"
-	      print_module_load "load cuda70/nsight/7.0.28"
+          print_module_load "load cuda70/blas/7.0.28"
+          print_module_load "load cuda70/fft/7.0.28"
+          print_module_load "load cuda70/gdk/346.46"
+          print_module_load "load cuda70/nsight/7.0.28"
         print_module_load "load cuda70/profiler/7.0.28"
-	      print_module_load "load cuda70/toolkit/7.0.28"
+          print_module_load "load cuda70/toolkit/7.0.28"
     fi
 }
 function find_git_branch()

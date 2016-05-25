@@ -1,4 +1,4 @@
-macro "ROI_Analysis [F2]"
+macro "recon_images_2_PNG"
 {
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//***************************************************************************************************************************************************************************************************//
@@ -11,7 +11,7 @@ macro "ROI_Analysis [F2]"
 	setBatchMode						(true);
 
 	//setBatchMode						(false);
-	print_major_log_section_separator	("Performing RSP and standard deviation analysis and extracting the line and gradient profiles of each ROI of the images from each iteration of reconstruction...");
+	print_major_log_section_separator	("Converting reconstructed text images to PNGs...");
 	//***************************************************************************************************************************************************************************************************//
 	//************************* Close all windows and clear results table *******************************************************************************************************************************//
 	//***************************************************************************************************************************************************************************************************//	
@@ -158,11 +158,11 @@ macro "ROI_Analysis [F2]"
 	//************************* Close all windows and clear results table *******************************************************************************************************************************//
 	//***************************************************************************************************************************************************************************************************//						
 	directory_path 									= getArgument();
-	if(directory_path == "" )
-	
+	if(directory_path == "" )	
 		directory_path 								= getDirectory("Choose a Directory");
 	
 	directory_folder 								= File.getName(directory_path);
+	print(directory_path);
 	folder_separator								= File.separator;
 	ImageJ_plugins_directory						= getDirectory("plugins");
 	ImageJ_macro_directory							= getDirectory("macros");
@@ -291,39 +291,6 @@ macro "ROI_Analysis [F2]"
 	//***********************************************************************************************************************************************************************************************//
 	//************************************************************************************** Parameter value arrays *********************************************************************************//
 	//***********************************************************************************************************************************************************************************************//
-	ROI_definitions_filename_suffix			= "_ROIs" + TXT;	
-	ROI_definitions_filename				= phantom_basename + ROI_definitions_filename_suffix;
-	ROI_definitions_file_path				= github_macro_directory + folder_separator + ROI_definitions_filename;
-	ROI_material_names_decoding				= ROI_definition_strings_decoding_op; 										//= air, air, PMP, LDPE,	polystyrene, acrylic, delrin, teflon
-	ROI_labels_decoding						= ROI_definition_strings_decoding_op; 										//= Air(bottom), Air(top), PMP, LDPE, Polystyrene, Acrylic, Delrin, Teflon
-	ROI_shapes_decoding						= ROI_definition_strings_decoding_op;										// = circular_ROI, circular_ROI, circular_ROI, circular_ROI, circular_ROI, circular_ROI, circular_ROI, circular_ROI
-	ROI_diameters_decoding					= ROI_definition_numbers_decoding_op;										//= 12.2, 12.2, 12.2, 12.2, 12.2, 12.2, 12.2, 12.2		
-	ROI_selection_radii_decoding			= ROI_definition_numbers_decoding_op; 										//	= 3.5, 4, 6
-	ROI_profile_radius_beyond_ROI_decoding	= ROI_definition_numbers_decoding_op;										//	= 8														
-	bulk_material_decoding					= ROI_definition_strings_decoding_op;										//	= epoxy	
-	ROI_parameter_decodings					= newArray(ROI_material_names_decoding, ROI_labels_decoding, ROI_shapes_decoding, ROI_diameters_decoding, ROI_selection_radii_decoding, ROI_profile_radius_beyond_ROI_decoding, bulk_material_decoding);		
-	ROI_definitions_parameter_list			= newArray("ROI_material_names", "ROI_labels", "ROI_shapes", "ROI_diameters", "ROI_selection_radii", "ROI_profile_radius_beyond_ROI", "bulk_material" );
-	ROI_material_names_index 				= 0;
-	ROI_labels_index 						= 1;
-	ROI_shapes_index 						= 2;
-	ROI_diameters_index 					= 3;
-	ROI_selection_radii_index 				= 4;
-	ROI_profile_radius_beyond_ROI_index	 	= 5;
-	bulk_material_index 					= 6;
-	ROI_parameter_strings					= file_2_key_value_pairs(github_macro_directory, ROI_definitions_filename, phantom_basename, ROI_definitions_parameter_list, ROI_parameter_decodings, ROI_definition_numbers_decoding_op, printing_ROI_definitions);		
-	ROI_material_names 						= ROI_parameter_string_2_values(ROI_parameter_strings, ROI_material_names_index, ROI_parameter_decodings, ROI_definition_numbers_decoding_op);	
-	ROI_labels 								= ROI_parameter_string_2_values(ROI_parameter_strings, ROI_labels_index, ROI_parameter_decodings, ROI_definition_numbers_decoding_op);
-	ROI_shapes 								= ROI_parameter_string_2_values(ROI_parameter_strings, ROI_shapes_index, ROI_parameter_decodings, ROI_definition_numbers_decoding_op);	
-	ROI_diameters 							= ROI_parameter_string_2_values(ROI_parameter_strings, ROI_diameters_index, ROI_parameter_decodings, ROI_definition_numbers_decoding_op);
-	ROI_selection_radii 					= ROI_parameter_string_2_values(ROI_parameter_strings, ROI_selection_radii_index, ROI_parameter_decodings, ROI_definition_numbers_decoding_op);
-	ROI_profile_radius_beyond_ROI	 		= ROI_parameter_string_2_values(ROI_parameter_strings, ROI_profile_radius_beyond_ROI_index, ROI_parameter_decodings, ROI_definition_numbers_decoding_op);	//ROI_profile_radius_beyond_ROI = ROI_profile_radius_beyond_ROI[0];
-	bulk_material 							= ROI_parameter_string_2_values(ROI_parameter_strings, bulk_material_index, ROI_parameter_decodings, ROI_definition_numbers_decoding_op);					//bulk_material = bulk_material[0];
-	bulk_material_RSP 						= material_name_2_RSP(bulk_material, simulated_scan);
-	ROI_material_RSPs 						= ROI_material_names_2_RSPs(ROI_material_names, simulated_scan);
-	num_ROIs_2_analyze 						= ROI_material_names.length; 										// # of material ROI ROIs in phantom
-	//***********************************************************************************************************************************************************************************************//
-	//************************************************************************************** Parameter value arrays *********************************************************************************//
-	//***********************************************************************************************************************************************************************************************//
 	x_dimensions 							= query_image_dimensions(directory_path, initial_iterate_filename);
 	x_columns 								= x_dimensions[0];
 	x_rows  								= x_dimensions[1];					
@@ -365,11 +332,6 @@ macro "ROI_Analysis [F2]"
 	slices_2_analyze						= Array.slice(sequential_values, first_slice_2_analyze, last_slice_2_analyze + 1);
 	num_slices_2_analyze					= slices_2_analyze.length;					// # of slices analyzed 
 	slices_2_analyze_string_precision 		= 0;										// # of digits after decimal point to use in conversion of slice # to string 	
-	ROI_radii 								= newArray(ROI_diameters.length);						// radii of circular selections used to analyze phantom ROIs
-	ROI_profile_radii 						= newArray(ROI_diameters.length);							// Set distance to extend profile line left/right from material insert ROI centers
-	ROI_selection_diameters 				= newArray(ROI_selection_radii.length);		// diameters of circular selections used to analyze phantom ROIs	
-	ROI_selection_diameter_string_precision	= 0;										// # of digits after decimal point to use in conversion of an ROI selection diameter value to string	
-	num_ROI_selection_diameters				= ROI_selection_diameters.length;			// diameters of circular selections used to analyze phantom ROIs 	
 	
 	// Parameters of PNG image generated for specified slice of x	
 	for(iteration_check = 0; iteration_check <= num_recon_iterations; iteration_check++)
@@ -385,8 +347,6 @@ macro "ROI_Analysis [F2]"
 	iterations_2_analyze_folders 						= newArray(images_per_reconstruction);		
 	slices_2_analyze_strings 							= newArray(num_slices_2_analyze);						
 	slices_2_analyze_folders 							= newArray(num_slices_2_analyze);						
-	ROI_selection_diameter_strings 						= newArray(num_ROI_selection_diameters);				
-	ROI_selection_diameter_folders 						= newArray(num_ROI_selection_diameters);
 	for(i = 0; i <= num_recon_iterations; i++)	
 	{							
 		reconstructed_image_strings[i] 					= reconstructed_image_file_basenames + d2s(i, iterations_2_analyze_string_precision);		
@@ -399,17 +359,6 @@ macro "ROI_Analysis [F2]"
 		slices_2_analyze_strings[i] 					= d2s(slices_2_analyze[i], slices_2_analyze_string_precision);		
 		slices_2_analyze_folders[i] 					= folder_separator + slice_2_analyze_folder_prefix + d2s(slices_2_analyze[i], slices_2_analyze_string_precision);	
 	}
-	for(i = 0; i < num_ROI_selection_diameters; i++)								
-	{																					
-		ROI_selection_diameters[i] 						= 2 * ROI_selection_radii[i];									
-		ROI_selection_diameter_strings[i] 				= d2s(ROI_selection_diameters[i], ROI_selection_diameter_string_precision);	
-		ROI_selection_diameter_folders[i] 				= folder_separator + ROI_selection_diameter_folder_prefix + d2s(ROI_selection_diameters[i], ROI_selection_diameter_string_precision);	
-	}																								
-	for(i = 0; i < ROI_diameters.length; i++)
-	{
-		ROI_radii[i] 									= ROI_diameters[i] / 2;		
-		ROI_profile_radii[i]							= ROI_radii[i] + ROI_profile_radius_beyond_ROI;	
-	}			
 	reconstructed_image_range_string					= "[" + iterations_2_analyze_strings[0] + "-" + iterations_2_analyze_strings[last_iteration_2_analyze] + "]";
 	iterations_2_analyze_range_string					= "[" + iterations_2_analyze_strings[first_iteration_2_analyze] + "-" + iterations_2_analyze_strings[last_iteration_2_analyze] + "]";
 	//***********************************************************************************************************************************************************************************************//
@@ -527,77 +476,32 @@ macro "ROI_Analysis [F2]"
 	//*******************************************************************************************************************************************************************************************//
 	//**** Parameter value test plot and multiplot data array sizing, indexing, and partitioning info used to identify, extract/collect, and plot subets of data ********************************//
 	//*******************************************************************************************************************************************************************************************//
-	//parameter_string_prefixes 						= newArray("B", "L", "Hull_r", "FBP_r", "TV", "A", "L0_0_Nk");
-	//parameter_string_precisions 					= newArray(0, 6, 0, 0, 0, 6, 0);				
-	current_parameters_string						= folder_2_parameter_string(directory_folder, parameter_string_prefixes, parameter_string_precisions, parameter_string_prefixes.length - 1);
-	//print(current_parameters_string);
-	//exit();
-	//*******************************************************************************************************************************************************************************************//
-	//**** Parameter value test plot and multiplot data array sizing, indexing, and partitioning info used to identify, extract/collect, and plot subets of data ********************************//
-	//*******************************************************************************************************************************************************************************************//
-	ROIs_per_reconstruction 							= num_ROIs_2_analyze * images_per_reconstruction;
-	//ROIs_per_test 										= ROIs_per_reconstruction * num_target_test_parameter_values;
-	//ROIs_per_multiplot_data 							= ROIs_per_test * num_multiplot_parameter_values;
-	//ROIs_per_test_iteration								= num_target_test_parameter_values * num_ROIs_2_analyze;									
-	//before_TVS_index 									= 0;
-	//after_TVS_index 									= 1;
-	//TV_step_measurements_per_iteration					= 2;
-	//TV_step_measurements_per_reconstruction 			= num_recon_iterations * TV_step_measurements_per_iteration;
-	//TV_step_measurements_per_multiplot_curve 			= num_target_test_parameter_values * TV_step_measurements_per_iteration;
-	//TV_step_measurements_per_multiplot 					= TV_step_measurements_per_multiplot_curve * num_multiplot_parameter_values;
-	//TV_step_measurements_per_test 						= TV_step_measurements_per_reconstruction * num_target_test_parameter_values;				
-	//TV_measurements_per_reconstruction 					= TV_step_measurements_per_reconstruction 	/ TV_step_measurements_per_iteration;
-	//TV_measurements_per_multiplot_curve 				= TV_step_measurements_per_multiplot_curve 	/ TV_step_measurements_per_iteration;
-	//TV_measurements_per_multiplot 						= TV_step_measurements_per_multiplot	 	/ TV_step_measurements_per_iteration;
-	//TV_measurements_per_test 							= TV_step_measurements_per_test 			/ TV_step_measurements_per_iteration;					
-	//num_input_directories_per_multiplot				= num_multiplot_parameter_values * num_target_test_parameter_values;	
-	//*******************************************************************************************************************************************************************************************//
-	//**** Parameter value test plot and multiplot data array sizing, indexing, and partitioning info used to identify, extract/collect, and plot subets of data ********************************//
-	//*******************************************************************************************************************************************************************************************//
-	//zero_line_by_target_parameter_values 			= newArray(num_target_test_parameter_values);					
-	zero_line_by_iteration							= newArray(ROIs_per_reconstruction);
-	zero_line_by_ROI								= newArray(num_ROIs_2_analyze);			
-	//Array.fill										(zero_line_by_target_parameter_values, 0);	
-	Array.fill										(zero_line_by_iteration, 0.0);
-	Array.fill										(zero_line_by_ROI, 0.0);
-	//ROI_material_RSP_line_by_target_parameter		= newArray(num_target_test_parameter_values);
-	ROI_material_RSP_line_no_air					= Array.slice(ROI_material_RSPs, 2, num_ROIs_2_analyze);			
-	ROI_material_RSPs_by_iteration					= newArray(ROIs_per_reconstruction);
-	RSPs_by_ROI										= newArray(ROIs_per_reconstruction);
-	RSPs_by_iteration								= newArray(ROIs_per_reconstruction);
-	RSP_errors_by_ROI								= newArray(ROIs_per_reconstruction);
-	RSP_errors_by_iteration							= newArray(ROIs_per_reconstruction);
-	std_devs_by_ROI									= newArray(ROIs_per_reconstruction);
-	std_devs_by_iteration							= newArray(ROIs_per_reconstruction);			
-	TV_measurements_by_iteration					= newArray(ROIs_per_reconstruction);
-	//indices_4_ordering_data 						= generate_ordering_indices(num_recon_iterations, num_ROIs_2_analyze, images_per_reconstruction, num_target_test_parameter_values);
-	if(log_printing)
-	{				
-		if(printing_ROI_definitions)
-			print_ROI_definitions						(bulk_material, bulk_material_RSP, ROI_profile_radius_beyond_ROI, ROI_selection_radii, ROI_shapes, ROI_material_names, ROI_labels, ROI_diameters);
-		if(printing_reconstructed_image_analysis_info)						
-			print_reconstructed_image_analysis_info		();
-		//if(printing_parameter_value_test_info)								
-		//	print_parameter_value_test_info				();
-		//if(printing_multiplot_parameter_info)							
-		//	print_multiplot_parameter_info				();
-	}
+	//if(log_printing)
+	//{				
+	//	if(printing_ROI_definitions)
+	//		print_ROI_definitions						(bulk_material, bulk_material_RSP, ROI_profile_radius_beyond_ROI, ROI_selection_radii, ROI_shapes, ROI_material_names, ROI_labels, ROI_diameters);
+	//	if(printing_reconstructed_image_analysis_info)						
+	//		print_reconstructed_image_analysis_info		();
+	//	//if(printing_parameter_value_test_info)								
+	//	//	print_parameter_value_test_info				();
+	//	//if(printing_multiplot_parameter_info)							
+	//	//	print_multiplot_parameter_info				();
+	////}
 	//exit();
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//**************************************************************************************************************************************************************************************************//
 	//***************************************************** Repeat analysis routines for each specified slice of the image *****************************************************************************//
 	//**************************************************************************************************************************************************************************************************//		
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	print_major_log_section_separator							("Performing ROI analysis for the current slice and writing the extracted slice and resulting plots to disk as PNG images...");
-	//				print(x_columns);
-	//print(x_rows);
-	//print(x_slices);
-	//print(x_height);
-	// Parameters of PNG image generated for specified slice of x	
+	//print_major_log_section_separator							("Performing ROI analysis for the current slice and writing the extracted slice and resulting plots to disk as PNG images...");
+	//existing_iterations = 0;
+	print("Reconstructed images located at:\n " + directory_path);
+	existing_iterations = -1;
 	for(iteration_check = 0; iteration_check <= num_recon_iterations; iteration_check++)
-		if( !File.exists( directory_path + reconstructed_image_file_basenames + d2s(iteration_check, 0) + TXT))
-			existing_iterations 			= iteration_check - 1;
-	last_iteration_2_analyze				= minOf(num_recon_iterations, existing_iterations - 1);
+		if( File.exists( directory_path + reconstructed_image_file_basenames + d2s(iteration_check, 0) + TXT))
+			existing_iterations 			= existing_iterations + 1;
+	last_iteration_2_analyze				= minOf(num_recon_iterations, existing_iterations);
+	print("Existing iterations = " + last_iteration_2_analyze);
 	for(iteration = first_iteration_2_analyze; iteration <= last_iteration_2_analyze; iteration++)		
 					{
 						iteration_string			= iterations_2_analyze_strings[iteration];
@@ -620,7 +524,9 @@ macro "ROI_Analysis [F2]"
 						//	//extract_slice(slice, x_magnification, flip_horizontally, flip_vertically, grayscale_range_min, grayscale_range_max, overwrite_slice_2_PNG, PNG_image_filename, false);
 						//	slice_2_PNG				(slice_2_analyze_directory, PNG_image_filename, slice, flip_horizontally, flip_vertically, grayscale_range_min, grayscale_range_max, overwrite_slice_2_PNG, PNG_image_filename, true );
 						//}
-					
+					}				
+	print("done");
+	exit();
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//*******************************************************************************************************************************************************************************************************************//
 	//*********************************************************** Perform analyses of measurements vs. iteration ********************************************************************************************************//
