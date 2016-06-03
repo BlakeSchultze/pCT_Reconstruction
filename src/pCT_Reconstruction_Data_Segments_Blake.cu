@@ -19,7 +19,7 @@
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************************** Host functions declarations ********************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
-void write_PNG(const char*, float*);
+template<typename T> void write_PNG(const char*, T*);
 
 bool file_exists (const char* );
 bool file_exists2 (const char* file_location) { return static_cast<bool>( std::ifstream(file_location) ); };
@@ -139,6 +139,7 @@ void combine_data_sets();
 void read_data_chunk( const int, const int, const int );
 void read_data_chunk_old( const int, const int, const int );
 void read_data_chunk_v0( const int, const int, const int );
+void read_data_chunk_v0_w_angles( const int, const int, const int );
 void read_data_chunk_v02( const int, const int, const int );
 void read_data_chunk_v1( const int, const int, const int );
 void apply_tuv_shifts( unsigned int );
@@ -206,9 +207,6 @@ void reconstruction_cuts();
 void generate_trig_tables();
 void generate_scattering_coefficient_table();
 void generate_polynomial_tables();
-void import_trig_tables();
-void import_scattering_coefficient_table();
-void import_polynomial_tables();
 void MLP_lookup_table_2_GPU();
 void setup_MLP_lookup_tables();
 void free_MLP_lookup_tables();
@@ -309,6 +307,8 @@ __device__ void take_3D_step_GPU( const int, const int, const int, const double,
 // Preprocessing routines
 __device__ bool calculate_intercepts( double, double, double, double&, double& );
 __global__ void recon_volume_intersections_GPU( int, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
+__global__ void recon_volume_intersections_GPU_exact_angles( int, float*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
+template<typename T> __global__ void recon_volume_intersections_GPU_exact_angles( int, T*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void binning_GPU( int, int*, int*, bool*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float* );
 __global__ void calculate_means_GPU( int*, float*, float*, float* );
 __global__ void sum_squared_deviations_GPU( int, int*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*, float*  );
@@ -317,6 +317,7 @@ __global__ void statistical_cuts_GPU( int, int*, int*, float*, float*, float*, f
 __global__ void construct_sinogram_GPU( int*, float* );
 __global__ void filter_GPU( float*, float* );
 __global__ void backprojection_GPU( float*, float* );
+__global__ void backprojection_GPU2( float*, float* );
 __global__ void FBP_image_2_hull_GPU( float*, bool* );
 
 // Hull-Detection 
@@ -592,7 +593,8 @@ void set_file_permissions(const char* path, const char* permission)
 	if(PRINT_CHMOD_CHANGES_ONLY)
 		sprintf(bash_command, "%s %s \"%s\"", BASH_CHANGE_PERMISSIONS, permission, path);
 	else
-		sprintf(bash_command, "%s %s \"%s\"", BASH_SET_PERMISSIONS, permission, path);
+		sprintf(bash_command, "%s %s \"%s\"", BASH_SET_PERMISSIONS_SILENT, permission, path);
+	
 	print_multiline_bash_results(bash_command, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
 }
 /***********************************************************************************************************************************************************************************************************************/
@@ -821,37 +823,49 @@ void set_and_make_output_folder()
 			sprintf(OUTPUT_FOLDER_UNIQUE, "%sI_%d_N_%d", OUTPUT_FOLDER_UNIQUE, IGNORE_SHORT_MLP, MIN_MLP_LENGTH);
 		naming_applied = true;
 	}
-	if( S_CURVE_TESTING_ON )
+	
+	if( CUTS_TESTING_ON )
 	{
 		if(naming_applied)
-			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_k_%3f_x0_%d", OUTPUT_FOLDER_UNIQUE, SIGMOID_STEEPNESS, SIGMOID_MID_SHIFT );	
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_SDs_%d_sSD_%d", OUTPUT_FOLDER_UNIQUE, SIGMAS_TO_KEEP, SAMPLE_STD_DEV);
 		else
-			sprintf(OUTPUT_FOLDER_UNIQUE, "%sk_%3f_x0_%d", OUTPUT_FOLDER_UNIQUE, SIGMOID_STEEPNESS, SIGMOID_MID_SHIFT );	
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%sSDs_%d_sSD_%d", OUTPUT_FOLDER_UNIQUE, SIGMAS_TO_KEEP, SAMPLE_STD_DEV);
+		//sprintf(OUTPUT_FOLDER_UNIQUE, "%s//TV_%d_A_%3f_L0_%d_Nk_%d", OUTPUT_FOLDER, SIGMAS_TO_KEEP, A, L_0, TVS_REPETITIONS );
+		naming_applied = true;
+	}
+	if( RECON_VOLUME_TESTING_ON )
+	{
+		if(naming_applied)
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_D_%2.1f_H_%2.1f", OUTPUT_FOLDER_UNIQUE, RECON_CYL_DIAMETER, RECON_CYL_HEIGHT);
+		else
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%sD_%2.1f_H_%2.1f", OUTPUT_FOLDER_UNIQUE, RECON_CYL_DIAMETER, RECON_CYL_HEIGHT);
+		//sprintf(OUTPUT_FOLDER_UNIQUE, "%s//TV_%d_A_%3f_L0_%d_Nk_%d", OUTPUT_FOLDER, TVS_CONDITIONED, A, L_0, TVS_REPETITIONS );
+		naming_applied = true;
+	}
+	if( FILTER_TESTING_ON )
+	{
+		if(naming_applied)
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_Hr_%d_Fr_%d", OUTPUT_FOLDER_UNIQUE, HULL_AVG_FILTER_RADIUS, FBP_MED_FILTER_RADIUS);		
+		else
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%sHr_%d_Fr_%d", OUTPUT_FOLDER_UNIQUE, HULL_AVG_FILTER_RADIUS, FBP_MED_FILTER_RADIUS);		
 		naming_applied = true;
 	}
 	if( RECON_PARAMETER_TESTING_ON )
 	{
 		if(naming_applied)
-			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_B_%d_L_%6.5f_Hr_%d_Fr_%d", OUTPUT_FOLDER_UNIQUE, DROP_BLOCK_SIZE, LAMBDA, HULL_AVG_FILTER_RADIUS, FBP_MED_FILTER_RADIUS);
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_B_%d_L_%6.5f", OUTPUT_FOLDER_UNIQUE, DROP_BLOCK_SIZE, LAMBDA);
 		else
-			sprintf(OUTPUT_FOLDER_UNIQUE, "%sB_%d_L_%6.5f_Hr_%d_Fr_%d", OUTPUT_FOLDER_UNIQUE, DROP_BLOCK_SIZE, LAMBDA, HULL_AVG_FILTER_RADIUS, FBP_MED_FILTER_RADIUS);
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%sB_%d_L_%6.5f", OUTPUT_FOLDER_UNIQUE, DROP_BLOCK_SIZE, LAMBDA);
 		//sprintf(OUTPUT_FOLDER_UNIQUE, "%s//TV_%d_A_%3f_L0_%d_Nk_%d", OUTPUT_FOLDER, TVS_CONDITIONED, A, L_0, TVS_REPETITIONS );
 		naming_applied = true;
 	}
+	
 	if( FBP_TESTING_ON )
 	{
 		if(naming_applied)
 			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_FBP_MED_FILTER_TESTING", OUTPUT_FOLDER_UNIQUE);		
 		else
 			sprintf(OUTPUT_FOLDER_UNIQUE, "%sFBP_MED_FILTER_TESTING", OUTPUT_FOLDER_UNIQUE);		
-		naming_applied = true;
-	}
-	if( FILTER_TESTING_ON )
-	{
-		if(naming_applied)
-			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_Hull_r_%d_FBP_r_%d", OUTPUT_FOLDER_UNIQUE, HULL_AVG_FILTER_RADIUS, FBP_MED_FILTER_RADIUS);		
-		else
-			sprintf(OUTPUT_FOLDER_UNIQUE, "%sHull_r_%d_FBP_r_%d", OUTPUT_FOLDER_UNIQUE, HULL_AVG_FILTER_RADIUS, FBP_MED_FILTER_RADIUS);		
 		naming_applied = true;
 	}
 	if( NTVS_TESTING_ON )
@@ -905,6 +919,23 @@ void set_and_make_output_folder()
 		//sprintf(OUTPUT_FOLDER_UNIQUE, "%s//TV_%d_A_%3f_L0_%d_Nk_%d", OUTPUT_FOLDER, TVS_CONDITIONED, A, L_0, TVS_REPETITIONS );
 		naming_applied = true;
 	}
+	if( S_CURVE_TESTING_ON )
+	{
+		if(naming_applied)
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_k_%3f_x0_%d", OUTPUT_FOLDER_UNIQUE, SIGMOID_STEEPNESS, SIGMOID_MID_SHIFT );	
+		else
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%sk_%3f_x0_%d", OUTPUT_FOLDER_UNIQUE, SIGMOID_STEEPNESS, SIGMOID_MID_SHIFT );	
+		naming_applied = true;
+	}
+	if( ANGULAR_BIN_TESTING_ON )
+	{
+		if(naming_applied)
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%s_DEG_%2.1f", OUTPUT_FOLDER_UNIQUE, ANGULAR_BIN_SIZE);
+		else
+			sprintf(OUTPUT_FOLDER_UNIQUE, "%sB_DEG_%2.1f", OUTPUT_FOLDER_UNIQUE, ANGULAR_BIN_SIZE);
+		//sprintf(OUTPUT_FOLDER_UNIQUE, "%s//TV_%d_A_%3f_L0_%d_Nk_%d", OUTPUT_FOLDER, TVS_CONDITIONED, A, L_0, TVS_REPETITIONS );
+		naming_applied = true;
+	}	
 	
 	if(!naming_applied)
 		sprintf(OUTPUT_FOLDER_UNIQUE, "%s//%s", OUTPUT_FOLDER, EXECUTION_YY_MM_DD );	// EXECUTION_DATE
@@ -1297,7 +1328,12 @@ void program_startup_tasks()
 	print_section_header( "Determining version of reconstruction code, verifying input data, querying current compute node, and assigning output data directory", MAJOR_SECTION_SEPARATOR, LIGHT_GREEN_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
 	timer( START, begin_program, "for entire program");
 	string_assigments();
-	IO_setup();	
+	IO_setup();
+	print_section_header( "Binning/voxel parameters", MAJOR_SECTION_SEPARATOR, LIGHT_GREEN_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_labeled_value("COLUMNS =", COLUMNS, GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
+	print_labeled_value("ROWS =", ROWS, GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
+	print_labeled_value("SLICES =", SLICES, GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
+	
 	if(PRINT_ALL_PATHS)
 		print_paths();
 }
@@ -1851,14 +1887,14 @@ void cp_output_2_kodiak()
 	/*							Copy directory containing newly generated preprocessing data and reconstructed images to Kodiak								*/
 	/********************************************************************************************************************************************************/				
 	print_section_header("Copying reconstruction results to the network-attached storage device", MINOR_SECTION_SEPARATOR, LIGHT_CYAN_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );	
-	copy_folder_contents(BASH_COPY_DIR, LOCAL_OUTPUT_DATA_PATH, GLOBAL_OUTPUT_DATA_PATH);
+	copy_folder_contents(BASH_COPY_DIR_SILENT, LOCAL_OUTPUT_DATA_PATH, GLOBAL_OUTPUT_DATA_PATH);
 	print_section_exit( "Finshed copying local output data to the network-attached storage device", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	/********************************************************************************************************************************************************/
 	/*							Copy directory containing reconstruction code compiled/executed to generate reconstruction results to Kodiak								*/
 	/********************************************************************************************************************************************************/				
 	print_section_header("Copying executed code to the network-attached storage device...", MINOR_SECTION_SEPARATOR, LIGHT_CYAN_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );	
-	copy_data(BASH_COPY_DIR, EXECUTED_SRC_CODE_PATH, GLOBAL_OUTPUT_SRC_CODE_PATH);		
-	copy_data(BASH_COPY_DIR, EXECUTED_INCLUDE_CODE_PATH, GLOBAL_OUTPUT_INCLUDE_CODE_PATH);		
+	copy_data(BASH_COPY_DIR_SILENT, EXECUTED_SRC_CODE_PATH, GLOBAL_OUTPUT_SRC_CODE_PATH);		
+	copy_data(BASH_COPY_DIR_SILENT, EXECUTED_INCLUDE_CODE_PATH, GLOBAL_OUTPUT_INCLUDE_CODE_PATH);		
 	print_section_exit( "cp data transfers complete", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );			
 }
 void scp_output_2_kodiak()
@@ -1996,7 +2032,7 @@ void initial_processing_memory_clean()
 {
 	//clear_input_memory
 	//free( missed_recon_volume_h );
-	free( gantry_angle_h );
+	//free( gantry_angle_h );
 	cudaFree( x_entry_d );
 	cudaFree( y_entry_d );
 	cudaFree( z_entry_d );
@@ -2208,12 +2244,15 @@ void count_histories_v0()
 			}
 			fread(&magic_number_string, 4, 1, data_file );
 			magic_number_string[4] = '\0';
-			if( strcmp( magic_number_string, "PCTD" ) != 0 ) 
+			if(strcmp( magic_number_string, "PCTN" ) == 0 )
+				CONTINUOUS_DATA = true;
+			else if( strcmp( magic_number_string, "PCTD" ) != 0 ) 
 			{
 				//puts(magic_number);
-				puts("Error: unknown file type (should be PCTD)!\n");
+				puts("Error: unknown file type (should be PCTN)!\n");
 				exit_program_if(true);
 			}
+			
 			fread(&VERSION_ID, sizeof(int), 1, data_file );			
 			if( VERSION_ID == 0 )
 			{
@@ -2757,7 +2796,8 @@ void read_data_chunk( const int num_histories, const int start_file_num, const i
 	v_out_2_h		= (float*) malloc(size_floats);		
 	WEPL_h			= (float*) malloc(size_floats);
 	gantry_angle_h	= (int*)   malloc(size_ints);
-
+	if(CONTINUOUS_DATA && USE_CONT_ANGLES)
+		actual_projection_angles_h = (float*)   malloc(size_floats);
 	if( WRITE_SSD_ANGLES )
 	{
 		ut_entry_angle	= (float*) malloc(size_floats);
@@ -2769,6 +2809,7 @@ void read_data_chunk( const int num_histories, const int start_file_num, const i
 	{
 		case OLD_FORMAT : read_data_chunk_old( num_histories, start_file_num, end_file_num - 1 );	break;
 		case VERSION_0  : read_data_chunk_v0(  num_histories, start_file_num, end_file_num - 1 );	break;
+		//case VERSION_0_W_ANGLES  : read_data_chunk_v0_w_angles(  num_histories, start_file_num, end_file_num - 1 );	break;		
 		case VERSION_1  : read_data_chunk_v1(  num_histories, start_file_num, end_file_num - 1 );
 	}
 }
@@ -2851,6 +2892,108 @@ void read_data_chunk_old( const int num_histories, const int start_file_num, con
 		fclose(data_file);		
 	}
 }
+//void read_data_chunk_v0( const int num_histories, const int start_file_num, const int end_file_num )
+//{	
+//	/*
+//	Event data:
+//	Data is be stored with all of one type in a consecutive row, meaning the first entries will be N t0 values, where N is the number of events in the file. Next will be N t1 values, etc. This more closely matches the data structure in memory.
+//	Detector coordinates in mm relative to a phantom center, given in the detector coordinate system:
+//		t0 (float * N)
+//		t1 (float * N)
+//		t2 (float * N)
+//		t3 (float * N)
+//		v0 (float * N)
+//		v1 (float * N)
+//		v2 (float * N)
+//		v3 (float * N)
+//		u0 (float * N)
+//		u1 (float * N)
+//		u2 (float * N)
+//		u3 (float * N)
+//		WEPL in mm (float * N)
+//	*/
+//	char data_filename[128];//, statement[256];
+//	unsigned int gantry_position, gantry_angle, scan_number, file_histories, array_index = 0, histories_read = 0;
+//
+//	sprintf(print_statement, "%d histories to be read from %d files", num_histories, end_file_num - start_file_num + 1 );
+//	print_colored_text( print_statement, YELLOW_TEXT, BLACK_BACKGROUND, UNDERLINE_TEXT );	
+//		
+//	for( unsigned int file_num = start_file_num; file_num <= end_file_num; file_num++ )
+//	{	
+//		gantry_position = file_num / NUM_SCANS;
+//		gantry_angle = int(gantry_position * GANTRY_ANGLE_INTERVAL);
+//		scan_number = file_num % NUM_SCANS + 1;
+//		file_histories = histories_per_file[file_num];
+//		
+//		sprintf(data_filename, "%s%s/%s_%03d%s", INPUT_DIRECTORY, INPUT_FOLDER, PROJECTION_DATA_BASENAME, gantry_angle, PROJECTION_DATA_EXTENSION );
+//		FILE* data_file = fopen(data_filename, "rb");
+//		if( data_file == NULL )
+//		{
+//			fputs( "Error Opening Data File:  Check that the directories are properly named.\n", stderr ); 
+//			exit_program_if(true);
+//		}
+//		if( VERSION_ID == 0 )
+//		{
+//			//printf("\t");
+//			sprintf(print_statement, "\tReading %d histories for gantry angle %d from scan number %d...", file_histories, gantry_angle, scan_number );			
+//			print_colored_text( print_statement, CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+//			fseek( data_file, SKIP_2_DATA_SIZE, SEEK_SET );
+//
+//			fread( &t_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &t_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &t_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &t_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &v_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &v_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &v_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &v_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &u_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &u_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &u_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &u_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
+//			fclose(data_file);
+//
+//			histories_read += file_histories;
+//			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
+//				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
+//		}
+//		else if( VERSION_ID == 1 )
+//		{
+//			sprintf(print_statement, "\tReading %d histories for gantry angle %d from scan number %d...", file_histories, gantry_angle, scan_number );			
+//			print_colored_text( print_statement, CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+//			fseek( data_file, SKIP_2_DATA_SIZE, SEEK_SET );
+//
+//			fread( &t_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &t_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &t_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &t_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &v_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &v_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &v_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &v_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &u_in_1_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &u_in_2_h[histories_read],  sizeof(float), file_histories, data_file );
+//			fread( &u_out_1_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &u_out_2_h[histories_read], sizeof(float), file_histories, data_file );
+//			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
+//			fclose(data_file);
+//
+//			histories_read += file_histories;
+//			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
+//				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
+//		}
+//	}
+//	if( COUNT_0_WEPLS )
+//	{
+//		std::cout << "Histories in " << gantry_angle_h[0] << "with WEPL = 0 :" << zero_WEPL_files << std::endl;
+//		zero_WEPL_files = 0;
+//	}
+//	if( DATA_IN_MM )
+//		convert_mm_2_cm( num_histories );
+//	if( T_SHIFT != 0.0	||  U_SHIFT != 0.0 ||  V_SHIFT != 0.0)
+//		apply_tuv_shifts( num_histories );
+//}
 void read_data_chunk_v0( const int num_histories, const int start_file_num, const int end_file_num )
 {	
 	/*
@@ -2911,8 +3054,12 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 			fread( &u_out_1_h[histories_read], sizeof(float), file_histories, data_file );
 			fread( &u_out_2_h[histories_read], sizeof(float), file_histories, data_file );
 			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
+			if(CONTINUOUS_DATA && USE_CONT_ANGLES)
+				fread( &actual_projection_angles_h[histories_read],    sizeof(float), file_histories, data_file );		
 			fclose(data_file);
-
+			//for(int j = 100000;  j < 100040; j++)
+			//	printf("%3.3f\n", actual_projection_angles_h[j] );
+			//printf("%3.3f\n", actual_projection_angles_h[file_histories - 1] );
 			histories_read += file_histories;
 			for( unsigned int i = 0; i < file_histories; i++, array_index++ ) 
 				gantry_angle_h[array_index] = int(projection_angles[file_num]);							
@@ -2936,6 +3083,7 @@ void read_data_chunk_v0( const int num_histories, const int start_file_num, cons
 			fread( &u_out_1_h[histories_read], sizeof(float), file_histories, data_file );
 			fread( &u_out_2_h[histories_read], sizeof(float), file_histories, data_file );
 			fread( &WEPL_h[histories_read],    sizeof(float), file_histories, data_file );
+			fread( &actual_projection_angles_h[histories_read],    sizeof(float), file_histories, data_file );
 			fclose(data_file);
 
 			histories_read += file_histories;
@@ -3271,8 +3419,7 @@ void recon_volume_intersections( const int num_histories )
 	cudaMalloc((void**) &v_in_2_d,				size_floats);
 	cudaMalloc((void**) &v_out_1_d,				size_floats);
 	cudaMalloc((void**) &v_out_2_d,				size_floats);		
-	cudaMalloc((void**) &gantry_angle_d,		size_ints);
-
+	
 	cudaMalloc((void**) &x_entry_d,				size_floats);
 	cudaMalloc((void**) &y_entry_d,				size_floats);
 	cudaMalloc((void**) &z_entry_d,				size_floats);
@@ -3297,20 +3444,41 @@ void recon_volume_intersections( const int num_histories )
 	cudaMemcpy(v_in_2_d,		v_in_2_h,		size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(v_out_1_d,		v_out_1_h,		size_floats, cudaMemcpyHostToDevice) ;
 	cudaMemcpy(v_out_2_d,		v_out_2_h,		size_floats, cudaMemcpyHostToDevice) ;
-	cudaMemcpy(gantry_angle_d,	gantry_angle_h,	size_ints,   cudaMemcpyHostToDevice) ;
-
+	
 	dim3 dimBlock(THREADS_PER_BLOCK);
 	dim3 dimGrid((int)(num_histories/THREADS_PER_BLOCK)+1);
-	recon_volume_intersections_GPU<<<dimGrid, dimBlock>>>
-	(
-		num_histories, gantry_angle_d, missed_recon_volume_d,
-		t_in_1_d, t_in_2_d, t_out_1_d, t_out_2_d,
-		u_in_1_d, u_in_2_d, u_out_1_d, u_out_2_d,
-		v_in_1_d, v_in_2_d, v_out_1_d, v_out_2_d, 	
-		x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d, 		
-		xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d
-	);
-
+	if(CONTINUOUS_DATA && USE_CONT_ANGLES)
+	{		
+		cudaMalloc((void**) &actual_projection_angles_d,	size_floats);	
+		cudaMemcpy(actual_projection_angles_d,	actual_projection_angles_h,	size_floats,   cudaMemcpyHostToDevice) ;
+		recon_volume_intersections_GPU_exact_angles<<<dimGrid, dimBlock>>>
+		(
+			num_histories, actual_projection_angles_d, missed_recon_volume_d,
+			t_in_1_d, t_in_2_d, t_out_1_d, t_out_2_d,
+			u_in_1_d, u_in_2_d, u_out_1_d, u_out_2_d,
+			v_in_1_d, v_in_2_d, v_out_1_d, v_out_2_d, 	
+			x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d, 		
+			xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d
+		);
+		free(actual_projection_angles_h);
+		cudaFree(actual_projection_angles_d);
+	}
+	else
+	{
+		cudaMalloc((void**) &gantry_angle_d,		size_ints);
+		cudaMemcpy(gantry_angle_d,	gantry_angle_h,	size_ints,   cudaMemcpyHostToDevice) ;
+		recon_volume_intersections_GPU<<<dimGrid, dimBlock>>>
+		(
+			num_histories, gantry_angle_d, missed_recon_volume_d,
+			t_in_1_d, t_in_2_d, t_out_1_d, t_out_2_d,
+			u_in_1_d, u_in_2_d, u_out_1_d, u_out_2_d,
+			v_in_1_d, v_in_2_d, v_out_1_d, v_out_2_d, 	
+			x_entry_d, y_entry_d, z_entry_d, x_exit_d, y_exit_d, z_exit_d, 		
+			xy_entry_angle_d, xz_entry_angle_d, xy_exit_angle_d, xz_exit_angle_d
+		);
+		free(gantry_angle_h);
+		cudaFree(gantry_angle_d);
+	}
 	free(t_in_1_h);
 	free(t_in_2_h);
 	free(t_out_1_h);
@@ -3338,7 +3506,8 @@ void recon_volume_intersections( const int num_histories )
 	cudaFree(u_in_2_d);
 	cudaFree(u_out_1_d);
 	cudaFree(u_out_2_d);	
-	cudaFree(gantry_angle_d);
+	
+	
 	/* 
 		Device memory allocated but not freed here
 		x_entry_d;
@@ -3357,6 +3526,270 @@ void recon_volume_intersections( const int num_histories )
 __global__ void recon_volume_intersections_GPU
 (
 	int num_histories, int* gantry_angle, bool* missed_recon_volume, float* t_in_1, float* t_in_2, float* t_out_1, float* t_out_2, float* u_in_1, float* u_in_2, 
+	float* u_out_1, float* u_out_2, float* v_in_1, float* v_in_2, float* v_out_1, float* v_out_2, float* x_entry, float* y_entry, float* z_entry, float* x_exit, 
+	float* y_exit, float* z_exit, float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle
+)
+{
+	/************************************************************************************************************************************************************/
+	/*		Determine if the proton path passes through the reconstruction volume (i.e. intersects the reconstruction cylinder twice) and if it does, determine	*/ 
+	/*	the x, y, and z positions in the global/object coordinate system where the proton enters and exits the reconstruction volume.  The origin of the object */
+	/*	coordinate system is defined to be at the center of the reconstruction cylinder so that its volume is bounded by:										*/
+	/*																																							*/
+	/*													-RECON_CYL_RADIUS	<= x <= RECON_CYL_RADIUS															*/
+	/*													-RECON_CYL_RADIUS	<= y <= RECON_CYL_RADIUS															*/
+	/*													-RECON_CYL_HEIGHT/2 <= z <= RECON_CYL_HEIGHT/2															*/																									
+	/*																																							*/
+	/*		First, the coordinates of the points where the proton path intersected the entry/exit detectors must be calculated.  Since the detectors records	*/ 
+	/*	data in the detector coordinate system, data in the utv coordinate system must be converted into the global/object coordinate system.  The coordinate	*/
+	/*	transformation can be accomplished using a rotation matrix with an angle of rotation determined by the angle between the two coordinate systems, which  */ 
+	/*	is the gantry_angle, in this case:																														*/
+	/*																																							*/
+	/*	Rotate ut-coordinate system to xy-coordinate system							Rotate xy-coordinate system to ut-coordinate system							*/
+	/*		x = cos( gantry_angle ) * u - sin( gantry_angle ) * t						u = cos( gantry_angle ) * x + sin( gantry_angle ) * y					*/
+	/*		y = sin( gantry_angle ) * u + cos( gantry_angle ) * t						t = cos( gantry_angle ) * y - sin( gantry_angle ) * x					*/
+	/************************************************************************************************************************************************************/
+			
+	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
+	if( i < num_histories )
+	{
+		double rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
+		/********************************************************************************************************************************************************/
+		/************************************************************ Check entry information *******************************************************************/
+		/********************************************************************************************************************************************************/
+
+		/********************************************************************************************************************************************************/
+		/* Determine if the proton path enters the reconstruction volume.  The proton path is defined using the angle and position of the proton as it passed	*/
+		/* through the SSD closest to the object.  Since the reconstruction cylinder is symmetric about the rotation axis, we find a proton's intersection 		*/
+		/* points in the ut plane and then rotate these points into the xy plane.  Since a proton very likely has a small angle in ut plane, this allows us to 	*/
+		/* overcome numerical instabilities that occur at near vertical angles which would occur for gantry angles near 90/270 degrees.  However, if a path is 	*/
+		/* between [45,135] or [225,315], calculations are performed in a rotated coordinate system to avoid these numerical issues								*/
+		/********************************************************************************************************************************************************/
+		double ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );
+		//ut_entry_angle += PI;
+		double u_entry, t_entry;
+		
+		// Calculate if and where proton enters reconstruction volume; u_entry/t_entry passed by reference so they hold the entry point upon function returns
+		bool entered = calculate_intercepts( u_in_2[i], t_in_2[i], ut_entry_angle, u_entry, t_entry );
+		
+		xy_entry_angle[i] = ut_entry_angle + rotation_angle_radians;
+
+		// Rotate exit detector positions
+		x_entry[i] = ( cos( rotation_angle_radians ) * u_entry ) - ( sin( rotation_angle_radians ) * t_entry );
+		y_entry[i] = ( sin( rotation_angle_radians ) * u_entry ) + ( cos( rotation_angle_radians ) * t_entry );
+		/********************************************************************************************************************************************************/
+		/************************************************************* Check exit information *******************************************************************/
+		/********************************************************************************************************************************************************/
+		double ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );
+		double u_exit, t_exit;
+		
+		// Calculate if and where proton exits reconstruction volume; u_exit/t_exit passed by reference so they hold the exit point upon function returns
+		bool exited = calculate_intercepts( u_out_1[i], t_out_1[i], ut_exit_angle, u_exit, t_exit );
+
+		xy_exit_angle[i] = ut_exit_angle + rotation_angle_radians;
+
+		// Rotate exit detector positions
+		x_exit[i] = ( cos( rotation_angle_radians ) * u_exit ) - ( sin( rotation_angle_radians ) * t_exit );
+		y_exit[i] = ( sin( rotation_angle_radians ) * u_exit ) + ( cos( rotation_angle_radians ) * t_exit );
+		/********************************************************************************************************************************************************/
+		/************************************************************* Check z(v) information *******************************************************************/
+		/********************************************************************************************************************************************************/
+		
+		// Relevant angles/slopes in radians for entry and exit in the uv plane
+		double uv_entry_slope = ( v_in_2[i] - v_in_1[i] ) / ( u_in_2[i] - u_in_1[i] );
+		double uv_exit_slope = ( v_out_2[i] - v_out_1[i] ) / ( u_out_2[i] - u_out_1[i] );
+		
+		xz_entry_angle[i] = atan2( v_in_2[i] - v_in_1[i], u_in_2[i] - u_in_1[i] );
+		xz_exit_angle[i] = atan2( v_out_2[i] - v_out_1[i],  u_out_2[i] - u_out_1[i] );
+
+		/********************************************************************************************************************************************************/
+		/* Calculate the u coordinate for the entry and exit points of the reconstruction volume and then use the uv slope calculated from the detector entry	*/
+		/* and exit positions to determine the z position of the proton as it entered and exited the reconstruction volume, respectively.  The u-coordinate of  */
+		/* the entry and exit points of the reconsruction cylinder can be found using the x/y entry/exit points just calculated and the inverse rotation		*/
+		/*																																						*/
+		/*											u = cos( gantry_angle ) * x + sin( gantry_angle ) * y														*/
+		/********************************************************************************************************************************************************/
+		u_entry = ( cos( rotation_angle_radians ) * x_entry[i] ) + ( sin( rotation_angle_radians ) * y_entry[i] );
+		u_exit = ( cos(rotation_angle_radians) * x_exit[i] ) + ( sin(rotation_angle_radians) * y_exit[i] );
+		z_entry[i] = v_in_2[i] + uv_entry_slope * ( u_entry - u_in_2[i] );
+		z_exit[i] = v_out_1[i] - uv_exit_slope * ( u_out_1[i] - u_exit );
+
+		/********************************************************************************************************************************************************/
+		/* Even if the proton path intersected the circle defining the boundary of the cylinder in xy plane twice, it may not have actually passed through the	*/
+		/* reconstruction volume or may have only passed through part way.  If |z_entry|> RECON_CYL_HEIGHT/2, then data is erroneous since the source			*/
+		/* is around z=0 and we do not want to use this history.  If |z_entry| < RECON_CYL_HEIGHT/2 and |z_exit| > RECON_CYL_HEIGHT/2 then we want to use the	*/ 
+		/* history but the x_exit and y_exit positions need to be calculated again based on how far through the cylinder the proton passed before exiting		*/
+		/********************************************************************************************************************************************************/
+		if( entered && exited )
+		{
+			if( ( abs(z_entry[i]) < RECON_CYL_HEIGHT * 0.5 ) && ( abs(z_exit[i]) > RECON_CYL_HEIGHT * 0.5 ) )
+			{
+				double recon_cyl_fraction = abs( ( ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5 - z_entry[i] ) / ( z_exit[i] - z_entry[i] ) );
+				x_exit[i] = x_entry[i] + recon_cyl_fraction * ( x_exit[i] - x_entry[i] );
+				y_exit[i] = y_entry[i] + recon_cyl_fraction * ( y_exit[i] - y_entry[i] );
+				z_exit[i] = ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5;
+			}
+			else if( abs(z_entry[i]) > RECON_CYL_HEIGHT * 0.5 )
+			{
+				entered = false;
+				exited = false;
+			}
+			if( ( abs(z_entry[i]) > RECON_CYL_HEIGHT * 0.5 ) && ( abs(z_exit[i]) < RECON_CYL_HEIGHT * 0.5 ) )
+			{
+				double recon_cyl_fraction = abs( ( ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5 - z_exit[i] ) / ( z_exit[i] - z_entry[i] ) );
+				x_entry[i] = x_exit[i] + recon_cyl_fraction * ( x_exit[i] - x_entry[i] );
+				y_entry[i] = y_exit[i] + recon_cyl_fraction * ( y_exit[i] - y_entry[i] );
+				z_entry[i] = ( (z_entry[i] >= 0) - (z_entry[i] < 0) ) * RECON_CYL_HEIGHT * 0.5;
+			}
+			/****************************************************************************************************************************************************/ 
+			/* Check the measurement locations. Do not allow more than 5 cm difference in entry and exit in t and v. This gets									*/
+			/* rid of spurious events.																															*/
+			/****************************************************************************************************************************************************/
+			if( ( abs(t_out_1[i] - t_in_2[i]) > 5 ) || ( abs(v_out_1[i] - v_in_2[i]) > 5 ) )
+			{
+				entered = false;
+				exited = false;
+			}
+		}
+
+		// Proton passed through the reconstruction volume only if it both entered and exited the reconstruction cylinder
+		missed_recon_volume[i] = !entered || !exited;
+	}	
+}
+__global__ void recon_volume_intersections_GPU_exact_angles
+(
+	int num_histories, float* gantry_angle, bool* missed_recon_volume, float* t_in_1, float* t_in_2, float* t_out_1, float* t_out_2, float* u_in_1, float* u_in_2, 
+	float* u_out_1, float* u_out_2, float* v_in_1, float* v_in_2, float* v_out_1, float* v_out_2, float* x_entry, float* y_entry, float* z_entry, float* x_exit, 
+	float* y_exit, float* z_exit, float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle
+)
+{
+	/************************************************************************************************************************************************************/
+	/*		Determine if the proton path passes through the reconstruction volume (i.e. intersects the reconstruction cylinder twice) and if it does, determine	*/ 
+	/*	the x, y, and z positions in the global/object coordinate system where the proton enters and exits the reconstruction volume.  The origin of the object */
+	/*	coordinate system is defined to be at the center of the reconstruction cylinder so that its volume is bounded by:										*/
+	/*																																							*/
+	/*													-RECON_CYL_RADIUS	<= x <= RECON_CYL_RADIUS															*/
+	/*													-RECON_CYL_RADIUS	<= y <= RECON_CYL_RADIUS															*/
+	/*													-RECON_CYL_HEIGHT/2 <= z <= RECON_CYL_HEIGHT/2															*/																									
+	/*																																							*/
+	/*		First, the coordinates of the points where the proton path intersected the entry/exit detectors must be calculated.  Since the detectors records	*/ 
+	/*	data in the detector coordinate system, data in the utv coordinate system must be converted into the global/object coordinate system.  The coordinate	*/
+	/*	transformation can be accomplished using a rotation matrix with an angle of rotation determined by the angle between the two coordinate systems, which  */ 
+	/*	is the gantry_angle, in this case:																														*/
+	/*																																							*/
+	/*	Rotate ut-coordinate system to xy-coordinate system							Rotate xy-coordinate system to ut-coordinate system							*/
+	/*		x = cos( gantry_angle ) * u - sin( gantry_angle ) * t						u = cos( gantry_angle ) * x + sin( gantry_angle ) * y					*/
+	/*		y = sin( gantry_angle ) * u + cos( gantry_angle ) * t						t = cos( gantry_angle ) * y - sin( gantry_angle ) * x					*/
+	/************************************************************************************************************************************************************/
+			
+	int i = threadIdx.x + blockIdx.x * THREADS_PER_BLOCK;
+	if( i < num_histories )
+	{
+		double rotation_angle_radians = gantry_angle[i] * ANGLE_TO_RADIANS;
+		/********************************************************************************************************************************************************/
+		/************************************************************ Check entry information *******************************************************************/
+		/********************************************************************************************************************************************************/
+
+		/********************************************************************************************************************************************************/
+		/* Determine if the proton path enters the reconstruction volume.  The proton path is defined using the angle and position of the proton as it passed	*/
+		/* through the SSD closest to the object.  Since the reconstruction cylinder is symmetric about the rotation axis, we find a proton's intersection 		*/
+		/* points in the ut plane and then rotate these points into the xy plane.  Since a proton very likely has a small angle in ut plane, this allows us to 	*/
+		/* overcome numerical instabilities that occur at near vertical angles which would occur for gantry angles near 90/270 degrees.  However, if a path is 	*/
+		/* between [45,135] or [225,315], calculations are performed in a rotated coordinate system to avoid these numerical issues								*/
+		/********************************************************************************************************************************************************/
+		double ut_entry_angle = atan2( t_in_2[i] - t_in_1[i], u_in_2[i] - u_in_1[i] );
+		//ut_entry_angle += PI;
+		double u_entry, t_entry;
+		
+		// Calculate if and where proton enters reconstruction volume; u_entry/t_entry passed by reference so they hold the entry point upon function returns
+		bool entered = calculate_intercepts( u_in_2[i], t_in_2[i], ut_entry_angle, u_entry, t_entry );
+		
+		xy_entry_angle[i] = ut_entry_angle + rotation_angle_radians;
+
+		// Rotate exit detector positions
+		x_entry[i] = ( cos( rotation_angle_radians ) * u_entry ) - ( sin( rotation_angle_radians ) * t_entry );
+		y_entry[i] = ( sin( rotation_angle_radians ) * u_entry ) + ( cos( rotation_angle_radians ) * t_entry );
+		/********************************************************************************************************************************************************/
+		/************************************************************* Check exit information *******************************************************************/
+		/********************************************************************************************************************************************************/
+		double ut_exit_angle = atan2( t_out_2[i] - t_out_1[i], u_out_2[i] - u_out_1[i] );
+		double u_exit, t_exit;
+		
+		// Calculate if and where proton exits reconstruction volume; u_exit/t_exit passed by reference so they hold the exit point upon function returns
+		bool exited = calculate_intercepts( u_out_1[i], t_out_1[i], ut_exit_angle, u_exit, t_exit );
+
+		xy_exit_angle[i] = ut_exit_angle + rotation_angle_radians;
+
+		// Rotate exit detector positions
+		x_exit[i] = ( cos( rotation_angle_radians ) * u_exit ) - ( sin( rotation_angle_radians ) * t_exit );
+		y_exit[i] = ( sin( rotation_angle_radians ) * u_exit ) + ( cos( rotation_angle_radians ) * t_exit );
+		/********************************************************************************************************************************************************/
+		/************************************************************* Check z(v) information *******************************************************************/
+		/********************************************************************************************************************************************************/
+		
+		// Relevant angles/slopes in radians for entry and exit in the uv plane
+		double uv_entry_slope = ( v_in_2[i] - v_in_1[i] ) / ( u_in_2[i] - u_in_1[i] );
+		double uv_exit_slope = ( v_out_2[i] - v_out_1[i] ) / ( u_out_2[i] - u_out_1[i] );
+		
+		xz_entry_angle[i] = atan2( v_in_2[i] - v_in_1[i], u_in_2[i] - u_in_1[i] );
+		xz_exit_angle[i] = atan2( v_out_2[i] - v_out_1[i],  u_out_2[i] - u_out_1[i] );
+
+		/********************************************************************************************************************************************************/
+		/* Calculate the u coordinate for the entry and exit points of the reconstruction volume and then use the uv slope calculated from the detector entry	*/
+		/* and exit positions to determine the z position of the proton as it entered and exited the reconstruction volume, respectively.  The u-coordinate of  */
+		/* the entry and exit points of the reconsruction cylinder can be found using the x/y entry/exit points just calculated and the inverse rotation		*/
+		/*																																						*/
+		/*											u = cos( gantry_angle ) * x + sin( gantry_angle ) * y														*/
+		/********************************************************************************************************************************************************/
+		u_entry = ( cos( rotation_angle_radians ) * x_entry[i] ) + ( sin( rotation_angle_radians ) * y_entry[i] );
+		u_exit = ( cos(rotation_angle_radians) * x_exit[i] ) + ( sin(rotation_angle_radians) * y_exit[i] );
+		z_entry[i] = v_in_2[i] + uv_entry_slope * ( u_entry - u_in_2[i] );
+		z_exit[i] = v_out_1[i] - uv_exit_slope * ( u_out_1[i] - u_exit );
+
+		/********************************************************************************************************************************************************/
+		/* Even if the proton path intersected the circle defining the boundary of the cylinder in xy plane twice, it may not have actually passed through the	*/
+		/* reconstruction volume or may have only passed through part way.  If |z_entry|> RECON_CYL_HEIGHT/2, then data is erroneous since the source			*/
+		/* is around z=0 and we do not want to use this history.  If |z_entry| < RECON_CYL_HEIGHT/2 and |z_exit| > RECON_CYL_HEIGHT/2 then we want to use the	*/ 
+		/* history but the x_exit and y_exit positions need to be calculated again based on how far through the cylinder the proton passed before exiting		*/
+		/********************************************************************************************************************************************************/
+		if( entered && exited )
+		{
+			if( ( abs(z_entry[i]) < RECON_CYL_HEIGHT * 0.5 ) && ( abs(z_exit[i]) > RECON_CYL_HEIGHT * 0.5 ) )
+			{
+				double recon_cyl_fraction = abs( ( ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5 - z_entry[i] ) / ( z_exit[i] - z_entry[i] ) );
+				x_exit[i] = x_entry[i] + recon_cyl_fraction * ( x_exit[i] - x_entry[i] );
+				y_exit[i] = y_entry[i] + recon_cyl_fraction * ( y_exit[i] - y_entry[i] );
+				z_exit[i] = ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5;
+			}
+			else if( abs(z_entry[i]) > RECON_CYL_HEIGHT * 0.5 )
+			{
+				entered = false;
+				exited = false;
+			}
+			if( ( abs(z_entry[i]) > RECON_CYL_HEIGHT * 0.5 ) && ( abs(z_exit[i]) < RECON_CYL_HEIGHT * 0.5 ) )
+			{
+				double recon_cyl_fraction = abs( ( ( (z_exit[i] >= 0) - (z_exit[i] < 0) ) * RECON_CYL_HEIGHT * 0.5 - z_exit[i] ) / ( z_exit[i] - z_entry[i] ) );
+				x_entry[i] = x_exit[i] + recon_cyl_fraction * ( x_exit[i] - x_entry[i] );
+				y_entry[i] = y_exit[i] + recon_cyl_fraction * ( y_exit[i] - y_entry[i] );
+				z_entry[i] = ( (z_entry[i] >= 0) - (z_entry[i] < 0) ) * RECON_CYL_HEIGHT * 0.5;
+			}
+			/****************************************************************************************************************************************************/ 
+			/* Check the measurement locations. Do not allow more than 5 cm difference in entry and exit in t and v. This gets									*/
+			/* rid of spurious events.																															*/
+			/****************************************************************************************************************************************************/
+			if( ( abs(t_out_1[i] - t_in_2[i]) > 5 ) || ( abs(v_out_1[i] - v_in_2[i]) > 5 ) )
+			{
+				entered = false;
+				exited = false;
+			}
+		}
+
+		// Proton passed through the reconstruction volume only if it both entered and exited the reconstruction cylinder
+		missed_recon_volume[i] = !entered || !exited;
+	}	
+}
+template<typename T> __global__ void recon_volume_intersections_GPU
+(
+	int num_histories, T* gantry_angle, bool* missed_recon_volume, float* t_in_1, float* t_in_2, float* t_out_1, float* t_out_2, float* u_in_1, float* u_in_2, 
 	float* u_out_1, float* u_out_2, float* v_in_1, float* v_in_2, float* v_out_1, float* v_out_2, float* x_entry, float* y_entry, float* z_entry, float* x_exit, 
 	float* y_exit, float* z_exit, float* xy_entry_angle, float* xz_entry_angle, float* xy_exit_angle, float* xz_exit_angle
 )
@@ -4284,8 +4717,6 @@ void FBP()
 	// Filter the sinogram before backprojecting
 	filter();
 
-	free(sinogram_h);
-	cudaFree(sinogram_d);
 	sprintf(print_statement, "Performing backprojection...");		
 	print_colored_text( print_statement, CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	
@@ -4302,7 +4733,10 @@ void FBP()
 
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( COLUMNS, ROWS );   
-	backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );
+	if(UPDATED_FBP)
+		backprojection_GPU2<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );
+	else
+		backprojection_GPU<<< dimGrid, dimBlock >>>( sinogram_filtered_d, FBP_image_d );
 	cudaFree(sinogram_filtered_d);
 
 	if( WRITE_FBP_IMAGE || MEDIAN_FILTER_FBP || (X_0 == FBP_IMAGE) || (X_0 == HYBRID) )
@@ -4401,18 +4835,20 @@ void filter()
 	dim3 dimBlock( T_BINS );
 	dim3 dimGrid( V_BINS, ANGULAR_BINS );   	
 	filter_GPU<<< dimGrid, dimBlock >>>( sinogram_d, sinogram_filtered_d );
+	free(sinogram_h);
+	cudaFree(sinogram_d);
 }
 __global__ void filter_GPU( float* sinogram, float* sinogram_filtered )
 {		
 	int v_bin = blockIdx.x, angle_bin = blockIdx.y, t_bin = threadIdx.x;
 	int t_bin_ref, t_bin_sep, strip_index; 
 	double filtered, t, scale_factor;
-	double v = ( v_bin - V_BINS/2 ) * V_BIN_SIZE + V_BIN_SIZE/2.0;
+	double v = ( v_bin - V_BINS/2 + 0.5) * V_BIN_SIZE;
 	
 	// Loop over strips for this strip
 	for( t_bin_ref = 0; t_bin_ref < T_BINS; t_bin_ref++ )
 	{
-		t = ( t_bin_ref - T_BINS/2 ) * T_BIN_SIZE + T_BIN_SIZE/2.0;
+		t = ( t_bin_ref - T_BINS/2 + 0.5) * T_BIN_SIZE;
 		t_bin_sep = t_bin - t_bin_ref;
 		// scale_factor = r . path = cos(theta_{r,path})
 		scale_factor = SOURCE_RADIUS / sqrt( SOURCE_RADIUS * SOURCE_RADIUS + t * t + v * v );
@@ -4430,10 +4866,11 @@ __global__ void filter_GPU( float* sinogram, float* sinogram_filtered )
 				break;
 			case SHEPP_LOGAN:
 				//filtered = pow( pow(T_BIN_SIZE * PI, 2.0) * ( 1.0 - pow(2 * t_bin_sep, 2.0) ), -1.0 );
-				filtered = 1/((T_BIN_SIZE * PI*T_BIN_SIZE * PI) * ( 1.0 - (2 * t_bin_sep*2 * t_bin_sep) ));
+				filtered = 1.0/((T_BIN_SIZE * PI*T_BIN_SIZE * PI) * ( 1.0 - (4 * t_bin_sep*t_bin_sep) ));
 		}
-		strip_index = ( v_bin * ANGULAR_BINS * T_BINS ) + ( angle_bin * T_BINS );
-		sinogram_filtered[strip_index + t_bin] += T_BIN_SIZE * sinogram[strip_index + t_bin_ref] * filtered * scale_factor;
+		strip_index = ( v_bin * ANGULAR_BINS + angle_bin ) * T_BINS;
+		atomicAdd(&sinogram_filtered[strip_index + t_bin], T_BIN_SIZE * sinogram[strip_index + t_bin_ref] * filtered * scale_factor);
+		//sinogram_filtered[strip_index + t_bin] += T_BIN_SIZE * sinogram[strip_index + t_bin_ref] * filtered * scale_factor;
 	}
 }
 void backprojection()
@@ -4521,6 +4958,158 @@ void backprojection()
 		}
 	}
 }
+//__device__ double voxel_2_position_GPU( int voxel_i, double voxel_i_size, int num_voxels_i, int coordinate_progression )
+//{
+//	// voxel_i = 50, num_voxels_i = 200, middle_voxel = 100, ( 50 - 100 ) * 1 = -50
+//	double zero_voxel = ( num_voxels_i - 1) / 2.0;
+//	return coordinate_progression * ( voxel_i - zero_voxel ) * voxel_i_size;
+//}
+//__device__ void voxel_2_positions_GPU( int voxel, double& x, double& y, double& z )
+//{
+//	int voxel_x, voxel_y, voxel_z;
+//	voxel_2_3D_voxels_GPU( voxel, voxel_x, voxel_y, voxel_z );
+//	x = voxel_2_position_GPU( voxel_x, VOXEL_WIDTH, COLUMNS, 1 );
+//	y = voxel_2_position_GPU( voxel_y, VOXEL_HEIGHT, ROWS, -1 );
+//	z = voxel_2_position_GPU( voxel_z, VOXEL_THICKNESS, SLICES, -1 );
+//}
+__global__ void backprojection_GPU2( float* sinogram_filtered, float* FBP_image )
+{
+	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
+	int voxel = slice * COLUMNS * ROWS + row * COLUMNS + column;	
+	if ( voxel < NUM_VOXELS )
+	{
+		double delta = ANGULAR_BIN_SIZE * ANGLE_TO_RADIANS;
+		double u, t, v;
+		double detector_number_t, detector_number_v;
+		double eta, epsilon;
+		double scale_factor;
+		double bin_angle;
+		int t_bin, v_bin, bin;
+		//double x= -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
+		//double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
+		//double z = RECON_CYL_HEIGHT / 2.0 - (slice + 0.5) * SLICE_THICKNESS;
+		//double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
+		//double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
+		//double z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
+		double x, y, z;
+		voxel_2_positions_GPU( voxel, x, y, z );
+
+		//// If the voxel is outside a cylinder contained in the reconstruction volume, set to air
+		if( ( x * x + y * y ) > ( RECON_CYL_RADIUS * RECON_CYL_RADIUS ) )
+			FBP_image[( slice * COLUMNS * ROWS) + ( row * COLUMNS ) + column] = RSP_AIR;							
+		else
+		{	  
+			// Sum over projection angles
+			for( int angle_bin = 0; angle_bin < ANGULAR_BINS; angle_bin++ )
+			{
+				bin_angle = angle_bin * delta;
+				// Rotate the pixel position to the beam-detector coordinate system
+				u = x * cos( bin_angle ) + y * sin( bin_angle );
+				t = y * cos( bin_angle ) - x * sin( bin_angle );
+				v = z;
+
+				// Project to find the detector number
+				detector_number_t = ( t - u *( t / ( SOURCE_RADIUS + u ) ) ) / T_BIN_SIZE + T_BINS/2.0;
+				t_bin = floor( detector_number_t);
+				//if( t_bin > detector_number_t )
+				//	t_bin -= 1;
+				eta = detector_number_t - t_bin;
+
+				// Now project v to get detector number in v axis
+				detector_number_v = ( v - u * ( v / ( SOURCE_RADIUS + u ) ) ) / V_BIN_SIZE + V_BINS/2.0;
+				v_bin = floor( detector_number_v);
+				//if( v_bin > detector_number_v )
+				//	v_bin -= 1;
+				epsilon = detector_number_v - v_bin;
+
+				// Calculate the fan beam scaling factor
+				scale_factor = powf( SOURCE_RADIUS / ( SOURCE_RADIUS + u ), 2 );
+		  
+				//bin_num[i] = t_bin + angle_bin * T_BINS + v_bin * T_BINS * ANGULAR_BINS;
+				// Compute the back-projection
+				bin = t_bin + ( angle_bin  + v_bin * ANGULAR_BINS) * T_BINS;
+				//bin = t_bin + angle_bin * T_BINS + v_bin * ANGULAR_BINS * T_BINS;
+				// not sure why this won't compile without calculating the index ahead of time instead inside []s
+				//int index = ANGULAR_BINS * T_BINS;
+
+				//if( ( ( bin + ANGULAR_BINS * T_BINS + 1 ) >= NUM_BINS ) || ( bin < 0 ) );
+				//if( v_bin == V_BINS - 1 || ( bin < 0 ) )
+				//	FBP_image[voxel] += delta * scale_factor * ( ( ( 1 - eta ) * sinogram_filtered[bin] ) + ( eta * sinogram_filtered[bin + 1] ) ) ;
+				//	//printf("The bin selected for this voxel does not exist!\n Slice: %d\n Column: %d\n Row: %d\n", slice, column, row);
+				//else 
+				//{
+				//	// not sure why this won't compile without calculating the index ahead of time instead inside []s
+				//	/*FBP_image[voxel] += delta * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
+				//	+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
+				//	+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + ANGULAR_BINS * T_BINS]
+				//	+ eta * epsilon * sinogram_filtered[bin + ANGULAR_BINS * T_BINS + 1] ) * scale_factor;*/
+
+				//	// Multilpying by the gantry angle interval for each gantry angle is equivalent to multiplying the final answer by 2*PI and is better numerically
+				//	// so multiplying by delta each time should be replaced by FBP_image_h[voxel] *= 2 * PI after all contributions have been made, which is commented out below
+				//	FBP_image[voxel] += delta * scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
+				//	+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
+				//	+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS)]
+				//	+ eta * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS) + 1] );
+				//}	
+				// Sino[L][M][K]
+				int bin11 = ( v_bin * ANGULAR_BINS + angle_bin ) * T_BINS + t_bin;
+
+				// Sino[L][M][K+1]
+				int bin12 = bin11 + 1;
+
+				// Sino[L+1][M][K]
+				int bin21 = bin11 + ANGULAR_BINS * T_BINS;
+
+				// Sino[L+1][M][K+1]
+				int bin22 = bin21 + 1;
+
+				float xterm = 0.0;
+				if ( t_bin > -1 && t_bin < T_BINS - 1 ) {
+					if (  v_bin > -1 && v_bin < V_BINS - 1 ) {
+						xterm = sinogram_filtered[bin11]*(1-eta)*(1-epsilon)
+			      			+ sinogram_filtered[bin12]*eta*(1-epsilon)
+			      			+ sinogram_filtered[bin21]*(1-eta)*epsilon
+			      			+ sinogram_filtered[bin22]*eta*epsilon;
+					}
+					else if ( v_bin == -1 ) {
+						xterm = sinogram_filtered[bin21]*(1-eta)*epsilon
+			      			+ sinogram_filtered[bin22]*eta*epsilon;
+					}
+					else if ( v_bin == V_BINS - 1 ) {
+						xterm = sinogram_filtered[bin11]*(1-eta)*(1-epsilon)
+			      			+ sinogram_filtered[bin12]*eta*(1-epsilon);
+					}
+				}
+				else if ( t_bin == -1 ) {
+					if (  v_bin > -1 && v_bin < V_BINS - 1 ) {
+						xterm = sinogram_filtered[bin12]*eta*(1-epsilon)
+			      			+ sinogram_filtered[bin22]*eta*epsilon;
+					}
+					else if ( v_bin == -1 ) {
+						xterm = sinogram_filtered[bin22]*eta*epsilon;
+					}
+					else if ( v_bin == V_BINS - 1 ) {
+						xterm = sinogram_filtered[bin12]*eta*(1-epsilon);
+					}
+				}
+				else if ( t_bin == T_BINS - 1 ) {
+					if (  v_bin > -1 && v_bin < V_BINS - 1 ) {
+						xterm = sinogram_filtered[bin11]*(1-eta)*(1-epsilon)
+			      			+ sinogram_filtered[bin21]*(1-eta)*epsilon;
+					}
+					else if ( v_bin == -1 ) {
+						xterm = sinogram_filtered[bin21]*(1-eta)*epsilon;
+					}
+					else if ( v_bin == V_BINS - 1 ) {
+						xterm = sinogram_filtered[bin11]*(1-eta)*(1-epsilon);
+					}
+				}
+				atomicAdd( &FBP_image[voxel], xterm * delta * scale_factor );	
+			}
+			//FBP_image[voxel] *= delta; 
+		}
+	}
+}
 __global__ void backprojection_GPU( float* sinogram_filtered, float* FBP_image )
 {
 	int row = blockIdx.y, column = blockIdx.x, slice = threadIdx.x;
@@ -4532,36 +5121,45 @@ __global__ void backprojection_GPU( float* sinogram_filtered, float* FBP_image )
 		double detector_number_t, detector_number_v;
 		double eta, epsilon;
 		double scale_factor;
+		double bin_angle;
 		int t_bin, v_bin, bin;
-		double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
-		double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
-		double z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
+		double update_value = 0.0;
+		//double x= -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
+		//double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
+		//double z = RECON_CYL_HEIGHT / 2.0 - (slice + 0.5) * SLICE_THICKNESS;
+		//double x = -RECON_CYL_RADIUS + ( column + 0.5 )* VOXEL_WIDTH;
+		//double y = RECON_CYL_RADIUS - (row + 0.5) * VOXEL_HEIGHT;
+		//double z = -RECON_CYL_HEIGHT / 2.0 + (slice + 0.5) * SLICE_THICKNESS;
+		double x, y, z;
+		voxel_2_positions_GPU( voxel, x, y, z );
 
 		//// If the voxel is outside a cylinder contained in the reconstruction volume, set to air
 		if( ( x * x + y * y ) > ( RECON_CYL_RADIUS * RECON_CYL_RADIUS ) )
-			FBP_image[( slice * COLUMNS * ROWS) + ( row * COLUMNS ) + column] = RSP_AIR;							
+			FBP_image[voxel] = RSP_AIR;							
 		else
 		{	  
 			// Sum over projection angles
 			for( int angle_bin = 0; angle_bin < ANGULAR_BINS; angle_bin++ )
 			{
+				update_value = 0.0;
+				bin_angle = angle_bin * delta;
 				// Rotate the pixel position to the beam-detector coordinate system
-				u = x * cos( angle_bin * delta ) + y * sin( angle_bin * delta );
-				t = -x * sin( angle_bin * delta ) + y * cos( angle_bin * delta );
+				u = x * cos( bin_angle ) + y * sin( bin_angle );
+				t = y * cos( bin_angle ) - x * sin( bin_angle );
 				v = z;
 
 				// Project to find the detector number
 				detector_number_t = ( t - u *( t / ( SOURCE_RADIUS + u ) ) ) / T_BIN_SIZE + T_BINS/2.0;
-				t_bin = int( detector_number_t);
-				if( t_bin > detector_number_t )
-					t_bin -= 1;
+				t_bin = floor( detector_number_t);
+				//if( t_bin > detector_number_t )
+				//	t_bin -= 1;
 				eta = detector_number_t - t_bin;
 
 				// Now project v to get detector number in v axis
 				detector_number_v = ( v - u * ( v / ( SOURCE_RADIUS + u ) ) ) / V_BIN_SIZE + V_BINS/2.0;
-				v_bin = int( detector_number_v);
-				if( v_bin > detector_number_v )
-					v_bin -= 1;
+				v_bin = floor( detector_number_v);
+				//if( v_bin > detector_number_v )
+				//	v_bin -= 1;
 				epsilon = detector_number_v - v_bin;
 
 				// Calculate the fan beam scaling factor
@@ -4569,13 +5167,15 @@ __global__ void backprojection_GPU( float* sinogram_filtered, float* FBP_image )
 		  
 				//bin_num[i] = t_bin + angle_bin * T_BINS + v_bin * T_BINS * ANGULAR_BINS;
 				// Compute the back-projection
-				bin = t_bin + angle_bin * T_BINS + v_bin * ANGULAR_BINS * T_BINS;
+				bin = t_bin + ( angle_bin  + v_bin * ANGULAR_BINS) * T_BINS;
+				//bin = t_bin + angle_bin * T_BINS + v_bin * ANGULAR_BINS * T_BINS;
 				// not sure why this won't compile without calculating the index ahead of time instead inside []s
 				//int index = ANGULAR_BINS * T_BINS;
 
 				//if( ( ( bin + ANGULAR_BINS * T_BINS + 1 ) >= NUM_BINS ) || ( bin < 0 ) );
 				if( v_bin == V_BINS - 1 || ( bin < 0 ) )
-					FBP_image[voxel] += scale_factor * ( ( ( 1 - eta ) * sinogram_filtered[bin] ) + ( eta * sinogram_filtered[bin + 1] ) ) ;
+					atomicAdd( &FBP_image[voxel], delta * scale_factor * ( ( ( 1 - eta ) * sinogram_filtered[bin] ) + ( eta * sinogram_filtered[bin + 1] )));
+					//FBP_image[voxel] += delta * scale_factor * ( ( ( 1 - eta ) * sinogram_filtered[bin] ) + ( eta * sinogram_filtered[bin + 1] ) ) ;
 					//printf("The bin selected for this voxel does not exist!\n Slice: %d\n Column: %d\n Row: %d\n", slice, column, row);
 				else 
 				{
@@ -4587,13 +5187,19 @@ __global__ void backprojection_GPU( float* sinogram_filtered, float* FBP_image )
 
 					// Multilpying by the gantry angle interval for each gantry angle is equivalent to multiplying the final answer by 2*PI and is better numerically
 					// so multiplying by delta each time should be replaced by FBP_image_h[voxel] *= 2 * PI after all contributions have been made, which is commented out below
-					FBP_image[voxel] += scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
+					/*FBP_image[voxel] += delta * scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
+					+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
+					+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS)]
+					+ eta * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS) + 1] );*/
+					update_value = delta * scale_factor * ( ( 1 - eta ) * ( 1 - epsilon ) * sinogram_filtered[bin] 
 					+ eta * ( 1 - epsilon ) * sinogram_filtered[bin + 1]
 					+ ( 1 - eta ) * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS)]
 					+ eta * epsilon * sinogram_filtered[bin + ( ANGULAR_BINS * T_BINS) + 1] );
-				}				
+					atomicAdd( &FBP_image[voxel], update_value);
+				}					
+				//atomicAdd( &FBP_image[voxel], xterm * delta * scale_factor );	
 			}
-			FBP_image[voxel] *= delta; 
+			//FBP_image[voxel] *= delta; 
 		}
 	}
 }
@@ -4955,7 +5561,22 @@ __global__ void MSC_edge_detection_GPU( int* MSC_counts )
 		}
 	}
 	__syncthreads();
+	/*int slice_start_index = slice * ROWS * COLUMNS;
+	int slice_end_index = slice_start_index + ROWS * COLUMNS;
+	int max_slice_count = 0;
+	for( int i = slice_start_index; i < slice_end_index; i++)
+	{
+		if(MSC_counts[i] > max_slice_count)
+			max_slice_count = MSC_counts[i];
+	}
+	if(max_slice_count < 500 )
+	{
+		for( int i = slice_start_index; i < slice_end_index; i++)
+			MSC_counts[i] = 0;
+	}*/
 	if( max_difference > MSC_DIFF_THRESH || MSC_counts[voxel] > MSC_DIFF_THRESH)
+	//if( MSC_counts[voxel] > MSC_DIFF_THRESH)
+	//if( max_difference > MSC_DIFF_THRESH )
 		MSC_counts[voxel] = 0;
 	//if( MSC_counts[voxel] > MSC_DIFF_THRESH)
 	//	MSC_counts[voxel] = 0;
@@ -5378,6 +5999,7 @@ void hull_selection()
 	{
 		print_colored_text( "Writing selected hull to disk...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 		array_2_disk(HULL_FILENAME, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, hull_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true );
+		write_PNG("hull", hull_h);
 	}
 	// Allocate memory for and transfer hull to the GPU
 	cudaMalloc((void**) &hull_d, SIZE_IMAGE_BOOL );
@@ -5585,6 +6207,10 @@ template<typename T, typename T2> __global__ void apply_averaging_filter_GPU( T*
 /**************************************************************************************************************************************************************************/
 /**************************************************************************** MLP Endpoints Routines **********************************************************************/
 /**************************************************************************************************************************************************************************/
+__device__ int voxels_2_linear_index(int voxel_x, int voxel_y, int voxel_z)
+{
+	return voxel_x + ( voxel_y + voxel_z  * ROWS ) * COLUMNS;
+}
 template<typename O> __device__ bool find_MLP_endpoints_GPU
 (
 	O* image, double x_start, double y_start, double z_start, double xy_angle, double xz_angle, 
@@ -5607,13 +6233,21 @@ template<typename O> __device__ bool find_MLP_endpoints_GPU
 	/********************************************************************************************/
 	/******************** Initial Conditions and Movement Characteristics ***********************/
 	/********************************************************************************************/	
+	int cos_xy_angle_gte = static_cast<int>(cos(xy_angle) >= 0);
+	int sin_xy_angle_gte = static_cast<int>(sin(xy_angle) >= 0);
+	int sin_xz_angle_gte = static_cast<int>(sin(xz_angle) >= 0);
+	int cos_xy_angle_lte = static_cast<int>(cos(xy_angle) >= 0);
+	int sin_xy_angle_lte = static_cast<int>(sin(xy_angle) >= 0);
+	int sin_xz_angle_lte = static_cast<int>(sin(xz_angle) >= 0);
+
 	if( !entering )
-	{
 		xy_angle += PI;
-	}
-	x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
-	y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
-	z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
+
+	//x/y/z_move_direction = 0 if sin/cos(angle) = 0
+	x_move_direction = cos_xy_angle_gte - cos_xy_angle_lte;
+	y_move_direction = sin_xy_angle_gte - sin_xy_angle_lte;
+	z_move_direction = sin_xz_angle_gte - sin_xz_angle_lte;
+
 	if( x_move_direction < 0 )
 		z_move_direction *= -1;
 
@@ -5625,7 +6259,8 @@ template<typename O> __device__ bool find_MLP_endpoints_GPU
 	y_to_go = distance_remaining_GPU( Y_ZERO_COORDINATE, y, Y_INCREASING_DIRECTION, y_move_direction, VOXEL_HEIGHT, voxel_y );	
 	z_to_go = distance_remaining_GPU( Z_ZERO_COORDINATE, z, Z_INCREASING_DIRECTION, z_move_direction, VOXEL_THICKNESS, voxel_z );
 
-	voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
+	voxel = voxels_2_linear_index(voxel_x, voxel_y, voxel_z);
+	//voxel = voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
 	/********************************************************************************************/
 	/***************************** Path and Walk Information ************************************/
 	/********************************************************************************************/
@@ -6115,7 +6750,8 @@ void reconstruction_cuts_full_tx_nobool( const int num_histories )
 		else
 			histories_2_process = remaining_histories;	
 
-		num_blocks = static_cast<int>( (histories_2_process - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) );  
+		//num_blocks = static_cast<int>( (histories_2_process - 1 + ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD) );  
+		num_blocks = static_cast<unsigned int>( ceil(histories_2_process / (ENDPOINTS_PER_BLOCK*ENDPOINTS_PER_THREAD)));
 		collect_MLP_endpoints_GPU_nobool<<< num_blocks, ENDPOINTS_PER_BLOCK >>>
 		( 
 			first_MLP_voxel_d, hull_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, 
@@ -6415,163 +7051,85 @@ void reconstruction_cuts()
 /***********************************************************************************************************************************************************************************************************************/
 void generate_trig_tables()
 {
-	//printf("TRIG_TABLE_ELEMENTS = %d\n", TRIG_TABLE_ELEMENTS );
-	double sin_term, cos_term, val;
-	
+	double sin_term, cos_term, argument;	
 	sin_table_h = (double*) calloc( TRIG_TABLE_ELEMENTS + 1, sizeof(double) );
 	cos_table_h = (double*) calloc( TRIG_TABLE_ELEMENTS + 1, sizeof(double) );
 	
-	sin_table_file = fopen( SIN_TABLE_FILENAME, "wb" );
-	cos_table_file = fopen( COS_TABLE_FILENAME, "wb" );
-	/*for( float i = TRIG_TABLE_MIN; i <= TRIG_TABLE_MAX; i+= TRIG_TABLE_STEP )
+	for( int step = 0; step <= TRIG_TABLE_ELEMENTS; step++ )
 	{
-		sin_term = sin(i);
-		cos_term = cos(i);
-		fwrite( &sin_term, sizeof(float), 1, sin_table_file );
-		fwrite( &cos_term, sizeof(float), 1, cos_table_file );
-	}*/
-	for( int i = 0; i <= TRIG_TABLE_ELEMENTS; i++ )
-	{
-		val =  TRIG_TABLE_MIN + i * TRIG_TABLE_STEP;
-		sin_term = sin(val);
-		cos_term = cos(val);
-		sin_table_h[i] = sin_term;
-		cos_table_h[i] = cos_term;
-		fwrite( &sin_term, sizeof(double), 1, sin_table_file );
-		fwrite( &cos_term, sizeof(double), 1, cos_table_file );
+		argument =  TRIG_TABLE_MIN + step * TRIG_TABLE_STEP;
+		sin_term = sin(argument);
+		cos_term = cos(argument);
+		sin_table_h[step] = sin_term;
+		cos_table_h[step] = cos_term;
 	}
-	fclose(sin_table_file);
-	fclose(cos_table_file);
+	if(WRITE_MLP_TABLES)
+	{
+		sin_table_file = fopen( SIN_TABLE_FILENAME, "wb" );
+		cos_table_file = fopen( COS_TABLE_FILENAME, "wb" );
+		fwrite( sin_table_h, sizeof(double), TRIG_TABLE_ELEMENTS + 1, sin_table_file );
+		fwrite( cos_table_h, sizeof(double), TRIG_TABLE_ELEMENTS + 1, cos_table_file );
+		fclose(sin_table_file);
+		fclose(cos_table_file);
+	}
 }
 void generate_scattering_coefficient_table()
 {
 	double scattering_coefficient;
-	scattering_table_file = fopen( COEFFICIENT_FILENAME, "wb" );
-	int i = 0;
 	double depth = 0.0;
 	scattering_table_h = (double*)calloc( COEFF_TABLE_ELEMENTS + 1, sizeof(double));
 	for( int step_num = 0; step_num <= COEFF_TABLE_ELEMENTS; step_num++ )
 	{
 		depth = step_num * COEFF_TABLE_STEP;
 		scattering_coefficient = pow( E_0 * ( 1 + 0.038 * log(depth / X0) ), 2.0 ) / X0;
-		scattering_table_h[i] = scattering_coefficient;
-		//fwrite( &scattering_coefficient, sizeof(float), 1, scattering_table_file );
-		i++;
+		scattering_table_h[step_num] = scattering_coefficient;
 	}
-	//for( float depth = 0.0; depth <= COEFF_TABLE_RANGE; depth+= COEFF_TABLE_STEP )
-	//{
-	//	scattering_coefficient = pow( E_0 * ( 1 + 0.038 * log(depth / X0) ), 2.0 ) / X0;
-	//	scattering_table_h[i] = scattering_coefficient;
-	//	//fwrite( &scattering_coefficient, sizeof(float), 1, scattering_table_file );
-	//	i++;
-	//}
-	fwrite(scattering_table_h, sizeof(double), COEFF_TABLE_ELEMENTS + 1, scattering_table_file );
-	fclose(scattering_table_file);
-	//for( int step_num = 0; step_num <= COEFF_TABLE_ELEMENTS; step_num++ )
-	//	cout << scattering_table_h[step_num] << endl;
-	//cout << "elements = " << i << endl;
-	//cout << "COEFF_TABLE_ELEMENTS = " << COEFF_TABLE_ELEMENTS << endl;
-	//cout << scattering_table_h[i-1] << endl;
-	//cout << (pow( E_0 * ( 1 + 0.038 * log(COEFF_TABLE_RANGE / X0) ), 2.0 ) / X0) << endl;
 	
+	if(WRITE_MLP_TABLES)
+	{
+		scattering_table_file = fopen( COEFFICIENT_FILENAME, "wb" );
+		fwrite(scattering_table_h, sizeof(double), COEFF_TABLE_ELEMENTS + 1, scattering_table_file );
+		fclose(scattering_table_file);
+	}
 }
 void generate_polynomial_tables()
 {
-	int i = 0;
-	double du;
-	//float poly_1_2_val, poly_2_3_val, poly_3_4_val, poly_2_6_val, poly_3_12_val;
+	double u;
 	poly_1_2_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
 	poly_2_3_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
 	poly_3_4_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
 	poly_2_6_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
 	poly_3_12_h = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
 
-	poly_1_2_file  = fopen( POLY_1_2_FILENAME,  "wb" );
-	poly_2_3_file  = fopen( POLY_2_3_FILENAME,  "wb" );
-	poly_3_4_file  = fopen( POLY_3_4_FILENAME,  "wb" );
-	poly_2_6_file  = fopen( POLY_2_6_FILENAME,  "wb" );
-	poly_3_12_file = fopen( POLY_3_12_FILENAME, "wb" );
 	for( int step_num = 0; step_num <= POLY_TABLE_ELEMENTS; step_num++ )
 	{
-		du = step_num * POLY_TABLE_STEP;
-		//poly_1_2_val = A_0		   + du * (A_1_OVER_2  + du * (A_2_OVER_3  + du * (A_3_OVER_4  + du * (A_4_OVER_5   + du * A_5_OVER_6   ))));	// 1, 2, 3, 4, 5, 6
-		//poly_2_3_val = A_0_OVER_2 + du * (A_1_OVER_3  + du * (A_2_OVER_4  + du * (A_3_OVER_5  + du * (A_4_OVER_6   + du * A_5_OVER_7   ))));	// 2, 3, 4, 5, 6, 7
-		//poly_3_4_val = A_0_OVER_3 + du * (A_1_OVER_4  + du * (A_2_OVER_5  + du * (A_3_OVER_6  + du * (A_4_OVER_7   + du * A_5_OVER_8   ))));	// 3, 4, 5, 6, 7, 8
-		//poly_2_6_val = A_0_OVER_2 + du * (A_1_OVER_6  + du * (A_2_OVER_12 + du * (A_3_OVER_20 + du * (A_4_OVER_30  + du * A_5_OVER_42  ))));	// 2, 6, 12, 20, 30, 42
-		//poly_3_12_val = A_0_OVER_3 + du * (A_1_OVER_12 + du * (A_2_OVER_30 + du * (A_3_OVER_60 + du * (A_4_OVER_105 + du * A_5_OVER_168 ))));	// 3, 12, 30, 60, 105, 168		
-		poly_1_2_h[step_num]  = du * ( A_0		   + du * (A_1_OVER_2  + du * (A_2_OVER_3  + du * (A_3_OVER_4  + du * (A_4_OVER_5   + du * A_5_OVER_6   )))) );	// 1, 2, 3, 4, 5, 6
-		poly_2_3_h[step_num]  = pow(du, 2) * ( A_0_OVER_2 + du * (A_1_OVER_3  + du * (A_2_OVER_4  + du * (A_3_OVER_5  + du * (A_4_OVER_6   + du * A_5_OVER_7   )))) );	// 2, 3, 4, 5, 6, 7
-		poly_3_4_h[step_num]  = pow(du, 3) * ( A_0_OVER_3 + du * (A_1_OVER_4  + du * (A_2_OVER_5  + du * (A_3_OVER_6  + du * (A_4_OVER_7   + du * A_5_OVER_8   )))) );	// 3, 4, 5, 6, 7, 8
-		poly_2_6_h[step_num]  = pow(du, 2) * ( A_0_OVER_2 + du * (A_1_OVER_6  + du * (A_2_OVER_12 + du * (A_3_OVER_20 + du * (A_4_OVER_30  + du * A_5_OVER_42  )))) );	// 2, 6, 12, 20, 30, 42
-		poly_3_12_h[step_num] = pow(du, 3) * ( A_0_OVER_3 + du * (A_1_OVER_12 + du * (A_2_OVER_30 + du * (A_3_OVER_60 + du * (A_4_OVER_105 + du * A_5_OVER_168 )))) );	// 3, 12, 30, 60, 105, 168		
-		
-		/*fwrite( &poly_1_2_h[step_num],  sizeof(float), 1, poly_1_2_file  );
-		fwrite( &poly_2_3_h[step_num],  sizeof(float), 1, poly_2_3_file  );
-		fwrite( &poly_3_4_h[step_num],  sizeof(float), 1, poly_3_4_file  );
-		fwrite( &poly_2_6_h[step_num],  sizeof(float), 1, poly_2_6_file  );
-		fwrite( &poly_3_12_h[step_num], sizeof(float), 1, poly_3_12_file );*/
-		i++;
+		u = step_num * POLY_TABLE_STEP;
+		poly_1_2_h[step_num]  = u * ( A_0		   + u * (A_1_OVER_2  + u * (A_2_OVER_3  + u * (A_3_OVER_4  + u * (A_4_OVER_5   + u * A_5_OVER_6   )))) );	// 1, 2, 3, 4, 5, 6
+		poly_2_3_h[step_num]  = pow(u, 2) * ( A_0_OVER_2 + u * (A_1_OVER_3  + u * (A_2_OVER_4  + u * (A_3_OVER_5  + u * (A_4_OVER_6   + u * A_5_OVER_7   )))) );	// 2, 3, 4, 5, 6, 7
+		poly_3_4_h[step_num]  = pow(u, 3) * ( A_0_OVER_3 + u * (A_1_OVER_4  + u * (A_2_OVER_5  + u * (A_3_OVER_6  + u * (A_4_OVER_7   + u * A_5_OVER_8   )))) );	// 3, 4, 5, 6, 7, 8
+		poly_2_6_h[step_num]  = pow(u, 2) * ( A_0_OVER_2 + u * (A_1_OVER_6  + u * (A_2_OVER_12 + u * (A_3_OVER_20 + u * (A_4_OVER_30  + u * A_5_OVER_42  )))) );	// 2, 6, 12, 20, 30, 42
+		poly_3_12_h[step_num] = pow(u, 3) * ( A_0_OVER_3 + u * (A_1_OVER_12 + u * (A_2_OVER_30 + u * (A_3_OVER_60 + u * (A_4_OVER_105 + u * A_5_OVER_168 )))) );	// 3, 12, 30, 60, 105, 168		
 	}
-	fwrite( poly_1_2_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_1_2_file  );
-	fwrite( poly_2_3_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_2_3_file  );
-	fwrite( poly_3_4_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_3_4_file  );
-	fwrite( poly_2_6_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_2_6_file  );
-	fwrite( poly_3_12_h, sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_3_12_file );
+	if(WRITE_MLP_TABLES)
+	{
+		poly_1_2_file  = fopen( POLY_1_2_FILENAME,  "wb" );
+		poly_2_3_file  = fopen( POLY_2_3_FILENAME,  "wb" );
+		poly_3_4_file  = fopen( POLY_3_4_FILENAME,  "wb" );
+		poly_2_6_file  = fopen( POLY_2_6_FILENAME,  "wb" );
+		poly_3_12_file = fopen( POLY_3_12_FILENAME, "wb" );
+		
+		fwrite( poly_1_2_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_1_2_file  );
+		fwrite( poly_2_3_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_2_3_file  );
+		fwrite( poly_3_4_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_3_4_file  );
+		fwrite( poly_2_6_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_2_6_file  );
+		fwrite( poly_3_12_h, sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_3_12_file );
 
-	fclose( poly_1_2_file  );
-	fclose( poly_2_3_file  );
-	fclose( poly_3_4_file  );
-	fclose( poly_2_6_file  );
-	fclose( poly_3_12_file );
-	//cout << "i = " << i << endl;														
-	//cout << "POLY_TABLE_ELEMENTS = " << POLY_TABLE_ELEMENTS << endl;			
-}
-void import_trig_tables()
-{
-	sin_table_h = (double*) calloc( TRIG_TABLE_ELEMENTS + 1, sizeof(double) );
-	cos_table_h = (double*) calloc( TRIG_TABLE_ELEMENTS + 1, sizeof(double) );
-
-	sin_table_file = fopen( SIN_TABLE_FILENAME, "rb" );
-	cos_table_file = fopen( COS_TABLE_FILENAME, "rb" );
-	
-	fread(sin_table_h, sizeof(double), TRIG_TABLE_ELEMENTS + 1, sin_table_file );
-	fread(cos_table_h, sizeof(double), TRIG_TABLE_ELEMENTS + 1, cos_table_file );
-	
-	fclose(sin_table_file);
-	fclose(cos_table_file);
-}
-void import_scattering_coefficient_table()
-{
-	scattering_table_h = (double*)calloc( COEFF_TABLE_ELEMENTS + 1, sizeof(double));
-	scattering_table_file = fopen( COEFFICIENT_FILENAME, "rb" );
-	fread(scattering_table_h, sizeof(double), COEFF_TABLE_ELEMENTS + 1, scattering_table_file );
-	fclose(scattering_table_file);
-}
-void import_polynomial_tables()
-{
-	poly_1_2_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
-	poly_2_3_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
-	poly_3_4_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
-	poly_2_6_h  = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
-	poly_3_12_h = (double*) calloc( POLY_TABLE_ELEMENTS + 1, sizeof(double) );
-
-	poly_1_2_file  = fopen( POLY_1_2_FILENAME,  "rb" );
-	poly_2_3_file  = fopen( POLY_2_3_FILENAME,  "rb" );
-	poly_3_4_file  = fopen( POLY_3_4_FILENAME,  "rb" );
-	poly_2_6_file  = fopen( POLY_2_6_FILENAME,  "rb" );
-	poly_3_12_file = fopen( POLY_3_12_FILENAME, "rb" );
-
-	fread( poly_1_2_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_1_2_file  );
-	fread( poly_2_3_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_2_3_file  );
-	fread( poly_3_4_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_3_4_file  );
-	fread( poly_2_6_h,  sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_2_6_file  );
-	fread( poly_3_12_h, sizeof(double), POLY_TABLE_ELEMENTS + 1, poly_3_12_file );
-
-	fclose( poly_1_2_file  );
-	fclose( poly_2_3_file  );
-	fclose( poly_3_4_file  );
-	fclose( poly_2_6_file  );
-	fclose( poly_3_12_file );
+		fclose( poly_1_2_file  );
+		fclose( poly_2_3_file  );
+		fclose( poly_3_4_file  );
+		fclose( poly_2_6_file  );
+		fclose( poly_3_12_file );
+	}
 }
 void MLP_lookup_table_2_GPU()
 {
@@ -6602,20 +7160,10 @@ void setup_MLP_lookup_tables()
 	// Generate MLP lookup tables and transfer these to the GPU
 	print_colored_text( "Setting up MLP lookup tables and transferring them to GPU...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
 	timer( START, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");		
-	if(IMPORT_MLP_LOOKUP_TABLES)
-	{
-		print_colored_text( "Importing MLP lookup tables from disk...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
-		import_trig_tables();
-		import_scattering_coefficient_table();
-		import_polynomial_tables();
-	}
-	else
-	{
-		print_colored_text( "Generating MLP lookup tables...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
-		generate_trig_tables();
-		generate_scattering_coefficient_table();
-		generate_polynomial_tables();
-	}
+	print_colored_text( "Generating MLP lookup tables...", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
+	generate_trig_tables();
+	generate_scattering_coefficient_table();
+	generate_polynomial_tables();
 	MLP_lookup_table_2_GPU();
 	execution_time_tables = timer( STOP, begin_tables, "for generating MLP lookup tables and transferring them to the GPU");	
 	print_section_exit( "Finished setting up MLP lookup tables and transferring them to GPU", SECTION_EXIT_CSTRING, RED_TEXT, RED_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );	
@@ -6979,15 +7527,12 @@ __device__ void find_MLP_path_GPU
 (
 	float* x, double b_i, unsigned int first_MLP_voxel_number, double x_in_object, double y_in_object, double z_in_object, 
 	double x_out_object, double y_out_object, double z_out_object, double xy_entry_angle, double xz_entry_angle, double xy_exit_angle, double xz_exit_angle,
-	double lambda, unsigned int* path, int& number_of_intersections, double& effective_chord_length ,double& a_i_dot_x_k_partially, double& a_i_dot_a_i_partially
+	double lambda, unsigned int* path, int& number_of_intersections, double& effective_chord_length, double& a_i_dot_x_k_partially, double& a_i_dot_a_i_partially
 ) 
 {
-  
-	//bool debug_output = false, MLP_image_output = false;
-	//bool constant_chord_lengths = true;
-	// MLP calculations variables
 	number_of_intersections = 0;
 	double u_0 = 0.0, u_1 = MLP_U_STEP,  u_2 = 0.0;
+	double t_1, v_1, x_1, y_1, z_1;// theta_1, phi_1;
 	double T_0[2] = {0.0, 0.0};
 	double T_2[2] = {0.0, 0.0};
 	double V_0[2] = {0.0, 0.0};
@@ -7002,24 +7547,13 @@ __device__ void find_MLP_path_GPU
 	double sigma_2_coefficient, sigma_t2, sigma_t2_theta2, sigma_theta2, determinant_Sigma_2, Sigma_2I[4]; 
 	double first_term_common_13_1, first_term_common_13_2, first_term_common_24_1, first_term_common_24_2, first_term[4], determinant_first_term;
 	double second_term_common_1, second_term_common_2, second_term_common_3, second_term_common_4, second_term[2];
-	double t_1, v_1, x_1, y_1, z_1;
-	double first_term_inversion_temp;
-	
-	//double a_i_dot_x_k = 0.0;
-	//double a_i_dot_a_i = 0.0;
-	
-	//double theta_1, phi_1;
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
+	double first_term_inversion_temp;	
+	//double a_i_dot_x_k = 0.0, double a_i_dot_a_i = 0.0, double a_j_times_a_j = effective_chord_length * effective_chord_length;
 	effective_chord_length = EffectiveChordLength_GPU( ( xy_entry_angle + xy_exit_angle ) / 2.0, ( xz_entry_angle + xz_exit_angle) / 2.0 );
-	//double a_j_times_a_j = effective_chord_length * effective_chord_length;
-	
-	//double effective_chord_length = mean_chord_length( u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object );
-	//double effective_chord_length = VOXEL_WIDTH;
-
-	int voxel_x = 0, voxel_y = 0, voxel_z = 0;
-	
-	int voxel = first_MLP_voxel_number;
+	//effective_chord_length = mean_chord_length( u_in_object, t_in_object, v_in_object, u_out_object, t_out_object, v_out_object );
+	//effective_chord_length = VOXEL_WIDTH;
+		
+	int voxel_x = 0, voxel_y = 0, voxel_z = 0, voxel = first_MLP_voxel_number;
 	
 	path[number_of_intersections] = voxel;
 	//path[number_of_intersections] = voxel;
@@ -7651,7 +8185,8 @@ void DROP_full_tx_iteration(const int num_histories, const int iteration)
 		else
 			histories_2_process = remaining_histories;	
 		// Set GPU grid/block configuration and perform DROP update calculations		
-		num_blocks = static_cast<unsigned int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
+		//num_blocks = static_cast<unsigned int>( (histories_2_process - 1 + HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD) );  
+		num_blocks = static_cast<unsigned int>( ceil(histories_2_process / (HISTORIES_PER_BLOCK*HISTORIES_PER_THREAD)));
 		calculate_x_update_GPU<<< num_blocks, HISTORIES_PER_BLOCK >>>
 		( 
 			x_d, x_entry_d, y_entry_d, z_entry_d, xy_entry_angle_d, xz_entry_angle_d, x_exit_d, y_exit_d, z_exit_d,  xy_exit_angle_d, 
@@ -7951,6 +8486,13 @@ void DROP_GPU(const unsigned int num_histories)
 	dim3 dimBlock( SLICES );
 	dim3 dimGrid( column_blocks, ROWS );	
 	// Host and GPU array allocations and host->GPU transfers/initializations for DROP and TVS
+	print_section_header("Performing DROP block iterative projection algorithm", MINOR_SECTION_SEPARATOR, LIGHT_BLUE_TEXT, YELLOW_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_colored_text("DROP settings:", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+	print_labeled_value("DROP block size =", DROP_BLOCK_SIZE, GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
+	print_labeled_value("Relaxation parameter 'lambda' =", LAMBDA, GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
+	print_labeled_value("Histories per block =", HISTORIES_PER_BLOCK, GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
+	print_labeled_value("Histories per thread =", HISTORIES_PER_THREAD, GREEN_TEXT, LIGHT_PURPLE_TEXT, GRAY_BACKGROUND, DONT_UNDERLINE_TEXT);
+	
 	timer( START, begin_DROP, "for all iterations of DROP");	
 	setup_MLP_lookup_tables();
 	#if (DROP_TX_MODE==FULL_TX)
@@ -7985,7 +8527,7 @@ void DROP_GPU(const unsigned int num_histories)
 		// Transfer data for ALL reconstruction_histories before beginning image reconstruction, using the MLP lookup tables each time
 		#if (DROP_TX_MODE==FULL_TX)
 			DROP_full_tx_iteration(num_histories, iteration);
-			print_colored_text("Transferring iterate to host", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+			//print_colored_text("Transferring iterate to host", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 			x_GPU_2_host();
 			// Transfer data to GPU as needed and allocate/free the corresponding GPU arrays each kernel launch, using the MLP lookup tables each time
 		#elif (DROP_TX_MODE==PARTIAL_TX_PREALLOCATED)
@@ -8003,11 +8545,11 @@ void DROP_GPU(const unsigned int num_histories)
 		// Transfer the updated image to the host and write it to disk
 		if( WRITE_X_KI ) 
 		{			
-			print_colored_text("Writing iterate to disk", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+			//print_colored_text("Writing iterate to disk", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 			array_2_disk(iterate_filename, OUTPUT_DIRECTORY, OUTPUT_FOLDER_UNIQUE, x_h, COLUMNS, ROWS, SLICES, NUM_VOXELS, true ); 
 			// Print the image to a binary file
 			write_PNG(iterate_filename, x_h);
-			print_colored_text("Finished disk write", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
+			//print_colored_text("Finished disk write", CYAN_TEXT, BLACK_BACKGROUND, DONT_UNDERLINE_TEXT );
 		}
 	}// end: for( unsigned int iteration = 1; iteration < iterations; iteration++)	
 	#if (DROP_TX_MODE==FULL_TX)
@@ -8025,7 +8567,7 @@ void DROP_GPU(const unsigned int num_histories)
 	#endif 
 	execution_time_DROP = timer( STOP, begin_DROP, "for all iterations of DROP");
 }
-void write_PNG(const char* filename, float* image)
+template<typename T> void write_PNG(const char* filename, T* image)
 {
 	char fileNamePNG[512];
 	char command[512];
@@ -8045,7 +8587,7 @@ void write_PNG(const char* filename, float* image)
 		{
 			for(int n=0;n<COLUMNS;n++)
 			{
-				pixel_value = image[(k*ROWS*COLUMNS)+(m*COLUMNS)+n]/2;
+				pixel_value = static_cast<float>(image[(k*ROWS*COLUMNS)+(m*COLUMNS)+n])/2;
 				fwrite(&pixel_value, sizeof(pixel_value), 1, imageFile);
 			}
 		}
@@ -8677,8 +9219,7 @@ void NTVS_iteration(const int iteration)
 	TV_x_values.push_back(calculate_total_variation(x_h, PRINT_TV));
 	#if TVS_CONDITIONED	
 		std::copy(x_h, x_h + NUM_VOXELS, x_TVS_h );
-		iteratively_pe
-			rturb_image( x_h, hull_h, iteration);
+		iteratively_perturb_image( x_h, hull_h, iteration);
 		//iteratively_perturb_image_in_place( x_h, hull_h, iteration);
 	#else
 		iteratively_perturb_image_unconditional( x_h, hull_h, iteration);
@@ -9182,11 +9723,20 @@ __device__ int calculate_voxel_GPU( double zero_coordinate, double current_posit
 {
 	return abs( current_position - zero_coordinate ) / voxel_size;
 }
+__device__ int coordinate_2_voxel_GPU( double zero_coordinate, double current_position, double voxel_size, int increasing_coordinate_direction)
+{
+	return static_cast<int>( increasing_coordinate_direction * ( current_position - zero_coordinate ) / voxel_size );
+}
 __device__ int positions_2_voxels_GPU(const double x, const double y, const double z, int& voxel_x, int& voxel_y, int& voxel_z )
 {
-	voxel_x = int( ( x - X_ZERO_COORDINATE ) / VOXEL_WIDTH );				
+	/*voxel_x = int( ( x - X_ZERO_COORDINATE ) / VOXEL_WIDTH );				
 	voxel_y = int( ( Y_ZERO_COORDINATE - y ) / VOXEL_HEIGHT );
 	voxel_z = int( ( Z_ZERO_COORDINATE - z ) / VOXEL_THICKNESS );
+	*/
+	voxel_x = static_cast<int>( X_INCREASING_DIRECTION * ( x - X_ZERO_COORDINATE ) / VOXEL_WIDTH );				
+	voxel_y = int( ( Y_ZERO_COORDINATE - y ) / VOXEL_HEIGHT );
+	voxel_z = int( ( Z_ZERO_COORDINATE - z ) / VOXEL_THICKNESS );
+	
 	return voxel_x + voxel_y * COLUMNS + voxel_z * COLUMNS * ROWS;
 }
 __device__ int position_2_voxel_GPU( double x, double y, double z )
@@ -9226,16 +9776,16 @@ __device__ void voxel_2_positions_GPU( int voxel, double& x, double& y, double& 
 {
 	int voxel_x, voxel_y, voxel_z;
 	voxel_2_3D_voxels_GPU( voxel, voxel_x, voxel_y, voxel_z );
-	x = voxel_2_position_GPU( voxel_x, VOXEL_WIDTH, COLUMNS, 1 );
-	y = voxel_2_position_GPU( voxel_y, VOXEL_HEIGHT, ROWS, -1 );
-	z = voxel_2_position_GPU( voxel_z, VOXEL_THICKNESS, SLICES, -1 );
+	x = voxel_2_position_GPU( voxel_x, VOXEL_WIDTH, COLUMNS, X_INCREASING_DIRECTION );
+	y = voxel_2_position_GPU( voxel_y, VOXEL_HEIGHT, ROWS, Y_INCREASING_DIRECTION );
+	z = voxel_2_position_GPU( voxel_z, VOXEL_THICKNESS, SLICES, Z_INCREASING_DIRECTION );
 }
 __device__ double voxel_2_radius_squared_GPU( int voxel )
 {
 	int voxel_x, voxel_y, voxel_z;
 	voxel_2_3D_voxels_GPU( voxel, voxel_x, voxel_y, voxel_z );
-	double x = voxel_2_position_GPU( voxel_x, VOXEL_WIDTH, COLUMNS, 1 );
-	double y = voxel_2_position_GPU( voxel_y, VOXEL_HEIGHT, ROWS, -1 );
+	double x = voxel_2_position_GPU( voxel_x, VOXEL_WIDTH, COLUMNS, X_INCREASING_DIRECTION );
+	double y = voxel_2_position_GPU( voxel_y, VOXEL_HEIGHT, ROWS, Y_INCREASING_DIRECTION );
 	return pow( x, 2.0 ) + pow( y, 2.0 );
 }
 /***********************************************************************************************************************************************************************************************************************/

@@ -103,7 +103,7 @@ const char* const MetaSyntacticVariableNames[] = {
     SOME_ENUM(MAKE_CSTRINGS)
 };
 	
-enum DATA_FORMATS			{ OLD_FORMAT, VERSION_0, VERSION_1, END_DATA_FORMATS							};				// Define the data formats that are supported
+enum DATA_FORMATS			{ OLD_FORMAT, VERSION_0, VERSION_1, VERSION_0_W_ANGLES, END_DATA_FORMATS							};				// Define the data formats that are supported
 enum SCAN_TYPES				{ EXPERIMENTAL, SIMULATED_G, SIMULATED_T, END_SCAN_TYPES						};				// Experimental or simulated (GEANT4 or TOPAS) data
 enum FILE_TYPES				{ TEXT, BINARY, END_FILE_TYPES													};				// Experimental or simulated data
 enum RAND_GENERATORS		{ DEFAULT_RAND, MINSTD_RAND, MINSTD_RAND0, MT19937,											// Defines the available random number generator engines 
@@ -187,6 +187,58 @@ const CODE_SOURCES			CODE_SOURCE				= LOCAL;						// Specify the random number g
 const HISTORY_ORDERING		RECON_HISTORY_ORDERING	= SEQUENTIAL;
 const BLOCK_ORDERING		DROP_BLOCK_ORDER		= CYCLIC;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//-------------------------------------------------------------------------------- Execution and early exit options ----------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//const bool RECONSTRUCTION_ON			= false;									// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
+const bool RUN_ON						= true;										// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
+const bool FUNCTION_TESTING				= OFF;										// Write output to "testing" directory (T) or to organized dat directory (F)
+const bool USING_RSYNC					= false;									// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
+const bool SHARE_OUTPUT_DATA			= ON;										// Specify whether data should be copied to shared (T) or personal (F) the network-attached storage device
+const bool USE_GIT_CODE					= true;
+const bool USE_GROUP_CODE				= false;
+const bool EXIT_AFTER_BINNING			= false;									// Exit program early after completing data read and initial processing
+const bool EXIT_AFTER_HULLS				= false;									// Exit program early after completing hull-detection
+const bool EXIT_AFTER_CUTS				= false;									// Exit program early after completing statistical cuts
+const bool EXIT_AFTER_SINOGRAM			= false;									// Exit program early after completing the construction of the sinogram
+const bool EXIT_AFTER_FBP				= false;									// Exit program early after completing FBP
+const bool EXIT_AFTER_X_O				= false;									// Exit program early after completing FBP
+const bool CLOSE_AFTER_EXECUTION		= true;										// Exit program early after completing FBP
+const bool DEBUG_TEXT_ON				= true;										// Provide (T) or suppress (F) print statements to console during execution
+const bool PRINT_ALL_PATHS				= false;
+const bool PRINT_CHMOD_CHANGES_ONLY		= false;
+
+const bool OVERWRITING_OK				= false;									// Allow output to 
+const bool TESTING_ON					= false;									// Write output to "testing" directory (T) or to organized dat directory (F)
+const bool CUTS_TESTING_ON				= true;										// Validating proper FBP filtering name output directory (T) or not (F)
+const bool RECON_VOLUME_TESTING_ON		= true;									// Validating proper FBP filtering name output directory (T) or not (F)
+const bool RECON_PARAMETER_TESTING_ON	= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool FBP_TESTING_ON				= false;									// Validating proper FBP filtering name output directory (T) or not (F)
+const bool FILTER_TESTING_ON			= false;										// Validating proper FBP filtering name output directory (T) or not (F)
+const bool AIR_THRESH_TESTING_ON		= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool MLP_LENGTH_TESTING_ON		= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool BLOCK_TESTING_ON				= false;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool NTVS_TESTING_ON				= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool OLD_TVS_TESTING_ON			= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool OLD_TVS_COMPARISON_TESTING_ON= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool WITH_OPTIMAL_NTVS_TESTING_ON	= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool S_CURVE_TESTING_ON			= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
+const bool ANGULAR_BIN_TESTING_ON		= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
+
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+//--------------------------------------------------------------------------------- Preprocessing option configurations ----------------------------------------------------------------------------------/
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
+const bool SAMPLE_STD_DEV				= true;										// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
+const bool FBP_ON						= true;										// Turn FBP on (T) or off (F)
+const bool IMPORT_FILTERED_FBP			= false;									// Import FBP image that was filtered externally from disk (T) or not (F)
+const bool SC_ON						= false;									// Turn Space Carving on (T) or off (F)
+const bool MSC_ON						= true;										// Turn Modified Space Carving on (T) or off (F)
+const bool SM_ON						= false;									// Turn Space Modeling on (T) or off (F)
+const bool COUNT_0_WEPLS				= false;									// Count the number of histories with WEPL = 0 (T) or not (F)
+const bool DIRECT_IMAGE_RECONSTRUCTION	= false;									// Begin execution with reconstruction by importing existing preprocessing data from disk (T) or generate preprocessing data first (F)
+const bool MLP_FILE_EXISTS				= false;									// Specifies whether a file with the relevant MLP data exists (T) or not (F)
+const bool MLP_ENDPOINTS_FILE_EXISTS	= false;									// Specifies whether a file with the relevant MLP endpoint data exists (T) or not (F)
+const bool IMPORT_MLP_LOOKUP_TABLES		= false;									// Import MLP lookup tables instead of generating them at run time
+//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //---------- Control if mutually exclusive code is selectively compiled w/ precompiler directives (PCDs) or conditionally executed via branching -----------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/	
 
@@ -199,53 +251,6 @@ const bool PCD_DROP_FULL_TX = true;
 const bool PCD_DROP_PARTIAL_TX = true && !PCD_DROP_PARTIAL_TX;
 const bool PCD_DROP_PARTIAL_TX_PREALLOCATED = true && !PCD_DROP_PARTIAL_TX;
 
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//-------------------------------------------------------------------------------- Execution and early exit options ----------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//const bool RECONSTRUCTION_ON			= false;									// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
-const bool RUN_ON						= true;										// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
-const bool FUNCTION_TESTING				= OFF;										// Write output to "testing" directory (T) or to organized dat directory (F)
-const bool USING_RSYNC					= false;									// Specify whether execution proceeds with reconstruction (T) or with test_func() for independent code testing (F)
-const bool SHARE_OUTPUT_DATA			= ON;										// Specify whether data should be copied to shared (T) or personal (F) the network-attached storage device
-const bool USE_GIT_CODE					= true;
-const bool USE_GROUP_CODE				= false;
-const bool TESTING_ON					= false;									// Write output to "testing" directory (T) or to organized dat directory (F)
-const bool BLOCK_TESTING_ON				= false;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
-const bool FILTER_TESTING_ON			= false;										// Validating proper FBP filtering name output directory (T) or not (F)
-const bool MLP_LENGTH_TESTING_ON		= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
-const bool S_CURVE_TESTING_ON			= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
-const bool NTVS_TESTING_ON				= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
-const bool OLD_TVS_TESTING_ON			= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
-const bool OLD_TVS_COMPARISON_TESTING_ON= false;									// Use value of variables relevant to block testing to name output directory (T) or not (F)
-const bool FBP_TESTING_ON				= false;									// Validating proper FBP filtering name output directory (T) or not (F)
-const bool RECON_PARAMETER_TESTING_ON	= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
-const bool WITH_OPTIMAL_NTVS_TESTING_ON	= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
-const bool AIR_THRESH_TESTING_ON		= true;										// Use value of variables relevant to block testing to name output directory (T) or not (F)
-const bool OVERWRITING_OK				= false;									// Allow output to 
-const bool EXIT_AFTER_BINNING			= false;									// Exit program early after completing data read and initial processing
-const bool EXIT_AFTER_HULLS				= false;									// Exit program early after completing hull-detection
-const bool EXIT_AFTER_CUTS				= false;									// Exit program early after completing statistical cuts
-const bool EXIT_AFTER_SINOGRAM			= false;									// Exit program early after completing the construction of the sinogram
-const bool EXIT_AFTER_FBP				= false;									// Exit program early after completing FBP
-const bool EXIT_AFTER_X_O				= false;									// Exit program early after completing FBP
-const bool CLOSE_AFTER_EXECUTION		= true;										// Exit program early after completing FBP
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-//--------------------------------------------------------------------------------- Preprocessing option configurations ----------------------------------------------------------------------------------/
-//----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-const bool DEBUG_TEXT_ON				= true;										// Provide (T) or suppress (F) print statements to console during execution
-const bool PRINT_ALL_PATHS				= false;
-const bool PRINT_CHMOD_CHANGES_ONLY		= true;
-const bool SAMPLE_STD_DEV				= true;										// Use sample/population standard deviation (T/F) in statistical cuts (i.e. divisor is N/N-1)
-const bool FBP_ON						= true;										// Turn FBP on (T) or off (F)
-const bool IMPORT_FILTERED_FBP			= false;									// Import FBP image that was filtered externally from disk (T) or not (F)
-const bool SC_ON						= false;									// Turn Space Carving on (T) or off (F)
-const bool MSC_ON						= true;										// Turn Modified Space Carving on (T) or off (F)
-const bool SM_ON						= false;									// Turn Space Modeling on (T) or off (F)
-const bool COUNT_0_WEPLS				= false;									// Count the number of histories with WEPL = 0 (T) or not (F)
-const bool DIRECT_IMAGE_RECONSTRUCTION	= false;									// Begin execution with reconstruction by importing existing preprocessing data from disk (T) or generate preprocessing data first (F)
-const bool MLP_FILE_EXISTS				= false;									// Specifies whether a file with the relevant MLP data exists (T) or not (F)
-const bool MLP_ENDPOINTS_FILE_EXISTS	= false;									// Specifies whether a file with the relevant MLP endpoint data exists (T) or not (F)
-const bool IMPORT_MLP_LOOKUP_TABLES		= false;									// Import MLP lookup tables instead of generating them at run time
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /****************************************************************************** Input/output specifications and options ******************************************************************************/
@@ -266,12 +271,32 @@ const char OUTPUT_DIRECTORY[]	= "//local//pCT_data//reconstruction_data//";
 //const char PREPROCESS_DATE[]	= "15-05-24";
 
 const SCAN_TYPES				SCAN_TYPE				= EXPERIMENTAL;			  		// Specifies which of the defined filters will be used in FBP
-const char INPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
-const char OUTPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
+//const char INPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-05-24.B";
+//const char OUTPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-05-24.B";
+//const char INPUT_FOLDER[]		= "Water//Experimental//15-05-16//0058//Output//15-06-25";
+//const char OUTPUT_FOLDER[]		= "Water//Experimental//15-05-16//0058//Output//15-06-25";
+const char INPUT_FOLDER[]		= "Water//Experimental//15-05-16//0058//Output//16-03-14";
+const char OUTPUT_FOLDER[]		= "Water//Experimental//15-05-16//0058//Output//16-03-14";
+//const char INPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
+//const char OUTPUT_FOLDER[]		= "Water//Experimental//16-04-23//0069_Cont//Output//16-04-23";
+
 const char PHANTOM_NAME[]		= "Water";
-const char RUN_NUMBER[]			= "0069_Cont";
-const char RUN_DATE[]			= "16-04-23";
-const char PREPROCESS_DATE[]	= "16-04-23";
+const char RUN_NUMBER[]			= "0058";
+const char RUN_DATE[]			= "15-05-16";
+const char PREPROCESS_DATE[]	= "16-03-14";
+
+//const char RUN_NUMBER[]			= "0069_Cont";
+//const char RUN_DATE[]			= "16-04-23";
+//const char PREPROCESS_DATE[]	= "16-05-24.B";
+
+//const char RUN_NUMBER[]			= "0058";
+//const char RUN_DATE[]			= "15-05-16";
+//const char PREPROCESS_DATE[]	= "16-04-23";
+//const char PREPROCESS_DATE[]	= "15-06-25";
+
+const bool USE_CONT_ANGLES			= false;
+const bool UPDATED_FBP			= true;
+
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------------------------- Iterative Image Reconstruction Parameters ------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -290,7 +315,7 @@ const bool WRITE_BIN_WEPLS		= false;								// Write WEPLs for each bin to disk 
 const bool WRITE_WEPL_DISTS		= false;								// Write mean WEPL values to disk (T) or not (F): t bin = columns, v bin = rows, 1 angle per file
 const bool WRITE_SSD_ANGLES		= false;								// Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F) 
 const bool WRITE_SC_HULL		= false;									// Write SC hull to disk (T) or not (F)
-const bool WRITE_MSC_COUNTS		= false;									// Write MSC counts array to disk (T) or not (F) before performing edge detection 
+const bool WRITE_MSC_COUNTS		= true;									// Write MSC counts array to disk (T) or not (F) before performing edge detection 
 const bool WRITE_MSC_HULL		= false;									// Write MSC hull to disk (T) or not (F)
 const bool WRITE_SM_COUNTS		= false;									// Write SM counts array to disk (T) or not (F) before performing edge detection 
 const bool WRITE_SM_HULL		= false;									// Write SM hull to disk (T) or not (F)
@@ -303,6 +328,7 @@ const bool WRITE_X_HULL			= true;									// Write the hull selected to be used 
 const bool WRITE_X_0			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
 const bool WRITE_X_KI			= true;									// Write the hull selected to be used in MLP calculations to disk (T) or not (F)
 const bool WRITE_X				= false;								// Write the reconstructed image to disk (T) or not (F)
+const bool WRITE_MLP_TABLES		= false;								// Write angles for each proton through entry/exit tracker planes to disk (T), or do not (F) 
 /*****************************************************************************************************************************************************************************************************/
 /*****************************************************************************************************************************************************************************************************/
 /************************************************************************************** Preprocessing Constants **************************************************************************************/
@@ -313,7 +339,7 @@ const bool WRITE_X				= false;								// Write the reconstructed image to disk (
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 #define THREADS_PER_BLOCK		1024									// [#] # of threads per GPU block for preprocessing kernels
 #define ENDPOINTS_PER_BLOCK 	320										// [#] # of threads per GPU block for collect_MLP_endpoints_GPU kernel
-#define HISTORIES_PER_BLOCK 	320										// [#] # of threads per GPU block for block_update_GPU kernel
+#define HISTORIES_PER_BLOCK 	640									// [#] # of threads per GPU block for block_update_GPU kernel
 #define ENDPOINTS_PER_THREAD 	1										// [#] # of MLP endpoints each thread is responsible for calculating in collect_MLP_endpoints_GPU kernel
 #define HISTORIES_PER_THREAD 	1										// [#] # of histories each thread is responsible for in MLP/DROP kernel block_update_GPU
 #define VOXELS_PER_THREAD 		1										// [#] # of voxels each thread is responsible for updating for reconstruction image initialization/updates
@@ -351,7 +377,7 @@ const bool WRITE_X				= false;								// Write the reconstructed image to disk (
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------------------------- Reconstruction cylinder configurations ---------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
-#define RECON_CYL_RADIUS		10.0									// [cm] Radius of reconstruction cylinder
+#define RECON_CYL_RADIUS		8.0									// [cm] Radius of reconstruction cylinder
 #define RECON_CYL_DIAMETER		( 2 * RECON_CYL_RADIUS )				// [cm] Diameter of reconstruction cylinder
 #define RECON_CYL_HEIGHT		(SSD_V_SIZE - 1.0)						// [cm] Height of reconstruction cylinder
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -363,8 +389,8 @@ const bool WRITE_X				= false;								// Write the reconstructed image to disk (
 #define IMAGE_WIDTH				RECON_CYL_DIAMETER						// [cm] Distance between left and right edges of each slice in image
 #define IMAGE_HEIGHT			RECON_CYL_DIAMETER						// [cm] Distance between top and bottom edges of each slice in image
 #define IMAGE_THICKNESS			( SLICES * SLICE_THICKNESS )			// [cm] Distance between bottom of bottom slice and top of the top slice of image
-#define COLUMNS					200										// [#] Number of voxels in the x direction (i.e., number of columns) of image
-#define ROWS					200										// [#] Number of voxels in the y direction (i.e., number of rows) of image
+#define COLUMNS					int(RECON_CYL_DIAMETER/VOXEL_WIDTH)		// [#] Number of voxels in the x direction (i.e., number of columns) of image
+#define ROWS					int(RECON_CYL_DIAMETER/VOXEL_HEIGHT)	// [#] Number of voxels in the y direction (i.e., number of rows) of image
 #define SLICES					int( RECON_CYL_HEIGHT / SLICE_THICKNESS)// [#] Number of voxels in the z direction (i.e., number of slices) of image
 #define NUM_VOXELS				( COLUMNS * ROWS * SLICES )				// [#] Total number of voxels (i.e. 3-tuples [column, row, slice]) in image
 #define VOXEL_WIDTH				0.1										// [cm] Distance between left and right edges of each voxel in image
@@ -399,9 +425,9 @@ double ETA							= 2.5;								// [#] Coefficient of perturbation used in robust
 unsigned int METHOD					= 1;								// [#] Integer indicating the desired robust method to use (deprecated, non in use)
 int PSI_SIGN						= 1;								// [#] Use a positive (1) or negative (-1) perturbation in robust methods
 #define ITERATIONS					10									// [#] # of iterations through the entire set of histories to perform in iterative image reconstruction
-#define DROP_BLOCK_SIZE				1638400								// [#] # of histories in each DROP block, i.e., # of histories used per image update
+#define DROP_BLOCK_SIZE				51200								// [#] # of histories in each DROP block, i.e., # of histories used per image update
 //#define LAMBDA					0.00015								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
-float LAMBDA						= 0.005;								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
+float LAMBDA						= 0.0005;								// [#] Relaxation parameter to use in image iterative projection reconstruction algorithms	
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Total variation superiorization (TVS) options/parameters -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -411,10 +437,10 @@ float LAMBDA						= 0.005;								// [#] Relaxation parameter to use in image it
 //#define NTVS_ON					OFF									// [T/F] Perform total variation superiorization (TVS) during reconstruction
 #define TVS_FIRST					ON									// [T/F] Perform TVS before (ON) or after (OFF) feasibility seeking during reconstruction
 #define TVS_PARALLEL				OFF									// [T/F] Use the sequential (OFF) or parallel (ON) implementation of TVS
-#define TVS_CONDITIONED				OFF									// [T/F] Verify TVS perturbation improves total variation TV (ON) or not (OFF)
+#define TVS_CONDITIONED				ON									// [T/F] Verify TVS perturbation improves total variation TV (ON) or not (OFF)
 #define TVS_MIN_ETA					1E-40								// [#] Specify minimum perturbation coefficient to include in precalculated coefficient array 
 #define TV_THRESHOLD				(1/1000)							// [#] Value of TV difference ratio |TV_y - TV_y_previous| / TV_y between successive betas where beta is not decreased more
-#define A							0.75								// [#] Perturbation coefficient generation kernel value: BETA_K_N = A^L
+#define A							0.85								// [#] Perturbation coefficient generation kernel value: BETA_K_N = A^L
 #define L_0							0	                                // [#,>=0] Initial value of L used in calculating the perturbation coefficient: A^L
 #define PERTURB_DOWN_FACTOR			(1/A - 1)							// [#] Used in scaling perturbation to yield image w/ reduced perturbation from image previously perturbed w/ larger perturbation
 int L								= 0;								// [#] Variable storing perturbation coefficient kernel exponent L used in calculating the perturbation coefficient: A^L
@@ -544,9 +570,12 @@ const char BASH_CHANGE_DIR[]		= "cd";													// Command to secure copy data
 const char BASH_ECHO_CMD[]			= "echo -e";											// Command to secure copy data/directories between clusters/nodes
 const char BASH_SECURE_COPY[]		= "scp -rCp -c blowfish";								// Command to secure copy data/directories between clusters/nodes
 const char BASH_COPY_DIR[]			= "cp -apRv";											// Command to secure copy data/directories between clusters/nodes
+const char BASH_COPY_DIR_SILENT[]	= "cp -apR";											// Command to secure copy data/directories between clusters/nodes
 const char BASH_COPY_FILE[]			= "cp -v";												// Command to secure copy data/directories between clusters/nodes
+const char BASH_COPY_FILE_SILENT[]	= "cp";													// Command to secure copy data/directories between clusters/nodes
 const char BASH_MKDIR_CHAIN[]		= "mkdir -p";											// Command to secure copy data/directories between clusters/nodes
 const char BASH_SET_FULL_ACCESS[]	= "chmod -R 777";										// Command to change file permissions to rwx for everyone
+const char BASH_SET_PERMISSIONS_SILENT[]	= "chmod -R";											// Command to change file permissions to rwx for everyone
 const char BASH_SET_PERMISSIONS[]	= "chmod -Rv";											// Command to change file permissions to rwx for everyone
 const char BASH_CHANGE_PERMISSIONS[]= "chmod -Rc";											// Command to change file permissions to rwx for everyone
 const char HOSTNAME_CMD[]			= "uname -n";											// Bash command to acquire the hostname
@@ -932,6 +961,7 @@ unsigned int NUM_RUN_ARGUMENTS;
 char** RUN_ARGUMENTS;
 char* CONFIG_DIRECTORY;
 std::map<std::string, unsigned int> EXECUTION_LOG_SWITCHMAP;
+bool CONTINUOUS_DATA = false;
 unsigned int PHANTOM_NAME_SIZE;
 unsigned int DATA_SOURCE_SIZE;
 unsigned int PREPARED_BY_SIZE;
@@ -1155,6 +1185,9 @@ float* xz_entry_angle_d, * xz_exit_angle_d;
 float* WEPL_d;
 unsigned int* first_MLP_voxel_d;
 int* voxel_x_d, voxel_y_d, voxel_z_d;
+
+float* actual_projection_angles_h, * actual_projection_angles_d;
+
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------- Declaration of statistical analysis arrays for use on host(_h) or device (_d) ------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -1241,6 +1274,7 @@ std::vector<float>	xy_entry_angle_vector;
 std::vector<float>	xz_entry_angle_vector;	
 std::vector<float>	xy_exit_angle_vector;	
 std::vector<float>	xz_exit_angle_vector;	
+std::vector<float>	actual_projection_angles;	
 std::vector<unsigned int> first_MLP_voxel_vector;
 std::vector<int> voxel_x_vector;
 std::vector<int> voxel_y_vector;
