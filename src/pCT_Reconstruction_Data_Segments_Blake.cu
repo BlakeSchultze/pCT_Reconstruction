@@ -600,6 +600,1355 @@ void set_file_permissions(const char* path, const char* permission)
 /***********************************************************************************************************************************************************************************************************************/
 /********************************************************************************** Program Startup Tasks **************************************************************************************************************/
 /***********************************************************************************************************************************************************************************************************************/
+void initialize_parameters() 
+{
+	parameter_container.rand_engine			=RAND_ENGINE;					// Specify the random number generator engine to use
+	parameter_container.tvs_rand_engine		=TVS_RAND_ENGINE;			// Specify the random number generator engine to use
+	parameter_container.scan_type			=SCAN_TYPE; 		// Specifies which of the defined filters will be used in FBP
+	parameter_container.file_type			=FILE_TYPE;			// Experimental or simulated data
+	parameter_container.data_format			=DATA_FORMAT;			// Specify which data format to use for this run
+	parameter_container.image_basis			=IMAGE_BASIS;				// Specifies which basis is used to construct the images
+	parameter_container.fbp_filter			=SINOGRAM_FILTER;		// Specifies which of the defined filters will be used in FBP
+	parameter_container.endpoints_hull		=ENDPOINTS_HULL;				// Specify which of the HULL_TYPES to use in this run's MLP calculations
+	parameter_container.x_0				=X_0;			// Specify which of the HULL_TYPES to use in this run's MLP calculations
+	parameter_container.endpoints_alg		=ENDPOINTS_ALG;				// Specifies if boolean array is used to store whether a proton hit/missed the hull (BOOL) or uses the 1st MLP voxel (NO_BOOL)
+	parameter_container.endpoints_tx_mode		=ENDPOINTS_TX_MODE;// Specifies GPU data tx mode for MLP endpoints as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+	parameter_container.mlp_algorithm		=MLP_ALGORITHM;			// Specifies whether calculations are performed explicitly (STANDARD) or if lookup tables are used for MLP calculations (TABULATED)
+	parameter_container.projection_algorithm	=PROJECTION_ALGORITHM;						// Specify which of the projection algorithms to use for image reconstruction
+	parameter_container.recon_tx_mode		=RECON_TX_MODE;				// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+	parameter_container.drop_tx_mode		=DROP_TX_MODE;				// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+	parameter_container.s_curve			=S_CURVE;			// Specify S-curve to use to scale updates applied to voxels around the object boundary
+	parameter_container.robust_method		=ROBUST_METHOD;
+	parameter_container.run_on			=RUN_ON;							// turn preprocessing on/off (t/f) to enter individual function testing without commenting
+	parameter_container.testing_on			=TESTING_ON;						// write output to "testing" directory (t) or to organized dat directory (f)
+	parameter_container.block_testing_on		=BLOCK_TESTING_ON;							// use value of variables relevant to block testing to name output directory (t) or not (f)
+	parameter_container.s_curve_testing_on		=S_CURVE_TESTING_ON;							// use value of variables relevant to block testing to name output directory (t) or not (f)
+	parameter_container.ntvs_testing_on		=NTVS_TESTING_ON;								// use value of variables relevant to block testing to name output directory (t) or not (f)
+	parameter_container.overwriting_ok		=OVERWRITING_OK;							// allow output to 
+	parameter_container.exit_after_binning		=EXIT_AFTER_BINNING;							// exit program early after completing data read and initial processing
+	parameter_container.exit_after_hulls		=EXIT_AFTER_HULLS;							// exit program early after completing hull-detection
+	parameter_container.exit_after_cuts		=EXIT_AFTER_CUTS;							// exit program early after completing statistical cuts
+	parameter_container.exit_after_sinogram		=EXIT_AFTER_SINOGRAM;								// exit program early after completing the construction of the sinogram
+	parameter_container.exit_after_fbp		=EXIT_AFTER_FBP;							// exit program early after completing fbp
+	parameter_container.close_after_execution	=CLOSE_AFTER_EXECUTION;	
+	parameter_container.debug_text_on		=DEBUG_TEXT_ON;								// provide (t) or suppress (f) print statements to console during execution
+	parameter_container.sample_std_dev		=SAMPLE_STD_DEV;								// use sample/population standard deviation (t/f) in statistical cuts (i.e. divisor is n/n-1)
+	parameter_container.fbp_on			=FBP_ON;							// turn fbp on (t) or off (f)
+	parameter_container.import_filtered_fbp		=IMPORT_FILTERED_FBP;	
+	parameter_container.sc_on			=SC_ON;						// turn space carving on (t) or off (f)
+	parameter_container.msc_on			=MSC_ON;							// turn modified space carving on (t) or off (f)
+	parameter_container.sm_on			=SM_ON;						// turn space modeling on (t) or off (f)
+	parameter_container.count_0_wepls		=COUNT_0_WEPLS;							// count the number of histories with wepl = 0 (t) or not (f)
+	parameter_container.direct_image_reconstruction =DIRECT_IMAGE_RECONSTRUCTION;
+	parameter_container.mlp_file_exists		=MLP_FILE_EXISTS;
+	parameter_container.mlp_endpoints_file_exists   =MLP_ENDPOINTS_FILE_EXISTS;
+	strcpy (parameter_container.input_directory,INPUT_DIRECTORY);
+	strcpy (parameter_container.output_directory,OUTPUT_DIRECTORY);
+	strcpy (parameter_container.input_folder,INPUT_FOLDER);		
+	strcpy (parameter_container.output_folder,OUTPUT_FOLDER);
+	parameter_container.binary_encoding		=BINARY_ENCODING;									// input data provided in binary (t) encoded files or asci text files (f)
+	parameter_container.single_data_file		=SINGLE_DATA_FILE;									// individual file for each gantry angle (t) or single data file for all data (f)
+	parameter_container.ssd_in_mm			=SSD_IN_MM;									// ssd distances from rotation axis given in mm (t) or cm (f)
+	parameter_container.data_in_mm			=DATA_IN_MM;									// input data given in mm (t) or cm (f)
+	parameter_container.micah_sim			=MICAH_SIM;	
+	parameter_container.write_bin_wepls		=WRITE_BIN_WEPLS;									// write wepls for each bin to disk (t) for wepl distribution analysis, or do not (f)
+	parameter_container.write_wepl_dists		=WRITE_WEPL_DISTS;									// write mean wepl values to disk (t) or not (f): t bin = columns, v bin = rows, 1 angle per file
+	parameter_container.write_ssd_angles		=WRITE_SSD_ANGLES;									// write angles for each proton through entry/exit tracker planes to disk (t), or do not (f) 
+	parameter_container.write_sc_hull		=WRITE_SC_HULL;									// write sc hull to disk (t) or not (f)
+	parameter_container.write_msc_counts		=WRITE_MSC_COUNTS;								// write msc counts array to disk (t) or not (f) before performing edge detection 
+	parameter_container.write_msc_hull		=WRITE_MSC_HULL;								// write msc hull to disk (t) or not (f)
+	parameter_container.write_sm_counts		=WRITE_SM_COUNTS;									// write sm counts array to disk (t) or not (f) before performing edge detection 
+	parameter_container.write_sm_hull		=WRITE_SM_HULL;									// write sm hull to disk (t) or not (f)
+	parameter_container.write_fbp_image		=WRITE_FBP_IMAGE;									// write fbp image before thresholding to disk (t) or not (f)
+	parameter_container.write_fbp_hull		=WRITE_FBP_HULL;									// write fbp hull to disk (t) or not (f)
+	parameter_container.write_avg_fbp		=WRITE_AVG_FBP;									// write average filtered fbp image before thresholding to disk (t) or not (f)
+	parameter_container.write_median_fbp		=WRITE_MEDIAN_FBP;									// write median filtered fbp image to disk (t) or not (f)
+	parameter_container.write_filtered_hull		=WRITE_FILTERED_HULL;									// write average filtered fbp image to disk (t) or not (f)
+	parameter_container.write_x_hull		=WRITE_X_HULL;									// write the hull selected to be used in mlp calculations to disk (t) or not (f)
+	parameter_container.write_x_0			=WRITE_X_0;									// write the hull selected to be used in mlp calculations to disk (t) or not (f)
+	parameter_container.write_x_ki			=WRITE_X_KI;									// write the hull selected to be used in mlp calculations to disk (t) or not (f)
+	parameter_container.write_x			=WRITE_X;
+	parameter_container.drop_block_size		=DROP_BLOCK_SIZE;									// # of histories in each drop block, i.e., # of histories used per image update
+	parameter_container.threads_per_block		=THREADS_PER_BLOCK;									// # of threads per gpu block for preprocessing kernels
+        parameter_container.endpoints_per_block		=ENDPOINTS_PER_BLOCK;										// # of threads per gpu block for collect_mlp_endpoints_gpu kernel
+	parameter_container.histories_per_block		=HISTORIES_PER_BLOCK;										// # of threads per gpu block for block_update_gpu kernel
+	parameter_container.endpoints_per_thread	=ENDPOINTS_PER_THREAD;										// # of mlp endpoints each thread is responsible for calculating in collect_mlp_endpoints_gpu kernel
+	parameter_container.histories_per_thread	=HISTORIES_PER_THREAD;										// # of histories each thread is responsible for in mlp/drop kernel block_update_gpu
+	parameter_container.voxels_per_thread		=VOXELS_PER_THREAD;										// # of voxels each thread is responsible for updating for reconstruction image initialization/updates
+	parameter_container.max_gpu_histories		=MAX_GPU_HISTORIES;									// [#] number of histories to process on the gpu at a time for preprocessing, based on gpu capacity
+	parameter_container.max_cuts_histories		=MAX_CUTS_HISTORIES;									// [#] number of histories to process on the gpu at a time for statistical cuts, based on gpu capacity
+	parameter_container.max_endpoints_histories	=MAX_ENDPOINTS_HISTORIES;								// [#] number of histories to process on the gpu at a time for mlp endpoints, based on gpu capacity
+	parameter_container.max_intersections		=MAX_INTERSECTIONS;	
+	parameter_container.gantry_angle_interval	=GANTRY_ANGLE_INTERVAL;										// [degrees] angle between successive projection angles 
+	parameter_container.gantry_angles		=GANTRY_ANGLES;		// [#] total number of projection angles
+	parameter_container.num_scans			=NUM_SCANS;										// [#] total number of scans
+	parameter_container.num_files			=NUM_FILES;			// [#] 1 file per gantry angle per translation
+	parameter_container.ssd_t_size			=SSD_T_SIZE;									// [cm] length of ssd in t (lateral) direction
+	parameter_container.ssd_v_size			=SSD_V_SIZE;
+	parameter_container.t_shift			=T_SHIFT;										// [cm] amount by which to shift all t coordinates on input
+	parameter_container.u_shift			=U_SHIFT;										// [cm] amount by which to shift all u coordinates on input
+	parameter_container.v_shift			=V_SHIFT;										// [cm] amount by which to shift all v coordinates on input
+	parameter_container.t_bin_size			=T_BIN_SIZE;										// [cm] distance between adjacent bins in t (lateral) direction
+	parameter_container.t_bins			=T_BINS;	// [#] number of bins (i.e. quantization levels) for t (lateral) direction 
+	parameter_container.v_bin_size			=V_BIN_SIZE;									// [cm] distance between adjacent bins in v (vertical) direction
+	parameter_container.v_bins			=V_BINS;		// [#] number of bins (i.e. quantization levels) for v (vertical) direction 
+	parameter_container.angular_bin_size		=ANGULAR_BIN_SIZE;										// [degrees] angle between adjacent bins in angular (rotation) direction
+	parameter_container.angular_bins		=ANGULAR_BINS;		// [#] number of bins (i.e. quantization levels) for path angle 
+	parameter_container.num_bins			=NUM_BINS;		// [#] total number of bins corresponding to possible 3-tuples [angular_bin, t_bin, v_bin]
+	parameter_container.sigmas_to_keep		=SIGMAS_TO_KEEP;										// [#] number of standard deviations from mean to allow before cutting the history 
+	parameter_container.ram_lak_tau			=RAM_LAK_TAU;					// defines tau in ram-lak filter calculation, estimated from largest frequency in slice 
+	parameter_container.fbp_threshold		=FBP_THRESHOLD;
+	parameter_container.recon_cyl_radius		=RECON_CYL_RADIUS;									// [cm] radius of reconstruction cylinder
+	parameter_container.recon_cyl_diameter		=RECON_CYL_DIAMETER;				// [cm] diameter of reconstruction cylinder
+	parameter_container.recon_cyl_height		=RECON_CYL_HEIGHT;
+	parameter_container.image_width			=IMAGE_WIDTH;						// [cm] distance between left and right edges of each slice in image
+	parameter_container.image_height		=IMAGE_HEIGHT;						// [cm] distance between top and bottom edges of each slice in image
+	parameter_container.image_thickness		=IMAGE_THICKNESS;			// [cm] distance between bottom of bottom slice and top of the top slice of image
+	parameter_container.columns			=COLUMNS;										// [#] number of voxels in the x direction (i.e., number of columns) of image
+	parameter_container.rows			=ROWS;										// [#] number of voxels in the y direction (i.e., number of rows) of image
+	parameter_container.slices			=SLICES;// [#] number of voxels in the z direction (i.e., number of slices) of image
+	parameter_container.num_voxels			=NUM_VOXELS;				// [#] total number of voxels (i.e. 3-tuples [column, row, slice]) in image
+	parameter_container.voxel_width			=VOXEL_WIDTH;										// [cm] distance between left and right edges of each voxel in image
+	parameter_container.voxel_height		=VOXEL_HEIGHT;										// [cm] distance between top and bottom edges of each voxel in image
+	parameter_container.voxel_thickness		=VOXEL_THICKNESS;									// [cm] distance between top and bottom of each slice in image
+	parameter_container.slice_thickness		=SLICE_THICKNESS;	
+	parameter_container.sc_lower_threshold		=SC_LOWER_THRESHOLD;										// [cm] if wepl >= sc_lower_threshold, sc assumes the proton missed the object
+	parameter_container.sc_upper_threshold		=SC_UPPER_THRESHOLD;										// [cm] if wepl <= sc_upper_threshold, sc assumes the proton missed the object
+	parameter_container.msc_upper_threshold		=MSC_UPPER_THRESHOLD;										// [cm] if wepl >= msc_lower_threshold, msc assumes the proton missed the object
+	parameter_container.msc_lower_threshold		=MSC_LOWER_THRESHOLD;									// [cm] if wepl <= msc_upper_threshold, msc assumes the proton missed the object
+	parameter_container.msc_diff_thresh		=MSC_DIFF_THRESH;										// [#] threshold on difference in counts between adjacent voxels used by msc for edge detection
+	parameter_container.sm_lower_threshold		=SM_LOWER_THRESHOLD;										// [cm] if wepl >= sm_threshold, sm assumes the proton passed through the object
+	parameter_container.sm_upper_threshold		=SM_UPPER_THRESHOLD;									// [cm] if wepl > sm_upper_threshold, sm ignores this history
+	parameter_container.sm_scale_threshold		=SM_SCALE_THRESHOLD;
+	parameter_container.voxel_step_size		=MLP_U_STEP;						// [cm] length of the step taken along the path, i.e. change in depth per step for
+	parameter_container.mlp_u_step			=MLP_U_STEP;						// size of the step taken along u direction during mlp; depth difference between successive mlp points
+	parameter_container.max_path_elements		=MAX_PATH_ELEMENTS; // defines size of gpu array used to store a proton history's mlp voxel #s 
+	parameter_container.prime_offset		=PRIME_OFFSET;							// Separation between successive histories used in ordering histories for reconstruction
+	parameter_container.eta				=ETA;								// coefficient of perturbation used in robust methods
+	parameter_container.method			=METHOD;								// integer indicating the desired robust method to use (deprecated, non in use)
+	parameter_container.psi_sign			=PSI_SIGN;								// use a positive (1) or negative (-1) perturbation in robust methods
+	parameter_container.lambda			=LAMBDA;							// relaxation parameter to use in image iterative projection reconstruction algorithms	
+	parameter_container.iterations			=ITERATIONS;									// # of iterations through the entire set of histories to perform in iterative image reconstruction
+	parameter_container.ignore_short_mlp		=IGNORE_SHORT_MLP;									// remove proton histories with short mlp paths from use in reconstruction (on) or not (off)
+	parameter_container.min_mlp_length		=MIN_MLP_LENGTH;									// minimum # of intersections required to use in reconstruction so proton's skimming object are ignored
+	parameter_container.bound_image			=BOUND_IMAGE;									// if any voxel in the image exceeds 2.0, set it to exactly 2.0
+	parameter_container.s_curve_on			=S_CURVE_ON;									// turn on application of s-curve scaling of updates of voxels near the boundary
+	parameter_container.sigmoid_steepness		=SIGMOID_STEEPNESS;								// scaling factor 'k' of logistic curve: 1 / (1 + exp[k(logistic_mid_shift - voxel)])
+	parameter_container.sigmoid_mid_shift		=SIGMOID_MID_SHIFT;									// x-coordinate where the signoid curve is half of its maximum value
+	parameter_container.dual_sided_s_curve		=DUAL_SIDED_S_CURVE;									// apply a single-sided (off) or double-sided (on) s-curve attenuation of voxel update values
+	parameter_container.tvs_on			=TVS_ON;									// perform total variation superiorization (tvs) during reconstruction
+	parameter_container.tvs_first			=TVS_FIRST;									// perform tvs before (on) or after (off) feasibility seeking during reconstruction
+	parameter_container.tvs_parallel		=TVS_PARALLEL;									// use the sequential (off) or parallel (on) implementation of tvs
+	parameter_container.tvs_conditioned		=TVS_CONDITIONED;									// verify tvs perturbation improves total variation tv (on) or not (off)
+	parameter_container.tvs_min_eta			=TVS_MIN_ETA;								// specify minimum perturbation coefficient to include in precalculated coefficient array 
+	parameter_container.tv_threshold		=TV_THRESHOLD;							// [#] value of tv difference ratio |tv_y - tv_y_previous| / tv_y between successive betas where beta is not decreased more
+	parameter_container.a				=A;									// perturbation coefficient generation kernel value: beta_k_n = a^l
+	parameter_container.l_0				=L_0;									// initial value of l used in calculating the perturbation coefficient: a^l
+	parameter_container.perturb_down_factor		=PERTURB_DOWN_FACTOR;							// used in scaling perturbation to yield image w/ reduced perturbation from image previously perturbed w/ larger perturbation
+	parameter_container.l				=L;								// variable storing perturbation coefficient kernel exponent l used in calculating the perturbation coefficient: a^l
+	parameter_container.beta_0			=BETA_0;								// inital value of tvs perturbation coefficient
+	parameter_container.beta			=BETA;							// tvs perturbation coefficient 
+	parameter_container.beta_k_n			=BETA_K_N;						// Value of BETA used in classical TVS as perturbation coefficient
+	parameter_container.tvs_repetitions		=TVS_REPETITIONS;								// [#] Specifies # of times to perform TVS for each iteration of DROP
+	parameter_container.avg_filter_hull		=AVG_FILTER_HULL;								// apply averaging filter to hull (t) or not (f)
+	parameter_container.avg_filter_x_0		=AVG_FILTER_X_0;							// apply averaging filter to initial iterate (t) or not (f)
+	parameter_container.median_filter_fbp		=MEDIAN_FILTER_FBP;								// apply median filter to fbp (t) or not (f)
+	parameter_container.median_filter_hull		=MEDIAN_FILTER_HULL;								// apply median filter to hull (t) or not (f)
+	parameter_container.median_filter_x_0		=MEDIAN_FILTER_X_0;							// Apply averaging filter to initial iterate (T) or not (F)
+	parameter_container.hull_avg_filter_radius	=HULL_AVG_FILTER_RADIUS;								// [#] Radius of the average filter to apply to hull image
+	parameter_container.fbp_avg_filter_radius	=FBP_AVG_FILTER_RADIUS;								// [#] Radius of the average filter to apply to FBP image
+	parameter_container.x_0_avg_filter_radius	=X_0_AVG_FILTER_RADIUS;								// [#] Radius of the average filter to apply to initial iterate
+	parameter_container.fbp_med_filter_radius	=FBP_MED_FILTER_RADIUS;								// [#] Radius of the median filter to apply to hull image
+	parameter_container.hull_med_filter_radius	=HULL_MED_FILTER_RADIUS;								// [#] Radius of the median filter to apply to FBP image
+	parameter_container.x_0_med_filter_radius	=X_0_MED_FILTER_RADIUS;								// [#] Radius of the median filter to apply to initial iterate
+	parameter_container.hull_avg_filter_threshold	=HULL_AVG_FILTER_THRESHOLD;								// [#] threshold applied to average filtered hull separating voxels to include/exclude from hull (i.e. set to 0/1)
+	parameter_container.fbp_avg_filter_threshold	=FBP_AVG_FILTER_THRESHOLD;								// [#] threshold applied to average filtered fbp separating voxels to include/exclude from fbp hull (i.e. set to 0/1)
+	parameter_container.x_0_avg_filter_threshold	=X_0_AVG_FILTER_THRESHOLD;
+	strcpy (parameter_container.tested_by_string,TESTED_BY_CSTRING);
+	//strcpy (parameter_container.code_owner,CODE_OWNER);
+	//strcpy (parameter_container.program_version,PROGRAM_VERSION);
+	strcpy (parameter_container.section_exit_string,SECTION_EXIT_CSTRING);
+	//strcpy (parameter_container.true_string,TRUE_CSTRING);
+	//strcpy (parameter_container.false_string,FALSE_CSTRING);
+	strcpy (parameter_container.on_string,ON_CSTRING);
+	strcpy (parameter_container.off_string,OFF_CSTRING);
+	//strcpy (parameter_container.my_recon_dir, MY_RECON_DIR);
+	//strcpy (parameter_container.current_git_branch, CURRENT_GIT_BRANCH);
+	//strcpy (parameter_container.tardis_rcode_dir, TARDIS_RCODE_DIR);
+	printf("%s\n",parameter_container.input_directory);
+
+}
+
+void command_line_settings( unsigned int num_arguments, char** arguments )
+{
+	initialize_parameters();
+
+	//char tx_mode[50];
+	//char alg_mode[30];
+	char rand_engine[50];				// Specify the random number generator engine to use
+	char tvs_rand_engine[50]; 			// Specify the random number generator engine to use
+	char scan_type[50]; 		// Specifies which of the defined filters will be used in FBP
+	char file_type[50]; 			// Experimental or simulated data
+	char data_format[50];			// Specify which data format to use for this run
+	char image_basis[50];				// Specifies which basis is used to construct the images
+	char fbp_filter[50];		// Specifies which of the defined filters will be used in FBP
+	char endpoints_hull[50]; 				// Specify which of the HULL_TYPES to use in this run's MLP calculations
+	char x_0[50];			// Specify which of the HULL_TYPES to use in this run's MLP calculations
+	char endpoints_alg[50];				// Specifies if boolean array is used to store whether a proton hit/missed the hull (BOOL) or uses the 1st MLP voxel (NO_BOOL)
+	char endpoints_tx_mode[50];// Specifies GPU data tx mode for MLP endpoints as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+	char mlp_algorithm[50];			// Specifies whether calculations are performed explicitly (STANDARD) or if lookup tables are used for MLP calculations (TABULATED)
+	char projection_algorithm[50];						// Specify which of the projection algorithms to use for image reconstruction
+	char recon_tx_mode[50];				// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+	char drop_tx_mode[50];				// Specifies GPU data tx mode for MLP+DROP as all data (FULL_TX), portions of data (PARTIAL_TX), or portions of data w/ reused GPU arrays (PARTIAL_TX_PREALLOCATED)
+	char s_curve[50];			// Specify S-curve to use to scale updates applied to voxels around the object boundary
+	char robust_method[50];
+	char run_on[6];
+	char testing_on[6];
+	char block_testing_on[6];
+	char s_curve_testing_on[6];							// use value of variables relevant to block testing to name output directory (t) or not (f)
+	char ntvs_testing_on[6];								// use value of variables relevant to block testing to name output directory (t) or not (f)
+	char overwriting_ok[6];							// allow output to 
+	char exit_after_binning[6];							// exit program early after completing data read and initial processing
+	char exit_after_hulls[6];							// exit program early after completing hull-detection
+	char exit_after_cuts[6];							// exit program early after completing statistical cuts
+	char exit_after_sinogram[6];								// exit program early after completing the construction of the sinogram
+	char exit_after_fbp[6];							// exit program early after completing fbp
+	char exit_after_execution[6];
+	char close_after_execution[6];
+	char debug_text_on[6];								// provide (t) or suppress (f) print statements to console during execution
+	char sample_std_dev[6];								// use sample/population standard deviation (t/f) in statistical cuts (i.e. divisor is n/n-1)
+	char fbp_on[6];							// turn fbp on (t) or off (f)
+	char import_filtered_fbp[6];	
+	char sc_on[6];						// turn space carving on (t) or off (f)
+	char msc_on[6];							// turn modified space carving on (t) or off (f)
+	char sm_on[6];	
+	char count_0_wepls[6];							// count the number of histories with wepl = 0 (t) or not (f)
+	char direct_image_reconstruction[6];
+	char mlp_file_exists[6];
+	char mlp_endpoints_file_exists[6];
+	char binary_encoding[6];									// input data provided in binary (t) encoded files or asci text files (f)
+	char single_data_file[6];									// individual file for each gantry angle (t) or single data file for all data (f)
+	char ssd_in_mm[6];									// ssd distances from rotation axis given in mm (t) or cm (f)
+	char data_in_mm[6];									// input data given in mm (t) or cm (f)
+	char micah_sim[6];	
+	char write_bin_wepls[6];									// write wepls for each bin to disk (t) for wepl distribution analysis, or do not (f)
+	char write_wepl_dists[6];									// write mean wepl values to disk (t) or not (f): t bin = columns, v bin = rows, 1 angle per file
+	char write_ssd_angles[6];									// write angles for each proton through entry/exit tracker planes to disk (t), or do not (f) 
+	char write_sc_hull[6];									// write sc hull to disk (t) or not (f)
+	char write_msc_counts[6];								// write msc counts array to disk (t) or not (f) before performing edge detection 
+	char write_msc_hull[6];								// write msc hull to disk (t) or not (f)
+	char write_sm_counts[6];									// write sm counts array to disk (t) or not (f) before performing edge detection 
+	char write_sm_hull[6];									// write sm hull to disk (t) or not (f)
+	char write_fbp_image[6];									// write fbp image before thresholding to disk (t) or not (f)
+	char write_fbp_hull[6];									// write fbp hull to disk (t) or not (f)
+	char write_avg_fbp[6];									// write average filtered fbp image before thresholding to disk (t) or not (f)
+	char write_median_fbp[6];									// write median filtered fbp image to disk (t) or not (f)
+	char write_filtered_hull[6];									// write average filtered fbp image to disk (t) or not (f)
+	char write_x_hull[6];									// write the hull selected to be used in mlp calculations to disk (t) or not (f)
+	char write_x_0[6];									// write the hull selected to be used in mlp calculations to disk (t) or not (f)
+	char write_x_ki[6];									// write the hull selected to be used in mlp calculations to disk (t) or not (f)
+	char write_x[6];
+	char ignore_short_mlp[6];
+	char bound_image[6];									// if any voxel in the image exceeds 2.0, set it to exactly 2.0
+	char s_curve_on[6];
+	char dual_sided_s_curve[6];									// apply a single-sided (off) or double-sided (on) s-curve attenuation of voxel update values
+	char tvs_on[6];									// perform total variation superiorization (tvs) during reconstruction
+	char tvs_first[6];									// perform tvs before (on) or after (off) feasibility seeking during reconstruction
+	char tvs_parallel[6];									// use the sequential (off) or parallel (on) implementation of tvs
+	char tvs_conditioned[6];
+	char avg_filter_fbp[6];
+	char avg_filter_hull[6];								// apply averaging filter to hull (t) or not (f)
+	char avg_filter_x_0[6];							// apply averaging filter to initial iterate (t) or not (f)
+	char median_filter_fbp[6];								// apply median filter to fbp (t) or not (f)
+	char median_filter_hull[6];								// apply median filter to hull (t) or not (f)
+	char median_filter_x_0[6];	
+	
+	int ch;
+	
+	while ((ch = getopt_long(num_arguments, arguments, "1:", long_options, NULL)) != -1) {
+	  
+		switch ( ch ) {
+		  
+			case 1:
+				strcpy( rand_engine , optarg );
+				if( strcmp( rand_engine, "DEFAULT_RAND" ) == 0)
+					parameter_container.rand_engine = DEFAULT_RAND;
+				else if ( strcmp( rand_engine, "MINSTD_RAND" ) == 0)
+					parameter_container.rand_engine = MINSTD_RAND;
+				else if ( strcmp( rand_engine, "MINSTD_RAND0" ) == 0)
+					parameter_container.rand_engine = MINSTD_RAND0;
+				else if ( strcmp( rand_engine, "MT19937" ) == 0)
+					parameter_container.rand_engine = MT19937;
+				else if ( strcmp( rand_engine, "MT19937_64" ) == 0)
+					parameter_container.rand_engine = MT19937_64;
+				else if ( strcmp( rand_engine, "RANLUX24" ) == 0)
+					parameter_container.rand_engine = RANLUX24;
+				else if ( strcmp( rand_engine, "RANLUX48" ) == 0)
+					parameter_container.rand_engine = RANLUX48;
+				else if ( strcmp( rand_engine, "KNUTH_B" ) == 0)
+					parameter_container.rand_engine = KNUTH_B;
+				else
+					puts("WRONG MODE");
+				break;
+			case 2:
+				strcpy( tvs_rand_engine , optarg );
+				if( strcmp( tvs_rand_engine, "DEFAULT_RAND" ) == 0)
+					parameter_container.tvs_rand_engine = DEFAULT_RAND;
+				else if ( strcmp( tvs_rand_engine, "MINSTD_RAND" ) == 0)
+					parameter_container.tvs_rand_engine = MINSTD_RAND;
+				else if ( strcmp( tvs_rand_engine, "MINSTD_RAND0" ) == 0)
+					parameter_container.tvs_rand_engine = MINSTD_RAND0;
+				else if ( strcmp( tvs_rand_engine, "MT19937" ) == 0)
+					parameter_container.tvs_rand_engine = MT19937;
+				else if ( strcmp( tvs_rand_engine, "MT19937_64" ) == 0)
+					parameter_container.tvs_rand_engine = MT19937_64;
+				else if ( strcmp( tvs_rand_engine, "RANLUX24" ) == 0)
+					parameter_container.tvs_rand_engine = RANLUX24;
+				else if ( strcmp( tvs_rand_engine, "RANLUX48" ) == 0)
+					parameter_container.tvs_rand_engine = RANLUX48;
+				else if ( strcmp( tvs_rand_engine, "KNUTH_B" ) == 0)
+					parameter_container.tvs_rand_engine = KNUTH_B;
+				else
+					puts("WRONG MODE");
+				break;
+			case 3:
+				strcpy( scan_type , optarg );
+				if( strcmp( scan_type, "EXPERIMENTAL" ) == 0)
+					parameter_container.scan_type = EXPERIMENTAL;
+				else if ( strcmp( scan_type, "SIMULATED_G" ) == 0)
+					parameter_container.scan_type = SIMULATED_G;
+				else if ( strcmp( scan_type, "SIMULATED_T" ) == 0)
+					parameter_container.scan_type = SIMULATED_T;
+				else
+					puts("WRONG MODE");
+				break;
+			case 4:
+				strcpy( file_type , optarg );
+				if( strcmp( file_type, "TEXT" ) == 0)
+					parameter_container.file_type = TEXT;
+				else if ( strcmp( file_type, "BINARY" ) == 0)
+					parameter_container.file_type = BINARY;
+				else
+					puts("WRONG MODE");
+				break;
+			case 5:
+				strcpy( data_format , optarg );
+				if( strcmp( data_format, "OLD_FORMAT" ) == 0)
+					parameter_container.data_format = OLD_FORMAT;
+				else if ( strcmp( data_format, "VERSION_0" ) == 0)
+					parameter_container.data_format = VERSION_0;
+				else if ( strcmp( data_format, "VERSION_1" ) == 0)
+					parameter_container.data_format = VERSION_1;
+				else
+					puts("WRONG MODE");
+				break;
+			case 6:
+				strcpy( image_basis , optarg );
+				if( strcmp( image_basis, "VOXELS" ) == 0)
+					parameter_container.image_basis = VOXELS;
+				else if ( strcmp( image_basis, "BLOBS" ) == 0)
+					parameter_container.image_basis = BLOBS;
+				else
+					puts("WRONG MODE");
+				break;
+			case 7:
+				strcpy( fbp_filter , optarg );
+				if( strcmp( fbp_filter, "RAM_LAK" ) == 0)
+					parameter_container.fbp_filter = RAM_LAK;
+				else if ( strcmp( fbp_filter, "SHEPP_LOGAN" ) == 0)
+					parameter_container.fbp_filter = SHEPP_LOGAN;
+				else if ( strcmp( fbp_filter, "NONE" ) == 0)
+					parameter_container.fbp_filter = UNFILTERED;
+				else
+					puts("WRONG MODE");
+				break;
+			case 8:
+				strcpy( endpoints_hull , optarg );
+				if( strcmp( endpoints_hull, "SC_HULL" ) == 0)
+					parameter_container.endpoints_hull = SC_HULL;
+				else if ( strcmp( endpoints_hull, "MSC_HULL" ) == 0)
+					parameter_container.endpoints_hull = MSC_HULL;
+				else if ( strcmp( endpoints_hull, "SM_HULL" ) == 0)
+					parameter_container.endpoints_hull = SM_HULL;
+				else if ( strcmp( endpoints_hull, "FBP_HULL" ) == 0)
+					parameter_container.endpoints_hull = FBP_HULL;
+				else
+					puts("WRONG MODE");
+				break;
+			case 9:
+				strcpy( x_0 , optarg );
+				if( strcmp( x_0, "X_HULL" ) == 0)
+					parameter_container.x_0 = X_HULL;
+				else if ( strcmp( x_0, "FBP_IMAGE" ) == 0)
+					parameter_container.x_0 = FBP_IMAGE;
+				else if ( strcmp( x_0, "HYBRID" ) == 0)
+					parameter_container.x_0 = HYBRID;
+				else if ( strcmp( x_0, "ZEROS" ) == 0)
+					parameter_container.x_0 = ZEROS;
+				else if ( strcmp( x_0, "IMPORT" ) == 0)
+					parameter_container.x_0 = IMPORT;
+				else
+					puts("WRONG MODE");
+				break;
+			case 10:
+				strcpy( endpoints_alg , optarg );
+				if( strcmp( endpoints_alg, "YES_BOOL" ) == 0)
+					parameter_container.endpoints_alg = YES_BOOL;
+				else if ( strcmp( endpoints_alg, "NO_BOOL" ) == 0)
+					parameter_container.endpoints_alg = NO_BOOL;
+				else
+					puts("WRONG MODE");
+				break;
+			case 11:
+				strcpy( endpoints_tx_mode , optarg );
+				if( strcmp( endpoints_tx_mode, "FULL_TX" ) == 0)
+					parameter_container.endpoints_tx_mode = FULL_TX;
+				else if ( strcmp( endpoints_tx_mode, "PARTIAL_TX" ) == 0)
+					parameter_container.endpoints_tx_mode = PARTIAL_TX;
+				else if ( strcmp( endpoints_tx_mode, "PARTIAL_PREALLOCATED_TX" ) == 0)
+					parameter_container.endpoints_tx_mode = PARTIAL_TX_PREALLOCATED;
+				else
+					puts("WRONG MODE");
+				break;
+			case 12:
+				strcpy( mlp_algorithm , optarg );
+				if( strcmp( mlp_algorithm, "STANDARD" ) == 0)
+					parameter_container.mlp_algorithm = STANDARD;
+				else if ( strcmp( mlp_algorithm, "TABULATED" ) == 0)
+					parameter_container.mlp_algorithm = TABULATED;
+				else
+					puts("WRONG MODE");
+				break;
+			case 13:
+				strcpy( projection_algorithm , optarg );
+				if( strcmp( projection_algorithm, "ART" ) == 0)
+					parameter_container.projection_algorithm = ART;
+				else if ( strcmp( projection_algorithm, "SART" ) == 0)
+					parameter_container.projection_algorithm = ART;
+				else if ( strcmp( projection_algorithm, "DROP" ) == 0)
+					parameter_container.projection_algorithm = DROP;
+				else if ( strcmp( projection_algorithm, "BIP" ) == 0)
+					parameter_container.projection_algorithm = BIP;
+				else if ( strcmp( projection_algorithm, "SAP" ) == 0)
+					parameter_container.projection_algorithm = SAP;
+				else if ( strcmp( projection_algorithm, "ROBUSTA" ) == 0)
+					parameter_container.projection_algorithm = ROBUSTA;
+				else if ( strcmp( projection_algorithm, "ROBUSTB" ) == 0)
+					parameter_container.projection_algorithm = ROBUSTB;
+				else
+					puts("WRONG MODE");
+				break;
+			case 14:
+				strcpy( recon_tx_mode , optarg );
+				if( strcmp( recon_tx_mode, "FULL_TX" ) == 0)
+					parameter_container.recon_tx_mode = FULL_TX;
+				else if ( strcmp( recon_tx_mode, "PARTIAL_TX" ) == 0)
+					parameter_container.recon_tx_mode = PARTIAL_TX;
+				else if ( strcmp( recon_tx_mode, "PARTIAL_PREALLOCATED_TX" ) == 0)
+					parameter_container.recon_tx_mode = PARTIAL_TX_PREALLOCATED;
+				else
+					puts("WRONG MODE");
+				break;
+			case 15:
+				strcpy( drop_tx_mode , optarg );
+				if( strcmp( drop_tx_mode, "FULL_TX" ) == 0)
+					parameter_container.drop_tx_mode = FULL_TX;
+				else if ( strcmp( drop_tx_mode, "PARTIAL_TX" ) == 0)
+					parameter_container.drop_tx_mode = PARTIAL_TX;
+				else if ( strcmp( drop_tx_mode, "PARTIAL_PREALLOCATED_TX" ) == 0)
+					parameter_container.drop_tx_mode = PARTIAL_TX_PREALLOCATED;
+				else
+					puts("WRONG MODE");
+				break;
+			case 16:
+				strcpy( s_curve , optarg );
+				if( strcmp( s_curve, "SIGMOID" ) == 0)
+					parameter_container.s_curve = SIGMOID;
+				else if ( strcmp( s_curve, "TANH" ) == 0)
+					parameter_container.s_curve = TANH;
+				else if ( strcmp( s_curve, "ATAN" ) == 0)
+					parameter_container.s_curve = ATAN;
+				else if ( strcmp( s_curve, "ERF" ) == 0)
+					parameter_container.s_curve = ERF;
+				else if ( strcmp( s_curve, "LIN_OVER_ROOT" ) == 0)
+					parameter_container.s_curve = LIN_OVER_ROOT;
+				else
+					puts("WRONG MODE");
+				break;
+			case 17:
+				strcpy( robust_method , optarg );
+				if( strcmp( robust_method, "OLS" ) == 0)
+					parameter_container.robust_method = OLS;
+				else if ( strcmp( robust_method, "TLS" ) == 0)
+					parameter_container.robust_method = TLS;
+				else if ( strcmp( robust_method, "TIKHONOV" ) == 0)
+					parameter_container.robust_method = TIKHONOV;
+				else if ( strcmp( robust_method, "RIDGE" ) == 0)
+					parameter_container.robust_method = RIDGE;
+				else if ( strcmp( robust_method, "MINMIN" ) == 0)
+					parameter_container.robust_method = MINMIN;
+				else if ( strcmp( robust_method, "MINMAX" ) == 0)
+					parameter_container.robust_method = MINMAX;
+				else
+					puts("WRONG MODE");
+				break;
+			case 18:
+				strcpy( run_on , optarg );
+				if( strcmp( run_on, "true" ) == 0)
+					parameter_container.run_on = 1;
+				else if ( strcmp( run_on, "false" ) == 0)
+					parameter_container.run_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 19:
+				strcpy( testing_on , optarg );
+				if( strcmp( testing_on, "true" ) == 0)
+					parameter_container.testing_on = 1;
+				else if ( strcmp( testing_on, "false" ) == 0)
+					parameter_container.testing_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 20:
+				strcpy( block_testing_on , optarg );
+				if( strcmp( block_testing_on, "true" ) == 0)
+					parameter_container.block_testing_on = 1;
+				else if ( strcmp( block_testing_on, "false" ) == 0)
+					parameter_container.block_testing_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 21:
+				strcpy( s_curve_testing_on , optarg );
+				if( strcmp( s_curve_testing_on, "true" ) == 0)
+					parameter_container.s_curve_testing_on = 1;
+				else if ( strcmp( s_curve_testing_on, "false" ) == 0)
+					parameter_container.s_curve_testing_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			
+			case 22:
+				strcpy( ntvs_testing_on , optarg );
+				if( strcmp( ntvs_testing_on, "true" ) == 0)
+					parameter_container.ntvs_testing_on = 1;
+				else if ( strcmp( ntvs_testing_on, "false" ) == 0)
+					parameter_container.ntvs_testing_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 23:
+				strcpy( overwriting_ok , optarg );
+				if( strcmp( overwriting_ok, "true" ) == 0)
+					parameter_container.overwriting_ok = 1;
+				else if ( strcmp( overwriting_ok, "false" ) == 0)
+					parameter_container.overwriting_ok = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 24:
+				strcpy( exit_after_binning , optarg );
+				if( strcmp( exit_after_binning, "true" ) == 0)
+					parameter_container.exit_after_binning = 1;
+				else if ( strcmp( exit_after_binning, "false" ) == 0)
+					parameter_container.exit_after_binning = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 25:
+				strcpy( exit_after_hulls , optarg );
+				if( strcmp( exit_after_hulls, "true" ) == 0)
+					parameter_container.exit_after_hulls = 1;
+				else if ( strcmp( exit_after_hulls, "false" ) == 0)
+					parameter_container.exit_after_hulls = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 26:
+				strcpy( exit_after_cuts , optarg );
+				if( strcmp( exit_after_cuts, "true" ) == 0)
+					parameter_container.exit_after_cuts = 1;
+				else if ( strcmp( exit_after_cuts, "false" ) == 0)
+					parameter_container.exit_after_cuts = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 27:
+				strcpy( exit_after_sinogram , optarg );
+				if( strcmp( exit_after_sinogram, "true" ) == 0)
+					parameter_container.exit_after_sinogram = 1;
+				else if ( strcmp( exit_after_sinogram, "false" ) == 0)
+					parameter_container.exit_after_sinogram = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 28:
+				strcpy( exit_after_fbp , optarg );
+				if( strcmp( exit_after_fbp, "true" ) == 0)
+					parameter_container.exit_after_fbp = 1;
+				else if ( strcmp( exit_after_fbp, "false" ) == 0)
+					parameter_container.exit_after_fbp = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 29:
+				strcpy( exit_after_execution , optarg );
+				if( strcmp( exit_after_execution, "true" ) == 0)
+					parameter_container.exit_after_execution = 1;
+				else if ( strcmp( exit_after_execution, "false" ) == 0)
+					parameter_container.exit_after_execution = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 30:
+				strcpy( close_after_execution , optarg );
+				if( strcmp( close_after_execution, "true" ) == 0)
+					parameter_container.close_after_execution = 1;
+				else if ( strcmp( close_after_execution, "false" ) == 0)
+					parameter_container.close_after_execution = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 31:
+				strcpy( debug_text_on , optarg );
+				if( strcmp( debug_text_on, "true" ) == 0)
+					parameter_container.debug_text_on = 1;
+				else if ( strcmp( debug_text_on, "false" ) == 0)
+					parameter_container.debug_text_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 32:
+				strcpy( sample_std_dev , optarg );
+				if( strcmp( sample_std_dev, "true" ) == 0)
+					parameter_container.sample_std_dev = 1;
+				else if ( strcmp( sample_std_dev, "false" ) == 0)
+					parameter_container.sample_std_dev = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 33:
+				strcpy( fbp_on , optarg );
+				if( strcmp( fbp_on, "true" ) == 0)
+					parameter_container.fbp_on = 1;
+				else if ( strcmp( fbp_on, "false" ) == 0)
+					parameter_container.fbp_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 34:
+				strcpy( import_filtered_fbp , optarg );
+				if( strcmp( import_filtered_fbp, "true" ) == 0)
+					parameter_container.import_filtered_fbp = 1;
+				else if ( strcmp( import_filtered_fbp, "false" ) == 0)
+					parameter_container.import_filtered_fbp = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 35:
+				strcpy( sc_on , optarg );
+				if( strcmp( sc_on, "true" ) == 0)
+					parameter_container.sc_on = 1;
+				else if ( strcmp( sc_on, "false" ) == 0)
+					parameter_container.sc_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 36:
+				strcpy( msc_on , optarg );
+				if( strcmp( msc_on, "true" ) == 0)
+					parameter_container.msc_on = 1;
+				else if ( strcmp( msc_on, "false" ) == 0)
+					parameter_container.msc_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 37:
+				strcpy( sm_on , optarg );
+				if( strcmp( sm_on, "true" ) == 0)
+					parameter_container.sm_on = 1;
+				else if ( strcmp( sm_on, "false" ) == 0)
+					parameter_container.sm_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 38:
+				strcpy( count_0_wepls , optarg );
+				if( strcmp( count_0_wepls, "true" ) == 0)
+					parameter_container.count_0_wepls = 1;
+				else if ( strcmp( count_0_wepls, "false" ) == 0)
+					parameter_container.count_0_wepls = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 39:
+				strcpy( direct_image_reconstruction , optarg );
+				if( strcmp( direct_image_reconstruction, "true" ) == 0)
+					parameter_container.direct_image_reconstruction = 1;
+				else if ( strcmp( direct_image_reconstruction, "false" ) == 0)
+					parameter_container.direct_image_reconstruction = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 40:
+				strcpy( mlp_file_exists , optarg );
+				if( strcmp( mlp_file_exists, "true" ) == 0)
+					parameter_container.mlp_file_exists = 1;
+				else if ( strcmp( mlp_file_exists, "false" ) == 0)
+					parameter_container.mlp_file_exists = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 41:
+				strcpy( mlp_endpoints_file_exists , optarg );
+				if( strcmp( mlp_endpoints_file_exists, "true" ) == 0)
+					parameter_container.mlp_endpoints_file_exists = 1;
+				else if ( strcmp( mlp_endpoints_file_exists, "false" ) == 0)
+					parameter_container.mlp_endpoints_file_exists = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			
+			case 42:
+				strcpy( parameter_container.input_directory , optarg );
+				break;
+			case 43:
+				strcpy( parameter_container.output_directory , optarg );
+				break;
+			case 44:
+				strcpy( parameter_container.input_folder , optarg );
+				break;
+			case 45:
+				strcpy( parameter_container.output_folder , optarg );
+				break;
+			case 46:
+				strcpy( binary_encoding , optarg );
+				if( strcmp( binary_encoding, "true" ) == 0)
+					parameter_container.binary_encoding = 1;
+				else if ( strcmp( binary_encoding, "false" ) == 0)
+					parameter_container.binary_encoding = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 47:
+				strcpy( single_data_file , optarg );
+				if( strcmp( single_data_file, "true" ) == 0)
+					parameter_container.single_data_file = 1;
+				else if ( strcmp( single_data_file, "false" ) == 0)
+					parameter_container.single_data_file = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 48:
+				strcpy( ssd_in_mm , optarg );
+				if( strcmp( ssd_in_mm, "true" ) == 0)
+					parameter_container.ssd_in_mm = 1;
+				else if ( strcmp( ssd_in_mm, "false" ) == 0)
+					parameter_container.ssd_in_mm = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 49:
+				strcpy( data_in_mm , optarg );
+				if( strcmp( data_in_mm, "true" ) == 0)
+					parameter_container.data_in_mm = 1;
+				else if ( strcmp( data_in_mm, "false" ) == 0)
+					parameter_container.data_in_mm = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 50:
+				strcpy( micah_sim , optarg );
+				if( strcmp( micah_sim, "true" ) == 0)
+					parameter_container.micah_sim = 1;
+				else if ( strcmp( micah_sim, "false" ) == 0)
+					parameter_container.micah_sim = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 51:
+				strcpy( write_bin_wepls , optarg );
+				if( strcmp( write_bin_wepls, "true" ) == 0)
+					parameter_container.write_bin_wepls = 1;
+				else if ( strcmp( write_bin_wepls, "false" ) == 0)
+					parameter_container.write_bin_wepls = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 52:
+				strcpy( write_wepl_dists , optarg );
+				if( strcmp( write_wepl_dists, "true" ) == 0)
+					parameter_container.write_wepl_dists = 1;
+				else if ( strcmp( write_wepl_dists, "false" ) == 0)
+					parameter_container.write_wepl_dists = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 53:
+				strcpy( write_ssd_angles , optarg );
+				if( strcmp( write_ssd_angles, "true" ) == 0)
+					parameter_container.write_ssd_angles = 1;
+				else if ( strcmp( write_ssd_angles, "false" ) == 0)
+					parameter_container.write_ssd_angles = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 54:
+				strcpy( write_sc_hull , optarg );
+				if( strcmp( write_sc_hull, "true" ) == 0)
+					parameter_container.write_sc_hull = 1;
+				else if ( strcmp( write_sc_hull, "false" ) == 0)
+					parameter_container.write_sc_hull = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 55:
+				strcpy( write_msc_counts , optarg );
+				if( strcmp( write_msc_counts, "true" ) == 0)
+					parameter_container.write_msc_counts = 1;
+				else if ( strcmp( write_msc_counts, "false" ) == 0)
+					parameter_container.write_msc_counts = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 56:
+				strcpy( write_msc_hull , optarg );
+				if( strcmp( write_msc_hull, "true" ) == 0)
+					parameter_container.write_msc_hull = 1;
+				else if ( strcmp( write_msc_hull, "false" ) == 0)
+					parameter_container.write_msc_hull = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 57:
+				strcpy( write_sm_counts , optarg );
+				if( strcmp( write_sm_counts, "true" ) == 0)
+					parameter_container.write_sm_counts = 1;
+				else if ( strcmp( write_sm_counts, "false" ) == 0)
+					parameter_container.write_sm_counts = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 58:
+				strcpy( write_sm_hull , optarg );
+				if( strcmp( write_sm_hull, "true" ) == 0)
+					parameter_container.write_sm_hull = 1;
+				else if ( strcmp( write_sm_hull, "false" ) == 0)
+					parameter_container.write_sm_hull = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 59:
+				strcpy( write_fbp_image , optarg );
+				if( strcmp( write_fbp_image, "true" ) == 0)
+					parameter_container.write_fbp_image = 1;
+				else if ( strcmp( write_fbp_image, "false" ) == 0)
+					parameter_container.write_fbp_image = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 60:
+				strcpy( write_fbp_hull , optarg );
+				if( strcmp( write_fbp_hull, "true" ) == 0)
+					parameter_container.write_fbp_hull = 1;
+				else if ( strcmp( write_fbp_hull, "false" ) == 0)
+					parameter_container.write_fbp_hull = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 61:
+				strcpy( write_avg_fbp , optarg );
+				if( strcmp( write_avg_fbp, "true" ) == 0)
+					parameter_container.write_avg_fbp = 1;
+				else if ( strcmp( write_avg_fbp, "false" ) == 0)
+					parameter_container.write_avg_fbp = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 62:
+				strcpy( write_median_fbp , optarg );
+				if( strcmp( write_median_fbp, "true" ) == 0)
+					parameter_container.write_median_fbp = 1;
+				else if ( strcmp( write_median_fbp, "false" ) == 0)
+					parameter_container.write_median_fbp = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 63:
+				strcpy( write_filtered_hull , optarg );
+				if( strcmp( write_filtered_hull, "true" ) == 0)
+					parameter_container.write_filtered_hull = 1;
+				else if ( strcmp( write_filtered_hull, "false" ) == 0)
+					parameter_container.write_filtered_hull = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 64:
+				strcpy( write_x_hull , optarg );
+				if( strcmp( write_x_hull, "true" ) == 0)
+					parameter_container.write_x_hull = 1;
+				else if ( strcmp( write_x_hull, "false" ) == 0)
+					parameter_container.write_x_hull = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 65:
+				strcpy( write_x_0 , optarg );
+				if( strcmp( write_x_0, "true" ) == 0)
+					parameter_container.write_x_0 = 1;
+				else if ( strcmp( write_x_0, "false" ) == 0)
+					parameter_container.write_x_0 = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 66:
+				strcpy( write_x_ki , optarg );
+				if( strcmp( write_x_ki, "true" ) == 0)
+					parameter_container.write_x_ki = 1;
+				else if ( strcmp( write_x_ki, "false" ) == 0)
+					parameter_container.write_x_ki = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 67:
+				strcpy( write_x , optarg );
+				if( strcmp( write_x, "true" ) == 0)
+					parameter_container.write_x = 1;
+				else if ( strcmp( write_x, "false" ) == 0)
+					parameter_container.write_x = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 68:
+				parameter_container.drop_block_size = atoi( optarg );
+				break;
+			case 69:
+				parameter_container.threads_per_block = atoi( optarg );
+				break;
+			case 70:
+				parameter_container.endpoints_per_block = atoi( optarg );
+				break;
+			case 71:
+				parameter_container.histories_per_block = atoi( optarg );
+				break;
+			case 72:
+				parameter_container.endpoints_per_thread = atoi( optarg );
+				break;
+			case 73:
+				parameter_container.histories_per_thread = atoi( optarg );
+				break;
+			case 74:
+				parameter_container.voxels_per_thread = atoi( optarg );
+				break;	
+			case 75:
+				parameter_container.max_gpu_histories = atoi( optarg );
+				break;
+			case 76:
+				parameter_container.max_cuts_histories = atoi( optarg );
+				break;
+			case 77:
+				parameter_container.max_endpoints_histories = atoi( optarg );
+				break;
+			case 78:
+				parameter_container.max_intersections = atoi( optarg );
+				break;
+			case 79:
+				parameter_container.gantry_angle_interval = atof( optarg );
+				break;
+			case 80: 
+				parameter_container.gantry_angles = atoi( optarg );
+				break;	
+			case 81: 
+				parameter_container.num_scans = atoi( optarg );
+				break;	
+			case 82: 
+				parameter_container.num_files = atoi( optarg );
+				break;	
+			case 83:
+				parameter_container.ssd_t_size = atof( optarg );
+				break;
+			case 84:
+				parameter_container.ssd_v_size = atof( optarg );
+				break;
+			case 85:
+				parameter_container.t_shift = atof( optarg );
+				break;
+			case 86:
+				parameter_container.u_shift = atof( optarg );
+				break;
+			case 87:
+				parameter_container.v_shift = atof( optarg );
+				break;
+			case 88:
+				parameter_container.t_bin_size = atof( optarg );
+				break;
+			case 89:
+				parameter_container.t_bins = atoi( optarg );
+				break;
+			case 90:
+				parameter_container.v_bin_size = atof( optarg );
+				break;
+			case 91:
+				parameter_container.v_bins = atoi( optarg );
+				break;
+			case 92:
+				parameter_container.angular_bin_size = atof( optarg );
+				break;
+			case 93:
+				parameter_container.angular_bins = atoi( optarg );
+				break;
+			case 94:
+				parameter_container.num_bins = atoi( optarg );
+				break;
+			case 95:
+				parameter_container.sigmas_to_keep = atoi( optarg );
+				break;
+			case 96:
+				parameter_container.ram_lak_tau = atof( optarg );
+				break;
+			case 97:
+				parameter_container.fbp_threshold = atof( optarg );
+				break;
+			case 98:
+				parameter_container.recon_cyl_radius = atof( optarg );
+				break;
+			case 99:
+				parameter_container.recon_cyl_diameter = atof( optarg );
+				break;
+			case 100:
+				parameter_container.recon_cyl_height = atof( optarg );
+				break;
+			case 101:
+				parameter_container.image_width = atof( optarg );
+				break;
+			case 102:
+				parameter_container.image_height = atof( optarg );
+				break;
+			case 103:
+				parameter_container.image_thickness = atof( optarg );
+				break;
+			case 104:
+				parameter_container.columns = atoi( optarg );
+				break;
+			case 105:
+				parameter_container.rows = atoi( optarg );
+				break;
+			case 106:
+				parameter_container.slices = atoi( optarg );
+				break;
+			case 107:
+				parameter_container.num_voxels = atoi( optarg );
+				break;
+			case 108:
+				parameter_container.voxel_width = atof( optarg );
+				break;
+			case 109:
+				parameter_container.voxel_height = atof( optarg );
+				break;
+			case 110:
+				parameter_container.voxel_thickness = atof( optarg );
+				break;
+			case 111:
+				parameter_container.slice_thickness = atof( optarg );
+				break;
+			case 112:
+				parameter_container.sc_lower_threshold = atof( optarg );
+				break;
+			case 113:
+				parameter_container.sc_upper_threshold = atof( optarg );
+				break;
+			case 114:
+				parameter_container.msc_upper_threshold = atof( optarg );
+				break;
+			case 115:
+				parameter_container.msc_lower_threshold = atof( optarg );
+				break;
+			case 116:
+				parameter_container.msc_diff_thresh = atoi( optarg );
+				break;
+			case 117:
+				parameter_container.sm_lower_threshold = atof( optarg );
+				break;
+			case 118:
+				parameter_container.sm_upper_threshold = atof( optarg );
+				break;
+			case 119:
+				parameter_container.sm_scale_threshold = atof( optarg );
+				break;
+			case 120:
+
+				parameter_container.voxel_step_size = atof( optarg );
+				break;
+			case 121:
+				parameter_container.mlp_u_step = atof( optarg );
+				break;
+			case 122:
+				parameter_container.max_path_elements = atoi( optarg );
+				break;
+			case 123:
+				parameter_container.prime_offset = atol( optarg );
+				break;
+			case 124:
+				parameter_container.eta = atof( optarg );
+				break;
+			case 125:
+				parameter_container.method = atoi( optarg );
+				break;
+			case 126:
+				parameter_container.psi_sign = atoi( optarg );
+				break;
+			case 127:
+				parameter_container.lambda = atof( optarg );
+				break;
+			case 128:
+				parameter_container.iterations = atoi( optarg );
+				break;
+			case 129:
+				strcpy( ignore_short_mlp , optarg );
+				if( strcmp( ignore_short_mlp, "true" ) == 0)
+					parameter_container.ignore_short_mlp = 1;
+				else if ( strcmp( ignore_short_mlp, "false" ) == 0)
+					parameter_container.ignore_short_mlp = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 130:
+				parameter_container.min_mlp_length = atoi( optarg );
+				break;
+			case 131:
+				strcpy( bound_image , optarg );
+				if( strcmp( bound_image, "true" ) == 0)
+					parameter_container.bound_image = 1;
+				else if ( strcmp( bound_image, "false" ) == 0)
+					parameter_container.bound_image = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 132:
+				strcpy( s_curve_on , optarg );
+				if( strcmp( s_curve_on, "true" ) == 0)
+					parameter_container.s_curve_on = 1;
+				else if ( strcmp( s_curve_on, "false" ) == 0)
+					parameter_container.s_curve_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 133:
+				parameter_container.sigmoid_steepness = atof( optarg );
+				break;
+			case 134:
+				parameter_container.sigmoid_mid_shift = atoi( optarg );
+				break;
+			case 135:
+				strcpy( dual_sided_s_curve , optarg );
+				if( strcmp( dual_sided_s_curve, "true" ) == 0)
+					parameter_container.dual_sided_s_curve = 1;
+				else if ( strcmp( dual_sided_s_curve, "false" ) == 0)
+					parameter_container.dual_sided_s_curve = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 136:
+				strcpy( tvs_on , optarg );
+				if( strcmp( tvs_on, "true" ) == 0)
+					parameter_container.tvs_on = 1;
+				else if ( strcmp( tvs_on, "false" ) == 0)
+					parameter_container.tvs_on = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 137:
+				strcpy( tvs_first , optarg );
+				if( strcmp( tvs_first, "true" ) == 0)
+					parameter_container.tvs_first = 1;
+				else if ( strcmp( tvs_first, "false" ) == 0)
+					parameter_container.tvs_first = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 138:
+				strcpy( tvs_parallel , optarg );
+				if( strcmp( tvs_parallel, "true" ) == 0)
+					parameter_container.tvs_parallel = 1;
+				else if ( strcmp( tvs_parallel, "false" ) == 0)
+					parameter_container.tvs_parallel = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 139:
+				strcpy( tvs_conditioned , optarg );
+				if( strcmp( tvs_conditioned, "true" ) == 0)
+					parameter_container.tvs_conditioned = 1;
+				else if ( strcmp( tvs_conditioned, "false" ) == 0)
+					parameter_container.tvs_conditioned = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 140:
+				parameter_container.tvs_min_eta = atof( optarg );
+				break;
+			case 141:
+				parameter_container.tv_threshold = atof( optarg );
+				break;
+			case 142:
+				parameter_container.a = atof( optarg );
+				break;
+			case 143:
+				parameter_container.l_0 = atof( optarg );
+				break;
+			case 144:
+				parameter_container.perturb_down_factor = atof( optarg );
+				break;
+			case 145:
+				parameter_container.l = atoi( optarg );
+				break;
+			case 146:
+				parameter_container.beta_0 = atof( optarg );
+				break;
+			case 147:
+				parameter_container.beta = atof( optarg );
+				break;
+			case 148:
+				parameter_container.beta_k_n = atof( optarg );
+				break;
+			case 149:
+				parameter_container.tvs_repetitions = atoi( optarg );
+				break;
+			case 150:
+				strcpy( avg_filter_fbp , optarg );
+				if( strcmp( avg_filter_fbp, "true" ) == 0)
+					parameter_container.avg_filter_fbp = 1;
+				else if ( strcmp( avg_filter_fbp, "false" ) == 0)
+					parameter_container.avg_filter_fbp = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 151:
+				strcpy( avg_filter_hull , optarg );
+				if( strcmp( avg_filter_hull, "true" ) == 0)
+					parameter_container.avg_filter_hull = 1;
+				else if ( strcmp( avg_filter_hull, "false" ) == 0)
+					parameter_container.avg_filter_hull = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 152:
+				strcpy( avg_filter_x_0 , optarg );
+				if( strcmp( avg_filter_x_0, "true" ) == 0)
+					parameter_container.avg_filter_x_0 = 1;
+				else if ( strcmp( avg_filter_x_0, "false" ) == 0)
+					parameter_container.avg_filter_x_0 = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 153:
+				strcpy( median_filter_fbp , optarg );
+				if( strcmp( median_filter_fbp, "true" ) == 0)
+					parameter_container.median_filter_fbp = 1;
+				else if ( strcmp( median_filter_fbp, "false" ) == 0)
+					parameter_container.median_filter_fbp = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 154:
+				strcpy( median_filter_hull , optarg );
+				if( strcmp( median_filter_hull, "true" ) == 0)
+					parameter_container.median_filter_hull = 1;
+				else if ( strcmp( median_filter_hull, "false" ) == 0)
+					parameter_container.median_filter_hull = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 155:
+				strcpy( median_filter_x_0 , optarg );
+				if( strcmp( median_filter_x_0, "true" ) == 0)
+					parameter_container.median_filter_x_0 = 1;
+				else if ( strcmp( median_filter_x_0, "false" ) == 0)
+					parameter_container.median_filter_x_0 = 0;
+				else
+					puts("WRONG MODE");
+				break;
+			case 156:
+				parameter_container.hull_avg_filter_radius = atoi( optarg );
+				break;
+			case 157:
+				parameter_container.fbp_avg_filter_radius = atoi( optarg );
+				break;
+			case 158:
+				parameter_container.x_0_avg_filter_radius = atoi( optarg );
+				break;
+			case 159:
+				parameter_container.fbp_med_filter_radius = atoi( optarg );
+				break;
+			case 160:
+				parameter_container.hull_med_filter_radius = atoi( optarg );
+				break;
+			case 161:
+				parameter_container.x_0_med_filter_radius = atoi( optarg );
+				break;
+			case 162:
+				parameter_container.hull_avg_filter_threshold = atof( optarg );
+				break;
+			case 163:
+				parameter_container.fbp_avg_filter_threshold = atof( optarg );
+				break;
+			case 164:
+				parameter_container.x_0_avg_filter_threshold = atof( optarg );
+				break;
+			case 165:
+				strcpy( parameter_container.tested_by_string , optarg );
+				break;
+			case 166:
+				strcpy( parameter_container.code_owner , optarg );
+				break;
+			case 167:
+				strcpy( parameter_container.program_version , optarg );
+				break;
+			case 168:
+				strcpy( parameter_container.section_exit_string , optarg );
+				break;
+			case 169:
+				strcpy( parameter_container.true_string , optarg );
+				break;
+			case 170:
+				strcpy( parameter_container.false_string , optarg );
+				break;
+			case 171:
+				strcpy( parameter_container.on_string , optarg );
+				break;
+			case 172:
+				strcpy( parameter_container.off_string , optarg );
+				break;
+			case 173:
+				strcpy( parameter_container.my_recon_dir , optarg );
+			case 174:
+				strcpy( parameter_container.current_git_branch , optarg );
+				break;
+			case 175:
+				strcpy( parameter_container.tardis_rcode_dir , optarg );
+				break;
+		}
+	
+	}
+	
+	
+	
+	
+	cudaMalloc((void**) &configurations_d,			sizeof(configurations) );
+	cudaMemcpy( configurations_d,			configurations_h,			sizeof(configurations),		cudaMemcpyHostToDevice );
+	
+	puts("Starting reconstruction with the following parameters...");
+		
+	
+	printf("LAMBDA: %f \n", configurations_h->lambda);
+	printf("DROP_BLOCK_SIZE: %d \n", configurations_h->drop_block_size);
+	//printf("INPUT_DIRECTORY: %s \n", configurations_h->input_directory);
+	//printf("DROP_TX_MODE: %d \n", configurations_h->drop_tx_mode);
+	//printf("NTVS_TESTING_ON: %d \n", configurations_h->ntvs_testing_on);
+	//exit(0);
+	
+}
 void check_4_missing_input()
 {
 	char local_input_dir[256];
@@ -5010,6 +6359,7 @@ __global__ void backprojection_GPU2( float* sinogram_filtered, float* FBP_image 
 
 				// Project to find the detector number
 				detector_number_t = ( t - u *( t / ( SOURCE_RADIUS + u ) ) ) / T_BIN_SIZE + T_BINS/2.0;
+				//detector_number_t = t / T_BIN_SIZE + T_BINS/2;
 				t_bin = floor( detector_number_t);
 				//if( t_bin > detector_number_t )
 				//	t_bin -= 1;
@@ -5017,6 +6367,7 @@ __global__ void backprojection_GPU2( float* sinogram_filtered, float* FBP_image 
 
 				// Now project v to get detector number in v axis
 				detector_number_v = ( v - u * ( v / ( SOURCE_RADIUS + u ) ) ) / V_BIN_SIZE + V_BINS/2.0;
+				//detector_number_v = v / V_BIN_SIZE + V_BINS/2;
 				v_bin = floor( detector_number_v);
 				//if( v_bin > detector_number_v )
 				//	v_bin -= 1;
@@ -6233,21 +7584,23 @@ template<typename O> __device__ bool find_MLP_endpoints_GPU
 	/********************************************************************************************/
 	/******************** Initial Conditions and Movement Characteristics ***********************/
 	/********************************************************************************************/	
-	int cos_xy_angle_gte = static_cast<int>(cos(xy_angle) >= 0);
-	int sin_xy_angle_gte = static_cast<int>(sin(xy_angle) >= 0);
-	int sin_xz_angle_gte = static_cast<int>(sin(xz_angle) >= 0);
-	int cos_xy_angle_lte = static_cast<int>(cos(xy_angle) >= 0);
-	int sin_xy_angle_lte = static_cast<int>(sin(xy_angle) >= 0);
-	int sin_xz_angle_lte = static_cast<int>(sin(xz_angle) >= 0);
+	//int cos_xy_angle_gte = static_cast<int>(cos(xy_angle) >= 0);
+	//int sin_xy_angle_gte = static_cast<int>(sin(xy_angle) >= 0);
+	//int sin_xz_angle_gte = static_cast<int>(sin(xz_angle) >= 0);
+	//int cos_xy_angle_lte = static_cast<int>(cos(xy_angle) <= 0);
+	//int sin_xy_angle_lte = static_cast<int>(sin(xy_angle) <= 0);
+	//int sin_xz_angle_lte = static_cast<int>(sin(xz_angle) <= 0);
 
 	if( !entering )
 		xy_angle += PI;
 
 	//x/y/z_move_direction = 0 if sin/cos(angle) = 0
-	x_move_direction = cos_xy_angle_gte - cos_xy_angle_lte;
-	y_move_direction = sin_xy_angle_gte - sin_xy_angle_lte;
-	z_move_direction = sin_xz_angle_gte - sin_xz_angle_lte;
-
+	//x_move_direction = cos_xy_angle_gte - cos_xy_angle_lte;
+	//y_move_direction = sin_xy_angle_gte - sin_xy_angle_lte;
+	//z_move_direction = sin_xz_angle_gte - sin_xz_angle_lte;
+	x_move_direction = ( cos(xy_angle) >= 0 ) - ( cos(xy_angle) <= 0 );
+	y_move_direction = ( sin(xy_angle) >= 0 ) - ( sin(xy_angle) <= 0 );
+	z_move_direction = ( sin(xz_angle) >= 0 ) - ( sin(xz_angle) <= 0 );
 	if( x_move_direction < 0 )
 		z_move_direction *= -1;
 
