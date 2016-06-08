@@ -11,6 +11,7 @@ cyan="36m"
 NoColor="\033[0m"
 Black="\033[0;30m"
 DarkGray="\033[1;30m"
+
 Red="\033[0;31m"
 LightRed="\033[1;31m"
 Green="\033[0;32m"
@@ -680,57 +681,51 @@ function can_user_write_to_file()
 ############################### Establish ssh connection shortcuts ################################
 ###################################################################################################
 # ssh aliases
-#-------------------------------------------------------------------------------------------------#
-print_section_header "ssh shortcut (alias) commands" 1,33 5,40
-#-------------------------------------------------------------------------------------------------#
-print_alias $(exe alias gokodiak="ssh ${current_user}@kodiak.baylor.edu")
-print_alias $(exe alias gowhartnell="ssh ${current_user}@whartnell")
-print_alias $(exe alias gojpertwee="ssh ${current_user}@jpertwee")
-print_alias $(exe alias gotbaker="ssh ${current_user}@tbaker")
-print_alias $(exe alias goptroughton="ssh ${current_user}@ptroughton")
-print_alias $(exe alias gopdavison="ssh ${current_user}@pdavison")
-print_alias $(exe alias gows1="ssh schultzeb@tardis-student1.ecs.baylor.edu")
-print_alias $(exe alias gows2="ssh schultzeb@tardis-student2.ecs.baylor.edu")
+alias gokodiak="ssh ${current_user}@kodiak.baylor.edu"
+alias gowhartnell="ssh ${current_user}@whartnell"
+alias gojpertwee="ssh ${current_user}@jpertwee"
+alias gotbaker="ssh ${current_user}@tbaker"
+alias goptroughton="ssh ${current_user}@ptroughton"
+alias gopdavison="ssh ${current_user}@pdavison"
+alias gows1="ssh schultzeb@tardis-student1.ecs.baylor.edu"
+alias gows2="ssh schultzeb@tardis-student2.ecs.baylor.edu"
 current_node_alias=$(current_node_name )
 ###################################################################################################
 ########################### Define shortcut directory change commands #############################
 ###################################################################################################
-#-------------------------------------------------------------------------------------------------#
-print_section_header "directory change shortcut (alias) commands" 1,33 5,40
-#-------------------------------------------------------------------------------------------------#
-print_alias $(exe alias gocode="cd ${global_pct}${pct_code_folder}")                              #
-print_alias $(exe alias gopcode="cd ${global_pcode_path}")                                        #
-print_alias $(exe alias gorcode="cd ${global_rcode_path}")                                        #
-print_alias $(exe alias gomasterpcode="cd ${global_pct}${masterpcode}")                           #
-print_alias $(exe alias gomasterrcode="cd ${global_pct}${masterrcode}")                           #
-print_alias $(exe alias gogitpcode="cd ${global_pcode_path}${user_folder}")                       #
-print_alias $(exe alias gogitrcode="cd ${global_rcode_path}${user_folder}${baylor_recon_repo}")   #
-print_alias $(exe alias godata="cd ${global_data_path}")                                          #
-print_alias $(exe alias goraw="cd ${global_data_path}${raw_data_folder}")                         #
-print_alias $(exe alias gopre="cd ${global_data_path}${pre_data_folder}")                         #
-print_alias $(exe alias goproj="cd ${global_data_path}${proj_data_folder}")                       #
-print_alias $(exe alias gorecon="cd ${global_data_path}${recon_data_folder}")                     #
-print_alias $(exe alias goorg="cd ${global_data_path}${org_data_folder}")                         #
-print_alias $(exe alias godocs="cd ${global_data_path}${pct_docs_folder}")                        #
-print_alias $(exe alias goinc="cd ${global_pct}${incoming_folder}")                               #
-print_alias $(exe alias gostage="cd ${global_pct}${staging_folder}")                              #
-print_alias $(exe alias gomyinc="cd ${global_pct}${incoming_folder}${user_folder}")               #
-print_alias $(exe alias gomystage="cd ${global_pct}${staging_folder}${user_folder}")              #
-print_alias $(exe alias gonewrecon="cd ${current_rdata}")                                         #
+alias gocode="cd ${global_pct}${pct_code_folder}"                              #
+alias gopcode="cd ${global_pcode_path}"                                       #
+alias gorcode="cd ${global_rcode_path}"                                        #
+alias gomasterpcode="cd ${global_pct}${masterpcode}"                           #
+alias gomasterrcode="cd ${global_pct}${masterrcode}"                          #
+alias gogitpcode="cd ${global_pcode_path}${user_folder}"                       #
+alias gogitrcode="cd ${global_rcode_path}${user_folder}${baylor_recon_repo}"   #
+alias godata="cd ${global_data_path}"                                          #
+alias goraw="cd ${global_data_path}${raw_data_folder}"                         #
+alias gopre="cd ${global_data_path}${pre_data_folder}"                         #
+alias goproj="cd ${global_data_path}${proj_data_folder}"                       #
+alias gorecon="cd ${global_data_path}${recon_data_folder}"                     #
+alias goorg="cd ${global_data_path}${org_data_folder}"                         #
+alias godocs="cd ${global_data_path}${pct_docs_folder}"                       #
+alias goinc="cd ${global_pct}${incoming_folder}"                               #
+alias gostage="cd ${global_pct}${staging_folder}"                              #
+alias gomyinc="cd ${global_pct}${incoming_folder}${user_folder}"               #
+alias gomystage="cd ${global_pct}${staging_folder}${user_folder}"              #
+alias gonewrecon="cd ${current_rdata}"                                         #
 
-print_alias $(exe alias golpct="cd ${tardis_pct}")                                                #
-print_alias $(exe alias golcode="cd ${tardis_pct}${pct_code_folder}")                             #
-print_alias $(exe alias golrcode="cd ${tardis_pct}${rcode_path}${user_folder}")                   #
-print_alias $(exe alias goldata="cd ${tardis_data_path}")                                         #
-print_alias $(exe alias golorg="cd ${tardis_data_path}${org_data_folder}")                        #
-print_alias $(exe alias golrecon="cd ${tardis_data_path}${recon_data_folder}")                    #
-print_alias $(exe alias golnewrecon="cd ${current_lrdata}")                                         #
+alias golpct="cd ${tardis_pct}"                                                #
+alias golcode="cd ${tardis_pct}${pct_code_folder}"                             #
+alias golrcode="cd ${tardis_pct}${rcode_path}${user_folder}"                   #
+alias goldata="cd ${tardis_data_path}"                                         #
+alias golorg="cd ${tardis_data_path}${org_data_folder}"                        #
+alias golrecon="cd ${tardis_data_path}${recon_data_folder}"                    #
+alias golnewrecon="cd ${current_lrdata}"                                         #
 
-print_alias $(exe alias gomycode="cd ${user_home}${pct_code_folder}")                             #
-print_alias $(exe alias gomypcode="cd ${user_home}${pcode_path}${user_folder}")                   #
-print_alias $(exe alias gomyrcode="cd ${user_home}${rcode_path}${user_folder}")                   #
-print_alias $(exe alias gomydata="cd ${user_home}${pct_data_folder}")                             #
-print_alias $(exe alias gomyorg="cd ${user_home}${pct_data_folder}${org_data_folder}")            #
-print_alias $(exe alias gomyrecon="cd ${user_home}${pct_data_folder}${recon_data_folder}")        #
+alias gomycode="cd ${user_home}${pct_code_folder}"                             #
+alias gomypcode="cd ${user_home}${pcode_path}${user_folder}"                   #
+alias gomyrcode="cd ${user_home}${rcode_path}${user_folder}"                   #
+alias gomydata="cd ${user_home}${pct_data_folder}"                             #
+alias gomyorg="cd ${user_home}${pct_data_folder}${org_data_folder}"            #
+alias gomyrecon="cd ${user_home}${pct_data_folder}${recon_data_folder}"        #
 
-print_alias $(exe alias gogrp="cd ${recon_group}")                                         #
+alias gogrp="cd ${recon_group}"                                        #
