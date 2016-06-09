@@ -494,7 +494,7 @@ double X_0_AVG_FILTER_THRESHOLD		= 0.1;								// [#] Threshold applied to avera
 const char TESTED_BY_CSTRING[]		= "Blake Schultze";					// [string] Name written to the execution log specifying the user that generated the data 
 //const char SECTION_EXIT_CSTRING[]	= {"====>"};						// [string] String prefix of task completion console text notifications using section_exit function
 const char ON_CSTRING[]				= "ON";								// [string] String used s5,12pecifying an optional execution procedure is on (boolean variable=true)
-const char OFF_CSTRING[]				= "OFF";							// [string] String used specifying an optional execution procedure is off (boolean variable=true)
+const char OFF_CSTRING[]			= "OFF";							// [string] String used specifying an optional execution procedure is off (boolean variable=true)
 const char KODIAK_SERVER_NAME[]		= "kodiak.baylor.edu";				// [string] String to use for the name of the Kodiak master node
 const char ECSN1_SERVER_NAME[]		= "ecsn001";						// [string] String to use for the server name of the Tardis compute node ecsn001/WHartnell
 const char ECSN2_SERVER_NAME[]		= "ecsn002";						// [string] String to use for the server name of the Tardis compute node ecsn002/PTroughton
@@ -503,13 +503,13 @@ const char ECSN4_SERVER_NAME[]		= "ecsn004";						// [string] String to use for 
 const char ECSN5_SERVER_NAME[]		= "ecsn005";						// [string] String to use for the server name of the Tardis compute node ecsn005/PDavison
 const char WS1_SERVER_NAME[]		= "tardis-student1.ecs.baylor.edu";	// [string] String to use for the server name of Workstation #1
 const char WS2_SERVER_NAME[]		= "tardis-student2.ecs.baylor.edu";	// [string] String to use for the server name of Workstation #2
-const char KODIAK_HOSTNAME_CSTRING[]	= "Kodiak";							// [string] String to use for the name of the Kodiak cluster
+const char KODIAK_HOSTNAME_CSTRING[]= "Kodiak";							// [string] String to use for the name of the Kodiak cluster
 const char ECSN1_HOSTNAME_CSTRING[]	= "WHartnell";						// [string] String to use for the name of the Tardis' compute node ecsn001/WHartnell
 const char ECSN2_HOSTNAME_CSTRING[]	= "PTRoughton";						// [string] String to use for the name of the Tardis' compute node ecsn002/PTroughton
 const char ECSN3_HOSTNAME_CSTRING[]	= "JPertwee";						// [string] String to use for the name of the Tardis' compute node ecsn003/JPertwee
 const char ECSN4_HOSTNAME_CSTRING[]	= "TBaker";							// [string] String to use for the name of the Tardis' compute node ecsn004/TBaker
 const char ECSN5_HOSTNAME_CSTRING[]	= "PDavison";						// [string] String to use for the name of the Tardis' compute node ecsn005/PDavison
-const char WS_HOSTNAME_CSTRING[]		= "Workstation";					// [string] String to use for the name of the workstations (#1/#2) 
+const char WS_HOSTNAME_CSTRING[]	= "Workstation";					// [string] String to use for the name of the workstations (#1/#2) 
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //--------------------------------------------------------------------- Hostnames ($HOSTNAME) of remote servers and cluster nodes  -------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
