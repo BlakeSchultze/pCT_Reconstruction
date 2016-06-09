@@ -1,0 +1,8 @@
+macro open_image_set_prompts
+{
+
+getString("prompt", "default")
+getNumber("prompt", defaultValue)
+getBoolean("message")
+
+}
