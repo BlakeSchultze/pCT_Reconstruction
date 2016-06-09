@@ -40,8 +40,8 @@ __________________
 In addition to the standard reconstruction output data/images, the program also creates a text file with a list of important program parameters and their values for the current execution.  This same information is also appended to a global execution log (.csv file), providing users with a list of every reconstruction previously performed, the location and properties of the input data used and output data generated, the GitHub account/repository/branch/commit corresponding to the executed code, and the parameter values used in each case.  A copy of the actual code executed is also included with the output data/images for debugging/reproduction purposes.  
 
 If organized input data is used, all of the output files are automatically named/organized and copied to the NAS drive so they are immediately available for analysis and transfer to an external compute system.  Otherwise, these data and code file management/copying tasks must be performed manually.  By default, the input data parent directory is `/local/pCT_data/organized_data` and the output data parent directory is `/local/pCT_data/reconstruction_data` and when organized input/output data is used, their corresponding parameters do not need to be changed (`input_directory` and `output_directory`).  The input/output folders are defined according to the phantom name, scan type/date/properties, and preprocessing/reconstruction dates and for organized data, the 2 are identical. 
-__________________
-==============================================================================================================
+
+----------
 ####__Reconstruction Program Details:__
 -------------------------------------------------------------------------
 ######__Reconstruction Process, Phase 1: Import, process, and prepare input projection data for reconstruction__
