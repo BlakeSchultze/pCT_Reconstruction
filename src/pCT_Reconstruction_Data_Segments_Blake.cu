@@ -372,6 +372,22 @@ int main(int NUM_RUN_ARGUMENTS, char** RUN_ARGUMENTS)
 		test_func();			
 	else
 	{
+		cudaStatus = cudaSetDevice(0);
+		if (cudaStatus != cudaSuccess) 
+		printf("%s %s\n", "GPU 0 failed", cudaGetErrorString(cudaStatus));						  
+		cudaStatus = cudaSetDevice(1);
+		if (cudaStatus != cudaSuccess) 
+		printf("%s %s\n", "GPU 1 failed", cudaGetErrorString(cudaStatus));						  
+		cudaStatus = cudaSetDevice(2);
+		if (cudaStatus != cudaSuccess) 
+		printf("%s %s\n", "GPU 2 failed", cudaGetErrorString(cudaStatus));						  
+		cudaStatus = cudaSetDevice(3);
+		if (cudaStatus != cudaSuccess) 
+		printf("%s %s\n", "GPU 3 failed", cudaGetErrorString(cudaStatus));						  
+		cudaStatus = cudaSetDevice(4);
+		if (cudaStatus != cudaSuccess) 
+		printf("%s %s\n", "GPU 4 failed", cudaGetErrorString(cudaStatus));						  
+		
 		program_startup_tasks();
 		preprocessing();
 		image_reconstruction(); // Write to the external file	 	
@@ -778,7 +794,6 @@ void initialize_parameters()
 	printf("%s\n",parameter_container.input_directory);
 
 }
-
 void command_line_settings( unsigned int num_arguments, char** arguments )
 {
 	initialize_parameters();
@@ -5577,6 +5592,7 @@ void import_and_process_data()
 		initial_processing_memory_clean();			
 		start_file_num = end_file_num;
 		histories_2_process = 0;
+		CUDA_error_check( "Import/process data error" );
 	}		
 	percentage_pass_intersection_cuts = (double) recon_vol_histories / total_histories * 100;
 	sprintf(print_statement, "======> %d out of %d (%4.2f%%) histories traversed the reconstruction volume", recon_vol_histories, total_histories, percentage_pass_intersection_cuts );

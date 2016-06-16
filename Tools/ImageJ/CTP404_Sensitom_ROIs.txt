@@ -1,8 +1,0 @@
-ROI_material_names 				= air, air, PMP, LDPE,  polystyrene,     acrylic, delrin, teflon
-ROI_labels 						= Air(bottom), Air(top), PMP, LDPE, Polystyrene, Acrylic, Delrin, Teflon
-ROI_shapes 						= circular_ROI, circular_ROI, circular_ROI, circular_ROI, circular_ROI, circular_ROI, circular_ROI, circular_ROI
-ROI_diameters 					= 12.2, 12.2, 12.2, 12.2, 12.2, 12.2, 12.2, 12.2
-ROI_selection_radii 			= 3.5, 4, 6
-ROI_profile_radius_beyond_ROI 	= 8														
-bulk_material 					= epoxy
-ROI_label_nicknames				= AirB, AirT, PMP, LDPE, Poly, Acr, Del, Tef
