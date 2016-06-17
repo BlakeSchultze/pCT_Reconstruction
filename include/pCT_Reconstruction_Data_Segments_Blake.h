@@ -35,6 +35,7 @@
 #include "sys/types.h"	// stat f
 #include "sys/stat.h"	// stat functions
 #include <typeinfo>		//operator typeid
+#include <unordered_map>
 #include <utility>		// for std::move
 #include <vector>
 
@@ -332,7 +333,7 @@ const bool WRITE_MLP_TABLES		= false;								// Write angles for each proton thr
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 #define THREADS_PER_BLOCK		1024									// [#] # of threads per GPU block for preprocessing kernels
 #define ENDPOINTS_PER_BLOCK 	320										// [#] # of threads per GPU block for collect_MLP_endpoints_GPU kernel
-#define HISTORIES_PER_BLOCK 	640									// [#] # of threads per GPU block for block_update_GPU kernel
+#define HISTORIES_PER_BLOCK 	320									// [#] # of threads per GPU block for block_update_GPU kernel
 #define ENDPOINTS_PER_THREAD 	1										// [#] # of MLP endpoints each thread is responsible for calculating in collect_MLP_endpoints_GPU kernel
 #define HISTORIES_PER_THREAD 	1										// [#] # of histories each thread is responsible for in MLP/DROP kernel block_update_GPU
 #define VOXELS_PER_THREAD 		1										// [#] # of voxels each thread is responsible for updating for reconstruction image initialization/updates
@@ -954,6 +955,9 @@ unsigned int NUM_RUN_ARGUMENTS;
 char** RUN_ARGUMENTS;
 char* CONFIG_DIRECTORY;
 std::map<std::string, unsigned int> EXECUTION_LOG_SWITCHMAP;
+std::map<unsigned int, std::string> MAP_int_2_string;
+	std::map<std::string, unsigned int> MAP_string_2_int;
+  
 bool CONTINUOUS_DATA = false;
 unsigned int PHANTOM_NAME_SIZE;
 unsigned int DATA_SOURCE_SIZE;
@@ -1733,10 +1737,10 @@ struct configurations
 	bool direct_image_reconstruction;
 	bool mlp_file_exists;
 	bool mlp_endpoints_file_exists;
-	char input_directory[100];//   	= "//home//karbasip//";
-	char output_directory[100];//  	= "//home//karbasip//";
-	char input_folder[100];//	 	= "input_CTP404_4M";
-	char output_folder[100];//     	= "cuda_test";
+	char input_directory[256];//   	= "//home//karbasip//";
+	char output_directory[256];//  	= "//home//karbasip//";
+	char input_folder[256];//	 	= "input_CTP404_4M";
+	char output_folder[256];//     	= "cuda_test";
 	bool binary_encoding;									// input data provided in binary (t) encoded files or asci text files (f)
 	bool single_data_file;									// individual file for each gantry angle (t) or single data file for all data (f)
 	bool ssd_in_mm;									// ssd distances from rotation axis given in mm (t) or cm (f)
@@ -1822,11 +1826,15 @@ struct configurations
 	int iterations;									// # of iterations through the entire set of histories to perform in iterative image reconstruction
 	bool ignore_short_mlp;									// remove proton histories with short mlp paths from use in reconstruction (on) or not (off)
 	int min_mlp_length;									// minimum # of intersections required to use in reconstruction so proton's skimming object are ignored
+	//float x_0_air_threshold;
+	//float x_n_air_threshold;
 	bool bound_image;									// if any voxel in the image exceeds 2.0, set it to exactly 2.0
 	bool s_curve_on;									// turn on application of s-curve scaling of updates of voxels near the boundary
 	float sigmoid_steepness;								// scaling factor 'k' of logistic curve: 1 / (1 + exp[k(logistic_mid_shift - voxel)])
 	int sigmoid_mid_shift;									// x-coordinate where the signoid curve is half of its maximum value
 	bool dual_sided_s_curve;									// apply a single-sided (off) or double-sided (on) s-curve attenuation of voxel update values
+	
+	
 	bool tvs_on;									// perform total variation superiorization (tvs) during reconstruction
 	bool tvs_first;									// perform tvs before (on) or after (off) feasibility seeking during reconstruction
 	bool tvs_parallel;									// use the sequential (off) or parallel (on) implementation of tvs
