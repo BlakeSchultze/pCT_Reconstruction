@@ -134,6 +134,8 @@ enum LOG_ENTRIES			{ OBJECT_L, SCAN_TYPE_L, RUN_DATE_L, RUN_NUMBER_L,											
 enum CODE_SOURCES			{ LOCAL, GLOBAL, USER_HOME, GROUP_HOME, END_CODE_SOURCES						};				// Define the data formats that are supported
 enum HISTORY_ORDERING		{ SEQUENTIAL, PRIME_PERMUTATION, END_HISTORY_ORDERING							};				// Define the data formats that are supported
 enum BLOCK_ORDERING			{ CYCLIC, ROTATE_LEFT, ROTATE_RIGHT, RANDOMLY_SHUFFLE, END_BLOCK_ORDERING					};				// Define the data formats that are supported
+enum GIT_ACCOUNTS			{ PCT, BLAKE, BAYLOR, END_GIT_ACCOUNTS							};				// Define the data formats that are supported
+enum GIT_REPOS				{ RECON, PREPROCESSING, TOOLS, DOCS, GEANT4, END_GIT_REPOS};				// Define the data formats that are supported
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //----------------------------------------------------------------------- Struct definitions and global variable instantiations ----------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -181,6 +183,8 @@ const ROBUST_METHODS		ROBUST_METHOD			= TIKHONOV;						// Specifies robust metho
 const CODE_SOURCES			CODE_SOURCE				= LOCAL;						// Specify the random number generator engine to use
 const HISTORY_ORDERING		RECON_HISTORY_ORDERING	= SEQUENTIAL;
 const BLOCK_ORDERING		DROP_BLOCK_ORDER		= CYCLIC;
+const GIT_ACCOUNTS			GIT_ACCOUNT				= BLAKE;
+const GIT_REPOS				GIT_REPO				= RECON;
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //-------------------------------------------------------------------------------- Execution and early exit options ----------------------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -199,7 +203,7 @@ const bool EXIT_AFTER_FBP				= false;									// Exit program early after comple
 const bool EXIT_AFTER_X_O				= false;									// Exit program early after completing FBP
 const bool CLOSE_AFTER_EXECUTION		= true;										// Exit program early after completing FBP
 const bool DEBUG_TEXT_ON				= true;										// Provide (T) or suppress (F) print statements to console during execution
-const bool PRINT_ALL_PATHS				= false;
+const bool PRINT_ALL_PATHS				= true;
 const bool PRINT_CHMOD_CHANGES_ONLY		= false;
 
 const bool OVERWRITING_OK				= false;									// Allow output to 
@@ -528,12 +532,13 @@ std::string workstation_2_hostname	( "tardis-student2.ecs.baylor.edu"	);	// Host
 const char BAYLOR_USERNAME[]		= "schultzeb";											// User name on Baylor/ECS accounts
 const char KODIAK_USERNAME[]		= "schultze";											// User name on Kodiak/Tardis cluster head/compute nodes
 const char TARDIS_USERNAME[]		= "schultze";											// User name on Kodiak/Tardis cluster head/compute nodes
-const char RECON_GROUP_HOME_DIR[]	= "recon";											// User name on Kodiak/Tardis cluster head/compute nodes
-const char RECON_GROUP_USERNAME[]	= "ionrecon";											// User name on Kodiak/Tardis cluster head/compute nodes
-const char GIT_ACCOUNT[]			= "BlakeSchultze";											// User name on Kodiak/Tardis cluster head/compute nodes
-const char GIT_REPOSITORY[]			= "pCT_Reconstruction";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char CURRENT_GIT_ACCOUNT[]			= "BlakeSchultze";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char BLAKE_GIT_ACCOUNT[]		= "BlakeSchultze";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char BAYLOR_GIT_ACCOUNT[]		= "BaylorICTHUS";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char PCT_GIT_ACCOUNT[]		= "pCT-collaboration";											// User name on Kodiak/Tardis cluster head/compute nodes
+const char CURRENT_GIT_REPOSITORY[]			= "pCT_Reconstruction";											// User name on Kodiak/Tardis cluster head/compute nodes
 const char RECON_PROGRAM_NAME[]		= "pCT_Reconstruction";									// Name of pCT reconstruction program
-const char RECON_GROUP_NAME[]		= "recon";												// Name of pCT reconstruction program
+const char RECON_GROUP_NAME[]		= "ionrecon";												// Name of pCT reconstruction program
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
 //------------------------------------------------------------ Input/Output data folder names/paths associated with pCT data format ------------------------------------------------------------------/
 //----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------/
@@ -878,7 +883,7 @@ const int MAX_ITERATIONS			= 15;										// [#] Max # of feasibility seeking it
 #define LIGHT_GRAY_TEXT			"0;37"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
 #define WHITE_TEXT				"1;37"									// [string] Integer encoding of 'cyan' text color used in printing colored text to stdout (console window)
 #define GRAY_BACKGROUND			"5;40"									// [string] Integer encoding of 'black' text color used in printing colored text to stdout (console window)
-#define BLACK_BACKGROUND		"6;40"									// [string] Integer encoding of 'black' text color used in printing colored text to stdout (console window)
+#define BLACK_BACKGROUND		"40"									// [string] Integer encoding of 'black' text color used in printing colored text to stdout (console window)
 #define LIGHT_RED_BACKGROUND	"5;41"									// [string] Integer encoding of 'red' text color used in printing colored text to stdout (console window)
 #define RED_BACKGROUND			"6;41"									// [string] Integer encoding of 'red' text color used in printing colored text to stdout (console window)
 #define LIGHT_GREEN_BACKGROUND	"5;42"									// [string] Integer encoding of 'green' text color used in printing colored text to stdout (console window)
@@ -1048,25 +1053,29 @@ char PCT_DATA_DIR_SET[256];
 char PCT_ORG_DATA_DIR_SET[256];
 char PCT_RECON_DIR_SET[256];
 char PCT_CODE_PARENT_SET[256];
+char PCT_GIT_CODE_PARENT_SET[256];
 char PCT_RCODE_PARENT_SET[256];
 char PCT_GIT_RCODE_PARENT_SET[256];
 char TARDIS_DATA_DIR_SET[256];
 char TARDIS_ORG_DATA_DIR_SET[256];
 char TARDIS_RECON_DIR_SET[256];
+char TARDIS_GIT_CODE_PARENT_SET[256];
 char TARDIS_CODE_PARENT_SET[256];
 char TARDIS_RCODE_PARENT_SET[256];
 char TARDIS_GIT_RCODE_PARENT_SET[256];
-char SHARED_HOME_DIR_SET[256];
-char SHARED_DATA_DIR_SET[256];
-char SHARED_ORG_DATA_DIR_SET[256];
-char SHARED_RECON_DIR_SET[256];
-char SHARED_CODE_PARENT_SET[256];
-char SHARED_RCODE_PARENT_SET[256];
-char SHARED_GIT_RCODE_PARENT_SET[256];
+char RECON_GROUP_HOME_DIR_SET[256];
+char RECON_GROUP_DATA_DIR_SET[256];
+char RECON_GROUP_ORG_DATA_DIR_SET[256];
+char RECON_GROUP_RECON_DIR_SET[256];
+char RECON_GROUP_GIT_CODE_PARENT_SET[256];
+char RECON_GROUP_CODE_PARENT_SET[256];
+char RECON_GROUP_RCODE_PARENT_SET[256];
+char RECON_GROUP_GIT_RCODE_PARENT_SET[256];
 char MY_HOME_DIR_SET[256];
 char MY_DATA_DIR_SET[256];
 char MY_ORG_DATA_DIR_SET[256];
 char MY_RECON_DIR_SET[256];
+char MY_GIT_CODE_PARENT_SET[256];
 char MY_CODE_PARENT_SET[256];
 char MY_RCODE_PARENT_SET[256];
 char MY_GIT_RCODE_PARENT_SET[256];
@@ -1329,7 +1338,7 @@ static struct option long_options[] =
     {"run_on", required_argument, NULL, 18},
     {"testing_on", required_argument, NULL, 19},
     {"block_testing_on", required_argument, NULL, 20},
-    {"s_curve_testing_on", required_argument, NULL, 21},
+	{"s_curve_testing_on", required_argument, NULL, 21},
     {"ntvs_testing_on", required_argument, NULL, 22},
     {"overwritting_ok", required_argument, NULL, 23},
     {"exit_after_binning", required_argument, NULL, 24},
