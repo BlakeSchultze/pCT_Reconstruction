@@ -1,26 +1,28 @@
-C:\Program Files (x86)\Microsoft Visual Studio 10.0\Common7\IDE\usertype.dat
-string
-vector
-map
-ofstream
-ifstream
+/******************************** Standard C/C++ data types *******************************/
 FILE
-ULL
-UINT
-uint
-clock_t
+typedef
+// CUDA C/C++ data types
 dim3
 cudaError_t
-generic_IO_container
-configurations
 __global__
 __device__
 __shared__
 __local__
 __constant__
+/******************* User defined data type aliases (typedefs), structs *******************/
+ULL
+UINT
+uint
+structural_element_ptr
+/********************************** User defined structs **********************************/
+generic_IO_container
+configurations
+/*********************************** User defined enums ***********************************/
 DATA_FORMATS
 RAND_GENERATORS
+IMAGE_BASES
 DISK_WRITE_MODE
+FILE_TYPES
 BIN_ANALYSIS_TYPE
 BIN_ANALYSIS_FOR
 BIN_ORGANIZATION
@@ -30,12 +32,16 @@ SCAN_TYPES
 HULL_TYPES
 FILTER_TYPES
 X_0_TYPES
+S_CURVES
 INITIAL_ITERATE
+ROBUST_METHODS
 PROJECTION_ALGORITHMS
 TX_OPTIONS
 ENDPOINTS_ALGORITHMS
 MLP_ALGORITHMS
 RECON_ALGORITHMS
+MORPHOLOGICAL_OPS
+STRUCTURAL_ELEMENTS
 CONFIG_OBJECT
 CONFIG_LINE
 LOG_ENTRIES

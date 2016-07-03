@@ -11,3 +11,11 @@
 *.lai
 *.la
 *.a
+
+# Text files
+*.hidden
+#*.bak #Notepad++ backup files
+# Visual Studio Files
+
+# Folders
+\nppBackup
